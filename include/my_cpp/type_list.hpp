@@ -1,31 +1,14 @@
-#ifndef _TYPE_LIST_HPP_
-#define _TYPE_LIST_HPP_
+#ifndef __TYPE_LIST_HPP__
+#define __TYPE_LIST_HPP__
 
 #include <tuple>
 #include <type_traits>
 #include <concepts>
 
-/*
-    size  -> return size of type list
-    empty -> whether the list is empty
-    push_front -> remove first type from type list
-    front   -> get first type from type list
-    pop_front -> remove first element from list
-    max_type -> return max type
-    min_type -> return min type
-    reverse -> reverse types in list
-    push_back  -> add a new type to the last of type list
-    pop_back -> remove last type from list
-    back -> get last type from type list
-    find_first_index_of -> ......
-    insert_sort -> sorting list
-    unique -> remove duplicate types in list
-    make_type_list -> return tuple
-    make_container -> return tuple
 
-*/
-
-namespace leviathan::meta {
+// Here are some optional for type list
+namespace leviathan::meta
+{
 
 // using empty_list = std::tuple<>;
 
@@ -45,7 +28,9 @@ struct accept_parameters_from_type_list<TemplateClass, std::tuple<Types...>> {
     using type = TemplateClass<Types...>;
 };
 
-// --------------type_size-----------------
+
+// --------------size-----------------
+// return the size of type list
 template <typename... Ts>
 struct size : size<std::tuple<Ts...>> { };
 
@@ -53,14 +38,18 @@ template <typename... Types>
 struct size<std::tuple<Types...>>
     : std::integral_constant<size_t, sizeof...(Types)> {};
 
+
 // ------------------front---------------------------
+// return the first type of type list
 template <typename...   Ts>
 struct front : front<std::tuple<Ts...>> { };
 
 template <typename List, typename... Types>
 struct front<std::tuple<List, Types...>> : std::enable_if<true, List> {};
 
+
 // ------------------type_empty------------------------------
+// return whether the type list is empty
 template <typename... Ts>
 struct empty : empty<std::tuple<Ts...>> { };
 
@@ -70,7 +59,8 @@ struct empty<std::tuple<Types...>>
                          std::false_type> {};
 
 
-
+// ------------------push_front-----------------------
+// add some types in the front type list
 template <typename List, typename... Ts>
 struct push_front : push_front<List, std::tuple<Ts...>> { };
 
@@ -79,7 +69,8 @@ struct push_front<std::tuple<Ts...>, std::tuple<Ts1...>>
     : std::enable_if<true, std::tuple<Ts1..., Ts...>> { };
 
 
-// pop the first type of list
+//pop the first type of list
+// remove the first type of type list
 template <typename... Ts>
 struct pop_front : pop_front<std::tuple<Ts...>> { };
 
@@ -87,6 +78,80 @@ template <typename T, typename... Types>
 struct pop_front<std::tuple<T, Types...>>
     : std::enable_if<true, std::tuple<Types...>> {};
 
+
+// get the Index type of Ts
+template <size_t Index, typename... Ts>
+struct index_of : index_of<Index, std::tuple<Ts...>> { };
+
+template <typename T, typename... Types>
+struct index_of<0, std::tuple<T, Types...>> : std::enable_if<true, T> {};
+
+template <size_t Index, typename T1, typename T2, typename... Types>
+struct index_of<Index, std::tuple<T1, T2, Types...>>
+    : index_of<Index - 1, std::tuple<T2, Types...>> {};
+
+
+// return the last type of type list
+template <typename... Ts>
+struct back : back<std::tuple<Ts...>> { };
+
+template <typename T>
+struct back<std::tuple<T>> : std::enable_if<true, T> {};
+
+template <typename T, typename... Types>
+struct back<std::tuple<T, Types...>> : back<std::tuple<Types...>> {};
+
+namespace detail 
+{
+// another way in c++17 to implement back with O(1) instantiation depth
+template <typename... Types>
+struct select_last 
+{
+    using type = typename decltype((std::enable_if<true, Types>{}, ...))::type;
+};
+
+}  // namespace detail
+
+// add type at the last position 
+template <typename List, typename... Ts>
+struct push_back : push_back<List, std::tuple<Ts...>> { };
+
+template <typename... Ts, typename... Ts1>
+struct push_back<std::tuple<Ts...>, std::tuple<Ts1...>>
+    : std::enable_if<true, std::tuple<Ts..., Ts1...>> { };
+
+
+// remove the last type in type list
+template <typename... Ts>
+struct pop_back : pop_back<std::tuple<Ts...>> { };
+
+namespace detail {
+template <typename List1, typename List2>
+struct pop_back_helper;
+
+template <typename... Types1, typename... Types2, typename T1, typename T2>
+struct pop_back_helper<std::tuple<Types1...>, std::tuple<T1, T2, Types2...>>
+    : pop_back_helper<std::tuple<Types1..., T1>, std::tuple<T2, Types2...>> {};
+
+template <typename... Types, typename T>
+struct pop_back_helper<std::tuple<Types...>, std::tuple<T>>
+    : std::enable_if<true, std::tuple<Types...>> {};
+
+}  // namespace detail
+template <typename... Types>
+struct pop_back<std::tuple<Types...>>
+    : detail::pop_back_helper<std::tuple<>, std::tuple<Types...>> {};
+
+
+
+
+}  // namespace leviathan::meta
+
+
+
+// Here are some algorithm based on type list
+namespace leviathan::meta
+{
 // max type
 template <typename... Ts>
 struct max_type : max_type<std::tuple<Ts...>> { };
@@ -113,17 +178,10 @@ struct min_type<std::tuple<T1, T2, Types...>>
                          min_type<std::tuple<T1, Types...>>,
                          min_type<std::tuple<T2, Types...>>> {};
 
-template <size_t Index, typename... Ts>
-struct index_of : index_of<Index, std::tuple<Ts...>> { };
 
-template <typename T, typename... Types>
-struct index_of<0, std::tuple<T, Types...>> : std::enable_if<true, T> {};
 
-template <size_t Index, typename T1, typename T2, typename... Types>
-struct index_of<Index, std::tuple<T1, T2, Types...>>
-    : index_of<Index - 1, std::tuple<T2, Types...>> {};
-
-namespace detail {
+namespace detail 
+{
 template <typename List1, typename List2>
 struct reverse_helper;
 
@@ -137,6 +195,7 @@ struct reverse_helper<std::tuple<>, std::tuple<Types...>>
 
 }  // namespace detail
 
+// reverse types in type list
 template <typename... Ts>
 struct reverse : reverse<std::tuple<Ts...>> { };
 
@@ -147,58 +206,13 @@ template <typename T1, typename T2, typename... Types>
 struct reverse<std::tuple<T1, T2, Types...>>
     : detail::reverse_helper<std::tuple<T2, Types...>, std::tuple<T1>> {};
 
-template <typename... Ts>
-struct back : back<std::tuple<Ts...>> { };
-
-template <typename T>
-struct back<std::tuple<T>> : std::enable_if<true, T> {};
-
-template <typename T, typename... Types>
-struct back<std::tuple<T, Types...>> : back<std::tuple<Types...>> {};
-
-namespace detail {
-// another way in c++17 to implement back with O(1) instantiation depth
-template <typename... Types>
-struct select_last {
-    using type = typename decltype((std::enable_if<true, Types>{}, ...))::type;
-};
-
-}  // namespace detail
-
-
-template <typename List, typename... Ts>
-struct push_back : push_back<List, std::tuple<Ts...>> { };
-
-template <typename... Ts, typename... Ts1>
-struct push_back<std::tuple<Ts...>, std::tuple<Ts1...>>
-    : std::enable_if<true, std::tuple<Ts..., Ts1...>> { };
-
-
-template <typename... Ts>
-struct pop_back : pop_back<std::tuple<Ts...>> { };
-
-namespace detail {
-template <typename List1, typename List2>
-struct pop_back_helper;
-
-template <typename... Types1, typename... Types2, typename T1, typename T2>
-struct pop_back_helper<std::tuple<Types1...>, std::tuple<T1, T2, Types2...>>
-    : pop_back_helper<std::tuple<Types1..., T1>, std::tuple<T2, Types2...>> {};
-
-template <typename... Types, typename T>
-struct pop_back_helper<std::tuple<Types...>, std::tuple<T>>
-    : std::enable_if<true, std::tuple<Types...>> {};
-
-}  // namespace detail
-template <typename... Types>
-struct pop_back<std::tuple<Types...>>
-    : detail::pop_back_helper<std::tuple<>, std::tuple<Types...>> {};
 
 // find the first type in Typeist
 template <typename List, typename TargetType>
 struct find_first_index_of;
 
-namespace detail {
+namespace detail 
+{
     template <size_t Index, typename List, typename TargetType>
     struct find_first_index_of_helper;
 
@@ -214,16 +228,13 @@ namespace detail {
     template <size_t Index, typename TargetType>
     struct find_first_index_of_helper<Index, std::tuple<>, TargetType>
         : std::integral_constant<size_t, npos> { };
-}
+}  // namespace detail
 
 template <typename... Types, typename TargetType>
 struct find_first_index_of<std::tuple<Types...>, TargetType> 
     : detail::find_first_index_of_helper<0, std::tuple<Types...>, TargetType> { };
 
-// constexpr auto a = find_first_index_of<std::tuple<int, double, bool>, int>::value;
-// constexpr auto b = find_first_index_of<std::tuple<int, double, bool>, double>::value;
-// constexpr auto c = find_first_index_of<std::tuple<int, double, bool>, bool>::value;
-// constexpr auto d = find_first_index_of<std::tuple<int, double, bool>, char>::value;
+
 
 // insert sort
 namespace detail 
@@ -315,50 +326,6 @@ struct insert_sort<std::tuple<Ts...>> : detail::insert_sort_impl<std::tuple<>, s
     static_assert(std::is_same_v<std::tuple<char, bool, short, int, double, foo>, T6>);
 */
 
-}  // namespace leviathan::meta
-
-
-namespace leviathan::meta
-{
-template <typename... Types>
-struct make_type_list : std::type_identity<std::tuple<Types...>> { };
-
-template <template <typename...Args> typename Container, typename... Parameters>
-struct make_type_list<Container<Parameters...>>
-    : std::type_identity<std::tuple<Parameters...>> { };
-
-namespace detail 
-{
-template <template <typename...> typename Container, typename ParamethersPack>
-struct container_enter_traits;
-
-template <template <typename...> typename Container, typename... Parameters>
-struct container_enter_traits<Container, std::tuple<Parameters...>>
-    : std::type_identity<Container<Parameters...>> { };
-
-} // namespace detail
-
-template <template <typename...> typename Container, typename... Args>
-struct make_container : std::type_identity<Container<Args...>> { };
-
-/*
-    make_type_list<std::vector<int>>::type a;
-    make_container<std::tuple, int, double, bool>::type c;
-    make_container<std::tuple>::type d;
-*/
-
-template <typename List>
-struct add_lvalue_reference;
-
-template <typename... Ts>
-struct add_lvalue_reference<std::tuple<Ts...>> 
-    : std::enable_if<true, std::tuple<std::add_lvalue_reference_t<Ts>...>> { };
-
-template <typename List>
-using add_lvalue_reference_t = typename add_lvalue_reference<List>::type;
-
-
-
 namespace detail
 {
 
@@ -392,7 +359,7 @@ struct unique<std::tuple<Ts...>>
 */
 
 /*
-    2020/12/14 -- specialize variadic parameters  for basic template meta
+    2020/12/14 -- specialize variadic parameters for basic template meta
     constexpr auto size = leviathan::type::size<int, double>::value;
     using F1 = leviathan::type::front<int, double, char>::type;
     using F2 = leviathan::type::pop_front<int, double, char>::type;
@@ -417,4 +384,4 @@ struct transform<Func, std::tuple<Args...>>
 } // namespace leviathan::meta
 
 
-#endif
+#endif // __TYPE_LIST_HPP__
