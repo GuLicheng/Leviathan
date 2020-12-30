@@ -83,13 +83,13 @@ public:
     // using value_type_reference = leviathan::type::add_lvalue_reference_t<element_type>;
 
 
-    zip_iterator(Rng1& rng1, Rngs&... rngs) 
+    constexpr zip_iterator(Rng1& rng1, Rngs&... rngs) 
         : m_data{std::ranges::begin(rng1), std::ranges::begin(rngs)...} /* , m_sentry{std::ranges::end(rng1)} */
     {
         // std::cout << "address of first element is: " << &*std::get<0>(m_data) << std::endl; 
     }
 
-    zip_iterator(Rng1& rng1)
+    constexpr zip_iterator(Rng1& rng1)
     {
         std::get<0>(m_data) = std::ranges::end(rng1);
     }
@@ -103,7 +103,7 @@ public:
         // std::cout << *std::get<2>(m_data) << std::endl;
     }
 
-    self& operator++() noexcept
+    constexpr self& operator++() noexcept
     {
         auto get_item = []<typename... Iter>(Iter&... iter)
         {
@@ -115,14 +115,14 @@ public:
         return *this;
     }
 
-    self operator++(int) noexcept
+    constexpr self operator++(int) noexcept
     {
         auto old = *this;
         ++ *this;
         return old;   
     }
 
-    element_type
+    constexpr element_type
     operator*() noexcept
     {
         constexpr auto Size = std::tuple_size_v<value_type>;
@@ -131,7 +131,7 @@ public:
     }
 
     // typename TransFormForTuple<element_type>::type
-    element_type
+    constexpr element_type
     operator*() const noexcept
     {
         constexpr auto Size = std::tuple_size_v<value_type>;
@@ -139,14 +139,14 @@ public:
             std::make_index_sequence<Size>());
     }
 
-    bool operator==(const self& rhs) const noexcept 
+    constexpr bool operator==(const self& rhs) const noexcept 
     {
         // std::cout << "sdasd" << (std::get<0>(m_data) == rhs.m_sentry) << std::endl;
         return std::get<0>(m_data) == std::get<0>(rhs.m_data);
     }
 
 
-    bool operator!=(const self& rhs) const noexcept 
+    constexpr bool operator!=(const self& rhs) const noexcept 
     {
         return !(this->operator==(rhs));
     }
@@ -158,7 +158,7 @@ private:
     value_type m_data;
 
     template <size_t... Idx>
-    element_type
+    constexpr element_type
     dereference_impl(std::index_sequence<Idx...>)
     {
         // std::cout << *std::get<0>(m_data) << '-' << *std::get<1>(m_data) << '-' << *std::get<2>(m_data) << std::endl;
@@ -169,14 +169,14 @@ private:
 
 
 template <std::ranges::range... Ts>
-auto zip_begin(Ts&&... rngs)
+constexpr auto zip_begin(Ts&&... rngs)
 {
     // the lifetime of rngs must not be temperory
     return zip_iterator<std::remove_reference_t<Ts>...>(std::forward<Ts>(rngs)...);
 }
 
 template <std::ranges::range T1, std::ranges::range... Ts>
-auto zip_end(T1&& rng1, Ts&&... rngs)
+constexpr auto zip_end(T1&& rng1, Ts&&... rngs)
 {
     return zip_iterator<std::remove_reference_t<T1>, 
                         std::remove_reference_t<Ts>...>

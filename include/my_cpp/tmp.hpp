@@ -105,8 +105,7 @@ namespace detail
 {
 // another way in c++17 to implement back with O(1) instantiation depth
 template <typename... Types>
-struct select_last 
-{
+struct select_last {
     using type = typename decltype((std::enable_if<true, Types>{}, ...))::type;
 };
 
@@ -150,7 +149,7 @@ struct pop_back<std::tuple<Types...>>
 
 
 // Here are some algorithm based on type list
-namespace leviathan::meta
+namespace levviathan::meta
 {
 // max type
 template <typename... Ts>
@@ -380,71 +379,8 @@ struct transform<Func, std::tuple<Args...>>
     using type = std::tuple<typename Func<Args>::type ...>;
 };
 
+
 } // namespace leviathan::meta
-
-
-// for function_traits
-namespace leviathan::meta
-{
-
-namespace detail
-{
-    
-template <typename R, typename... Args>
-struct function_traits_impl
-{
-    static constexpr auto argc = sizeof...(Args);
-
-    using return_type = R;
-
-    using args = std::tuple<Args...>;
-
-    template <std::size_t N>
-    using nth_arg = std::tuple_element_t<N, std::tuple<Args...>>;
-};
-
-} // namespace detail
-
-template <typename T>
-struct function_traits;
-
-// int(*)(int, int)
-template <typename R, typename... Args>
-struct function_traits<R(*)(Args...)> : detail::function_traits_impl<R, Args...> { };
-
-// int(&)(int, int)
-template <typename R, typename... Args>
-struct function_traits<R(&)(Args...)> : detail::function_traits_impl<R, Args...> { };
-
-// int(int, int)
-template <typename R, typename... Args>
-struct function_traits<R(Args...)> : detail::function_traits_impl<R, Args...> { };
-
-// int(int, int) const
-template <typename R, typename... Args>
-struct function_traits<R(Args...) const> : detail::function_traits_impl<R, Args...> { };
-
-
-// lambda
-template <typename ClassType, typename R, typename... Args>
-struct function_traits<R(ClassType::*)(Args...)> : detail::function_traits_impl<R, Args...>
-{
-    using class_type = ClassType;
-};
-
-// lambda const
-template <typename ClassType, typename R, typename... Args>
-struct function_traits<R(ClassType::*)(Args...) const> : detail::function_traits_impl<R, Args...>
-{
-    using class_type = ClassType;
-};
-
-// specialize for operator()
-template <typename T>
-struct function_traits : function_traits<decltype(&T::operator())> {};
-
-} // leviathan::meta
-
 
 
 #endif // __TYPE_LIST_HPP__
