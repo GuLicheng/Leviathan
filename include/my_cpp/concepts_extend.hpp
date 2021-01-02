@@ -28,9 +28,11 @@
 // ::std::tuple is in ::std domain
 
 // helper / detail namespace 
-namespace leviathan {
+namespace leviathan 
+{
 
-namespace detail {
+namespace detail 
+{
 
 // basic_string ... begin
 template <typename T>

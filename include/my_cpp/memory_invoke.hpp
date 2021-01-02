@@ -2,8 +2,7 @@
 #define __MEMORY_INVOKE_HPP__
 
 
-#if defined(__GNUC__) || defined(__clang__)
-// I don't know whether clang support all gnu extends
+#if defined(__GNUC__)
 #define GNU_EXTEND_AVALIABLE 
 #endif
 

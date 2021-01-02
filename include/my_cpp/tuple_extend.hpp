@@ -6,32 +6,31 @@
 #include "type_list.hpp"
 #include "concepts_extend.hpp"
 
-namespace leviathan {
+namespace leviathan 
+{
 
 CreateTemplateConcepts(tuple, tuple_concept, ::std);
-CreateTemplateConcepts(pair, pair_concept, ::std);
 
-namespace detail {
+
+namespace detail 
+{
 // print tuple
 template <typename _Tuple, size_t... Idx>
-void tuple_print_helper(std::ostream& os, _Tuple&& t, std::index_sequence<Idx...>) {
+void tuple_print_helper(std::ostream& os, _Tuple&& t, std::index_sequence<Idx...>) 
+{
     ((Idx == 0 ? os << std::get<Idx>(t) : os << ',' << std::get<Idx>(t)), ...);
 }
 
-template <typename T>
-struct tuple_type_triats;
-
-template <template <typename... > typename Tuple, typename... Ts> 
-struct tuple_type_triats<Tuple<Ts...>> {
-	using type = std::tuple<Ts...>;
-};
-
 template <typename... Ts>
-void print_tuple(std::ostream& os, const std::tuple<Ts...>& t) {
+void print_tuple(std::ostream& os, const std::tuple<Ts...>& t) 
+{
     os << '{';
     tuple_print_helper(os, t, std::make_index_sequence<sizeof...(Ts)>());
     os << '}';
-}
+}  // namespace detail
+
+
+
 
 // reverse tuple
 template <tuple_concept Tuple, size_t ...Idx>
@@ -71,9 +70,7 @@ reverse_tuple_helper_by_copy(Tuple&& t, std::index_sequence<Idx...>)
 } // namespace detail
 
 
-
-
-template <tuple_concept Tuple>
+template <typename Tuple>
 inline constexpr auto reverse_tuple_by_move(Tuple&& t)
 {
     constexpr auto size = std::tuple_size_v<std::remove_cvref_t<Tuple>>;
@@ -82,7 +79,8 @@ inline constexpr auto reverse_tuple_by_move(Tuple&& t)
                     std::make_index_sequence<size>());
 }
 
-template <tuple_concept Tuple>
+
+template <typename Tuple>
 inline constexpr auto reverse_tuple_by_copy(Tuple&& t)
 {
     constexpr auto size = std::tuple_size_v<std::remove_cvref_t<Tuple>>;
@@ -91,19 +89,8 @@ inline constexpr auto reverse_tuple_by_copy(Tuple&& t)
                     std::make_index_sequence<size>());
 }
 
-// print std::tuple
-template <tuple_concept Tuple>
-std::ostream& operator<<(std::ostream& os, Tuple&& t) {
-    detail::print_tuple(os, std::forward<Tuple>(t));
-    return os;
-}
 
 
-// print std::pair
-template <pair_concept Pair>
-std::ostream& operator<<(std::ostream& os, Pair&& p) {
-    return os << '{' << p.first << ',' << p.second << '}';
-}
 
 
 } // namespace leviathan

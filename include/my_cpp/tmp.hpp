@@ -6,14 +6,13 @@
 #include <concepts>
 
 
-// Here are some options for type list
+// Here are some optional for type list
 namespace leviathan::meta
 {
 
 // using empty_list = std::tuple<>;
 
 // -------------to_type_list--------------
-// put types into type list
 template <typename... Types>
 struct to_type_list : std::enable_if<true, std::tuple<Types...>> {};
 
@@ -21,51 +20,13 @@ template <template <typename...> typename TemplateClass, typename... Types>
 struct to_type_list<TemplateClass<Types...>>
     : std::enable_if<true, std::tuple<Types...>> {};
 
-
-// -------traits_parameters_from_type_list-------
-// traits types from Container into TemplateClass
 template <template <typename...> typename T, typename...>
-struct traits_parameters_from_type_list;
+struct accept_parameters_from_type_list;
 
-template <template <typename...> typename TemplateClass, 
-        template <typename...> typename Container, typename... Types>
-struct traits_parameters_from_type_list<TemplateClass, Container<Types...>> 
-    : std::enable_if<true, TemplateClass<Types...>> { };
-
-
-
-
-namespace detail
-{
-template <typename... Lists>
-struct concat_impl;
-
-template <template <typename...> typename Container1, template <typename...> typename Container2, 
-                                typename... Ts1, typename... Ts2>
-struct concat_impl<Container1<Ts1...>, Container2<Ts2...>>
-    : std::type_identity<Container1<Ts1..., Ts2...>> { };
-
-
-template <template <typename...> typename Container1, template <typename...> typename Container2, 
-                                typename... Ts1, typename... Ts2, typename... Containers>
-struct concat_impl<Container1<Ts1...>, Container2<Ts2...>, Containers...>
-    : concat_impl<Container1<Ts1..., Ts2...>, Containers...> { };
-
-} // namespace detail
-
-// -------------------------concat-------------------------------
-// traits all types in each typelist into Container
-template <template <typename...> typename Container, typename... Containers>
-struct concat 
-    : std::type_identity
-        <
-            typename ::leviathan::meta::traits_parameters_from_type_list
-            <
-                Container, typename detail::concat_impl<Containers...>::type    
-            >::type
-        > 
-        { }; 
-
+template <template <typename...> typename TemplateClass, typename... Types>
+struct accept_parameters_from_type_list<TemplateClass, std::tuple<Types...>> {
+    using type = TemplateClass<Types...>;
+};
 
 
 // --------------size-----------------
@@ -108,7 +69,7 @@ struct push_front<std::tuple<Ts...>, std::tuple<Ts1...>>
     : std::enable_if<true, std::tuple<Ts1..., Ts...>> { };
 
 
-// -------------pop_front----------------
+//pop the first type of list
 // remove the first type of type list
 template <typename... Ts>
 struct pop_front : pop_front<std::tuple<Ts...>> { };
@@ -117,21 +78,19 @@ template <typename T, typename... Types>
 struct pop_front<std::tuple<T, Types...>>
     : std::enable_if<true, std::tuple<Types...>> {};
 
-// ------------------index_of---------------------
+
 // get the Index type of Ts
 template <size_t Index, typename... Ts>
 struct index_of : index_of<Index, std::tuple<Ts...>> { };
 
-
 template <typename T, typename... Types>
-struct index_of<0, std::tuple<T, Types...>> : 
-    std::type_identity<T> {};
+struct index_of<0, std::tuple<T, Types...>> : std::enable_if<true, T> {};
 
-template <size_t Index, typename T1, typename... Types>
-struct index_of<Index, std::tuple<T1, Types...>>
-    : index_of<Index - 1, std::tuple<Types...>> {};
+template <size_t Index, typename T1, typename T2, typename... Types>
+struct index_of<Index, std::tuple<T1, T2, Types...>>
+    : index_of<Index - 1, std::tuple<T2, Types...>> {};
 
-// -----------------back----------------
+
 // return the last type of type list
 template <typename... Ts>
 struct back : back<std::tuple<Ts...>> { };
@@ -146,14 +105,12 @@ namespace detail
 {
 // another way in c++17 to implement back with O(1) instantiation depth
 template <typename... Types>
-struct select_last 
-{
+struct select_last {
     using type = typename decltype((std::enable_if<true, Types>{}, ...))::type;
 };
 
 }  // namespace detail
 
-// ----------------push_back-------------------
 // add type at the last position 
 template <typename List, typename... Ts>
 struct push_back : push_back<List, std::tuple<Ts...>> { };
@@ -163,13 +120,11 @@ struct push_back<std::tuple<Ts...>, std::tuple<Ts1...>>
     : std::enable_if<true, std::tuple<Ts..., Ts1...>> { };
 
 
-// -------------------------pop_back-------------------------
 // remove the last type in type list
 template <typename... Ts>
 struct pop_back : pop_back<std::tuple<Ts...>> { };
 
-namespace detail 
-{
+namespace detail {
 template <typename List1, typename List2>
 struct pop_back_helper;
 
@@ -182,7 +137,6 @@ struct pop_back_helper<std::tuple<Types...>, std::tuple<T>>
     : std::enable_if<true, std::tuple<Types...>> {};
 
 }  // namespace detail
-
 template <typename... Types>
 struct pop_back<std::tuple<Types...>>
     : detail::pop_back_helper<std::tuple<>, std::tuple<Types...>> {};
@@ -194,11 +148,10 @@ struct pop_back<std::tuple<Types...>>
 
 
 
-// Here are some algorithms based on type list
-namespace leviathan::meta
+// Here are some algorithm based on type list
+namespace levviathan::meta
 {
-// ----------------------max_type-----------------------
-// return the max type in type list
+// max type
 template <typename... Ts>
 struct max_type : max_type<std::tuple<Ts...>> { };
 
@@ -211,8 +164,7 @@ struct max_type<std::tuple<T1, T2, Types...>>
                          max_type<std::tuple<T1, Types...>>,
                          max_type<std::tuple<T2, Types...>>> {};
 
-// ----------------------min_type-----------------------
-// return the min type in type list
+// min type
 template <typename... Ts>
 struct min_type : min_type<std::tuple<Ts...>> { };
 
@@ -242,8 +194,6 @@ struct reverse_helper<std::tuple<>, std::tuple<Types...>>
 
 }  // namespace detail
 
-
-// ------------reverse---------------
 // reverse types in type list
 template <typename... Ts>
 struct reverse : reverse<std::tuple<Ts...>> { };
@@ -256,7 +206,6 @@ struct reverse<std::tuple<T1, T2, Types...>>
     : detail::reverse_helper<std::tuple<T2, Types...>, std::tuple<T1>> {};
 
 
-// --------------find_first_index_of-----------------
 // find the first type in Typeist
 template <typename List, typename TargetType>
 struct find_first_index_of;
@@ -430,71 +379,8 @@ struct transform<Func, std::tuple<Args...>>
     using type = std::tuple<typename Func<Args>::type ...>;
 };
 
+
 } // namespace leviathan::meta
-
-
-// for function_traits
-namespace leviathan::meta
-{
-
-namespace detail
-{
-    
-template <typename R, typename... Args>
-struct function_traits_impl
-{
-    static constexpr auto argc = sizeof...(Args);
-
-    using return_type = R;
-
-    using args = std::tuple<Args...>;
-
-    template <std::size_t N>
-    using nth_arg = std::tuple_element_t<N, std::tuple<Args...>>;
-};
-
-} // namespace detail
-
-template <typename T>
-struct function_traits;
-
-// int(*)(int, int)
-template <typename R, typename... Args>
-struct function_traits<R(*)(Args...)> : detail::function_traits_impl<R, Args...> { };
-
-// int(&)(int, int)
-template <typename R, typename... Args>
-struct function_traits<R(&)(Args...)> : detail::function_traits_impl<R, Args...> { };
-
-// int(int, int)
-template <typename R, typename... Args>
-struct function_traits<R(Args...)> : detail::function_traits_impl<R, Args...> { };
-
-// int(int, int) const
-template <typename R, typename... Args>
-struct function_traits<R(Args...) const> : detail::function_traits_impl<R, Args...> { };
-
-
-// lambda
-template <typename ClassType, typename R, typename... Args>
-struct function_traits<R(ClassType::*)(Args...)> : detail::function_traits_impl<R, Args...>
-{
-    using class_type = ClassType;
-};
-
-// lambda const
-template <typename ClassType, typename R, typename... Args>
-struct function_traits<R(ClassType::*)(Args...) const> : detail::function_traits_impl<R, Args...>
-{
-    using class_type = ClassType;
-};
-
-// specialize for operator()
-template <typename T>
-struct function_traits : function_traits<decltype(&T::operator())> {};
-
-} // leviathan::meta
-
 
 
 #endif // __TYPE_LIST_HPP__

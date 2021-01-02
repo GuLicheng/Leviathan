@@ -14,9 +14,10 @@
 #include "tuple_extend.hpp"
 
 
-namespace leviathan {
+namespace leviathan 
+{
 
-// print STL container (but basic_string)
+// print STL container (but basic_string and basic_string_view)
 template <detail::container Container> requires (!std::is_pointer_v<std::decay_t<Container>>)
 std::ostream& operator<<(std::ostream& os, Container&& c) {
     // using type = typename std::decay_t<Container>::value_type;
@@ -28,6 +29,29 @@ std::ostream& operator<<(std::ostream& os, Container&& c) {
         os << value << ' ';
     }
     return os;
+}
+
+// simply print tuple-like structure
+
+template <typename TupleLike, typename Decay = std::decay_t<TupleLike>>
+concept tuple_like = requires (Decay t)
+{
+    typename std::tuple_size<Decay>::type;
+};
+
+
+template <tuple_like T> 
+std::ostream& operator<<(std::ostream& os, T&& t)
+{
+    auto printer = []<typename _Tuple, size_t... Idx>
+    (std::ostream& os, _Tuple&& t, std::index_sequence<Idx...>) -> std::ostream&
+    {
+        os << "{";
+        ((Idx == 0 ? os << std::get<Idx>(t) : os << ',' << std::get<Idx>(t)), ...);
+        return os << "}";
+    };
+    constexpr auto Size = std::tuple_size_v<std::decay_t<T>>;
+    return printer(os, std::forward<T>(t), std::make_index_sequence<Size>());
 }
 
 
