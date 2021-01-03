@@ -59,6 +59,18 @@ int main()
                                  typename meta::concat<std::variant, std::variant<int>, std::tuple<int>>::type>);
 
 
+    static_assert(std::is_same_v<
+            typename meta::flatten<std::tuple, std::variant<std::pair<int, double>, std::tuple<>>>::type,
+            std::tuple<int, double>>);
+
+    static_assert(std::is_same_v<
+            typename meta::flatten<std::variant, std::pair<int, int>, std::variant<double>, std::tuple<bool>>::type,
+                                    std::variant<int, int, double, bool>>);
+
+    static_assert(std::is_same_v<
+        typename meta::flatten<std::tuple, std::variant<int, double, bool>, char, float>::type,
+                                std::tuple<int, double, bool, char, float>>);
+
     std::cout << "Test Successfully\n";
 
 }
