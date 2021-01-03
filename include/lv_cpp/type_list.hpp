@@ -67,6 +67,35 @@ struct concat
         { }; 
 
 
+namespace detail
+{
+template <typename List, typename... Ts>
+struct flatten_impl;
+
+template <template <typename...> typename Container, typename... Ts>
+struct flatten_impl<Container<Ts...>> : std::type_identity<Container<Ts...>> { };
+
+template <template <typename...> typename Container, template <typename...> typename TemplateClass, typename... Ts1, typename... Ts2, typename... Ts>
+struct flatten_impl<Container<Ts1...>, TemplateClass<Ts2...>, Ts...>
+    : flatten_impl<Container<Ts1...>, Ts2..., Ts...> { };
+
+template <template <typename...> typename Container, typename... Ts1, typename T, typename... Ts>
+struct flatten_impl<Container<Ts1...>, T, Ts...>
+    : flatten_impl<Container<Ts1..., T>, Ts...> { };
+
+} // namespace detail
+
+// --------------------flatten------------------------
+// traits all types in Ts if Ts is a container(template class) and add all types into Container
+template <template <typename...> typename Container, typename... Ts>
+struct flatten : detail::flatten_impl<Container<>, Ts...> { };
+/*
+    using T = variant<pair<int, tuple<int, double, bool, pair<int, tuple<>>>>>;
+    you can view T as ((int, (int, double, bool), (int, ())))
+    afther remove all template class and traits types of them:
+    flatten<T>::type -> (int, int, double, bool, int) 
+*/
+
 
 // --------------size-----------------
 // return the size of type list
