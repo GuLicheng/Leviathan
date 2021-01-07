@@ -2,8 +2,8 @@
     this header provide some macro for getting the type of instance
 */
 
-#ifndef _TEMPLATE_INFO_HPP_
-#define _TEMPLATE_INFO_HPP_
+#ifndef __TEMPLATE_INFO_HPP__
+#define __TEMPLATE_INFO_HPP__
 
 #include <string_view>
 

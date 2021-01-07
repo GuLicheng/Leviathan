@@ -40,6 +40,9 @@ namespace detail
 template <typename... Lists>
 struct concat_impl;
 
+template <typename T>
+struct concat_impl<T> : std::type_identity<std::tuple<T>> { };
+
 template <template <typename...> typename Container1, template <typename...> typename Container2, 
                                 typename... Ts1, typename... Ts2>
 struct concat_impl<Container1<Ts1...>, Container2<Ts2...>>
@@ -92,7 +95,7 @@ struct flatten : detail::flatten_impl<Container<>, Ts...> { };
 /*
     using T = variant<pair<int, tuple<int, double, bool, pair<int, tuple<>>>>>;
     you can view T as ((int, (int, double, bool), (int, ())))
-    afther remove all template class and traits types of them:
+    after remove all template class and traits types of them:
     flatten<T>::type -> (int, int, double, bool, int) 
 */
 

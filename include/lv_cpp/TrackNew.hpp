@@ -1,3 +1,6 @@
+/*
+	This header only avaliable for Visual Studio in Windows(may avaliable for Linux)
+*/
 #pragma once
 #ifndef TRACKNEW_HPP 
 #define TRACKNEW_HPP 
@@ -66,7 +69,7 @@ public:
 		return p;
 	}
 
-	static void statue() {
+	static void status() {
 		printf("%d allocations for %zu bytes\n", numMalloc, sumSize);
 	}
 

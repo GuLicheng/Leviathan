@@ -1,3 +1,7 @@
+/*
+    Use Timer.hpp instead
+*/
+
 #ifndef _TIMER_HPP_
 #define _TIMER_HPP_
 
@@ -9,7 +13,7 @@ namespace leviathan {
 inline namespace time {
 
 
-class [[deprecated("use timer in Timer.h")]] timer {
+class timer {
 
     timer(const timer&) = delete;
     timer(timer &&) = delete;

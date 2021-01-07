@@ -24,11 +24,15 @@ std::ostream& operator<<(std::ostream& os, Container&& c) {
     // std::copy(std::cbegin(c), std::cend(c), std::ostream_iterator<type>{os, " "});
     // if we want to use above, we must put above two overload-function into namespace std, 
     // of course it's not wise
-
-    for (auto&& value : c) {
-        os << value << ' ';
+    os << "[";
+    auto&& begin = std::begin(c);
+    auto&& end = std::end(c);
+    for (auto iter = begin; iter != end; ++iter) 
+    {
+        if (iter != begin) os << ", ";
+        os << *iter;
     }
-    return os;
+    return os << ']';
 }
 
 // simply print tuple-like structure
