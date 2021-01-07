@@ -40,9 +40,6 @@ namespace detail
 template <typename... Lists>
 struct concat_impl;
 
-template <typename T>
-struct concat_impl<T> : std::type_identity<std::tuple<T>> { };
-
 template <template <typename...> typename Container1, template <typename...> typename Container2, 
                                 typename... Ts1, typename... Ts2>
 struct concat_impl<Container1<Ts1...>, Container2<Ts2...>>
@@ -64,7 +61,7 @@ struct concat
         <
             typename ::leviathan::meta::traits_parameters_from_type_list
             <
-                Container, typename detail::concat_impl<Containers...>::type    
+                Container, typename detail::concat_impl<std::tuple<>, Containers...>::type    
             >::type
         > 
         { }; 
