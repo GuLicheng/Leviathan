@@ -6,7 +6,8 @@
 namespace lv = leviathan;
 
 std::function<uint64_t(uint64_t)> fib1 = 
-lv::memoized_invoke<lv::mode::fifo>([f=&fib1](uint64_t n) -> uint64_t { return n < 2 ? n : fib1(n - 1) + fib1(n - 2); });
+lv::memoized_invoke<lv::mode::fifo>(
+    [f=&fib1](uint64_t n) -> uint64_t { return n < 2 ? n : fib1(n - 1) + fib1(n - 2); });
 // use [f = &fib] or [f = fib] to replace [&] to avoid warning, 
 // but it will still repro warning in clang 
 
@@ -20,28 +21,46 @@ auto fib2 = [](auto&& self, uint64_t n) -> uint64_t
 */
 
 std::function<uint64_t(uint64_t)> fib2 = 
-lv::memoized_invoke<lv::mode::map>([f=&fib2](uint64_t n) -> uint64_t { return n < 2 ? n : fib2(n - 1) + fib2(n - 2); });
+lv::memoized_invoke<lv::mode::map>(
+    [f=&fib2](uint64_t n) -> uint64_t { return n < 2 ? n : fib2(n - 1) + fib2(n - 2); });
 
-void test1(int n)
+std::function<uint64_t(uint64_t)> fib3 = 
+lv::memoized_invoke<lv::mode::hash>(
+    [f=&fib3](uint64_t n) -> uint64_t { return n < 2 ? n : fib3(n - 1) + fib3(n - 2); });
+
+
+auto test1(int n)
 {
     // list
     lv::timer t;
-    std::cout << fib1(n) << std::endl;
+    return fib1(n);
 }
 
-void test2(int n)
+auto test2(int n)
 {
     // map
     lv::timer t;
-    std::cout << fib2(n) << std::endl;
+    return fib2(n);
+}
+
+auto test3(int n)
+{
+    // map
+    lv::timer t;
+    return fib3(n);
 }
 
 int main()
 {
-
+    int n;
+    std::cin >> n;
     // stack memory < 1M !!!
-    test2(1000);
-    test2(1000);
+    std::cout << "test1 for list\n";
+    std::cout << test1(n) << std::endl;
+    std::cout << "test1 for map\n";
+    std::cout << test2(n) << std::endl;
+    std::cout << "test3 for hash\n";
+    std::cout << test3(n) << std::endl;
 
     return 0;
 }

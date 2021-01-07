@@ -2,9 +2,9 @@
 #include <complex.h>
 #include <math.h>
 
-#include "include/include/my_c/my_algorithm.h"
-#include "include/include/my_c/macro/my_print.h"
-#include "include/include/my_c/mt_bit.h"
+#include "../include/lv_c/my_algorithm.h"
+#include "../include/lv_c/macro/my_print.h"
+#include "../include/lv_c/my_bit.h"
 
 int main()
 {
