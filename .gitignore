@@ -2,3 +2,5 @@ main.cpp
 .vs
 .vscode
 Makefile
+*.exe
+*.o
