@@ -4,9 +4,9 @@
 #include <ranges>
 #include <cctype>
 
-namespace leviathan::ranges
-{
 
+namespace leviathan
+{
 
 namespace views
 {
@@ -35,12 +35,6 @@ inline constexpr auto trim_str = []<typename StringType>(StringType&& str) -> st
 
 } // namespace views
 
-
-}  // namespace ranges
-
-namespace leviathan
-{
-    namespace views = ::leviathan::ranges::views;
-}
+} // namespace leviathan
 
 #endif
