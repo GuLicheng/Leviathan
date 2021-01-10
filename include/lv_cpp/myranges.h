@@ -13,7 +13,8 @@
 #include <utility>
 #include <tuple>
 #include <variant>
-#include <type_list.h>
+// #include <type_list.h>
+#include <lv_cpp/type_list.hpp>
 
 namespace MYRANGE {
     namespace rg = ::std::ranges;
@@ -1970,7 +1971,7 @@ namespace VIEWS {
         to(Args&&... args) {
             // requires __to::convertible_to_container<R, C>
             auto __closure = [...args = meta::refwrap(std::forward<Args>(args))]
-            <rg::input_range R> (R&& r) {
+            <rg::input_range R> requires __to::convertible_to_container<R, C> (R&& r) {
                 return __to::to_container_fn<C, Args...>{}( forward<R>(r),
                         static_cast<unwrap_reference_t<remove_const_t<decltype(args)>>>(args)...);
             };
