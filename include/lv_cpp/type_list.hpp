@@ -221,8 +221,6 @@ struct pop_back<std::tuple<Types...>>
 
 }  // namespace leviathan::meta
 
-
-
 // Here are some algorithms based on type list
 namespace leviathan::meta
 {
@@ -461,7 +459,6 @@ struct transform<Func, std::tuple<Args...>>
 
 } // namespace leviathan::meta
 
-
 // for function_traits
 namespace leviathan::meta
 {
@@ -524,6 +521,14 @@ struct function_traits : function_traits<decltype(&T::operator())> {};
 
 } // leviathan::meta
 
+namespace leviathan::meta
+{
+template <template <typename...> typename TemplateClass, typename... Args>
+struct is_instance : std::false_type { };
 
+template <template <typename...> typename TemplateClass, typename... Args>
+struct is_instance<TemplateClass, TemplateClass<Args...>> : std::true_type { };
+
+}  // namespace leviathan meta
 
 #endif // __TYPE_LIST_HPP__

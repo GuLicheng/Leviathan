@@ -1,8 +1,9 @@
 #include <iostream>
 #include <tuple>
 #include <variant>
+#include <string>
+#include <string_view>
 #include <lv_cpp/type_list.hpp>
-#include <lv_cpp/template_info.hpp>
 
 namespace meta = leviathan::meta;
 namespace lv = leviathan;
@@ -70,6 +71,11 @@ int main()
     static_assert(std::is_same_v<
         typename meta::flatten<std::tuple, std::variant<int, double, bool>, char, float>::type,
                                 std::tuple<int, double, bool, char, float>>);
+
+    static_assert(meta::is_instance<std::basic_string, std::string>::value);
+    static_assert(meta::is_instance<std::basic_string, std::wstring>::value);
+    static_assert(meta::is_instance<std::basic_string_view, std::string_view>::value);
+    static_assert(meta::is_instance<std::basic_string_view, std::wstring_view>::value);
 
     std::cout << "Test Successfully\n";
 
