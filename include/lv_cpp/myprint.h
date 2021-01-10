@@ -30,7 +30,7 @@ namespace ranges {
     print_view(_Range&&) -> print_view<views::all_t<_Range>>;
 
 namespace views{
-    inline constexpr __adaptor::_RangeAdaptorClosure print
+    inline constexpr auto print
     = []<viewable_range R>(R&& r) { return print_view{ ::std::forward<R>(r) }; };
 }// namespace views
 }// namespace ranges
