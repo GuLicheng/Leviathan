@@ -7,27 +7,38 @@
 
 #include <iostream>
 #include <iterator>
-#include <type_traits>
 #include <tuple>
 #include <string>
-#include "concepts_extend.hpp"
-#include "tuple_extend.hpp"
+#include <string_view>
+#include <ranges>
+#include <lv_cpp/type_list.hpp>
 
 
-namespace leviathan 
+
+namespace output
 {
 
-// print STL container (but basic_string and basic_string_view)
-template <detail::container Container> requires (!std::is_pointer_v<std::decay_t<Container>>)
-std::ostream& operator<<(std::ostream& os, Container&& c) {
-    // using type = typename std::decay_t<Container>::value_type;
-    // std::copy(std::cbegin(c), std::cend(c), std::ostream_iterator<type>{os, " "});
-    // if we want to use above, we must put above two overload-function into namespace std, 
-    // of course it's not wise
-    os << "[";
-    auto&& begin = std::begin(c);
-    auto&& end = std::end(c);
-    for (auto iter = begin; iter != end; ++iter) 
+namespace detail
+{
+template <typename T>
+concept is_string = 
+        leviathan::meta::is_instance<std::basic_string, T>::value 
+     || leviathan::meta::is_instance<std::basic_string_view, T>::value;
+
+template <typename T>
+concept container = std::ranges::range<T> && !is_string<T>;
+
+}  // namespace detail
+
+#if 1
+// print container
+template <typename CharT, detail::container Rng> requires(!std::is_array_v<Rng>)
+std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const Rng& rng)
+{
+    os << '[';
+    auto&& begin = std::cbegin(rng);
+    auto&& end = std::cend(rng);
+    for (auto iter = begin; iter != end; ++iter)
     {
         if (iter != begin) os << ", ";
         os << *iter;
@@ -35,31 +46,26 @@ std::ostream& operator<<(std::ostream& os, Container&& c) {
     return os << ']';
 }
 
-// simply print tuple-like structure
 
-template <typename TupleLike, typename Decay = std::decay_t<TupleLike>>
-concept tuple_like = requires (Decay t)
+// tuple-like type for operator<<
+template <class Ch, class Tr, class Tuple> 
+    requires requires { typename std::tuple_size<std::remove_reference_t<Tuple>>::type; }
+auto &operator<<(std::basic_ostream<Ch, Tr> &os, Tuple &&t) 
 {
-    typename std::tuple_size<Decay>::type;
-};
-
-
-template <tuple_like T> 
-std::ostream& operator<<(std::ostream& os, T&& t)
-{
-    auto printer = []<typename _Tuple, size_t... Idx>
-    (std::ostream& os, _Tuple&& t, std::index_sequence<Idx...>) -> std::ostream&
+	os << "(";
+	[&]<std::size_t... Is>(std::index_sequence<Is...>) 
     {
-        os << "{";
-        ((Idx == 0 ? os << std::get<Idx>(t) : os << ',' << std::get<Idx>(t)), ...);
-        return os << "}";
-    };
-    constexpr auto Size = std::tuple_size_v<std::decay_t<T>>;
-    return printer(os, std::forward<T>(t), std::make_index_sequence<Size>());
+		((os << (Is == 0 ? "" : ", ") << std::get<Is>(std::forward<Tuple>(t))), ...);
+	}
+	(std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple>>>{});
+	return os << ")";
 }
 
+// print view
 
-} // namespace leviathan
+#endif
+}  // namespace output
+
 
 
 
