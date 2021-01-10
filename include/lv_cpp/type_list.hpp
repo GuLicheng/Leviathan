@@ -521,6 +521,7 @@ struct function_traits : function_traits<decltype(&T::operator())> {};
 
 } // leviathan::meta
 
+// for some utilities
 namespace leviathan::meta
 {
 template <template <typename...> typename TemplateClass, typename... Args>
