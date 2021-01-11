@@ -73,7 +73,7 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
         }
 
         constexpr Iterator& operator++() 
-        requires (::std::ranges::input_or_<Rgs> && ...)
+        requires (::std::ranges::input_range<Rgs> && ...)
         {
             ::std::apply([](auto&&... x){ (++x, ...); }, _M_current);
             return *this;
