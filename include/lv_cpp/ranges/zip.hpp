@@ -1,13 +1,9 @@
 #ifndef __ZIP_HPP__
 #define __ZIP_HPP__
 
-#include <iterator>
-#include <utility>
 #include <tuple>
 #include <type_traits>
-#include <lv_cpp/type_list.hpp>
 #include <ranges>
-#include <iostream>
 
 namespace leviathan
 {
