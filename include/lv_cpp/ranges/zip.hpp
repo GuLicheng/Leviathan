@@ -67,13 +67,13 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
         }
 
 		friend constexpr bool operator!=(const Iterator& __x, const Iterator& __y)
-			requires (::std::equality_comparable<::std::iter_value_t<::std::ranges::iterator_t<Rgs>>> && ...)
+	    requires (::std::equality_comparable<::std::iter_value_t<::std::ranges::iterator_t<Rgs>>> && ...)
 		{ 
             return !(__x == __y);
         }
 
         constexpr Iterator& operator++() 
-        requires (::std::ranges::input_range<Rgs> && ...)
+        requires (::std::ranges::input_or_<Rgs> && ...)
         {
             ::std::apply([](auto&&... x){ (++x, ...); }, _M_current);
             return *this;
