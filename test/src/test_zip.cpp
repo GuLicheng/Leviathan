@@ -5,8 +5,10 @@
 #include <map>
 #include <list>
 #include <set>
+#include <ranges>
 #include <lv_cpp/template_info.hpp>
 #include <lv_cpp/ranges/zip.hpp>
+#include <lv_cpp/output.hpp>
 
 std::vector vec{1, 2, 3, 4, 5};
 std::set buf = {6, 7, 9, 10};
@@ -46,20 +48,22 @@ int main()
 
 void test1()
 {
+    using namespace output;
     std::ifstream is{"./data.txt", std::ios::binary};
     std::istream_iterator<int> initer{is};
     auto sub = std::ranges::subrange(initer, std::istream_iterator<int>());
     
-    auto zipper = ::leviathan::views::zip(vec, buf, ls, arr, sub);
-    for (auto [a, b, c, d, e] : zipper)
+    auto zipper_ = ::leviathan::views::zip(vec, buf, ls, arr, sub, map);
+    for (auto [a, b, c, d, e, f] : zipper_ | std::views::take(1))
     {
-        std::cout << a << '-' << b << '-' << c << '-' << d << '-' << e << std::endl;
+        std::cout << a << '-' << b << '-' << 
+            c << '-' << d << '-' << e << '-' << f << std::endl;
     }
 
-    for (auto s : sub)
-    {
-        std::cout << s << std::endl;
-    }
+    // for (auto s : sub)
+    // {
+    //     std::cout << s << std::endl;
+    // }
 
 }
 

@@ -190,20 +190,21 @@ zip_view(Rgs&&...) -> zip_view<::std::views::all_t<Rgs>...>;
 
 } // namespace ranges
 
-namespace views 
-{
-	inline constexpr ::std::ranges::views::__adaptor::_RangeAdaptor zip
-	= [] <typename... _Ranges> (_Ranges&&... __rs)
-	{
-		return ::leviathan::ranges::zip_view { ::std::forward<_Ranges>(__rs)... };
-	};
-} // namespace views
+
 
 
 } // nameaspace leviathan
 
 
+namespace leviathan::views 
+{
+	inline constexpr auto zip
+	= [] <typename... _Ranges> (_Ranges&&... __rs)
+	{
+		return ::leviathan::ranges::zip_view { ::std::forward<_Ranges>(__rs)... };
+	};
 
+} // namespace views
 
 #endif
 
