@@ -1,3 +1,5 @@
+#include <fstream>
+#include <iterator>
 #include <iostream>
 #include <vector>
 #include <map>
@@ -44,11 +46,21 @@ int main()
 
 void test1()
 {
-    auto zipper = ::leviathan::views::zip(vec, buf, ls, arr);
-    for (auto [a, b, c, d] : zipper)
+    std::ifstream is{"./data.txt", std::ios::binary};
+    std::istream_iterator<int> initer{is};
+    auto sub = std::ranges::subrange(initer, std::istream_iterator<int>());
+    
+    auto zipper = ::leviathan::views::zip(vec, buf, ls, arr, sub);
+    for (auto [a, b, c, d, e] : zipper)
     {
-        std::cout << a << '-' << b << '-' << c << '-' << d << std::endl;
+        std::cout << a << '-' << b << '-' << c << '-' << d << '-' << e << std::endl;
     }
+
+    for (auto s : sub)
+    {
+        std::cout << s << std::endl;
+    }
+
 }
 
 void test()
