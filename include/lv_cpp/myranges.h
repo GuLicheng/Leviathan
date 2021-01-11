@@ -526,6 +526,7 @@ namespace VIEWS::adaptor {
         friend constexpr decltype(auto)
         iter_move(const iter_interface &i) noexcept(noexcept(*i)) { return *i; }
     };
+    
     /**
     *  @brief  cycle view.
     *

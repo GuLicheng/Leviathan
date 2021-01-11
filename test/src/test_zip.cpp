@@ -1,15 +1,14 @@
-#include "./../include/lv_cpp/zip.hpp"
-#include <list>
+#include <iostream>
 #include <vector>
-#include <set>
 #include <map>
-#include "./../include/lv_cpp/output.hpp"
-#include "./../include/lv_cpp/template_info.hpp"
-#include <range/v3/view/zip.hpp>
+#include <list>
+#include <set>
+#include <lv_cpp/template_info.hpp>
+#include <lv_cpp/ranges/zip.hpp>
 
 std::vector vec{1, 2, 3, 4, 5};
 std::set buf = {6, 7, 8, 9, 10};
-std::list ls{11, 12, 13, 14, 15};
+const std::list ls{11, 12, 13, 14, 15};
 int arr[] = {16, 17, 18, 19, 20};
 std::map<int, int> map =
 {
@@ -19,6 +18,25 @@ std::map<int, int> map =
     {-4, -1},
     {-5, -1}
 };
+
+using T1 = decltype(vec);
+using T2 = decltype(buf);
+using T3 = decltype(ls);
+using T4 = decltype(arr);
+using T5 = decltype(map);
+
+int main()
+{
+    using U1 = typename leviathan::zip_iter_base<T1, T2, T3, T4, T5>::iterator_category;
+    using U2 = typename leviathan::zip_iter_base<T1, T2, T3, T4, T5>::reference;
+    using U3 = typename leviathan::zip_iter_base<T1, T2, T3, T4, T5>::value_type;
+    PrintTypeInfo(U1);
+    PrintTypeInfo(U2);
+    PrintTypeInfo(U3);
+}
+
+
+#if 0
 
 void test();
 
@@ -86,3 +104,4 @@ void test2()
     // PrintTypeCategory(aa);
     // std::cout << "======================================\n";
 }
+#endif
