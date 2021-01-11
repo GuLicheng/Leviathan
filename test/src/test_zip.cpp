@@ -1,13 +1,13 @@
+#include <iostream>
+#include <lv_cpp/ranges/zip.hpp>
 #include <fstream>
 #include <iterator>
-#include <iostream>
 #include <vector>
 #include <map>
 #include <list>
 #include <set>
 #include <ranges>
 #include <lv_cpp/template_info.hpp>
-#include <lv_cpp/ranges/zip.hpp>
 #include <lv_cpp/output.hpp>
 
 std::vector vec{1, 2, 3, 4, 5};
@@ -54,7 +54,7 @@ void test1()
     auto sub = std::ranges::subrange(initer, std::istream_iterator<int>());
     
     auto zipper_ = ::leviathan::views::zip(vec, buf, ls, arr, sub, map);
-    for (auto [a, b, c, d, e, f] : zipper_ | std::views::take(1))
+    for (auto [a, b, c, d, e, f] : zipper_ )
     {
         std::cout << a << '-' << b << '-' << 
             c << '-' << d << '-' << e << '-' << f << std::endl;

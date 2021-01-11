@@ -17,6 +17,9 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
 {
     using Base = ::std::tuple<Rgs...>;      
 
+
+
+
     Base _M_base{};
 
     struct Sentinel;
@@ -53,13 +56,7 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
 		friend constexpr bool operator==(const Iterator& __x, const Iterator& __y)
 		requires (::std::equality_comparable<::std::iter_value_t<::std::ranges::iterator_t<Rgs>>> && ...) 
         { 
-            // return __x._M_current == __y._M_current;
-            auto single_cmp = []<typename Tuple1, typename Tuple2, size_t... Idx>
-            (const Tuple1& lhs, const Tuple2& rhs, ::std::index_sequence<Idx...>)
-            {
-                return ((::std::get<Idx>(lhs) == ::std::get<Idx>(rhs)) || ...);
-            };
-            return single_cmp(__x._M_current, __y._M_current, ::std::make_index_sequence<sizeof...(Rgs)>());
+            return Iterator::template single_cmp(__x._M_current, __y._M_current, ::std::make_index_sequence<sizeof...(Rgs)>());
         }
 
 		friend constexpr bool operator!=(const Iterator& __x, const Iterator& __y)
@@ -84,14 +81,14 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
         }
 
         constexpr Iterator& operator--() 
-        requires (::std::ranges::forward_range<Rgs> && ...)
+        requires (::std::ranges::bidirectional_range<Rgs> && ...)
         {
             ::std::apply([](auto&&... x){ (--x, ...); }, _M_current);
             return *this;
         }
 
         constexpr Iterator& operator--(int) 
-        requires ::std::copyable<Iter> && (::std::ranges::forward_range<Rgs> && ...)
+        requires ::std::copyable<Iter> && (::std::ranges::bidirectional_range<Rgs> && ...)
         {
             auto __tmp = *this;
             ++ *this;
@@ -110,6 +107,12 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
 
     private:
         
+        template <typename Tuple1, typename Tuple2, size_t... Idx>
+        static bool single_cmp(const Tuple1& lhs, const Tuple2& rhs, ::std::index_sequence<Idx...>)
+        {
+            return ((::std::get<Idx>(lhs) == ::std::get<Idx>(rhs)) || ...);
+        };
+
         template <size_t... Idx>
         constexpr value_type deref_impl(::std::index_sequence<Idx...>) const noexcept
         {
@@ -127,17 +130,17 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
         Iter _M_end;
         constexpr bool is_equal_to(const Iterator& __i) const noexcept
         {
-            return __i._M_current == _M_end;
+            return Iterator::template single_cmp(__i._M_current, this->_M_end, ::std::make_index_sequence<sizeof...(Rgs)>());
         }
 
     public:
+        
         constexpr Sentinel(Iter iter) : _M_end(iter) { };
-        constexpr friend operator==(const Iterator& lhs, const Sentinel& rhs) noexcept
+
+        constexpr friend bool operator==(const Iterator& lhs, const Sentinel& rhs) noexcept
         {
-            return rhs.is_qual_to(lhs);
+            return rhs.is_equal_to(lhs);
         }
-
-
     };
 
     template <typename ReturnType, typename Fn, size_t... Idx>
@@ -150,7 +153,7 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
 public:
 	constexpr zip_view() = default;
 
-    // you can view Rgs as ref_warpper, so it will not copy ranges
+    // you can view Rgs as ref_warpper, and it will not copy ranges
 	constexpr zip_view(Rgs... rgs): _M_base(::std::move(rgs)...) { }
 
     // get all begins of ranges
