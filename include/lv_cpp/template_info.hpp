@@ -9,7 +9,7 @@
 
 // Only Support cl, gcc and clang
 template <typename T>
-constexpr std::string_view type_to_str()
+constexpr std::string_view type_to_str() noexcept
 {
 #if defined(_MSC_VER)
     // class std::basic_string_view<char,struct std::char_traits<char> > __cdecl 

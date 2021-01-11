@@ -7,8 +7,8 @@
 #include <lv_cpp/ranges/zip.hpp>
 
 std::vector vec{1, 2, 3, 4, 5};
-std::set buf = {6, 7, 8, 9, 10};
-const std::list ls{11, 12, 13, 14, 15};
+std::set buf = {6, 7, 9, 10};
+const std::list ls{14, 15};
 int arr[] = {16, 17, 18, 19, 20};
 std::map<int, int> map =
 {
@@ -25,18 +25,9 @@ using T3 = decltype(ls);
 using T4 = decltype(arr);
 using T5 = decltype(map);
 
-int main()
-{
-    using U1 = typename leviathan::zip_iter_base<T1, T2, T3, T4, T5>::iterator_category;
-    using U2 = typename leviathan::zip_iter_base<T1, T2, T3, T4, T5>::reference;
-    using U3 = typename leviathan::zip_iter_base<T1, T2, T3, T4, T5>::value_type;
-    PrintTypeInfo(U1);
-    PrintTypeInfo(U2);
-    PrintTypeInfo(U3);
-}
 
 
-#if 0
+#if 1
 
 void test();
 
@@ -47,28 +38,16 @@ void test2();
 
 int main()
 {
-    // auto iter = zip_begin(arr, buf);
-    // using T = decltype(iter);
-    // std::cout << std::input_iterator<T>;
-
-    auto a = ranges::zip(arr, buf);
-    PrintTypeCategory(5);
+    test1();
     return 0;
 }
 
 void test1()
 {
-    using namespace leviathan;
-    auto z_b = zip_begin(vec, buf, ls, arr, map);
-    auto z_e = zip_end(vec, buf, ls, arr, map);
-    int i = 0;
-    while (z_b != z_e) {
-        std::cout << i++ << std::endl;
-        auto t = *z_b;
-        PrintTypeCategory(t);
-        std::cout << t << std::endl;
-        auto [a, b, c, d, e] = t;
-        z_b ++;
+    auto zipper = ::leviathan::views::zip(vec, buf, ls, arr);
+    for (auto [a, b, c, d] : zipper)
+    {
+        std::cout << a << '-' << b << '-' << c << '-' << d << std::endl;
     }
 }
 

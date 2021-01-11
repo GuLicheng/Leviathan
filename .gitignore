@@ -4,3 +4,4 @@ main.cpp
 Makefile
 *.exe
 *.o
+*.txt
