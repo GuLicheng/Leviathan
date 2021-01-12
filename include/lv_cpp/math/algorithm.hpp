@@ -151,6 +151,7 @@ auto filter(T predicate) {
         *iter = input;
         return ++iter;
     };
+	// very ugly
     std::accumulate(it, end_it, std::ostream_iterator<int>{ std::cout, ", " }, 
         filter(even) (
             map(twice) (

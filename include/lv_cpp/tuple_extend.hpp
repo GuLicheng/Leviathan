@@ -1,15 +1,16 @@
+/*
+    to be fixed..........
+*/
 #pragma once
-
-#include "output.hpp"
+// #include "output.hpp"
+// #include "type_list.hpp"
 #include <tuple>
 #include <type_traits>
-#include "type_list.hpp"
-#include "concepts_extend.hpp"
 
 namespace leviathan 
 {
 
-CreateTemplateConcepts(tuple, tuple_concept, ::std);
+// CreateTemplateConcepts(tuple, tuple_concept, ::std);
 
 
 namespace detail 
@@ -33,7 +34,7 @@ void print_tuple(std::ostream& os, const std::tuple<Ts...>& t)
 
 
 // reverse tuple
-template <tuple_concept Tuple, size_t ...Idx>
+template <typename Tuple, size_t ...Idx>
 typename ::leviathan::meta::reverse<std::decay_t<Tuple>>::type
 inline 
 constexpr
@@ -53,7 +54,7 @@ reverse_tuple_helper_by_move(Tuple&& t, std::index_sequence<Idx...>)
 }
 
 
-template <tuple_concept Tuple, size_t ...Idx>
+template <typename Tuple, size_t ...Idx>
 typename ::leviathan::meta::reverse<std::decay_t<Tuple>>::type
 inline
 constexpr
