@@ -5,7 +5,7 @@
 
 #include <tuple>
 
-
+// Func<Arg1>, Func<Args2> ...
 template <template <typename...> typename Fun, typename... Paras>
 struct Call_
 {

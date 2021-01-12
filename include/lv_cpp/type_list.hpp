@@ -449,13 +449,15 @@ struct unique<std::tuple<Ts...>>
 */
 
 template <template <typename...> typename Func, typename... Args>
-struct transform : transform<Func, std::tuple<Args...>> { };
+struct transform
+     : std::type_identity<std::tuple<typename Func<Args>::type ...>> { };
+
 
 template <template <typename...> typename Func, typename... Args>
-struct transform<Func, std::tuple<Args...>>
-{
-    using type = std::tuple<typename Func<Args>::type ...>;
-};
+struct call : std::type_identity<typename Func<Args...>::type> { };
+// {
+//     using type = typename Func<Args...>::type;
+// };
 
 } // namespace leviathan::meta
 
