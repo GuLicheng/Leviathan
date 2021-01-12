@@ -35,7 +35,7 @@ inline namespace range_concept {
     template<class... R>
     concept forward_range = ( rg::forward_range<R> && ... );
 
-} // namespace range_concept
+} // range_concept
 inline namespace iter_concept {
 
     namespace __impl {
@@ -48,8 +48,7 @@ inline namespace iter_concept {
     template<class... V>
     concept iter_constructible_from_mutable
     = ( ::std::convertible_to<rg::iterator_t<V>, rg::iterator_t<const V> > && ... );
-} // namespace iter_concept
-
+} // iter_concept
 inline namespace iterator_type {
 namespace __impl {
     template<class... V>
@@ -81,8 +80,7 @@ namespace __impl {
     using difference_type = ::std::common_type_t<range_difference_t<V>...>;
     template<bool Const, class Vp>
     using constify_if = ::std::conditional_t<Const, const Vp, Vp>;
-}
-
+} // iterator_type
 inline namespace dummy_iterator {
     template <rg::range R>
     struct dummy_input_iterator {
@@ -97,25 +95,7 @@ inline namespace dummy_iterator {
         void operator++(int);
         dummy_input_iterator& operator++();
     };
-}
-
-    template<class>
-    inline constexpr bool false_v = false;
-
-#ifdef __cpp_lib_type_identity
-    template< class T >
-    using type_identity = ::std::type_identity<T>;
-#else
-    template< class T >
-    struct type_identity {
-        using type = T;
-    };
-#endif
-    template< class T >
-    using type_identity_t = typename type_identity<T>::type;
-
-    template<::std::size_t N, class... Args>
-    using typelist_element_t = tuple_element_t<N, ::std::tuple<Args...> >;
+} //dummy_iterator
 inline namespace ref_wrap {
     template<typename T>
     inline constexpr auto
@@ -128,7 +108,17 @@ inline namespace ref_wrap {
     template<typename T>
     inline constexpr decltype(auto)
     refwrap(T&& t) { return std::forward<T>(t); }
-}
+} // ref_wrap
+inline namespace range_concept {
+    template<class... R>
+    concept arrow_range = arrow_iterator<rg::iterator_t<R> ...>;
+} // namespace range_concept
+
+    template<class> inline constexpr bool false_v = false;
+
+    template<::std::size_t N, class... Args>
+    using typelist_element_t = tuple_element_t<N, ::std::tuple<Args...> >;
+
     // TODO: comb nums
     constexpr integral auto
     comb(integral auto x, integral auto y) {
@@ -141,11 +131,7 @@ inline namespace ref_wrap {
         return ret;
     }
 
-inline namespace range_concept {
-    template<class... R>
-    concept arrow_range = arrow_iterator<rg::iterator_t<R> ...>;
-} // namespace range_concept
-} // namespace ranges::meta
+} // namespace meta
 
 inline namespace view_result {
     template<class I, class... V>
@@ -160,6 +146,14 @@ inline namespace view_result {
 
         friend constexpr auto
         operator<=>(const index_values_result &, const index_values_result &) = default;
+
+        template< ::std::constructible_from<I, V...> T >
+        constexpr operator T () {
+            auto __apply = [this]< class... Args >(Args&&... args) {
+                return T( std::forward<I>(index), std::forward<Args>(args)... );
+            };
+            return ::std::apply(__apply, value);
+        }
 
         template<::std::size_t N>
         requires (N < sizeof...(V) + 1)
@@ -526,7 +520,6 @@ namespace VIEWS::adaptor {
         friend constexpr decltype(auto)
         iter_move(const iter_interface &i) noexcept(noexcept(*i)) { return *i; }
     };
-    
     /**
     *  @brief  cycle view.
     *
@@ -836,15 +829,8 @@ namespace __product { //
     };
     template<class... Rgs>
     product_view(Rgs&&...) -> product_view< views::all_t<Rgs> ... >;
-
-    namespace VIEWS {
-        /**
-       *  @brief  a range adaptor object.
-       *  @return  a corresponding product_view
-       *
-       *  This object is used to generate a product_view.
-       */
-        inline constexpr auto product =
+    namespace __product {
+        inline constexpr auto adaptor =
                 []<class... R> ( R&&... r ) requires ( rg::viewable_range<R> && ... )
         {
             if constexpr ( sizeof...(R) == 1 )
@@ -852,6 +838,16 @@ namespace __product { //
             else
                 return product_view { std::forward<R>(r)... };
         };
+    }
+    namespace VIEWS {
+        /**
+       *  @brief  a range adaptor object.
+       *  @return  a corresponding product_view
+       *
+       *  This object is used to generate a product_view.
+       */
+        inline constexpr adaptor::range_adaptor_mutable product = __product::adaptor;
+        inline constexpr adaptor::range_adaptor_with product_with = __product::adaptor;
 
     } // namespace VIEWS
 
@@ -1660,26 +1656,26 @@ namespace VIEWS {
     template<class... Rgs>
     zip_view(Rgs&&...) -> zip_view< views::all_t<Rgs> ... >;
 
-    namespace __zip {
-        inline auto constexpr adaptor =
-                []<class... R> ( R&&... r ) requires ( rg::viewable_range<R> && ... )
-        {
-            if constexpr ( sizeof...(R) == 1 )
-                return views::all( std::forward<R>(r)... );
-            else
-                return zip_view { std::forward<R>(r)... };
-        };
-    }
-    namespace VIEWS {
-        /**
-       *  @brief  a range adaptor object.
-       *  @return  a corresponding zip_view
-       *
-       *  This object is used to generate a zip_view.
-       */
-        inline constexpr adaptor::range_adaptor_mutable zip = __zip::adaptor;
-        inline constexpr adaptor::range_adaptor_with zip_with = __zip::adaptor;
-    } // namespace VIEWS
+namespace __zip {
+    inline auto constexpr adaptor =
+            []<class... R> ( R&&... r ) requires ( rg::viewable_range<R> && ... )
+    {
+        if constexpr ( sizeof...(R) == 1 )
+            return views::all( std::forward<R>(r)... );
+        else
+            return zip_view { std::forward<R>(r)... };
+    };
+}
+namespace VIEWS {
+    /**
+   *  @brief  a range adaptor object.
+   *  @return  a corresponding zip_view
+   *
+   *  This object is used to generate a zip_view.
+   */
+    inline constexpr adaptor::range_adaptor_mutable zip = __zip::adaptor;
+    inline constexpr adaptor::range_adaptor_with zip_with = __zip::adaptor;
+} // namespace VIEWS
 
     template< class... V >
     inline constexpr bool enable_borrowed_range<zip_view<V...>> = ( borrowed_range<V> && ... );
@@ -1688,262 +1684,246 @@ namespace VIEWS {
     template< borrowed_range _Vp, size_t _Nm >
     inline constexpr bool enable_borrowed_range<elements_view<_Vp,_Nm>> = true;
 
-    namespace __to {
-        using namespace ::std;
+namespace __to {
+    using namespace ::std;
 
-        template< class T >
-        concept container = rg::range<T> && !rg::view<T>;
+    template< class T >
+    concept container = rg::range<T> && !rg::view<T>;
 
-        template <class C, class R>
-        concept reservable_container = requires(C& c, R&& r) {
-            c.reserve( decltype(rg::size(r)){} );
-        };
+    template <class C, class R>
+    concept reservable_container = requires(C& c, R&& r) { c.reserve( decltype(rg::size(r)){} ); };
 
-        template <class C>
-        concept insertable_container = requires(C& c, typename C::value_type& e) {
-            c.push_back(e);
-        };
+    template <class C>
+    concept insertable_container = requires(C& c, typename C::value_type& e) { c.push_back(e); };
 
-        template< class T >
-        concept has_inner_range = rg::range<T> && rg::input_range< rg::range_value_t<T> >;
+    template< class T >
+    concept has_inner_range = rg::range<T> && rg::input_range< rg::range_value_t<T> >;
 
-        template< class T >
-        using inner_range_t = conditional_t<has_inner_range<T>, rg::range_value_t<T>, T>;
+    template< class T >
+    using inner_range_t = conditional_t<has_inner_range<T>, rg::range_value_t<T>, T>;
 
-        template< class R, class C >
-        concept convertible_to_container = container<C> && rg::input_range<R>
-                && std::convertible_to<rg::range_reference_t<R>, rg::range_value_t<C>>;
+    template< class R, class C >
+    concept convertible_to_container = container<C> && rg::input_range<R>
+            && std::convertible_to<rg::range_reference_t<R>, rg::range_value_t<C>>;
 
-        namespace __impl {
-        template< class R, class C >
-        inline constexpr bool convertible_to_RC_impl = convertible_to_container<R, C>
-            || (has_inner_range<R> && has_inner_range<C>
-                && convertible_to_RC_impl< inner_range_t<R>, inner_range_t<C> >);
-        }
-        template< class R, class C >
-        concept convertible_to_recursive_container = __impl::convertible_to_RC_impl<R, C>;
+    namespace __impl {
+    template< class R, class C >
+    inline constexpr bool convertible_to_RC_impl = convertible_to_container<R, C>
+        || (has_inner_range<R> && has_inner_range<C>
+            && convertible_to_RC_impl< inner_range_t<R>, inner_range_t<C> >);
+    }
+    template< class R, class C >
+    concept convertible_to_recursive_container = __impl::convertible_to_RC_impl<R, C>;
 
-        namespace __impl{
-            template< rg::range R >
-            struct range_common_iterator_impl
-                    : type_identity< common_iterator< rg::iterator_t<R>, rg::sentinel_t<R> > >{};
-            template< rg::common_range R >
-            struct range_common_iterator_impl<R>
-                    : type_identity< rg::iterator_t<R> >{};
-            template< rg::range R >
-            requires(!copyable< rg::iterator_t<R> >)
-            struct range_common_iterator_impl<R>
-                    : type_identity< meta::dummy_input_iterator<R> >{};
-        }
-        template< class R >
-        using range_common_iterator_t = typename __impl::range_common_iterator_impl<R>::type;
+    namespace __impl{
+        template< rg::range R >
+        struct range_common_iterator_impl
+                : type_identity< common_iterator< rg::iterator_t<R>, rg::sentinel_t<R> > >{};
+        template< rg::common_range R >
+        struct range_common_iterator_impl<R>
+                : type_identity< rg::iterator_t<R> >{};
+        template< rg::range R >
+        requires (!copyable< rg::iterator_t<R> >)
+        struct range_common_iterator_impl<R>
+                : type_identity< meta::dummy_input_iterator<R> >{};
+    }
+    template< class R >
+    using range_common_iterator_t = typename __impl::range_common_iterator_impl<R>::type;
 
-        template< template<class> class Cont >
-        struct temp_temp {};
+    template< template<class> class Cont >
+    struct temp_temp {};
 
-        namespace __impl {
-            template< class Wrap, class R, class... Args >
-            struct container_impl : type_identity<Wrap> {};
-            template< template<class> class C, class R, class... Args >
-            struct container_impl< temp_temp<C>, R, Args... > {
-                template<class>
-                static constexpr auto from_rng(int)->decltype
-                    ( C (range_common_iterator_t<R>(), range_common_iterator_t<R>(), declval<Args>()... ) );
-                using type = remove_cvref_t<decltype(from_rng<R>(0))>;
-            };
-        };
+    namespace __impl {
         template< class Wrap, class R, class... Args >
-        using container_t = typename __impl::container_impl< Wrap, R, Args... >::type;
+        struct container_impl : type_identity<Wrap> {};
+        template< template<class> class C, class R, class... Args >
+        struct container_impl< temp_temp<C>, R, Args... > {
+            template<class>
+            static constexpr auto from_rng(int)->decltype
+                ( C (range_common_iterator_t<R>(), range_common_iterator_t<R>(), declval<Args>()... ) );
+            using type = remove_cvref_t<remove_pointer_t<decltype(from_rng<R>(0))>>;
+        };
+    };
+    template< class Wrap, class R, class... Args >
+    using container_t = typename __impl::container_impl< Wrap, R, Args... >::type;
 
-        template< rg::input_range R >
-        inline constexpr auto
-        get_begin (R&& r) {
-            using I = rg::iterator_t<R>;
-            if constexpr ( !copyable<I> ) {
-                return rg::begin(r);
+    template< rg::input_range R >
+    inline constexpr auto
+    get_begin (R&& r) {
+        using I = rg::iterator_t<R>;
+        if constexpr ( !copyable<I> ) {
+            return rg::begin(r);
+        } else {
+            using CI = range_common_iterator_t<R>;
+            auto first = CI{ rg::begin(r) };
+            if constexpr ( is_rvalue_reference_v<decltype(r)> ) {
+                return make_move_iterator(std::move(first));
             } else {
-                using CI = range_common_iterator_t<R>;
-                CI begin = { rg::begin(r) };
-                if constexpr ( is_rvalue_reference_v<decltype(r)> ) {
-                    return make_move_iterator(std::move(begin));
-                } else {
-                    return begin;
-                }
+                return first;
             }
         }
-        template< rg::input_range R >
-        inline constexpr auto
-        get_end (R&& r) {
-            using I = rg::iterator_t<R>;
-            if constexpr ( !copyable<I> ) {
-                return rg::end(r);
+    }
+    template< rg::input_range R >
+    inline constexpr auto
+    get_end (R&& r) {
+        using I = rg::iterator_t<R>;
+        if constexpr ( !copyable<I> ) {
+            return rg::end(r);
+        } else {
+            using CI = range_common_iterator_t<R>;
+            auto last = CI{ rg::end(r) };
+            if constexpr ( is_rvalue_reference_v<decltype(r)> ) {
+                return make_move_iterator(std::move(last));
             } else {
-                using CI = range_common_iterator_t<R>;
-                CI end = { rg::end(r) };
-                if constexpr ( is_rvalue_reference_v<decltype(r)> ) {
-                    return make_move_iterator(std::move(end));
-                } else {
-                    return end;
-                }
+                return last;
             }
         }
+    }
 
-        struct to_container {
+    struct to_container {
+    private:
+        template<class I, class S, class V>
+        struct iterator {
         private:
-            template<class I, class S, class V>
-            struct iterator {
-            private:
-                I it_;
-            public:
-                using difference_type =
-                typename iterator_traits<I>::difference_type;
-                using value_type = V;
-                using reference = V;
-                using pointer = typename iterator_traits<I>::pointer;
-                using iterator_category =
-                typename iterator_traits<I>::iterator_category;
+            I it_;
+        public:
+            using difference_type = typename iterator_traits<I>::difference_type;
+            using value_type = V;
+            using reference = V;
+            using pointer = typename iterator_traits<I>::pointer;
+            using iterator_category = typename iterator_traits<I>::iterator_category;
 
-                iterator() = default;
+            iterator() = default;
 
-                iterator(auto it) : it_(std::move(it)) {
-                }
+            iterator(auto it) : it_(std::move(it)) {
+            }
 
-                friend bool operator==(const iterator &a, const iterator &b) {
-                    return a.it_ == b.it_;
-                }
+            friend bool operator==(const iterator &a, const iterator &b) {
+                return a.it_ == b.it_;
+            }
 
-                friend bool operator==(const iterator &a, const S &b) {
-                    return a.it_ == b;
-                }
+            friend bool operator==(const iterator &a, const S &b) {
+                return a.it_ == b;
+            }
 
-                reference operator*() const {
-                    return to_container::fn<value_type>()(*it_);
-                }
+            reference operator*() const {
+                return to_container::fn<value_type>()(*it_);
+            }
 
-                auto &operator++() {
-                    ++it_;
-                    return *this;
-                }
+            auto &operator++() {
+                ++it_;
+                return *this;
+            }
 
-                auto operator++(int) requires copyable<I> {
-                    auto tmp = *this;
-                    ++it_;
-                    return tmp;
-                }
+            auto operator++(int) requires copyable<I> {
+                auto tmp = *this;
+                ++it_;
+                return tmp;
+            }
 
-                auto &operator--() requires derived_from<
-                        iterator_category, bidirectional_iterator_tag> {
-                    --it_;
-                    return *this;
-                }
+            auto &operator--() requires derived_from<iterator_category, bidirectional_iterator_tag> {
+                --it_;
+                return *this;
+            }
 
-                auto operator--(int) requires derived_from<
-                        iterator_category, bidirectional_iterator_tag> {
-                    auto tmp = *this;
-                    --it_;
-                    return tmp;
-                }
+            auto operator--(int) requires derived_from< iterator_category, bidirectional_iterator_tag> {
+                auto tmp = *this;
+                --it_;
+                return tmp;
+            }
 
-                auto operator+=(difference_type n) requires derived_from<
-                        iterator_category, random_access_iterator_tag> {
-                    it_ += n;
-                    return *this;
-                }
+            auto operator+=(difference_type n) requires derived_from< iterator_category, random_access_iterator_tag> {
+                it_ += n;
+                return *this;
+            }
 
-                auto operator-=(difference_type n) requires derived_from<
-                        iterator_category, random_access_iterator_tag> {
-                    it_ -= n;
-                    return *this;
-                }
+            auto operator-=(difference_type n) requires derived_from< iterator_category, random_access_iterator_tag> {
+                it_ -= n;
+                return *this;
+            }
 
-                friend auto
-                operator+(iterator it, difference_type n) requires derived_from<
-                        iterator_category, random_access_iterator_tag> {
-                    return it += n;
-                }
+            friend auto
+            operator+(iterator it, difference_type n) requires derived_from< iterator_category, random_access_iterator_tag> {
+                return it += n;
+            }
 
-                friend auto
-                operator-(iterator it, difference_type n) requires derived_from<
-                        iterator_category, random_access_iterator_tag> {
-                    return it -= n;
-                }
+            friend auto
+            operator-(iterator it, difference_type n) requires derived_from<iterator_category, random_access_iterator_tag> {
+                return it -= n;
+            }
 
-                friend auto
-                operator-(iterator a, iterator b) requires derived_from<
-                        iterator_category, random_access_iterator_tag> {
-                    return a.it_ - b.it_;
-                }
+            friend auto
+            operator-(iterator a, iterator b) requires derived_from<iterator_category, random_access_iterator_tag> {
+                return a.it_ - b.it_;
+            }
 
-                auto operator[](difference_type n) const requires derived_from<iterator_category,
-                        random_access_iterator_tag> {
-                    return *(*this + n);
-                }
-            };
-
-            template< class Wrap, class... Args >
-            struct fn {
-            private:
-                template<class C, class R, class I, class S>
-                constexpr static auto from_iterators(I first, S last, R&& r, Args&&... args) {
-                    // copy or move (optimization)
-                    if constexpr (constructible_from<C, R, Args...>) {
-                        return C(forward<R>(r), forward<Args>(args)...);
-                    }
-                        // we can do push back
-                    else if constexpr (insertable_container<C> && rg::sized_range<R> &&
-                                       reservable_container<C, R> && constructible_from<C, Args...>) {
-                        C c(forward<Args...>(args)...);
-                        c.reserve(rg::size(r));
-                        rg::copy(std::move(first), std::move(last), back_inserter(c));
-                        return c;
-                    }
-                        // default case
-                    else if constexpr (constructible_from<C, I, S, Args...>) {
-                        return C(std::move(first), std::move(last), forward<Args>(args)...);
-                    }
-                        // Covers the Move only iterator case
-                    else if constexpr (constructible_from<C, Args...>) {
-                        C c(forward<Args>(args)...);
-                        rg::copy(std::move(first), std::move(last), back_inserter(c));
-                        return c;
-                    } else { //
-                        static_assert(meta::false_v<R>, "Can't construct a container");
-                    }
-                }
-
-                template<container C, convertible_to_container<C> R>
-                inline static constexpr auto
-                impl(R &&r, Args &&... args) {
-                    return from_iterators<C>(get_begin(forward<R>(r)), get_end(forward<R>(r)),
-                                             forward<R>(r), forward<Args>(args)...);
-                }
-                template<container C, convertible_to_recursive_container<C> R>
-                requires (!convertible_to_container<R, C>)
-                         && constructible_from<C, Args...> && (!constructible_from<C, R>)
-                inline static constexpr auto
-                impl(R &&r, Args &&... args) {
-                    auto first = get_begin(forward<R>(r));
-                    auto last = get_end(forward<R>(r));
-                    using I = iterator<decltype(first), decltype(last), inner_range_t<C>>;
-                    return from_iterators<C>(I{std::move(begin)}, end,
-                                             forward<R>(r), forward<Args>(args)...);
-                }
-            public:
-                template<rg::input_range R>
-                    requires convertible_to_recursive_container<R, container_t<Wrap, R, Args...>>
-                inline constexpr auto
-                operator()(R&& r, Args&&... args) const {
-                    return impl<container_t<Wrap, R, Args...> > (forward<R>(r), forward<Args>(args)...);
-                }
-            };
+            auto operator[](difference_type n) const requires derived_from<iterator_category,random_access_iterator_tag> {
+                return *(*this + n);
+            }
         };
 
-        template < class Wrap, class... Args >
-        using to_container_fn = to_container::fn<Wrap, Args...>;
+        template< class Wrap, class... Args >
+        struct fn {
+        private:
+            template<class C, class R, class I, class S>
+            constexpr static auto from_iterators(I first, S last, R&& r, Args&&... args) {
+                // copy or move (optimization)
+                if constexpr (constructible_from<C, R, Args...>) {
+                    return C(forward<R>(r), forward<Args>(args)...);
+                }
+                    // we can do push back
+                else if constexpr (insertable_container<C> && rg::sized_range<R> &&
+                                   reservable_container<C, R> && constructible_from<C, Args...>) {
+                    C c(forward<Args...>(args)...);
+                    c.reserve(rg::size(r));
+                    rg::copy(std::move(first), std::move(last), back_inserter(c));
+                    return c;
+                }
+                    // default case
+                else if constexpr (constructible_from<C, I, S, Args...>) {
+                    return C(std::move(first), std::move(last), forward<Args>(args)...);
+                }
+                    // Covers the Move only iterator case
+                else if constexpr (constructible_from<C, Args...>) {
+                    C c(forward<Args>(args)...);
+                    rg::copy(std::move(first), std::move(last), back_inserter(c));
+                    return c;
+                } else { //
+                    static_assert(meta::false_v<R>, "Can't construct a container");
+                }
+            }
+
+            template<container C, convertible_to_container<C> R>
+            static constexpr auto
+            impl(R &&r, Args &&... args) {
+                return from_iterators<C>(get_begin(forward<R>(r)), get_end(forward<R>(r)),
+                                         forward<R>(r), forward<Args>(args)...);
+            }
+            template<container C, convertible_to_recursive_container<C> R>
+            requires constructible_from<C, Args...> && (!convertible_to_container<R, C>) && (!constructible_from<C, R>)
+            static constexpr auto
+            impl(R &&r, Args &&... args) {
+                auto first = get_begin(forward<R>(r));
+                auto last = get_end(forward<R>(r));
+                using I = iterator<decltype(first), decltype(last), inner_range_t<C>>;
+                return from_iterators<C>(I{std::move(first)}, last, forward<R>(r), forward<Args>(args)...);
+            }
+        public:
+            template<rg::input_range R>
+                requires convertible_to_recursive_container<R, container_t<Wrap, R, Args...>>
+            inline constexpr auto
+            operator()(R&& r, Args&&... args) const {
+                return impl<container_t<Wrap, R, Args...> > (forward<R>(r), forward<Args>(args)...);
+            }
+        };
+    };
+
+    template < class Wrap, class... Args >
+    using to_container_fn = to_container::fn<Wrap, Args...>;
 //        template< class... Args >
 //        concept not_start_with_range = sizeof...(Args) == 0
 //                                       || !rg::range<remove_cvref_t<tuple_element_t<0,  tuple<Args...> >>>;
-    } // namespace __to
+} // namespace __to
 
     //views::to
     /**
@@ -1970,9 +1950,8 @@ namespace VIEWS {
         template < __to::container C, class... Args >
         inline constexpr auto
         to(Args&&... args) {
-            // requires __to::convertible_to_container<R, C>
             auto __closure = [...args = meta::refwrap(std::forward<Args>(args))]
-            <rg::input_range R> requires __to::convertible_to_container<R, C> (R&& r) {
+            < __to::convertible_to_recursive_container<C> R> (R&& r) {
                 return __to::to_container_fn<C, Args...>{}( forward<R>(r),
                         static_cast<unwrap_reference_t<remove_const_t<decltype(args)>>>(args)...);
             };
