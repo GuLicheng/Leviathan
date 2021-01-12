@@ -7,7 +7,7 @@
 #include <list>
 #include <set>
 #include <ranges>
-#include <lv_cpp/template_info.hpp>
+#include <lv_cpp/tools/template_info.hpp>
 #include <lv_cpp/output.hpp>
 
 std::vector vec{1, 2, 3, 4, 5};
@@ -31,14 +31,7 @@ using T5 = decltype(map);
 
 
 
-#if 1
-
-void test();
-
 void test1();
-
-void test2();
-
 
 int main()
 {
@@ -49,11 +42,12 @@ int main()
 void test1()
 {
     using namespace output;
+    using ::leviathan::views::zip;
     std::ifstream is{"./data.txt", std::ios::binary};
     std::istream_iterator<int> initer{is};
     auto sub = std::ranges::subrange(initer, std::istream_iterator<int>());
     
-    auto zipper_ = ::leviathan::views::zip(vec, buf, ls, arr, sub, map);
+    auto zipper_ = zip(vec, buf, ls, arr, sub, map);
     for (auto [a, b, c, d, e, f] : zipper_ )
     {
         std::cout << a << '-' << b << '-' << 
@@ -65,38 +59,26 @@ void test1()
     //     std::cout << s << std::endl;
     // }
 
+    auto view1 = vec | std::views::take(1);
+    auto view2 = zip(buf, ls);
+
+    for (auto val : view1); // test whether it can be compilered
+    for (auto val : view2);
+
+    for (auto val : zip(view1, view2))
+    {
+        // std::views::print(val);
+        auto [a, b] = val;
+        // a is int, b is a structure with two attribute
+        auto [c, d] = b;
+        std::cout << a << '-' << c << '-' << d << std::endl;
+    }
+
+    // for this
+    // auto rg0 = vec | std::views::take(1) | zip(buf);
+    // you can use zip_with or
+    // zip(vec | std::views::take(1), buf)
+    for (auto val : zip(vec | std::views::take(1), buf));
+
 }
 
-void test()
-{
-    std::cout << "test\n";
-    // std::ranges::range_value_t
-    // std::ranges::iterator_t
-
-    // std::cout << "the address of arr[0] is :" << &*arr.begin() << std::endl;    
-    
-    // auto iter = zip(arr, buf, ls);
-    // iter.show();
-    // ++iter;
-    // iter++;
-    // auto a = *iter;
-    // // using T2 = decltype(iter)::value_type;
-    // // using T1 = decltype(iter)::element_type;
-    // std::cout << std::get<0>(a) << '-' << std::get<1>(a) << '-' << std::get<2>(a) << std::endl;
-    // std::cout << "the address of first element is :" << &std::get<0>(a) << std::endl;    
-    // std::cout << "===================================" << std::endl;    
-}
-
-
-
-void test2()
-{
-    // using T = std::tuple<int, double>;
-    // using RT = typename add_lvalue_reference<T>::type;
-    // int a = 0;
-    // double b = 0;
-    // RT aa{a, b};
-    // PrintTypeCategory(aa);
-    // std::cout << "======================================\n";
-}
-#endif

@@ -17,9 +17,6 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
 {
     using Base = ::std::tuple<Rgs...>;      
 
-
-
-
     Base _M_base{};
 
     struct Sentinel;
@@ -31,8 +28,6 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
         friend zip_view;
         using Iter = ::std::tuple<::std::ranges::iterator_t<Rgs>...>;  // iter_t
         
-        // using self = Iterator;
-
         zip_view* _M_parrent = nullptr;  
         Iter _M_current;
     public:
@@ -189,19 +184,17 @@ zip_view(Rgs&&...) -> zip_view<::std::views::all_t<Rgs>...>;
 
 } // namespace ranges
 
-
-
-
 } // nameaspace leviathan
 
 
 namespace leviathan::views 
 {
-	inline constexpr auto zip
-	= [] <typename... _Ranges> (_Ranges&&... __rs)
-	{
-		return ::leviathan::ranges::zip_view { ::std::forward<_Ranges>(__rs)... };
-	};
+    
+inline constexpr auto zip
+= [] <typename... _Ranges> (_Ranges&&... __rs)
+{
+    return ::leviathan::ranges::zip_view { ::std::forward<_Ranges>(__rs)... };
+};
 
 } // namespace views
 
