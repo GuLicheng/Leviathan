@@ -64,6 +64,7 @@ void test1()
 
     for (auto val : view1); // test whether it can be compilered
     for (auto val : view2);
+    for (auto val : zip(vec | std::views::take(1), buf));
 
     for (auto val : zip(view1, view2))
     {
@@ -78,7 +79,6 @@ void test1()
     // auto rg0 = vec | std::views::take(1) | zip(buf);
     // you can use zip_with or
     // zip(vec | std::views::take(1), buf)
-    for (auto val : zip(vec | std::views::take(1), buf));
 
 }
 
