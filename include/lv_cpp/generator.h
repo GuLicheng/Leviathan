@@ -1,6 +1,7 @@
 /*
     you must keep the counter_iterator copyable, if not satisfied, please
-    modify your standard library, we can make sure this is work for MSVC
+    modify your standard library, we can make sure this is work for MSVC,
+    you may need -fcoroutines for gcc 10.x
 */
 #ifndef TEST_GENERATOR_H
 #define TEST_GENERATOR_H
