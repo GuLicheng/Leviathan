@@ -1,4 +1,5 @@
-#pragma
+#ifndef __ALGORITHM_HPP__
+#define __ALGORITHM_HPP__
 
 #include <algorithm>
 
@@ -191,3 +192,5 @@ print_cart(print_pair);
 */
 
 }  // namespace math
+
+#endif

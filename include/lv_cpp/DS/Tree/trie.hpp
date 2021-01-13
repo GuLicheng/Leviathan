@@ -1,4 +1,5 @@
-#pragma
+#ifndef __TRIE_HPP__
+#define __TRIE_HPP__
 
 /*
  *    使用STL算法实现单词查找树类
@@ -123,3 +124,4 @@ private:
 //     }
 // }
 
+#endif

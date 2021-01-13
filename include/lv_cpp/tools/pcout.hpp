@@ -1,4 +1,5 @@
-#pragma
+#ifndef __PCOUT_HPP__
+#define __PCOUT_HPP__
 
 #include <mutex>
 #include <iostream>
@@ -18,3 +19,5 @@ struct pcout : public std::stringstream
 };
 
 // pcout() << "hello world";
+
+#endif
