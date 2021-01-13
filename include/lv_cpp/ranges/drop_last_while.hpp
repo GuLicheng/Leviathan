@@ -9,7 +9,7 @@ namespace leviathan::views
 inline constexpr auto drop_last_while = []<typename Pred>(Pred pred)
 {
     return ::std::views::reverse 
-         | ::std::views::drop_while(pred) 
+         | ::std::views::drop_while(std::move(pred)) 
          | ::std::views::reverse;
 }; 
  

@@ -159,7 +159,7 @@ public:
 namespace views
 {
 
-inline constexpr::std::ranges::views::__adaptor::_RangeAdaptorClosure count = []<typename T>(T first, T last, T step)
+inline constexpr ::std::ranges::views::__adaptor::_RangeAdaptorClosure count = []<typename T>(T first, T last, T step)
 {
     return ::leviathan::ranges::count_view{first, step, last};
 };
