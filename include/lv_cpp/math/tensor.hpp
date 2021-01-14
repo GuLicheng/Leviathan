@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstddef>
 
-namespace leviathan::math
+namespace leviathan::numeric
 {
 
 template <typename T, size_t N>
@@ -143,7 +143,7 @@ const T& tensor<T, 1>::operator[](size_t index) const
     return this->m_data[index];
 }
 
-}  // namespace math
+}  // namespace numeric
 
 
 

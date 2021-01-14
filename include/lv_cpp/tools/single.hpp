@@ -13,6 +13,7 @@ namespace mode
 } // namespace mode
 
 // thread safe after c++11, so you should keep your standard at least -std=c++11
+// your class shoule have default constructure
 template <typename _Derived_Type, typename _Mode = mode::lazy>
 class singleton
 {
@@ -24,8 +25,9 @@ public:
     
     static derived* get_instance() noexcept
     {
-        static derived* instance = new derived();
-        return instance;
+        // static derived* instance = new derived();
+        static derived instance;
+        return &instance;
     }
 
 protected:

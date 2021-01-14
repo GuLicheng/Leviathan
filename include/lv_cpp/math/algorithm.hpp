@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-namespace leviathan::math
+namespace leviathan
 {
 
 template <typename InIt, typename OutIt, typename T, typename F>
@@ -191,6 +191,6 @@ print_cart(print_pair);
 
 */
 
-}  // namespace math
+}  // namespace leviathan
 
 #endif

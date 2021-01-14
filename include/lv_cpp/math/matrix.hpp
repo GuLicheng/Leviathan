@@ -3,16 +3,13 @@
 
 #include <iostream>
 #include <algorithm>
-#include <type_traits>
 #include <concepts>
 #include <ranges>
 #include <iterator>
 #include <vector>
-#include <limits>
-#include <complex>
+#include <lv_cpp/type_list.hpp>
 
-
-namespace leviathan
+namespace leviathan::numeric
 {
 template <typename T>
 concept arithmetic = std::floating_point<T> || std::integral<T>;
@@ -26,16 +23,7 @@ namespace detail
 {
 
 template <typename T>
-struct is_matrix : std::false_type {};
-
-template <arithmetic T>
-struct is_matrix<leviathan::matrix<T>> : std::true_type {};
-
-template <typename T>
-inline constexpr bool is_matrix_v = is_matrix<std::decay_t<T>>::value;
-
-template <typename T>
-concept matrix = is_matrix_v<T>;
+concept matrix = ::leviathan::meta::is_instance<leviathan::numeric::matrix, std::remove_cvref_t<T>>::value;
 
 template <typename T>
 concept scalar = arithmetic<std::remove_cvref_t<T>>;
@@ -45,7 +33,7 @@ concept scalar_matrix = matrix<T> || scalar<T>;
 
 }  // namespace detail
 
-template <arithmetic T = double>
+template <arithmetic T>
 class matrix
 {
 #ifdef _DEBUG
@@ -536,6 +524,9 @@ private:
 
 };
 
+
+
+
 template <detail::scalar_matrix LType, detail::scalar_matrix RType>
 decltype(auto) operator+(LType&& left, RType&& right) 
 {
@@ -614,8 +605,7 @@ decltype(auto) operator/(LType&& left, RType&& right)
     }
 }
 
-} // end of namespace leviathan
-
+} // end of namespace leviathan::numeric
 
 /*
 void test3()
