@@ -10,28 +10,15 @@ namespace leviathan::numeric
 template <typename FunctionType, typename ValueType = double>
 class function_xy
 {
+protected:
     static_assert(std::is_same_v<std::invoke_result_t<FunctionType, ValueType, ValueType>, ValueType>);
     static_assert(std::is_same_v<float, ValueType> || std::is_same_v<double, ValueType>);
     // may fixed someday
 
-    // explicit make ReturnType to convert ValueType
-    // Args can only be floating so it's not necessary pass by reference
-    template <typename ReturnType, typename CallableOrNot, typename... Args>
-    ReturnType evalute(CallableOrNot call, Args... args) const 
-    {
-        if constexpr (std::is_invocable_v<CallableOrNot, Args...>)
-        {
-            return call(args...);
-        }
-        else
-        {   
-            // cannot be callable
-            return call;
-        }
-    }
+
 
 public:
-    explicit function_xy(FunctionType f, ValueType dummy_value = ValueType{})
+    explicit function_xy(FunctionType f)
         : m_f{f} { }
 
     ValueType operator()(ValueType x, ValueType y) const
@@ -78,8 +65,8 @@ public:
         return [=](auto y)
         {
             auto y_fixed = this->fix_y(y);
-            auto a = this->evalute<ValueType>(lower, y);
-            auto b = this->evalute<ValueType>(upper, y);
+            auto a = evalute<ValueType>(lower, y);
+            auto b = evalute<ValueType>(upper, y);
             return gaussian_quadrature<ValueType>(a, b, y_fixed);
         }; // int_y 
     }
@@ -90,8 +77,8 @@ public:
         return [=](auto x)
         {
             auto x_fixed = this->fix_x(x);
-            auto a = this->evalute<ValueType>(lower, x);
-            auto b = this->evalute<ValueType>(upper, x);
+            auto a = evalute<ValueType>(lower, x);
+            auto b = evalute<ValueType>(upper, x);
             return gaussian_quadrature<ValueType>(a, b, x_fixed);
         }; // int_x    
     }
@@ -110,6 +97,40 @@ public:
         // integrate y and then x
         auto int_x = this->integrate_y(y_lower, y_upper);  // dy
         return gaussian_quadrature<ValueType>(x_lower, x_upper, int_x);  // dx
+    }
+
+    auto fix_x1(ValueType x1) const
+    {
+        return [=](ValueType x2)
+        {
+            return this->m_f(x1, x2);
+        };
+    }
+
+    // we fix x2-component
+    auto fix_x2(ValueType x2) const
+    {
+        return [=](ValueType x1)
+        {
+            return this->m_f(x1, x2);
+        };
+    }
+
+    template<typename TypeX21, typename TypeX22>
+    ValueType integrate(ValueType x11, ValueType x12, TypeX21&& x21, TypeX22&& x22)
+    {
+        // inner integral of double integrals
+        auto inner = [=](auto&& x1)
+        {
+            // evaluate lower of bound x21 using x1 as its argument
+            // In double integral, x21 and x22 can be functions of x1.
+            auto a = evalute<ValueType>(x21, x1);
+            auto b = evalute<ValueType>(x22, x1);
+
+            return gaussian_quadrature(a, b, this->fix_x1(x1));
+        };
+
+        return gaussian_quadrature(x11, x12, inner);
     }
 
 private:

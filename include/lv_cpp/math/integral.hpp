@@ -193,6 +193,21 @@ ValueType gaussian_quadrature(ValueType x1, ValueType x2,
     I *= a; return I;
 }
 
+// explicit make ReturnType to convert ValueType
+// Args can only be floating so it's not necessary pass by reference
+template <typename ReturnType, typename CallableOrNot, typename... Args>
+ReturnType evalute(CallableOrNot call, Args... args) 
+{
+    if constexpr (std::is_invocable_v<CallableOrNot, Args...>)
+    {
+        return call(args...);
+    }
+    else
+    {   
+        // cannot be callable
+        return call;
+    }
+}
 
 } // namespace leviathan::numeric
 
