@@ -9,7 +9,6 @@
 int main()
 {
  
-
     int c = HasSingleBit(1);
     put_int(c);
     c = HasSingleBit(2);
