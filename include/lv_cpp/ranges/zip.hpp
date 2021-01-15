@@ -60,6 +60,7 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
             return !(__x == __y);
         }
 
+        // not support output_range since I don't want
         constexpr Iterator& operator++() 
         requires (::std::ranges::input_range<Rgs> && ...)
         {
@@ -176,6 +177,11 @@ public:
         }
     }
     
+    // template<typename Adaptor>
+    // friend constexpr auto
+    // operator|(zip_view&& __r, const Adaptor& __o)
+    // { return __o(std::forward<zip_view>(__r)); }
+
 };
 
 // type reduce, add this to avoid copy ranges
@@ -191,13 +197,20 @@ namespace leviathan::views
 {
     
 inline constexpr auto zip
-= [] <typename... _Ranges> (_Ranges&&... __rs)
+= [] <::std::ranges::viewable_range... _Ranges> (_Ranges&&... __rs)
 {
     return ::leviathan::ranges::zip_view { ::std::forward<_Ranges>(__rs)... };
 };
 
-
 } // namespace views
+
+// To compatible with STL
+namespace std::ranges
+{
+    template <::std::ranges::range... Ranges>
+    inline constexpr bool 
+    enable_borrowed_range<::leviathan::ranges::zip_view<Ranges...>> = true;
+}
 
 #endif
 

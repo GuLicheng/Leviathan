@@ -43,6 +43,7 @@ void test1()
 {
     using namespace output;
     using ::leviathan::views::zip;
+    // using ::leviathan::views::zip0;
     std::ifstream is{"./data.txt", std::ios::binary};
     std::istream_iterator<int> initer{is};
     auto sub = std::ranges::subrange(initer, std::istream_iterator<int>());
@@ -80,5 +81,13 @@ void test1()
     // you can use zip_with or
     // zip(vec | std::views::take(1), buf)
 
+    for (auto val : zip(vec, ls) | std::views::take(2))
+    {
+        auto [a, b] = val;
+        std::cout << a << '-' << b << std::endl;
+        // std::cout << val << std::endl;
+        // PrintValueCategory(val);
+        // std::cout << std::get<0>(val) << '-' << std::get<1>(val) << std::endl;
+    }
 }
 
