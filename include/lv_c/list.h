@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 
-typedef struct list
+typedef struct _List
 {
     void** data;
     size_t size;
@@ -14,13 +14,15 @@ typedef struct list
 }list_t;
 
 
-list_t* create_list();
+typedef struct _List_Op
+{
+    list_t* (*create_list)();
+    void (*push_back_list)(list_t* ls, void* val);
+    void (*pop_back_list)(list_t *ls);
+    list_t* (*destory_list)(list_t* ls);
+}list_op_t;
 
-void push_back_list(list_t* ls, void* val);
-
-void pop_back_list(list_t *ls);
-
-list_t* destory_list(list_t* ls);
+list_op_t* get_list_option();
 
 
 

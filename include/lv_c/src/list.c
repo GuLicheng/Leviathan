@@ -6,7 +6,6 @@
 #define DEFAULT_CAPACITY 8
 
 
-
 static void shrink_list(list_t* ls)
 {
     if (ls->size >= ls->capacity >> 2) return;
@@ -17,7 +16,7 @@ static void shrink_list(list_t* ls)
     ls->data = new_data;
 }
 
-list_t* create_list()
+static list_t* create_list()
 {
     list_t* ls = (list_t*)calloc(1, sizeof(list_t*));
     ls->data = calloc(DEFAULT_CAPACITY, sizeof(void*));
@@ -26,7 +25,7 @@ list_t* create_list()
     return ls;
 }
 
-void push_back_list(list_t* ls, void* val)
+static void push_back_list(list_t* ls, void* val)
 {
     if (ls->size == ls->capacity)
     {
@@ -42,19 +41,30 @@ void push_back_list(list_t* ls, void* val)
     ls->data[ls->size++] = val;
 }
 
-void pop_back_list(list_t* ls)
+static void pop_back_list(list_t* ls)
 {
     free(ls->data[--ls->size]);
     shrink_list(ls);
 }
 
-list_t* destory_list(list_t* ls)
+static list_t* destory_list(list_t* ls)
 {
     for (size_t i = 0; i < ls->size; ++i)
         free(ls->data[i]);
     free(ls);
 }
 
+static list_op_t ls_option =
+{
+    .create_list = create_list,
+    .destory_list = destory_list,
+    .pop_back_list = pop_back_list,
+    .push_back_list = push_back_list
+};
 
+list_op_t* get_list_option()
+{
+    return &ls_option;
+}
 
 

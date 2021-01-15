@@ -1,5 +1,6 @@
-#include <lv_c/list.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <lv_c/list.h>
 
 typedef struct point2D
 {
@@ -16,20 +17,20 @@ typedef struct point3D
 
 int main()
 {
-    list_t* ls = create_list();
+    list_op_t* op = get_list_option();
+    list_t* ls = op->create_list();
 
     for (int i = 0; i < 100; ++i)
     {
         point2D* p = (point2D*)malloc(sizeof(point2D));
         p->x = p->y = i;
-        push_back_list(ls, p);
+        op->push_back_list(ls, p);
         point2D* q = (point2D*)ls->data[i];
         printf("%d %d %d %d.\n", q->x, q->y, ls->size, ls->capacity);
     }
     for (int i = 0; i < 80; ++i)
-        pop_back_list(ls);
+        op->pop_back_list(ls);
     printf("%d %d.\n", ls->size, ls->capacity);
-    destory_list(ls);
+    op->destory_list(ls);
 
 }
-// gcc -I./ -o main ./*
