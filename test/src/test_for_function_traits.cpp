@@ -1,14 +1,17 @@
 #include <iostream>
 
 #include <lv_cpp/type_list.hpp>
-#include <lv_cpp/template_info.hpp>
+#include <lv_cpp/tools/template_info.hpp>
 
 using namespace leviathan::meta;
 
-int func(int, double, char) { return 0; }
+int func(int, double, char) noexcept { return 0; }
 
 void test_for_function()
 {
+
+    static_assert(function_traits<decltype(func)>::is_noexcept == true);
+
     using Arg1 = function_traits<decltype(func)>::args; 
     using Arg2 = function_traits<decltype(func)>::return_type; 
     using Arg4 = function_traits<decltype(func)>::template nth_arg<0>; 
@@ -48,8 +51,65 @@ void test_for_lambda()
     PrintTypeInfo(Arg3);  // (int, double)
 }
 
+void test_for_class_member_function()
+{
+    struct foo
+    {
+        // 12
+        void none(int) noexcept { }
+        void const_() const { }
+        void const_volatile() const volatile { }
+        void volatile_() volatile { }
+        
+        void ref(int) & { }
+        void const_ref(double) const& { }
+        void volatile_ref() volatile& noexcept { }
+        void const_volatile_ref() const volatile noexcept { }
+
+        void r_ref() && noexcept { }
+        void const_r_ref() const&& { }
+        void volatile_r_ref() volatile&& { }
+        void const_volatile_r_ref() const volatile&& noexcept { }
+
+    };
+
+
+    using T1 = function_traits<decltype(&foo::none)>::class_type;
+    using T2 = function_traits<decltype(&foo::const_)>::class_type;
+    using T3 = function_traits<decltype(&foo::volatile_)>::class_type;
+    using T4 = function_traits<decltype(&foo::const_volatile)>::class_type;
+
+    using T5 = function_traits<decltype(&foo::ref)>::class_type;
+    using T6 = function_traits<decltype(&foo::const_ref)>::class_type;
+    using T7 = function_traits<decltype(&foo::volatile_ref)>::class_type;
+    using T8 = function_traits<decltype(&foo::const_volatile_ref)>::class_type;
+
+    using T9 = function_traits<decltype(&foo::r_ref)>::class_type;
+    using T10 = function_traits<decltype(&foo::const_r_ref)>::class_type;
+    using T11 = function_traits<decltype(&foo::volatile_r_ref)>::class_type;
+    using T12 = function_traits<decltype(&foo::const_volatile_r_ref)>::class_type;
+
+    PrintTypeInfo(T1);
+    PrintTypeInfo(T2);
+    PrintTypeInfo(T3);
+    PrintTypeInfo(T4);
+    PrintTypeInfo(T5);
+    PrintTypeInfo(T6);
+    PrintTypeInfo(T7);
+    PrintTypeInfo(T8);
+    PrintTypeInfo(T9);
+    PrintTypeInfo(T10);
+    PrintTypeInfo(T11);
+    PrintTypeInfo(T12);
+
+    static_assert(function_traits<decltype(&foo::none)>::is_noexcept == true);
+    static_assert(function_traits<decltype(&foo::ref)>::is_noexcept == false);
+
+}
+
 int main()
 {
     test_for_function();
     test_for_lambda();
+    test_for_class_member_function();
 }
