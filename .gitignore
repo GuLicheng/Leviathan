@@ -4,4 +4,4 @@ Makefile
 *.exe
 *.o
 *.txt
-*.cpp
+./*.cpp
