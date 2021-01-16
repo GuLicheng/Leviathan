@@ -16,8 +16,7 @@ public:
 
     constexpr static void assign(char_type& r, const char_type& a) noexcept
     {
-        auto lower = std::tolower(a);;
-        base::assign(r, lower);
+        base::assign(r, std::tolower(a));
     }
 
     constexpr static char_type* assign(char_type* p, size_t count, char_type a)
