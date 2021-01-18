@@ -592,6 +592,24 @@ struct is_instance : std::false_type { };
 template <template <typename...> typename TemplateClass, typename... Args>
 struct is_instance<TemplateClass, TemplateClass<Args...>> : std::true_type { };
 
+namespace detail
+{
+    
+template <size_t N, typename Res, typename T>
+struct repeat_impl
+    : repeat_impl<N - 1, typename push_back<Res, T>::type, T> 
+{ };
+
+template <typename Res, typename T>
+struct repeat_impl<0, Res, T> : std::type_identity<Res> { };
+
+} // namespace detail
+
+// repeat T for N and put them into Container
+template <size_t N, typename T>
+struct repeat : detail::repeat_impl<N, std::tuple<>, T> { };
+
+
 }  // namespace leviathan meta
 
 #endif // __TYPE_LIST_HPP__
