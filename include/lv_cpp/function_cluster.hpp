@@ -111,16 +111,22 @@ private:
 public:
     function_cluster(Lambdas... fns) : functions{fns...} { }
 
-    template <size_t N>
-    auto& get() noexcept
-    {
-        return std::get<N>(this->functions);
-    }
 
-    template <size_t N>
-    const auto& get() const noexcept 
+    template <size_t N, typename... Args>
+    decltype(auto) invoke(Args&&... args) const
     {
-        return std::get<N>(this->functions);
+        using _Fn = std::tuple_element_t<N, type_pack>;
+        using return_type = std::invoke_result_t<_Fn, Args...>;
+        const auto& f = *std::any_cast<_Fn>(&std::get<N>(this->functions));
+        if constexpr (std::is_same_v<void, return_type>)
+        {
+            f(std::forward<Args>(args)...);
+            return null{};
+        }
+        else
+        {
+            return f(std::forward<Args>(args)...);
+        } 
     }
 
 

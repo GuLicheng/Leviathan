@@ -15,10 +15,14 @@ int main()
     std::cout << a << std::endl;
     std::cout << b << std::endl;
     std::cout << c << std::endl;
-
+    std::cout << fs.invoke<2>(0) << std::endl;
 
     leviathan::function_cluster fs1 {std::ranges::sort};
     std::vector<int> arr{2, 3, 1};
     fs1.match_paras_call(arr.begin(), arr.end());
     for (auto val : arr) std::cout << val << ' ';
+    std::vector<int> buf{2, 3, 1, 6, 23, 7};
+    std::cout << std::endl;
+    fs1.invoke<0>(buf.begin(), buf.end());
+    for (auto val : buf) std::cout << val << ' ';
 }
