@@ -83,7 +83,7 @@ int main()
 
 
     static_assert(std::same_as<
-            meta::transform<std::add_const, int, double>::type, 
+            typename meta::transform<std::add_const, int, double>::type, 
             std::tuple<const int, const double>>);
 
 

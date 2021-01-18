@@ -1,10 +1,9 @@
 #ifndef __TYPE_LIST_HPP__
 #define __TYPE_LIST_HPP__
 
-#include <tuple>
 #include <type_traits>
-#include <concepts>
-
+#include <tuple>  //  for tuple
+#include <cstddef>  // for size_t
 
 // Here are some options for type list
 namespace leviathan::meta
@@ -43,7 +42,7 @@ struct concat_impl;
 template <template <typename...> typename Container1, template <typename...> typename Container2, 
                                 typename... Ts1, typename... Ts2>
 struct concat_impl<Container1<Ts1...>, Container2<Ts2...>>
-    : std::type_identity<Container1<Ts1..., Ts2...>> { };
+    : std::enable_if<true, Container1<Ts1..., Ts2...>> { };
 
 
 template <template <typename...> typename Container1, template <typename...> typename Container2, 
@@ -57,8 +56,7 @@ struct concat_impl<Container1<Ts1...>, Container2<Ts2...>, Containers...>
 // traits all types in each typelist into Container
 template <template <typename...> typename Container, typename... Containers>
 struct concat 
-    : std::type_identity
-        <
+    : std::enable_if <true,
             typename ::leviathan::meta::traits_parameters_from_type_list
             <
                 Container, typename detail::concat_impl<std::tuple<>, Containers...>::type    
@@ -73,7 +71,7 @@ template <typename List, typename... Ts>
 struct flatten_impl;
 
 template <template <typename...> typename Container, typename... Ts>
-struct flatten_impl<Container<Ts...>> : std::type_identity<Container<Ts...>> { };
+struct flatten_impl<Container<Ts...>> : std::enable_if<true, Container<Ts...>> { };
 
 template <template <typename...> typename Container, template <typename...> typename TemplateClass, typename... Ts1, typename... Ts2, typename... Ts>
 struct flatten_impl<Container<Ts1...>, TemplateClass<Ts2...>, Ts...>
@@ -154,7 +152,7 @@ struct index_of : index_of<Index, std::tuple<Ts...>> { };
 
 template <typename T, typename... Types>
 struct index_of<0, std::tuple<T, Types...>> : 
-    std::type_identity<T> {};
+    std::enable_if<true, T> {};
 
 template <size_t Index, typename T1, typename... Types>
 struct index_of<Index, std::tuple<T1, Types...>>
@@ -340,7 +338,7 @@ struct insert_sort_impl<std::tuple<Ts1...>, std::tuple<T1, Ts2...>>
 
 template <typename... Ts>
 struct insert_sort_impl<std::tuple<Ts...>, std::tuple<>>
-    : std::type_identity<std::tuple<Ts...>>
+    : std::enable_if<true, std::tuple<Ts...>>
     { };
 
 
@@ -348,14 +346,14 @@ template <typename ... Ts1, typename... Ts2, typename T2, typename T, size_t N>
 struct insert_impl<std::tuple<Ts1...>, std::tuple<T2, Ts2...>, T, N>
     : std::conditional_t<
                         N == 0,
-                        std::type_identity<std::tuple<Ts1..., T, T2, Ts2...>>,
+                        std::enable_if<true, std::tuple<Ts1..., T, T2, Ts2...>>,
                         insert_impl<std::tuple<Ts1..., T2>, std::tuple<Ts2...>, T, N - 1>
                         >
     { };
 
 template <typename ... Ts1, typename T, size_t N>
 struct insert_impl<std::tuple<Ts1...>, std::tuple<>, T, N>
-    : std::type_identity<std::tuple<Ts1..., T>>
+    : std::enable_if<true, std::tuple<Ts1..., T>>
     { };
 
 template <typename... Ts, typename T, size_t Idx>
@@ -450,11 +448,11 @@ struct unique<std::tuple<Ts...>>
 
 template <template <typename...> typename Func, typename... Args>
 struct transform
-     : std::type_identity<std::tuple<typename Func<Args>::type ...>> { };
+     : std::enable_if<true, std::tuple<typename Func<Args>::type ...>> { };
 
 
 template <template <typename...> typename Func, typename... Args>
-struct call : std::type_identity<typename Func<Args...>::type> { };
+struct call : std::enable_if<true, typename Func<Args...>::type> { };
 // {
 //     using type = typename Func<Args...>::type;
 // };
@@ -601,7 +599,7 @@ struct repeat_impl
 { };
 
 template <typename Res, typename T>
-struct repeat_impl<0, Res, T> : std::type_identity<Res> { };
+struct repeat_impl<0, Res, T> : std::enable_if<true, Res> { };
 
 } // namespace detail
 
