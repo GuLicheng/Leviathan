@@ -19,20 +19,20 @@ public:
     foo() : val{0} 
     { std::cout << "default_constructor :" << default_constructor++ << std::endl;}
     
-    foo([[maybe_unused]]const foo& rhs) : val{rhs.val}
+    foo(const foo& rhs) : val{rhs.val}
     { std::cout << "copy_constructor :" << copy_constructor++ << std::endl;}
 
-    foo([[maybe_unused]]foo&& rhs) noexcept : val{rhs.val}
+    foo(foo&& rhs) noexcept : val{rhs.val}
     { std::cout << "move_constructor :" << move_constructor++ << std::endl;}
 
-    foo& operator=([[maybe_unused]]const foo& rhs) 
+    foo& operator=(const foo& rhs) 
     {
         this->val = rhs.val; 
         std::cout << "copy_assignment :" << copy_assignment++ << std::endl;
         return *this;
     }
 
-    foo& operator=([[maybe_unused]]foo&& rhs) noexcept
+    foo& operator=(foo&& rhs) noexcept
     { 
         this->val = rhs.val;
         std::cout << "move_assignment :" << move_assignment++ << std::endl;
