@@ -39,7 +39,7 @@ struct helper<Function, Container1<Ls1...>, Container2<Ls2...>>
 
 
 template <typename... Lambdas>
-class function_clusters
+class function_cluster
 {
     template <typename _Func, typename... _Args>
     struct __get_return
@@ -103,13 +103,26 @@ private:
         // };
         {
             this->call_unit(
-                std::any_cast<std::tuple_element_t<Idx, type_pack>>(std::get<Idx>(this->functions)),
+                *std::any_cast<std::tuple_element_t<Idx, type_pack>>(&std::get<Idx>(this->functions)),
                 std::forward<Args>(args)...) ...
         };
     }
 
 public:
-    function_clusters(Lambdas... fns) : functions{fns...} { }
+    function_cluster(Lambdas... fns) : functions{fns...} { }
+
+    template <size_t N>
+    auto& get() noexcept
+    {
+        return std::get<N>(this->functions);
+    }
+
+    template <size_t N>
+    const auto& get() const noexcept 
+    {
+        return std::get<N>(this->functions);
+    }
+
 
 private:
     member_t functions;
