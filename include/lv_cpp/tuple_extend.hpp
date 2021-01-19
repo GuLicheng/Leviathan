@@ -1,44 +1,38 @@
 /*
     to be fixed..........
 */
-#pragma once
-// #include "output.hpp"
-// #include "type_list.hpp"
+#ifndef __TUPLE_EXTEND_HPP__
+#define __TUPLE_EXTEND_HPP__
+
+
+#include <lv_cpp/type_list.hpp>
+
 #include <tuple>
-#include <type_traits>
+#include <iostream>
 
-namespace leviathan 
+namespace leviathan
 {
-
-// CreateTemplateConcepts(tuple, tuple_concept, ::std);
-
-
-namespace detail 
-{
-// print tuple
-template <typename _Tuple, size_t... Idx>
-void tuple_print_helper(std::ostream& os, _Tuple&& t, std::index_sequence<Idx...>) 
-{
-    ((Idx == 0 ? os << std::get<Idx>(t) : os << ',' << std::get<Idx>(t)), ...);
-}
 
 template <typename... Ts>
 void print_tuple(std::ostream& os, const std::tuple<Ts...>& t) 
 {
-    os << '{';
-    tuple_print_helper(os, t, std::make_index_sequence<sizeof...(Ts)>());
-    os << '}';
-}  // namespace detail
+    os << '(';
+    auto tuple_print_helper = []<typename _Tuple, size_t... Idx> 
+        (std::ostream& os, _Tuple&& t, std::index_sequence<Idx...>)
+        { 
+            ((Idx == 0 ? os << std::get<Idx>(t) : os << ',' << std::get<Idx>(t)), ...);
+        }; 
+    tuple_print_helper(os, t, std::make_index_sequence<sizeof...(Ts)>()); 
+    os << ')';
+}
 
-
-
+namespace detail
+{
 
 // reverse tuple
 template <typename Tuple, size_t ...Idx>
 typename ::leviathan::meta::reverse<std::decay_t<Tuple>>::type
-inline 
-constexpr
-reverse_tuple_helper_by_move(Tuple&& t, std::index_sequence<Idx...>) 
+inline constexpr reverse_tuple_by_move_impl(Tuple&& t, std::index_sequence<Idx...>) 
 {
     constexpr size_t size = sizeof...(Idx);
     using tuple_type = std::remove_cvref_t<Tuple>;
@@ -56,17 +50,12 @@ reverse_tuple_helper_by_move(Tuple&& t, std::index_sequence<Idx...>)
 
 template <typename Tuple, size_t ...Idx>
 typename ::leviathan::meta::reverse<std::decay_t<Tuple>>::type
-inline
-constexpr
-reverse_tuple_helper_by_copy(Tuple&& t, std::index_sequence<Idx...>) 
+inline constexpr reverse_tuple_by_copy_impl(Tuple&& t, std::index_sequence<Idx...>) 
 {
     constexpr size_t size = sizeof...(Idx);
     using tuple_type = std::remove_cvref_t<Tuple>;
     return std::forward_as_tuple((std::get<size - Idx - 1>(t))...);
 }
-
-
-
 
 } // namespace detail
 
@@ -75,7 +64,7 @@ template <typename Tuple>
 inline constexpr auto reverse_tuple_by_move(Tuple&& t)
 {
     constexpr auto size = std::tuple_size_v<std::remove_cvref_t<Tuple>>;
-    return detail::reverse_tuple_helper_by_move(
+    return detail::reverse_tuple_by_move_impl(
                     std::forward<Tuple>(t), 
                     std::make_index_sequence<size>());
 }
@@ -85,13 +74,44 @@ template <typename Tuple>
 inline constexpr auto reverse_tuple_by_copy(Tuple&& t)
 {
     constexpr auto size = std::tuple_size_v<std::remove_cvref_t<Tuple>>;
-    return detail::reverse_tuple_helper_by_copy(
+    return detail::reverse_tuple_by_copy_impl(
                     std::forward<Tuple>(t), 
                     std::make_index_sequence<size>());
 }
 
+namespace detail
+{
 
+template <size_t Idx, typename Tuple1, typename Tuple2, 
+    typename BinaryOp1, typename BinaryOp2>
+constexpr auto tuple_inner_product_impl(const Tuple1& t1, const Tuple2& t2, 
+        BinaryOp1 op1, BinaryOp2 op2)
+{
+    if constexpr (Idx > 0)
+    {
+        auto a_op1_b = op1(std::get<Idx>(t1), std::get<Idx>(t2));
+        return op2(a_op1_b, tuple_inner_product_impl<Idx - 1>(t1, t2, op1, op2));
+    }
+    else
+    {
+        return op1(std::get<0>(t1), std::get<0>(t2));
+    }
+    
+}
 
+} // namespace detail
+
+template <typename Tuple1, typename Tuple2, typename BinaryOp1, typename BinaryOp2>
+constexpr auto tuple_inner_preduct(const Tuple1& t1, const Tuple2& t2, BinaryOp1 op1, BinaryOp2 op2)
+{
+    // follow as std::inner_preduct 
+    constexpr auto size1 = std::tuple_size_v<Tuple1>;
+    constexpr auto size2 = std::tuple_size_v<Tuple2>;
+    static_assert(size1 == size2);
+    return detail::tuple_inner_product_impl<size1 - 1>(t1, t2, std::move(op1), std::move(op2));
+}
 
 
 } // namespace leviathan
+
+#endif
