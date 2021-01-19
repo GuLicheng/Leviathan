@@ -30,6 +30,11 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
         
         zip_view* _M_parrent = nullptr;  
         Iter _M_current;
+
+
+
+
+
     public:
         using iterator_category = ::std::common_type_t<
             typename ::std::iterator_traits<::std::ranges::iterator_t<Rgs>>::iterator_category...>;
@@ -37,7 +42,10 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
         using value_type = 
             ::std::tuple<::std::iter_reference_t<::std::ranges::iterator_t<Rgs>>...>;
                                     
-        using difference_type = ::std::ptrdiff_t;  // simply equals to ptrdiff_t
+        // using difference_type = ::std::ptrdiff_t;  // simply equals to ptrdiff_t
+
+        using difference_type = ::std::common_type_t<::std::iter_difference_t
+            <::std::ranges::iterator_t<Rgs>>...>;
 
         using reference = value_type;
         // using pointer = value_type*;
@@ -47,11 +55,13 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
         constexpr Iterator(zip_view& parent, Iter current)
             : _M_parrent(::std::addressof(parent)), _M_current(::std::move(current)) { }
 
-        // overload operator
+        // compare operator
 		friend constexpr bool operator==(const Iterator& __x, const Iterator& __y)
 		requires (::std::equality_comparable<::std::iter_value_t<::std::ranges::iterator_t<Rgs>>> && ...) 
         { 
-            return Iterator::template single_cmp(__x._M_current, __y._M_current, ::std::make_index_sequence<sizeof...(Rgs)>());
+            return Iterator::template single_cmp_disjunction
+                (__x._M_current, __y._M_current, ::std::equal_to<>(), 
+                ::std::make_index_sequence<sizeof...(Rgs)>());
         }
 
 		friend constexpr bool operator!=(const Iterator& __x, const Iterator& __y)
@@ -60,16 +70,40 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
             return !(__x == __y);
         }
 
-        // not support output_range since I don't want
-        constexpr Iterator& operator++() 
-        requires (::std::ranges::input_range<Rgs> && ...)
+        friend constexpr bool operator<(const Iterator& __x, const Iterator& __y)
+        requires (::std::totally_ordered<::std::iter_value_t<::std::ranges::iterator_t<Rgs>>> && ...)
+        {
+            return Iterator::template single_cmp_conjunction
+                (__x._M_current, __y._M_current, ::std::less<>(), 
+                ::std::make_index_sequence<sizeof...(Rgs)>());
+        }
+
+        friend constexpr bool operator<=(const Iterator& __x, const Iterator& __y)
+        requires (::std::totally_ordered<::std::iter_value_t<::std::ranges::iterator_t<Rgs>>> && ...)
+        {
+            return __x < __y || __x == __y;
+        }
+
+        friend constexpr bool operator>(const Iterator& __x, const Iterator& __y)
+        requires (::std::totally_ordered<::std::iter_value_t<::std::ranges::iterator_t<Rgs>>> && ...)
+        {
+            return !(__x <= __y);
+        }
+
+        friend constexpr bool operator>=(const Iterator& __x, const Iterator& __y)
+        requires (::std::totally_ordered<::std::iter_value_t<::std::ranges::iterator_t<Rgs>>> && ...)
+        {
+            return !(__x < __y);
+        }
+
+        // iterator operator
+        constexpr Iterator& operator++()
         {
             ::std::apply([](auto&&... x){ (++x, ...); }, _M_current);
             return *this;
         }
 
-        constexpr Iterator operator++(int) 
-        requires ::std::copyable<Iter> && (::std::ranges::input_range<Rgs> && ...)
+        constexpr Iterator operator++(int) requires ::std::copyable<Iter> 
         {
             auto __tmp = *this;
             ++ *this;
@@ -77,14 +111,14 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
         }
 
         constexpr Iterator& operator--() 
-        requires (::std::ranges::bidirectional_range<Rgs> && ...)
+        requires ::std::derived_from<iterator_category, ::std::bidirectional_iterator_tag>
         {
             ::std::apply([](auto&&... x){ (--x, ...); }, _M_current);
             return *this;
         }
 
-        constexpr Iterator& operator--(int) 
-        requires ::std::copyable<Iter> && (::std::ranges::bidirectional_range<Rgs> && ...)
+        constexpr Iterator operator--(int) 
+        requires ::std::copyable<Iter> && ::std::derived_from<iterator_category, ::std::bidirectional_iterator_tag>
         {
             auto __tmp = *this;
             ++ *this;
@@ -101,12 +135,80 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
             return this->deref_impl(::std::make_index_sequence<sizeof...(Rgs)>());
         }
 
+        constexpr Iterator operator+(difference_type n) const 
+        requires ::std::copyable<Iter> && ::std::derived_from<iterator_category, ::std::random_access_iterator_tag>
+        {
+            auto __tmp = *this;
+            __tmp += n;
+            return __tmp;
+        }
+
+        friend constexpr Iterator operator+(difference_type n, const Iterator& rhs) 
+        requires ::std::copyable<Iter> && ::std::derived_from<iterator_category, ::std::random_access_iterator_tag>
+        {
+            return (rhs + n);
+        }
+
+        constexpr Iterator& operator+=(difference_type n) 
+        requires ::std::derived_from<iterator_category, ::std::random_access_iterator_tag>
+        {
+            ::std::apply([=](auto&&... x){ (::std::advance(x, n), ...); }, _M_current);
+            return *this;
+        }
+
+        constexpr Iterator operator-(difference_type n) const 
+        requires ::std::copyable<Iter> && ::std::derived_from<iterator_category, ::std::random_access_iterator_tag>
+        {
+            auto __tmp = *this;
+            __tmp -= n;
+            return __tmp;
+        }
+
+        constexpr Iterator& operator-=(difference_type n)  
+        requires ::std::derived_from<iterator_category, ::std::random_access_iterator_tag>
+        {
+            ::std::apply([=](auto&&... x){ (::std::advance(x, -n), ...); }, _M_current);
+            return *this;
+        }
+
+        constexpr reference operator[](difference_type n) const
+        requires ::std::derived_from<iterator_category, ::std::random_access_iterator_tag>
+        {
+            auto __tmp = *this;
+            __tmp += n;
+            return *__tmp;
+        } 
+
+        friend constexpr difference_type operator-(const Iterator& __x, const Iterator& __y)
+        requires ((::std::totally_ordered<::std::iter_value_t<::std::ranges::iterator_t<Rgs>>> && ...)
+            && ::std::derived_from<iterator_category, ::std::random_access_iterator_tag>)
+        {
+            return std::get<0>(__x._M_current) - std::get<0>(__x._M_current);
+        }
+
     private:
         
-        template <typename Tuple1, typename Tuple2, size_t... Idx>
-        static bool single_cmp(const Tuple1& lhs, const Tuple2& rhs, ::std::index_sequence<Idx...>)
+
+        // for each (xs..., ys...) in (Tuple1, Tuple2) 
+        // return op2(op2(op1(x1, y1), op1(x2, y2)), op1(x3, y3))...
+        template <typename Tuple1, typename Tuple2, size_t... Idx, typename BinaryOp>
+        constexpr static bool single_cmp_disjunction
+        (const Tuple1& lhs, const Tuple2& rhs, BinaryOp op, ::std::index_sequence<Idx...>) 
+        noexcept
         {
-            return ((::std::get<Idx>(lhs) == ::std::get<Idx>(rhs)) || ...);
+            // return ((::std::get<Idx>(lhs) == ::std::get<Idx>(rhs)) || ...);
+            return ( op(::std::get<Idx>(lhs), ::std::get<Idx>(rhs)) || ... );
+            // return op2( op1(::std::get<Idx>(lhs), ::std::get<Idx>(rhs)) ...);
+        };
+
+        template <typename Tuple1, typename Tuple2, size_t... Idx, typename BinaryOp>
+        constexpr static bool single_cmp_conjunction
+        (const Tuple1& lhs, const Tuple2& rhs, BinaryOp op, ::std::index_sequence<Idx...>) 
+        noexcept
+        {
+            // return ((::std::get<Idx>(lhs) == ::std::get<Idx>(rhs)) || ...);
+            return ( op(::std::get<Idx>(lhs), ::std::get<Idx>(rhs)) && ... );
+            // return op2( op1(::std::get<Idx>(lhs), ::std::get<Idx>(rhs)) ...);
         };
 
         template <size_t... Idx>
@@ -126,7 +228,10 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
         Iter _M_end;
         constexpr bool is_equal_to(const Iterator& __i) const noexcept
         {
-            return Iterator::template single_cmp(__i._M_current, this->_M_end, ::std::make_index_sequence<sizeof...(Rgs)>());
+            // the paras of std::equal_to must be void because the lhs and rhs may not same
+            return Iterator::template single_cmp_disjunction
+                (__i._M_current, this->_M_end, ::std::equal_to<>(), 
+                ::std::make_index_sequence<sizeof...(Rgs)>());
         }
 
     public:

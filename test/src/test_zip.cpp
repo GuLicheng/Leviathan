@@ -7,7 +7,7 @@
 #include <list>
 #include <set>
 #include <ranges>
-#include <lv_cpp/tools/template_info.hpp>
+#include <lv_cpp/utils/template_info.hpp>
 #include <lv_cpp/output.hpp>
 
 std::vector vec{1, 2, 3, 4, 5};
@@ -39,6 +39,18 @@ int main()
     return 0;
 }
 
+// template <typename _Iter>
+// concept _rand = requires(_Iter __i, const _Iter __j,
+// 		  const std::iter_difference_t<_Iter> __n)
+//       {
+// 	{ __i += __n } -> std::same_as<_Iter&>;
+// 	{ __j +  __n } -> std::same_as<_Iter>;
+// 	{ __n +  __j } -> std::same_as<_Iter>;
+// 	{ __i -= __n } -> std::same_as<_Iter&>;
+// 	{ __j -  __n } -> std::same_as<_Iter>;
+// 	{  __j[__n]  } -> std::same_as<std::iter_reference_t<_Iter>>;
+//       };
+
 void test1()
 {
     using namespace output;
@@ -49,6 +61,10 @@ void test1()
     auto sub = std::ranges::subrange(initer, std::istream_iterator<int>());
     
     auto zipper_ = zip(vec, buf, ls, arr, sub, map);
+
+    std::cout << "Is zip(all...) a input range? " 
+        << std::ranges::input_range<decltype(zipper_)> << std::endl;
+
     for (auto [a, b, c, d, e, f] : zipper_ )
     {
         std::cout << a << '-' << b << '-' << 
@@ -62,6 +78,9 @@ void test1()
 
     auto view1 = vec | std::views::take(1);
     auto view2 = zip(buf, ls);
+
+    static_assert(std::ranges::bidirectional_range<decltype(view2)> == true);
+    static_assert(std::ranges::forward_range<decltype(view1)> == true);
 
     for (auto val : view1); // test whether it can be compilered
     for (auto val : view2);
@@ -89,5 +108,40 @@ void test1()
         // PrintValueCategory(val);
         // std::cout << std::get<0>(val) << '-' << std::get<1>(val) << std::endl;
     }
+
+    auto random_range = zip(vec, arr);
+    static_assert(std::ranges::random_access_range<decltype(random_range)> == true);
+    // using T1 = decltype(random_range.begin());
+    // using T2 = decltype(random_range.end());
+    // std::cout << std::sized_sentinel_for<T1, T2> << std::endl;
+    // std::cout << std::totally_ordered<decltype(random_range.begin())> << std::endl;
+    // std::cout << std::sentinel_for<T1, T2> << std::endl;
+    // std::cout << !std::disable_sized_sentinel_for<std::remove_cv_t<T1>, std::remove_cv_t<T2>> << std::endl;
+    // std::cout << _rand<T1> << std::endl;
+    std::cout << "Test Successfully\n";
 }
 
+/*
+template<class S, class I>
+  concept sized_sentinel_for =
+    std::sentinel_for<S, I> &&
+    !std::disable_sized_sentinel_for<std::remove_cv_t<S>, std::remove_cv_t<I>> &&
+    requires(const I& i, const S& s) {
+      { s - i } -> std::same_as<std::iter_difference_t<I>>;
+      { i - s } -> std::same_as<std::iter_difference_t<I>>;
+    };
+*/
+
+/*
+template <typename _Iter>
+requires(_Iter __i, const _Iter __j,
+		  const iter_difference_t<_Iter> __n)
+      {
+	{ __i += __n } -> same_as<_Iter&>;
+	{ __j +  __n } -> same_as<_Iter>;
+	{ __n +  __j } -> same_as<_Iter>;
+	{ __i -= __n } -> same_as<_Iter&>;
+	{ __j -  __n } -> same_as<_Iter>;
+	{  __j[__n]  } -> same_as<iter_reference_t<_Iter>>;
+      };
+*/
