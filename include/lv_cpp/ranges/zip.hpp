@@ -1,3 +1,9 @@
+/*
+    implement interface of view_interface
+    // such as size for subrange
+    provide operators for sentinel
+    // use iota and array to test
+*/
 #ifndef __ZIP_HPP__
 #define __ZIP_HPP__
 
@@ -13,7 +19,7 @@ namespace ranges
 
 // we should adaptor for non-ref type
 template <::std::ranges::range... Rgs>
-class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
+class zip_view : public ::std::ranges::view_interface<zip_view<Rgs...>>
 {
     using Base = ::std::tuple<Rgs...>;      
 
@@ -183,7 +189,7 @@ class zip_view : ::std::ranges::view_interface<zip_view<Rgs...>>
         requires ((::std::totally_ordered<::std::iter_value_t<::std::ranges::iterator_t<Rgs>>> && ...)
             && ::std::derived_from<iterator_category, ::std::random_access_iterator_tag>)
         {
-            return std::get<0>(__x._M_current) - std::get<0>(__x._M_current);
+            return std::get<0>(__x._M_current) - std::get<0>(__y._M_current);
         }
 
     private:
@@ -257,6 +263,12 @@ public:
     // you can view Rgs as ref_warpper, and it will not copy ranges
 	constexpr zip_view(Rgs... rgs): _M_base(::std::move(rgs)...) { }
 
+    // constexpr auto size() const
+    // requires ::std::ranges::random_access_range<Iterator>
+    // {
+    //     return std::ranges::end(*this) - std::ranges::begin(*this);
+    // }
+
     // get all begins of ranges
 	constexpr Iterator begin()
 	{
@@ -281,7 +293,15 @@ public:
 			return Sentinel{iter};
         }
     }
+
+    // constexpr auto data() 
+    // {
+        // if constexpr (contiguous_iterator_tag<>)
+        // return 
+    // }
+
     
+
     // template<typename Adaptor>
     // friend constexpr auto
     // operator|(zip_view&& __r, const Adaptor& __o)

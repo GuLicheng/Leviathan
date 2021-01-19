@@ -29,7 +29,7 @@ using T3 = decltype(ls);
 using T4 = decltype(arr);
 using T5 = decltype(map);
 
-
+// std::input_interator
 
 void test1();
 
@@ -109,15 +109,50 @@ void test1()
         // std::cout << std::get<0>(val) << '-' << std::get<1>(val) << std::endl;
     }
 
-    auto random_range = zip(vec, arr);
-    static_assert(std::ranges::random_access_range<decltype(random_range)> == true);
-    // using T1 = decltype(random_range.begin());
-    // using T2 = decltype(random_range.end());
+    auto rr = zip(vec, arr);
+    // std::cout << rr.size() << std::endl;
+    static_assert(std::ranges::random_access_range<decltype(rr)> == true);
+
+    
+
+    // using T1 = decltype(rr.begin());
+    // using T2 = decltype(rr.end());
     // std::cout << std::sized_sentinel_for<T1, T2> << std::endl;
-    // std::cout << std::totally_ordered<decltype(random_range.begin())> << std::endl;
+    // std::cout << std::totally_ordered<decltype(rr.begin())> << std::endl;
     // std::cout << std::sentinel_for<T1, T2> << std::endl;
     // std::cout << !std::disable_sized_sentinel_for<std::remove_cv_t<T1>, std::remove_cv_t<T2>> << std::endl;
     // std::cout << _rand<T1> << std::endl;
+    auto&& first = std::ranges::begin(rr);
+    auto&& last = std::ranges::end(rr);
+    using R = std::remove_cvref_t<decltype(first)>::iterator_category;
+
+    PrintTypeInfo(R);
+
+    rr.back();
+    rr.front();
+    rr.size();
+    // rr.data();
+    // Since the iterators of contiguous containers in STL are 
+    // marked with random_access_iterator_tag
+    // the data() cannot be called 
+    rr.empty();
+    rr[2];
+
+    // contiguous_iterator_tag
+    //
+
+// using iterator_category = ::std::common_type_t<
+            // typename ::std::iterator_traits<::std::ranges::iterator_t<Rgs>>::iterator_category...>;
+
+    using TT1 = typename ::std::iterator_traits<::std::ranges::iterator_t<T1>>::iterator_category;
+    using TT4 = typename ::std::iterator_traits<::std::ranges::iterator_t<T4>>::iterator_category;
+
+    // std::cout << std::ranges::contiguous_range << std::endl;
+
+    PrintTypeInfo(TT1);
+    PrintTypeInfo(TT4);
+
+    std::cout << (last - first) << std::endl;
     std::cout << "Test Successfully\n";
 }
 
@@ -144,4 +179,19 @@ requires(_Iter __i, const _Iter __j,
 	{ __j -  __n } -> same_as<_Iter>;
 	{  __j[__n]  } -> same_as<iter_reference_t<_Iter>>;
       };
+*/
+
+/*
+    view_interface
+
+    back()
+    front()
+    bool()
+    size()
+    data()
+    empty()
+    begin()
+    end()
+    operator[]
+
 */
