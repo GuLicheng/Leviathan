@@ -1,6 +1,9 @@
 #ifndef __TRIM_HPP__
 #define __TRIM_HPP__
 
+// #include <ranges>
+#include <lv_cpp/ranges/drop_last_while.hpp>
+
 #include <ranges>
 #include <cctype>
 
@@ -16,9 +19,7 @@ namespace detail
 {
 inline constexpr auto trim_front = ::std::ranges::views::drop_while(::isspace);
 
-inline constexpr auto trim_back = ::std::ranges::views::reverse
-                                | ::std::ranges::views::drop_while(::isspace)
-                                | ::std::ranges::views::reverse;
+inline constexpr auto trim_back = ::leviathan::views::drop_last_while(::isspace);
 
 } // namespace detail
 
