@@ -1,41 +1,31 @@
-#ifndef __TRIM_HPP__
-#define __TRIM_HPP__
+#pragma once
 
 // #include <ranges>
 #include <lv_cpp/ranges/drop_last_while.hpp>
 
-#include <ranges>
 #include <cctype>
 
 
-namespace leviathan
+namespace leviathan::views
 {
 
-namespace views
+inline constexpr auto trim_front = []<typename Pred>(Pred pred)
 {
-
-
-namespace detail
-{
-inline constexpr auto trim_front = ::std::ranges::views::drop_while(::isspace);
-
-inline constexpr auto trim_back = ::leviathan::views::drop_last_while(::isspace);
-
-} // namespace detail
-
-inline constexpr auto trim = []<typename StringType>(StringType&& str)
-{
-    return ::std::forward<StringType>(str) | detail::trim_front | detail::trim_back;
+    return ::std::ranges::views::drop_while(std::move(pred));
 };
 
-inline constexpr auto trim_str = []<typename StringType>(StringType&& str) -> std::remove_cvref_t<StringType>
+inline constexpr auto trim_back = []<typename Pred>(Pred pred)
 {
-    auto new_str = trim(::std::forward<StringType>(str));
-    return {new_str.begin(), new_str.end()};
+    return ::leviathan::views::drop_last_while(std::move(pred));
 };
 
-} // namespace views
+
+
+inline constexpr auto trim = []<typename Pred>(Pred pred)
+{
+    return trim_front(pred) | trim_back(std::move(pred));
+};
+
+
 
 } // namespace leviathan
-
-#endif

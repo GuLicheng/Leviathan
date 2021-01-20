@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 #include <lv_cpp/ranges/zip.hpp>
 #include <fstream>
 #include <iterator>
@@ -32,24 +33,15 @@ using T5 = decltype(map);
 // std::input_interator
 
 void test1();
+void test2();
 
 int main()
 {
     test1();
+    test2();
     return 0;
 }
 
-// template <typename _Iter>
-// concept _rand = requires(_Iter __i, const _Iter __j,
-// 		  const std::iter_difference_t<_Iter> __n)
-//       {
-// 	{ __i += __n } -> std::same_as<_Iter&>;
-// 	{ __j +  __n } -> std::same_as<_Iter>;
-// 	{ __n +  __j } -> std::same_as<_Iter>;
-// 	{ __i -= __n } -> std::same_as<_Iter&>;
-// 	{ __j -  __n } -> std::same_as<_Iter>;
-// 	{  __j[__n]  } -> std::same_as<std::iter_reference_t<_Iter>>;
-//       };
 
 void test1()
 {
@@ -154,7 +146,6 @@ void test1()
 
     std::cout << (last - first) << std::endl;
     std::cout << "Test Successfully\n";
-}
 
 /*
 template<class S, class I>
@@ -195,3 +186,17 @@ requires(_Iter __i, const _Iter __j,
     operator[]
 
 */
+}
+
+void test2()
+{
+    std::vector vec{3, 2, 1};
+    int arr[] = {3, 2, 1};
+    auto rg = ::leviathan::views::zip(vec, arr);
+    std::ranges::for_each(rg, [](auto x)
+    {
+        auto [a, b] = x;
+        std::cout << a << '-' << b << std::endl;
+    });
+
+}

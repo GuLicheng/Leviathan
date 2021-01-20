@@ -7,9 +7,11 @@
 #ifndef __ZIP_HPP__
 #define __ZIP_HPP__
 
-#include <tuple>
+#include <functional>
+#include <lv_cpp/tuple_extend.hpp>
 #include <type_traits>
 #include <ranges>
+
 
 namespace leviathan
 {
@@ -65,9 +67,11 @@ class zip_view : public ::std::ranges::view_interface<zip_view<Rgs...>>
 		friend constexpr bool operator==(const Iterator& __x, const Iterator& __y)
 		requires (::std::equality_comparable<::std::iter_value_t<::std::ranges::iterator_t<Rgs>>> && ...) 
         { 
-            return Iterator::template single_cmp_disjunction
-                (__x._M_current, __y._M_current, ::std::equal_to<>(), 
-                ::std::make_index_sequence<sizeof...(Rgs)>());
+            // return Iterator::template single_cmp_disjunction
+            //     (__x._M_current, __y._M_current, ::std::equal_to<>(), 
+            //     ::std::make_index_sequence<sizeof...(Rgs)>());
+            return ::leviathan::tuple_inner_preduct(__x._M_current, __y._M_current,
+                ::std::equal_to<>(), ::std::logical_or<>());
         }
 
 		friend constexpr bool operator!=(const Iterator& __x, const Iterator& __y)
@@ -79,21 +83,25 @@ class zip_view : public ::std::ranges::view_interface<zip_view<Rgs...>>
         friend constexpr bool operator<(const Iterator& __x, const Iterator& __y)
         requires (::std::totally_ordered<::std::iter_value_t<::std::ranges::iterator_t<Rgs>>> && ...)
         {
-            return Iterator::template single_cmp_conjunction
-                (__x._M_current, __y._M_current, ::std::less<>(), 
-                ::std::make_index_sequence<sizeof...(Rgs)>());
+            // return Iterator::template single_cmp_conjunction
+            //     (__x._M_current, __y._M_current, ::std::less<>(), 
+            //     ::std::make_index_sequence<sizeof...(Rgs)>());
+            return ::leviathan::tuple_inner_preduct(__x._M_current, __y._M_current, 
+                ::std::less<>(), ::std::logical_and<>());
         }
 
         friend constexpr bool operator<=(const Iterator& __x, const Iterator& __y)
         requires (::std::totally_ordered<::std::iter_value_t<::std::ranges::iterator_t<Rgs>>> && ...)
         {
-            return __x < __y || __x == __y;
+            return !(__x > __y);
         }
 
         friend constexpr bool operator>(const Iterator& __x, const Iterator& __y)
         requires (::std::totally_ordered<::std::iter_value_t<::std::ranges::iterator_t<Rgs>>> && ...)
         {
-            return !(__x <= __y);
+            // return !(__x <= __y);
+            return ::leviathan::tuple_inner_preduct(__x._M_current, __y._M_current,
+                ::std::greater<>(), ::std::logical_or<>());
         }
 
         friend constexpr bool operator>=(const Iterator& __x, const Iterator& __y)
