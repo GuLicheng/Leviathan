@@ -32,7 +32,7 @@ namespace detail
 // reverse tuple
 template <typename Tuple, size_t ...Idx>
 typename ::leviathan::meta::reverse<std::decay_t<Tuple>>::type
-inline constexpr reverse_tuple_by_move_impl(Tuple&& t, std::index_sequence<Idx...>) 
+constexpr reverse_tuple_by_move_impl(Tuple&& t, std::index_sequence<Idx...>) 
 {
     constexpr size_t size = sizeof...(Idx);
     using tuple_type = std::remove_cvref_t<Tuple>;
@@ -50,7 +50,7 @@ inline constexpr reverse_tuple_by_move_impl(Tuple&& t, std::index_sequence<Idx..
 
 template <typename Tuple, size_t ...Idx>
 typename ::leviathan::meta::reverse<std::decay_t<Tuple>>::type
-inline constexpr reverse_tuple_by_copy_impl(Tuple&& t, std::index_sequence<Idx...>) 
+constexpr reverse_tuple_by_copy_impl(Tuple&& t, std::index_sequence<Idx...>) 
 {
     constexpr size_t size = sizeof...(Idx);
     using tuple_type = std::remove_cvref_t<Tuple>;
@@ -61,7 +61,7 @@ inline constexpr reverse_tuple_by_copy_impl(Tuple&& t, std::index_sequence<Idx..
 
 
 template <typename Tuple>
-inline constexpr auto reverse_tuple_by_move(Tuple&& t)
+constexpr auto reverse_tuple_by_move(Tuple&& t)
 {
     constexpr auto size = std::tuple_size_v<std::remove_cvref_t<Tuple>>;
     return detail::reverse_tuple_by_move_impl(
@@ -71,7 +71,7 @@ inline constexpr auto reverse_tuple_by_move(Tuple&& t)
 
 
 template <typename Tuple>
-inline constexpr auto reverse_tuple_by_copy(Tuple&& t)
+constexpr auto reverse_tuple_by_copy(Tuple&& t)
 {
     constexpr auto size = std::tuple_size_v<std::remove_cvref_t<Tuple>>;
     return detail::reverse_tuple_by_copy_impl(
