@@ -1,9 +1,4 @@
-#include <lv_cpp/ranges/drop_last_while.hpp>
-#include <lv_cpp/ranges/take_last_while.hpp>
-#include <lv_cpp/ranges/trim.hpp>
-
-#include <lv_cpp/ranges/drop_last.hpp>
-#include <lv_cpp/ranges/take_last.hpp>
+#include <lv_cpp/ranges/core.hpp>
 
 #include <iostream>
 #include <string>
