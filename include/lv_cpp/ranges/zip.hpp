@@ -23,6 +23,7 @@ namespace ranges
 template <::std::ranges::range... Rgs>
 class zip_view : public ::std::ranges::view_interface<zip_view<Rgs...>>
 {
+public: // for debug
     using Base = ::std::tuple<Rgs...>;      
 
     Base _M_base{};
@@ -343,6 +344,17 @@ namespace std::ranges
     template <::std::ranges::range... Ranges>
     inline constexpr bool 
     enable_borrowed_range<::leviathan::ranges::zip_view<Ranges...>> = true;
+}
+
+// add specialize for rvalue
+namespace std
+{
+    template<typename... Types >
+    constexpr void swap(tuple<Types...>&& lhs, tuple<Types...>&& rhs) 
+    noexcept(noexcept(std::swap(lhs, rhs)))
+    {
+        std::swap(lhs, rhs);
+    }
 }
 
 #endif

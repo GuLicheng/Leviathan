@@ -1,5 +1,6 @@
 /*
-    to be fixed..........
+    This file will adaptor for tuple-like structure if you have
+    overloaded std::get, std::tuple_element_v and std::
 */
 #ifndef __TUPLE_EXTEND_HPP__
 #define __TUPLE_EXTEND_HPP__

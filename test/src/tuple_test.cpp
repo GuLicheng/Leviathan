@@ -6,17 +6,30 @@
 
 using namespace leviathan;
 
-constexpr int add1(int a, int b)
-{
-    return a + b;
-}
+constexpr int add1(int a, int b) { return a + b; }
 
-int add2(int a, int b)
-{
-    return a + b;
-}
+int add2(int a, int b) { return a + b; }
+
+void test_for_tuple();
+
+void test_for_pair();
 
 int main()
+{
+    test_for_pair();
+}
+
+
+
+void test_for_pair()
+{
+    auto p1 = std::make_pair(1, 2);
+    auto p2 = std::make_pair(3, 4);
+    std::cout << ::leviathan::tuple_inner_preduct(p1, p2, ::add1, ::add1) << std::endl;   
+}
+
+
+void test_for_tuple()
 {
     auto f = ::add2;
     int x;
