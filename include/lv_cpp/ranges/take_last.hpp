@@ -1,15 +1,15 @@
 #pragma once
 
-#include <ranges>
+#include "./stl_ranges.hpp"
 
 namespace leviathan::views
 {
     
 inline constexpr auto take_last = []<typename T>(T&& __n)
 {
-    return ::std::views::reverse
-         | ::std::views::take(::std::forward<T>(__n))
-         | ::std::views::reverse;
+    return reverse
+         | take(::std::forward<T>(__n))
+         | reverse;
 };
 
 } // namespace leviathan::views

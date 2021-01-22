@@ -1,21 +1,16 @@
-#pragma
+#pragma once
 
-#include <lv_cpp/ranges/zip.hpp>
+#include "./stl_ranges.hpp"
+#include "./zip.hpp"
 
-
-namespace leviathan
-{
-
-namespace views
+namespace leviathan::views
 {
 
 inline constexpr auto enumerate = []<typename... Ranges>(Ranges&&... rgs)
 {
-    auto iota_view = ::std::views::iota(0);
-    return ::leviathan::views::zip(std::move(iota_view), ::std::forward<Ranges>(rgs)...);
+    auto iota_view = iota(0);
+    return zip(::std::move(iota_view), ::std::forward<Ranges>(rgs)...);
 };
 
 
 }  // namespace views
-
-} // namespace leviathan
