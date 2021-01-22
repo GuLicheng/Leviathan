@@ -6,4 +6,4 @@ Makefile
 *.txt
 /*.cpp
 *.ini
-[a-z].cpp
+
