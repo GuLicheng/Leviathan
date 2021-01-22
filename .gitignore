@@ -1,9 +1,15 @@
 .vs
+.idea
 .vscode
+
 Makefile
+
 *.exe
 *.o
 *.txt
-/*.cpp
 *.ini
 
+# root
+/*.cpp
+/*.py
+/*.c
