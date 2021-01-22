@@ -72,7 +72,7 @@ public: // for debug
             //     (__x._M_current, __y._M_current, ::std::equal_to<>(), 
             //     ::std::make_index_sequence<sizeof...(Rgs)>());
             return ::leviathan::tuple_inner_preduct(__x._M_current, __y._M_current,
-                ::std::equal_to<>(), ::std::logical_or<>());
+                ::std::equal_to<>(), ::std::logical_or<>(), false);
         }
 
 		friend constexpr bool operator!=(const Iterator& __x, const Iterator& __y)
@@ -88,7 +88,7 @@ public: // for debug
             //     (__x._M_current, __y._M_current, ::std::less<>(), 
             //     ::std::make_index_sequence<sizeof...(Rgs)>());
             return ::leviathan::tuple_inner_preduct(__x._M_current, __y._M_current, 
-                ::std::less<>(), ::std::logical_and<>());
+                ::std::less<>(), ::std::logical_and<>(), true);
         }
 
         friend constexpr bool operator<=(const Iterator& __x, const Iterator& __y)
@@ -102,7 +102,7 @@ public: // for debug
         {
             // return !(__x <= __y);
             return ::leviathan::tuple_inner_preduct(__x._M_current, __y._M_current,
-                ::std::greater<>(), ::std::logical_or<>());
+                ::std::greater<>(), ::std::logical_or<>(), false);
         }
 
         friend constexpr bool operator>=(const Iterator& __x, const Iterator& __y)

@@ -1,6 +1,6 @@
 /*
     This file will adaptor for tuple-like structure if you have
-    overloaded std::get, std::tuple_element_v and std::
+    overloaded std::get
 */
 #ifndef __TUPLE_EXTEND_HPP__
 #define __TUPLE_EXTEND_HPP__
@@ -14,8 +14,8 @@
 namespace leviathan
 {
 
-template <typename... Ts>
-void print_tuple(std::ostream& os, const std::tuple<Ts...>& t) 
+template <template <typename...> typename Container, typename... Ts>
+void print_tuple(std::ostream& os, const Container<Ts...>& t) 
 {
     os << '(';
     auto tuple_print_helper = []<typename _Tuple, size_t... Idx> 
@@ -82,35 +82,47 @@ constexpr auto reverse_tuple_by_copy(Tuple&& t)
 
 namespace detail
 {
-
-template <size_t Begin, size_t End, typename Tuple1, typename Tuple2, 
-    typename BinaryOp1, typename BinaryOp2>
-constexpr auto tuple_inner_product_impl(const Tuple1& t1, const Tuple2& t2, 
-        BinaryOp1 op1, BinaryOp2 op2)
+// signed number for r-loop
+template <int Begin, int End, typename Tuple1, typename Tuple2, typename BinaryOp1, typename BinaryOp2, typename Init>
+constexpr auto tuple_inner_product_impl(const Tuple1& t1, const Tuple2& t2, BinaryOp1 op1, BinaryOp2 op2, Init init)
 {
     // iterate next
-    if constexpr (Begin + 1 < End)
+    if constexpr (Begin < End)
     {
         auto a_op1_b = op1(std::get<Begin>(t1), std::get<Begin>(t2));
-        return op2(a_op1_b, tuple_inner_product_impl<Begin + 1, End>(t1, t2, op1, op2));
+        init = op2(std::move(a_op1_b), std::move(init));
+        return tuple_inner_product_impl<Begin + 1, End>(t1, t2, std::move(op1), std::move(op2), std::move(init));
     }
     // last
-    if constexpr (Begin + 1 == End)
+    // if constexpr (Begin == End)
+    else
     {
-        return op1(std::get<Begin>(t1), std::get<Begin>(t2));
+        return init;
     }
 }
 
 } // namespace detail
 
-template <typename Tuple1, typename Tuple2, typename BinaryOp1, typename BinaryOp2>
-constexpr auto tuple_inner_preduct(const Tuple1& t1, const Tuple2& t2, BinaryOp1 op1, BinaryOp2 op2)
+template <template <typename...> typename Tuple1, typename... Ts1, 
+          template <typename...> typename Tuple2, typename... Ts2,
+          typename BinaryOp1, typename BinaryOp2, typename Init>
+constexpr auto tuple_inner_preduct(const Tuple1<Ts1...>& t1, const Tuple2<Ts2...>& t2, 
+            BinaryOp1 op1, BinaryOp2 op2, Init init)
 {
     // follow as std::inner_preduct 
-    constexpr auto size1 = std::tuple_size_v<Tuple1>;
-    constexpr auto size2 = std::tuple_size_v<Tuple2>;
+    constexpr auto size1 = sizeof...(Ts1);
+    constexpr auto size2 = sizeof...(Ts2);
     static_assert(size1 == size2);
-    return detail::tuple_inner_product_impl<0, size1>(t1, t2, std::move(op1), std::move(op2));
+    return detail::tuple_inner_product_impl<0, size1>(t1, t2, std::move(op1), std::move(op2), init);
+}
+
+template <typename Tuple, typename BinaryOp, typename Init>
+constexpr auto tuple_reduce(const Tuple& t, BinaryOp op, Init init)
+{
+    // for (1, 2, 3) -> if op is plus and init is 0 return 6
+    // if op is multiplies and init is 1 return 6
+    // for (x1, x2, x3, ...) -> return op(op(x1, x2), x3)...
+    return;
 }
 
 

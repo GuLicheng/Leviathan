@@ -11,7 +11,8 @@
 
 #include "./trim.hpp"
 
-// #include "./zip.hpp"
+#include "./enumerate.hpp"
+#include "./zip.hpp"
 // #include "./cycle.hpp"
 
 
