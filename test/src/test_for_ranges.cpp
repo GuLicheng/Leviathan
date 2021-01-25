@@ -17,7 +17,7 @@ void print_str_range(auto rg)
 
 int main()
 {
-    std::string str = "  hello world   ";
+    std::string str = "    ";
 
     // trim with drop_last
     auto s1 = str | vs::trim(::isspace);
