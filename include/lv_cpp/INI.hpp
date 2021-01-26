@@ -1,3 +1,35 @@
+/**
+
+ * !!! 我们的目的是能够正确读取红色警戒系列中的ini配置文件
+
+ * 说明：ini配置文件读写
+
+ * 1、支持;注释符号。// 非必须不支持 # 注释符号
+
+ * 2、不支持带引号'或"成对匹配的字符串，否则无法正确读取相关词条，比如 name = stalin's fist
+
+ * 3、如果无section，将读取不到任何信息，但section可以为空。
+
+ * 4、不支持10、16、8进制数，0x开头为16进制数，0开头为8进制，但是我们日后可能会为此提供专门的接口。
+
+ * 5、支持section、entry或=号前后带空格。
+
+ * 6、按行读取，不接受换行。如何您有更高的要求，请使用json文件。
+
+ * 7、区分section、key大小写。
+
+ * 8、不支持任何修改ini操作，因为我们只是读取文件，配置文件建议在源文件上手动修改，实际上大家在制作mod的时候都是这么做的。
+
+ * 9、读取文件的时候不会对section和entry内容部分做任何检查， 但是可能会额外设置了一个接口会对读取后的结果进行检查，如何需要的话可以使用。
+
+ * 10、每个key只有一个value，如果当前key已经存在且包含value那么将会覆盖之前的value
+
+ * 15、由于不知道+=的含义，对此不做处理， 比如
+            Line1: 19	=	THOR
+            Line2: +=STHOR
+
+ */
+
 #ifndef __INI_HPP__
 #define __INI_HPP__
 
@@ -6,14 +38,10 @@
 #include <unordered_map>
 #include <fstream>
 #include <list>
-#include <optional>
+#include <string>
 
 // for debug
-#include <iterator> 
 #include <iostream>
-#include <string>
-#include <string_view>
-#include <memory>
 
 namespace leviathan::INI
 {
@@ -130,7 +158,6 @@ namespace leviathan::INI
                 return;
             }
             node = &(sections.try_emplace(s.substr(1, s.size() - 2), section_node()).first->second);
-
         }
 
     public:
@@ -150,14 +177,32 @@ namespace leviathan::INI
         if (!in.is_open())
             return false;
 
-        std::string line;
-        // std::unordered_map<std::string, section_node>::iterator node;
         section_node* node = nullptr;
+        std::string line;
+
+        // prescan and get first section
         while (!in.eof())
         {
             std::getline(in, line);
             ++lines;
             auto str = trim(line);
+            if (str.empty())
+                continue;
+            if (str[0] == '[')
+            {
+                insert_section(node, std::move(str), lines);
+                if (node) break;
+                else continue;
+            }
+        }
+
+        // parse
+        while (!in.eof())
+        {
+            std::getline(in, line);
+            ++lines;
+            auto str = trim(line);
+
             if (str.empty())
                 continue;
 
@@ -206,12 +251,7 @@ namespace leviathan::INI
             auto right_part = right | ::leviathan::views::trim_front(::isspace);
             auto value = std::string(right_part.begin(), right_part.end());
             
-            if (!node)
-            {
-                // the entry must follow section or it will be ignored
-                // another better way is prescan file and find first section
-                continue;
-            }
+            // save entry
             node->ls.emplace_back(std::move(key), std::move(value));
         }
      
