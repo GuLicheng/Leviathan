@@ -27,8 +27,16 @@
  * 15、由于不知道+=的含义，对此不做处理， 比如
             Line1: 19	=	THOR
             Line2: +=STHOR
-
  */
+
+/*
+    
+    INI_handler::load(const char* file) : read ini config file
+    INI_handler::load(string& file) : read ini config file
+    INI_handler::get_items(): return all sections and entries
+    INI_handler::get_sections(): return all sections
+    INI_handler::get_entries(): return all entries
+*/
 
 #ifndef __INI_HPP__
 #define __INI_HPP__
@@ -104,10 +112,10 @@ namespace leviathan::INI
         INI_handler& operator=(const INI_handler&) = delete;
 
         // Fetch and store INI data
-        bool load(const char* file);
+        bool load(const char* file, std::ios::openmode = std::ios::in | std::ios::binary);
 
-        bool load(const std::string& file)
-        { return load(file.c_str()); }
+        bool load(const std::string& file, std::ios::openmode mode)
+        { return load(file.c_str(), mode); }
 
         // erase all data within in this class
         // bool clear(section_node* node, entry* e);
@@ -157,9 +165,9 @@ namespace leviathan::INI
     }; //  end of class INI_handler
 
 
-    bool INI_handler::load(const char* file) 
+    bool INI_handler::load(const char* file, std::ios::openmode mode) 
     {
-        in.open(file, ::std::ios::binary);
+        in.open(file, mode);
 
         // file not exist
         if (!in.is_open())
