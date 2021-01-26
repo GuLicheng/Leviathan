@@ -105,20 +105,24 @@ namespace leviathan::INI
 
         // Fetch and store INI data
         bool load(const char* file);
-        bool load(const std::string& file);
+
+        bool load(const std::string& file)
+        { return load(file.c_str()); }
 
         // erase all data within in this class
         // bool clear(section_node* node, entry* e);
         
-        // int line_count(const section_node* section) const;
-        bool is_loaded() const noexcept;
-        int size() const noexcept;
+        bool is_loaded() const noexcept
+        { return in.is_open(); }
         
-        int section_count() const noexcept;
-        // int entry_count() const noexcept;
+        auto get_sections() const noexcept
+        { return sections | ::leviathan::views::keys ; }
 
-        // std::optional<section_node&> operator[](const std::string&);
+        auto get_entries() const noexcept
+        { return sections | ::leviathan::views::values; }
 
+        auto get_items() const noexcept
+        { return sections | ::leviathan::views::all; }
 
         explicit operator bool() const noexcept
         { return static_cast<bool>(this->in); }
@@ -140,25 +144,9 @@ namespace leviathan::INI
 
     private:
         // remove all ; and blank
-        std::string trim(const std::string& s) const noexcept
-        {
-            auto iter = std::find(s.begin(), s.end(), ';');
-            std::ranges::subrange sub{s.cbegin(), iter};
-            auto res_range = sub | ::leviathan::views::trim(::isspace);
-            return {res_range.begin(), res_range.end()};
-        }
+        std::string trim(const std::string& s) const noexcept;
 
-        void insert_section(section_node*& node, std::string&& s, int line)
-        {
-            // check whether the sections only contains one '[' and ']'
-            // if not match, not change node
-            if (s.find_first_of(']') != s.size() - 1 || s.find_last_of('[') != 0)
-            {
-                log.emplace_back(line, std::move(s), "more than one [ or ].");
-                return;
-            }
-            node = &(sections.try_emplace(s.substr(1, s.size() - 2), section_node()).first->second);
-        }
+        void insert_section(section_node*& node, std::string&& s, int line);
 
     public:
         std::ifstream in;
@@ -216,10 +204,10 @@ namespace leviathan::INI
             }
             // parse entry
 
-            // the item in the left of '=' is key, otherwise value
+            // the item in the left of '=' is key, right is value
             auto equal = str.find('=');
 
-            // don't contain '=
+            // don't contain '='
             if (equal == str.npos)
             {
                 // syntax error
@@ -258,21 +246,25 @@ namespace leviathan::INI
         return true;
     }
 
-    bool INI_handler::load(const std::string& file)
+    void INI_handler::insert_section(section_node*& node, std::string&& s, int line)
     {
-        return load(file.c_str());
+        // check whether the sections only contains one '[' and ']'
+        // if not match, not change node
+        if (s.find_first_of(']') != s.size() - 1 || s.find_last_of('[') != 0)
+        {
+            log.emplace_back(line, std::move(s), "more than one [ or ].");
+            return;
+        }
+        node = &(sections.try_emplace(s.substr(1, s.size() - 2), section_node()).first->second);
     }
 
-    int INI_handler::section_count() const noexcept
+    std::string INI_handler::trim(const std::string& s) const noexcept
     {
-        return this->sections.size();
+        auto iter = std::find(s.begin(), s.end(), ';');
+        std::ranges::subrange sub{s.cbegin(), iter};
+        auto res_range = sub | ::leviathan::views::trim(::isspace);
+        return {res_range.begin(), res_range.end()};
     }
-
-    bool INI_handler::is_loaded() const noexcept
-    {
-        return this->in.is_open();
-    }
-
 
 } // namespace leviathan::INI
 
