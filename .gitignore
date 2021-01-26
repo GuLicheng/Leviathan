@@ -11,5 +11,5 @@ Makefile
 
 # root
 /*.cpp
-/*.py
+*.py
 /*.c

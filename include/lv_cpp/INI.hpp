@@ -6,20 +6,44 @@
 #include <unordered_map>
 #include <fstream>
 #include <list>
-// #include <optional>
+#include <optional>
 
 // for debug
 #include <iterator> 
 #include <iostream>
 #include <string>
 #include <string_view>
-
+#include <memory>
 
 namespace leviathan::INI
 {
 
+    class Log 
+    {
+    protected:
+        int line;
+        std::string contend;
+        std::string error_info;
+    public:
+        Log(int line, std::string contend, std::string error_info) 
+            : line{line}, contend{std::move(contend)}, error_info{std::move(error_info)} { }
+        
+        void report() const 
+        {
+            std::cout << "Line: " << line << 
+                ", error infomation:  " << error_info << 
+                " Seeing here:" << contend << std::endl;  
+        }
+
+        ~Log() { }
+    };
+
     // entry, consist of key-value
-    using entry = std::pair<std::string, std::string>;
+    struct entry : public std::pair<std::string, std::string>
+    {
+        using std::pair<std::string, std::string>::pair;
+        using std::pair<std::string, std::string>::operator=;
+    };
 
     std::ostream& operator<<(std::ostream& os, const entry& e)
     { 
@@ -34,7 +58,7 @@ namespace leviathan::INI
 
     std::ostream& operator<<(std::ostream& os, const section_node& s)
     {
-        std::cout << s.ls.size() << std::endl;
+        std::cout << "The size of current section node is :" << s.ls.size() << std::endl;
         for (auto& e : s.ls)
         {
             std::cout << e << std::endl;
@@ -53,6 +77,7 @@ namespace leviathan::INI
 
         // Fetch and store INI data
         bool load(const char* file);
+        bool load(const std::string& file);
 
         // erase all data within in this class
         // bool clear(section_node* node, entry* e);
@@ -74,14 +99,14 @@ namespace leviathan::INI
         {
             for (auto& [key, value] : sections)
             {
-                std::cout << "Sections is " << key << "\n";
+                std::cout << key << "\n";
                 std::cout << value << std::endl;
             }
 
             std::cout << "Here is log\n";
-            for (auto& l : log)
+            for (auto&& l : log)
             {
-                std::cout << l << std::endl;
+                l.report();
             }
         }
 
@@ -95,16 +120,24 @@ namespace leviathan::INI
             return {res_range.begin(), res_range.end()};
         }
 
-        auto insert_section(std::string&& s)
+        void insert_section(section_node*& node, std::string&& s, int line)
         {
-            return &(sections.try_emplace(std::move(s), section_node()).first->second);
-            // return sections.emplace(std::move(s), section_node()).first;
+            // check whether the sections only contains one '[' and ']'
+            // if not match, not change node
+            if (s.find_first_of(']') != s.size() - 1 || s.find_last_of('[') != 0)
+            {
+                log.emplace_back(line, std::move(s), "more than one [ or ].");
+                return;
+            }
+            node = &(sections.try_emplace(s.substr(1, s.size() - 2), section_node()).first->second);
+
         }
 
     public:
         std::ifstream in;
+        // I may change HashTable to LinkList some day
         std::unordered_map<std::string, section_node> sections;
-        std::list<std::string> log; // save the line of error sections or entry
+        std::list<Log> log; // save the line of error sections or entry
         int lines;
     }; //  end of class INI_handler
 
@@ -133,36 +166,61 @@ namespace leviathan::INI
             if (str[0] == '[')
             {
                 // parse sections
-                node = insert_section(std::move(str));
+                insert_section(node, std::move(str), lines);
                 continue;
             }
             // parse entry
 
             // the item in the left of '=' is key, otherwise value
             auto equal = str.find('=');
+
+            // don't contain '=
             if (equal == str.npos)
             {
                 // syntax error
+                log.emplace_back(lines, std::move(str), "Not found =.");
                 continue;
             }
+
+            // start with '=' such as =foobar
+            if (equal == 0)
+            {
+                log.emplace_back(lines, std::move(str), "Not found key.");
+                continue;
+            }
+
+            // end with '=' such as foobar=
+            if (equal == str.size() - 1)
+            {
+                log.emplace_back(lines, std::move(str), "Not found Value.");
+                continue;
+            }
+
+            // trim key
             std::ranges::subrange left{str.begin(), str.begin() + equal};
             auto left_part = left | ::leviathan::views::trim_back(::isspace);
             auto key = std::string(left_part.begin(), left_part.end());
 
+            // trim value
             std::ranges::subrange right{str.begin() + equal + 1, str.end()};
             auto right_part = right | ::leviathan::views::trim_front(::isspace);
             auto value = std::string(right_part.begin(), right_part.end());
-            // std::cout << key << '-' << value << std::endl;
             
             if (!node)
             {
                 // the entry must follow section or it will be ignored
+                // another better way is prescan file and find first section
                 continue;
             }
             node->ls.emplace_back(std::move(key), std::move(value));
         }
      
         return true;
+    }
+
+    bool INI_handler::load(const std::string& file)
+    {
+        return load(file.c_str());
     }
 
     int INI_handler::section_count() const noexcept
