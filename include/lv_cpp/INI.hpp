@@ -18,14 +18,14 @@
 namespace leviathan::INI
 {
 
-    class Log 
+    class error_log 
     {
     protected:
         int line;
         std::string contend;
         std::string error_info;
     public:
-        Log(int line, std::string contend, std::string error_info) 
+        error_log(int line, std::string contend, std::string error_info) 
             : line{line}, contend{std::move(contend)}, error_info{std::move(error_info)} { }
         
         void report() const 
@@ -35,7 +35,7 @@ namespace leviathan::INI
                 " Seeing here:" << contend << std::endl;  
         }
 
-        ~Log() { }
+        ~error_log() { }
     };
 
     // entry, consist of key-value
@@ -137,7 +137,7 @@ namespace leviathan::INI
         std::ifstream in;
         // I may change HashTable to LinkList some day
         std::unordered_map<std::string, section_node> sections;
-        std::list<Log> log; // save the line of error sections or entry
+        std::list<error_log> log; // save the line of error sections or entry
         int lines;
     }; //  end of class INI_handler
 
