@@ -8,12 +8,13 @@
 #include <iostream>
 
 // for x = father[node], node is the number of this cluster if x < 0, otherwise root of node
+// index start with 0
 class union_set
 {
 public:
     union_set(int max_size) : father{new int[max_size]}, size{max_size} 
     {
-        for (int i = 0; i <= max_size; ++i) father[i] = -1;
+        for (int i = 0; i < max_size; ++i) father[i] = -1;
     }
 
     int find(int x) noexcept
@@ -63,7 +64,7 @@ public:
 
     ~union_set() 
     {
-        delete father;
+        delete[] father;
     }
 
     friend std::ostream& operator<<(std::ostream& os, const union_set& s1)
