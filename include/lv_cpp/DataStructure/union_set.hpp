@@ -12,7 +12,7 @@
 class union_set
 {
 public:
-    union_set(int max_size) : father{new int[max_size]}, size{max_size} 
+    union_set(int max_size) : father{new int[max_size]}, size{max_size}, cnt{max_size}
     {
         for (int i = 0; i < max_size; ++i) father[i] = -1;
     }
@@ -44,16 +44,13 @@ public:
             father[fy] += father[fx];
             father[fx] = fy;
         }
+        --cnt;
         return true;
     }
 
-    int count(int l = 0) const noexcept
+    int count() const noexcept
     {
-        int res = 0;
-        for (int i = l; i < size; ++i)
-            if (father[i] < 0)
-                res ++;
-        return res;
+        return cnt;
     }
 
     // for extend
@@ -81,6 +78,7 @@ public:
 private:
     int size;
     int* father;
+    int cnt;
 };
 
 #endif
