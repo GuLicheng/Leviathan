@@ -42,8 +42,14 @@ template <typename T>
 concept number_c = ::std::integral<T> || ::std::floating_point<T>;
 
 template <typename T>
-concept string_c = meta::is_instance<::std::basic_string, T>::value 
-                || meta::is_instance<std::basic_string_view, T>::value;
+concept string_c = requires (const T& str)
+{
+    {str.c_str()} -> ::std::same_as<typename T::const_pointer>;
+};
+
+template <typename T>
+concept range_c = ::std::ranges::range<T> && !string_c<T>;
+
 
 template <typename _Char> 
 struct basic_console_base;
@@ -116,15 +122,26 @@ public:
     using traits_type = typename base::traits_type;
 
     // method for output
-    template <typename T> requires number_c<T> || string_c<T>
+    template <typename T> requires number_c<T>
     static void write(T val)
     { os << val; }
 
-    template <typename T> requires number_c<T> || string_c<T>
+    template <typename T> requires number_c<T>
     static void write_line(T val)
     { 
         os << val; 
         write_line(); 
+    }
+
+    template <typename T> requires string_c<T>
+    static void write(const T& str)
+    { write(str.c_str()); }
+
+    template <typename T> requires string_c<T>
+    static void write_line(const T& str)
+    {
+        write(str);
+        write_line();
     }
 
     static void write(const _Char* str)
