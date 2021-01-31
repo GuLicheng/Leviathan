@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <concepts>
 
 
@@ -55,7 +56,7 @@ concept string_c = range_c<T> && requires (const T& str)
 
 static_assert(string_c<std::string>);
 static_assert(string_c<std::string_view>);
-
+static_assert(number_c<char>);
 
 template <typename _Char> 
 struct basic_console_base;
@@ -120,6 +121,18 @@ class basic_console : private basic_console_base<_Char>
         "\033[5m", // bar
     };                     
 
+    template <typename... Ts, size_t... Idx>
+    static void print_tuple_impl(const ::std::tuple<Ts...>& __tuple, 
+        ::std::index_sequence<Idx...>, _Char left, _Char right, const _Char* delim)
+    {
+        write(left);
+        ((Idx == 0 ? 
+            write(::std::get<0>(__tuple)) : 
+            (write(delim), write(::std::get<Idx>(__tuple)))), ...);
+        write(right);
+    }
+
+
 public:
     using char_type = typename base::char_type;
     using int_type = typename base::int_type;
@@ -132,6 +145,7 @@ public:
     static void write(T val)
     { os << val; }
 
+    // for IntelliSense, we overloaded write_line 
     template <typename T> requires number_c<T>
     static void write_line(T val)
     { 
@@ -214,11 +228,55 @@ public:
         write_line();
     }
 
+    template <typename T1, typename T2>
+    static void write(const ::std::pair<T1, T2>& __pair)
+    {
+        write('(');
+        write(__pair.first);
+        write(", ");
+        write(__pair.second);
+        write(')');
+    }
+
+    template <typename T1, typename T2>
+    static void write_line(const ::std::pair<T1, T2>& __pair)
+    {
+        write(__pair);
+        write_line();
+    }
+
+    template <typename... Ts>
+    static void write(const ::std::tuple<Ts...>& __tuple)
+    {
+        print_tuple_impl(__tuple, ::std::make_index_sequence<sizeof...(Ts)>(), '(', ')', ", ");
+    }
+
+    template <typename... Ts>
+    static void write_line(const ::std::tuple<Ts...>& __tuple)
+    {
+        write(__tuple);
+        write_line();
+    }
+
+
+    template <typename T1, typename T2, typename... Ts>
+    static void write(const T1& t1, const T2& t2, const Ts&... ts)
+    {
+        write(::std::forward_as_tuple<const T1&, const T2&, const Ts&...>(t1, t2, ts...));
+    }
+
+    template <typename T1, typename T2, typename... Ts>
+    static void write_line(const T1& t1, const T2& t2, const Ts&... ts)
+    {
+        write(t1, t2, ts...);
+        write_line();
+    }
+
     // for type
-    template <typename T>
+    template <typename Ts>
     static void write_type()
     {
-        write(type_to_str<T>());
+        write(type_to_str<Ts>());
     }
 
     template <typename T>
@@ -284,6 +342,16 @@ public:
         return line;
     }
 
+    template <typename T> requires number_c<T>
+    static void read(T& val)
+    { is >> val; }
+
+    static void read(_Char* str)
+    { is >> str; }
+
+    template <typename _String> requires string_c<_String>
+    static void read(_String& str)
+    { is >> str; }
 
     // attribute
     static auto& text_writer()
