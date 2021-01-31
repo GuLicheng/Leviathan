@@ -1,12 +1,14 @@
 #include <lv_cpp/io/console.hpp>
 
 #include <vector>
+#include <set>
 
 using leviathan::io::console;
 using leviathan::io::console_color;
 using leviathan::io::console_style;
 
 std::vector vec{1, 2, 3, 4, 50};
+std::set set{0, 0, 0, 1, 1};
 
 int main()
 {
@@ -31,6 +33,7 @@ int main()
     console::set_fontstyle(console_style::reset);
     console::write_line("reset");
     console::write_line(vec);
+    console::write_line(set);
     console::text_error();
     console::reset_color();
     console::reset();
