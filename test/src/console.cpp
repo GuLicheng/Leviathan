@@ -1,8 +1,12 @@
 #include <lv_cpp/io/console.hpp>
 
+#include <vector>
+
 using leviathan::io::console;
 using leviathan::io::console_color;
 using leviathan::io::console_style;
+
+std::vector vec{1, 2, 3, 4, 50};
 
 int main()
 {
@@ -16,15 +20,17 @@ int main()
     console::write_line("hello");
     console::write_line("hello world", 8);
     console::set_fontstyle(console_style::italic);
-    console::write_line("italic");
+    console::write_line(std::string("italic"));
     console::write_line("hello world!", 6, 5);
     console::write_line_type<std::string>();
+    console::write_line_type(std::string{});
     console::text_writer();
     console::text_reader();
     console::set_fontstyle(console_style::hight_light);
     console::write_line("hight light");
     console::set_fontstyle(console_style::reset);
     console::write_line("reset");
+    console::write_line(vec);
     console::text_error();
     console::reset_color();
     console::reset();

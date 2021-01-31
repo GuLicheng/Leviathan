@@ -4,7 +4,6 @@
 #ifndef __CONSOLE_HPP__
 #define __CONSOLE_HPP__
 
-#include <lv_cpp/type_list.hpp>
 #include <lv_cpp/utils/template_info.hpp>
 
 #include <iostream>
@@ -30,7 +29,7 @@ enum struct console_color : uint8_t
 
 enum struct console_style : uint8_t
 {
-    reset,
+    reset = 0,
     hight_light,
     reduce_light,
     italic,
@@ -42,13 +41,20 @@ template <typename T>
 concept number_c = ::std::integral<T> || ::std::floating_point<T>;
 
 template <typename T>
-concept string_c = requires (const T& str)
-{
-    {str.c_str()} -> ::std::same_as<typename T::const_pointer>;
-};
+concept range_c = ::std::ranges::range<T>;
 
 template <typename T>
-concept range_c = ::std::ranges::range<T> && !string_c<T>;
+concept string_c = range_c<T> && requires (const T& str)
+{
+    str.substr(0, 0);
+    str.length();
+    str.size();
+    str.npos;
+    str.data();
+};
+
+static_assert(string_c<std::string>);
+static_assert(string_c<std::string_view>);
 
 
 template <typename _Char> 
@@ -135,7 +141,7 @@ public:
 
     template <typename T> requires string_c<T>
     static void write(const T& str)
-    { write(str.c_str()); }
+    { write(str.data(), str.size()); }
 
     template <typename T> requires string_c<T>
     static void write_line(const T& str)
@@ -155,17 +161,17 @@ public:
 
     static void write(bool val)
     {
-        os << (val ? "true" : "false");
+        write(val ? "true" : "false");
     }
 
     static void write_line(bool val)
     {
-        os << (val ? "true" : "false");
+        write(val);
         write_line();
     }
 
     static void write_line()
-    { os << ::std::endl; }
+    { ::std::endl(os); }
 
     static void write(const _Char* buffer, off_type count)
     { os.write(buffer, count); }
@@ -185,10 +191,34 @@ public:
         write_line();
     }
 
+    // The iterator must be copyable
+    template <typename T> requires range_c<T>
+    static void write(const T& rg)
+    {
+        write('[');
+        auto first = ::std::ranges::begin(rg);
+        auto last = ::std::ranges::end(rg);
+        for (auto iter = first; iter != last; ++iter)
+        {
+            if (iter != first) 
+                write(", ");
+            write(*iter);
+        }
+        write(']');
+    }
+
+    template <typename T> requires range_c<T>
+    static void write_line(const T& rg)
+    {
+        write(rg);
+        write_line();
+    }
+
+    // for type
     template <typename T>
     static void write_type()
     {
-        os << type_to_str<T>();
+        write(type_to_str<T>());
     }
 
     template <typename T>
@@ -197,27 +227,47 @@ public:
         write_type<T>();
         write_line();
     }
-    // method for input
 
+    // for instance
+    template <typename T>
+    static void write_type(const T&)
+    {
+        write(type_to_str<T>());
+    }
+
+    template <typename T>
+    static void write_line_type(const T&)
+    { 
+        write_type<T>();
+        write_line();
+    }
+
+
+
+
+
+
+    // Here are some functions for screen/console
     static void clear()
-    { os << "\033[2J"; }
+    { write("\033[2J"); }
 
     static void set_foreground_color(console_color c)
-    { os << color[int(c)]; }
+    { write(color[int(c)]); }
 
     static void set_background_color(console_color c)
-    { os << color[int(c) + 8]; }
+    { write(color[int(c) + 8]); }
 
     static void set_fontstyle(console_style s)
-    { os << style[int(s)]; }
+    { write(style[int(s)]); }
 
     static void reset_color()
-    { os << "\033[49m"; }
+    { write("\033[49m"); }
 
     static void reset()
-    { os << "\033[0m"; }
+    { set_fontstyle(console_style::reset); }
 
-    // Here are some functions for screen
+
+    // method for input
     template <typename _String = ::std::basic_string<_Char>>
     static _String read_line()
     {
@@ -244,6 +294,8 @@ public:
 
     static auto& text_error()
     { return err; }
+
+
 
 }; //  end of class 
 
