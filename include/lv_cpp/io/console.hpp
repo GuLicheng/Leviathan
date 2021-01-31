@@ -135,7 +135,7 @@ public:
     template <typename T> requires number_c<T>
     static void write_line(T val)
     { 
-        os << val; 
+        write(val);
         write_line(); 
     }
 
