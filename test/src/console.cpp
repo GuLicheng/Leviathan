@@ -72,7 +72,7 @@ void test_for_output()
 
 void test_for_multi_paras()
 {
-    console::write_line(1, 2, 3, 4, 5);
+    console::write_line(1, ::std::make_pair(1, 3), "hello world", false, true);
     // console::write_line_type<int, double, bool>();
     // console::write_line_type(1, 5.0,"hello world");
 }
