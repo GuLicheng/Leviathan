@@ -1,6 +1,8 @@
 #pragma once
 
 #include <iostream>
+#include <lv_cpp/io/console.hpp>
+
 
 
 struct foo
@@ -41,4 +43,17 @@ public:
 
     ~foo() 
     { std::cout << "destructor :" << destructor++ << std::endl;}
+
+    friend std::ostream& operator<<(std::ostream& os, const foo& f)
+    {
+        return os << f.val;
+    }
+
 };
+
+
+namespace leviathan::io
+{
+    template <>
+    inline constexpr bool printable<foo> = true;
+} // io

@@ -1,7 +1,8 @@
 #include <lv_cpp/io/console.hpp>
-
+#include "../utils/struct.hpp"
 #include <vector>
 #include <set>
+
 
 using leviathan::io::console;
 using leviathan::io::console_color;
@@ -17,7 +18,7 @@ void test_for_multi_paras();
 int main()
 {
     // test_for_input();
-    // test_for_output();
+    test_for_output();
     test_for_multi_paras();
 }
 
@@ -54,7 +55,6 @@ void test_for_output()
     console::write_line(std::string("italic"));
     console::write_line("hello world!", 6, 5);
     console::write_line_type<std::string>();
-    console::write_line_type(std::string{});
     console::text_writer();
     console::text_reader();
     console::set_fontstyle(console_style::hight_light);
@@ -72,7 +72,6 @@ void test_for_output()
 
 void test_for_multi_paras()
 {
-    console::write_line(1, ::std::make_pair(1, 3), "hello world", false, true);
-    // console::write_line_type<int, double, bool>();
-    // console::write_line_type(1, 5.0,"hello world");
+    console::write_line_multi(1, foo(), ::std::make_pair(1, 3), "hello world", false, true);
+    console::write_line_type<int, int&&, double, bool, std::string>();
 }

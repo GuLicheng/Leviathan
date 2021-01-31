@@ -54,9 +54,29 @@ concept string_c = range_c<T> && requires (const T& str)
     str.data();
 };
 
+// template <typename T, typename Char, typename Traits = ::std::char_traits<Char>>
+// concept printable = requires(::std::basic_ostream<Char, Traits>& os, const T& obj)
+// {
+//     {os << obj} -> ::std::same_as<::std::basic_ostream<Char, Traits>&>;
+// };
+
+// template <typename T>
+// concept user_define_class = ::std::is_class_v<T> 
+//                          && !string_c<T> 
+//                          && !range_c<T> 
+//                          && (printable<T, char> || printable<T, wchar_t>);
+
+// if you have overloaded operator<< for ostream, 
+// and you want console::write can work for you,
+// please specialize printable to true
+// make sure your class should not be range, string or utilities that already
+// exist in STL
+template <typename T>
+inline constexpr bool printable = false;
+
+
 static_assert(string_c<std::string>);
 static_assert(string_c<std::string_view>);
-static_assert(number_c<char>);
 
 template <typename _Char> 
 struct basic_console_base;
@@ -123,7 +143,7 @@ class basic_console : private basic_console_base<_Char>
 
     template <typename... Ts, size_t... Idx>
     static void print_tuple_impl(const ::std::tuple<Ts...>& __tuple, 
-        ::std::index_sequence<Idx...>, _Char left, _Char right, const _Char* delim)
+        ::std::index_sequence<Idx...>, const _Char* left, const _Char* right, const _Char* delim)
     {
         write(left);
         ((Idx == 0 ? 
@@ -248,7 +268,7 @@ public:
     template <typename... Ts>
     static void write(const ::std::tuple<Ts...>& __tuple)
     {
-        print_tuple_impl(__tuple, ::std::make_index_sequence<sizeof...(Ts)>(), '(', ')', ", ");
+        print_tuple_impl(__tuple, ::std::make_index_sequence<sizeof...(Ts)>(), "(", ")", ", ");
     }
 
     template <typename... Ts>
@@ -259,49 +279,48 @@ public:
     }
 
 
-    template <typename T1, typename T2, typename... Ts>
-    static void write(const T1& t1, const T2& t2, const Ts&... ts)
+    template <typename... Ts>
+    static void write_multi(const Ts&... ts)
     {
-        write(::std::forward_as_tuple<const T1&, const T2&, const Ts&...>(t1, t2, ts...));
+        auto __tuple = ::std::forward_as_tuple<const Ts&...>(ts...);
+        print_tuple_impl(__tuple, ::std::make_index_sequence<sizeof...(Ts)>(), "", "", " ");
     }
 
-    template <typename T1, typename T2, typename... Ts>
-    static void write_line(const T1& t1, const T2& t2, const Ts&... ts)
+    template <typename... Ts>
+    static void write_line_multi(const Ts&... ts)
     {
-        write(t1, t2, ts...);
+        write_multi(ts...);
+        write_line();
+    }
+
+    template <typename T> requires (printable<T> && ::std::is_class_v<T>)
+    static void write(const T& obj)
+    { os << obj; }
+
+    template <typename T> requires (printable<T> && ::std::is_class_v<T>)
+    static void write_line(const T& obj)
+    {
+        write(obj);
         write_line();
     }
 
     // for type
-    template <typename Ts>
+    template <typename... Ts>
     static void write_type()
     {
-        write(type_to_str<Ts>());
+        write_multi(type_to_str<Ts>()...);
     }
 
-    template <typename T>
+    template <typename... Ts>
     static void write_line_type()
     { 
-        write_type<T>();
+        write_type<Ts...>();
         write_line();
     }
 
-    // for instance
-    template <typename T>
-    static void write_type(const T&)
-    {
-        write(type_to_str<T>());
-    }
-
-    template <typename T>
-    static void write_line_type(const T&)
-    { 
-        write_type<T>();
-        write_line();
-    }
-
-
-
+    // for instance please use macro PrintTypeCategory
+    // Since we cannot make sure whether a(assume declearing: int a = 0;) 
+    // object a is int or int&&
 
 
 
