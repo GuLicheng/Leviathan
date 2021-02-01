@@ -82,6 +82,14 @@ void test_for_output()
 
 void test_for_multi_paras()
 {
-    console::write_line_multi(empty_class{}, 1, foo(), ::std::make_pair(1, 3), "hello world", ::isspace, true);
+    console::write_line_multi
+        (empty_class{}, 
+        1, 
+        foo(), 
+        ::std::make_pair(1, 3), 
+        "hello world", 
+        ::isspace, 
+        true,
+        std::make_tuple(0));
     console::write_line_type<int, int&&, double, bool, std::string>();
 }
