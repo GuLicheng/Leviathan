@@ -1,5 +1,8 @@
 /*
     https://blog.csdn.net/kevinshq/article/details/8179252
+    basic_console can work for range, string, pair, tuple 
+    If you have overloaded basic_ostream for your own class, 
+    basic_console will perform as what your have overloaded
 */
 #ifndef __CONSOLE_HPP__
 #define __CONSOLE_HPP__
@@ -44,6 +47,7 @@ concept number_c = ::std::integral<T> || ::std::floating_point<T>;
 template <typename T>
 concept range_c = ::std::ranges::range<T>;
 
+
 template <typename T>
 concept string_c = range_c<T> && requires (const T& str)
 {
@@ -54,29 +58,16 @@ concept string_c = range_c<T> && requires (const T& str)
     str.data();
 };
 
-// template <typename T, typename Char, typename Traits = ::std::char_traits<Char>>
-// concept printable = requires(::std::basic_ostream<Char, Traits>& os, const T& obj)
-// {
-//     {os << obj} -> ::std::same_as<::std::basic_ostream<Char, Traits>&>;
-// };
-
-// template <typename T>
-// concept user_define_class = ::std::is_class_v<T> 
-//                          && !string_c<T> 
-//                          && !range_c<T> 
-//                          && (printable<T, char> || printable<T, wchar_t>);
-
-// if you have overloaded operator<< for ostream, 
-// and you want console::write can work for you,
-// please specialize printable to true
-// make sure your class should not be range, string or utilities that already
-// exist in STL
-template <typename T>
-inline constexpr bool printable = false;
+static_assert(string_c<::std::string>);
+static_assert(string_c<::std::string_view>);
 
 
-static_assert(string_c<std::string>);
-static_assert(string_c<std::string_view>);
+template <typename T, typename Char, typename Traits = ::std::char_traits<Char>>
+concept printable = requires(::std::basic_ostream<Char, Traits>& os, const T& obj)
+{
+    {os << obj} -> ::std::same_as<::std::basic_ostream<Char, Traits>&>;
+};
+
 
 template <typename _Char> 
 struct basic_console_base;
@@ -160,39 +151,6 @@ public:
     using off_type = typename base::off_type;
     using traits_type = typename base::traits_type;
 
-    // method for output
-    template <typename T> requires number_c<T>
-    static void write(T val)
-    { os << val; }
-
-    // for IntelliSense, we overloaded write_line 
-    template <typename T> requires number_c<T>
-    static void write_line(T val)
-    { 
-        write(val);
-        write_line(); 
-    }
-
-    template <typename T> requires string_c<T>
-    static void write(const T& str)
-    { write(str.data(), str.size()); }
-
-    template <typename T> requires string_c<T>
-    static void write_line(const T& str)
-    {
-        write(str);
-        write_line();
-    }
-
-    static void write(const _Char* str)
-    { os << str; }
-
-    static void write_line(const _Char* str)
-    { 
-        os << str; 
-        write_line();
-    }
-
     static void write(bool val)
     {
         write(val ? "true" : "false");
@@ -203,6 +161,20 @@ public:
         write(val);
         write_line();
     }
+
+    template <typename T> requires (printable<T, _Char>)
+    static void write(const T& val)
+    {
+        os << val; 
+    }
+
+    template <typename T> requires (printable<T, _Char>)
+    static void write_line(const T& val)
+    {
+        write(val);
+        write_line();
+    }
+
 
     static void write_line()
     { ::std::endl(os); }
@@ -226,7 +198,7 @@ public:
     }
 
     // The iterator must be copyable
-    template <typename T> requires range_c<T>
+    template <typename T> requires (!printable<T, _Char> && range_c<T>)
     static void write(const T& rg)
     {
         write('[');
@@ -241,14 +213,14 @@ public:
         write(']');
     }
 
-    template <typename T> requires range_c<T>
+    template <typename T> requires (!printable<T, _Char> && range_c<T>)
     static void write_line(const T& rg)
     {
         write(rg);
         write_line();
     }
 
-    template <typename T1, typename T2>
+    template <typename T1, typename T2> requires (!printable<::std::pair<T1, T2>, _Char>)
     static void write(const ::std::pair<T1, T2>& __pair)
     {
         write('(');
@@ -258,26 +230,36 @@ public:
         write(')');
     }
 
-    template <typename T1, typename T2>
+    template <typename T1, typename T2> requires (!printable<::std::pair<T1, T2>, _Char>)
     static void write_line(const ::std::pair<T1, T2>& __pair)
     {
         write(__pair);
         write_line();
     }
 
-    template <typename... Ts>
+    template <typename... Ts> requires (!printable<::std::tuple<Ts...>, _Char>)
     static void write(const ::std::tuple<Ts...>& __tuple)
     {
         print_tuple_impl(__tuple, ::std::make_index_sequence<sizeof...(Ts)>(), "(", ")", ", ");
     }
 
-    template <typename... Ts>
+    template <typename... Ts> requires (!printable<::std::tuple<Ts...>, _Char>)
     static void write_line(const ::std::tuple<Ts...>& __tuple)
     {
         write(__tuple);
         write_line();
     }
 
+    template <typename T> requires (!printable<T, _Char> && !range_c<T> && !string_c<T>)
+    static void write(const T&)
+    { write_type<T>(); }
+
+    template <typename T> requires (!printable<T, _Char> && !range_c<T> && !string_c<T>)
+    static void write_line(const T& val)
+    {
+        write(val);
+        write_line();
+    }
 
     template <typename... Ts>
     static void write_multi(const Ts&... ts)
@@ -290,17 +272,6 @@ public:
     static void write_line_multi(const Ts&... ts)
     {
         write_multi(ts...);
-        write_line();
-    }
-
-    template <typename T> requires (printable<T> && ::std::is_class_v<T>)
-    static void write(const T& obj)
-    { os << obj; }
-
-    template <typename T> requires (printable<T> && ::std::is_class_v<T>)
-    static void write_line(const T& obj)
-    {
-        write(obj);
         write_line();
     }
 

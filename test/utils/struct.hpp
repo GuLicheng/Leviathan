@@ -51,9 +51,4 @@ public:
 
 };
 
-
-namespace leviathan::io
-{
-    template <>
-    inline constexpr bool printable<foo> = true;
-} // io
+struct empty_class { };

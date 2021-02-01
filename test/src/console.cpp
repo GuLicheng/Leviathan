@@ -11,6 +11,16 @@ using leviathan::io::console_style;
 std::vector vec{1, 2, 3, 4, 50};
 std::set set{0, 0, 0, 1, 1};
 
+namespace std
+{
+    template <typename T, typename U>
+    std::ostream& operator<<(std::ostream& os, const std::pair<T, U>& __pair)
+    {
+        return os << '{' << __pair.first << ',' << ' ' << __pair.second << '}';
+    }
+} // ...
+
+
 void test_for_output();
 void test_for_input();
 void test_for_multi_paras();
@@ -45,7 +55,7 @@ void test_for_output()
     console::set_foreground_color(console_color::yellow);
     console::write_line(7);
     console::write_line(false);
-    console::write_line<bool>(true);
+    console::write_line<int>(true);
     console::set_background_color(console_color::blue);
     console::write_line(3.14);
     console::set_background_color(console_color::black);
@@ -72,6 +82,6 @@ void test_for_output()
 
 void test_for_multi_paras()
 {
-    console::write_line_multi(1, foo(), ::std::make_pair(1, 3), "hello world", false, true);
+    console::write_line_multi(empty_class{}, 1, foo(), ::std::make_pair(1, 3), "hello world", false, true);
     console::write_line_type<int, int&&, double, bool, std::string>();
 }
