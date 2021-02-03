@@ -23,12 +23,14 @@ namespace std
 void test_for_output();
 void test_for_input();
 void test_for_multi_paras();
+void test_for_color_style();
 
 int main()
 {
     // test_for_input();
-    test_for_output();
-    test_for_multi_paras();
+    // test_for_output();
+    // test_for_multi_paras();
+    test_for_color_style();
 }
 
 void test_for_input()
@@ -66,8 +68,6 @@ void test_for_output()
     console::write_line_type<std::string>();
     console::text_writer();
     console::text_reader();
-    console::set_fontstyle(console_style::hight_light);
-    console::write_line("hight light");
     console::set_fontstyle(console_style::reset);
     console::write_line("reset");
     console::write_line(vec);
@@ -92,3 +92,24 @@ void test_for_multi_paras()
         std::make_tuple(0));
     console::write_line_type<int, int&&, double, bool, std::string>();
 }
+
+void test_for_color_style()
+{
+    console::set_foreground_color(console_color::yellow);
+    console::write_line("yellow");
+
+    console::set_foreground_color(console_color::bright_yellow);
+    console::write_line("bright yellow");
+
+    console::set_foreground_color(console_color::bright_white);
+    console::write_line("bright white");
+
+    console::set_fontstyle(console_style::slow_blink);
+    console::write_line("slow blink");
+
+    console::set_fontstyle(console_style::italic);
+    console::write_line("italic");
+
+    console::reset();
+}
+
