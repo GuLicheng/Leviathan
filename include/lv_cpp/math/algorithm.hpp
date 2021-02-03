@@ -4,9 +4,11 @@
 #include <algorithm>
 #include <vector>
 
+#define __USELESS__ 0
+
 namespace leviathan
 {
-
+#if __USELESS__
 template <typename RandomAccessIter, typename Sentinel, typename BinaryOp>
 /* constexpr */ inline size_t 
 longest_sub_sequence(RandomAccessIter first, Sentinel last, BinaryOp cmp)
@@ -31,6 +33,41 @@ longest_sub_sequence(RandomAccessIter first, Sentinel last, BinaryOp cmp)
     }
     return *max_element(res.begin(), res.end());
 }
+#endif
+
+/*
+    https://leetcode-cn.com/problems/longest-increasing-subsequence/submissions/
+    https://www.acwing.com/problem/content/484/
+    longset_sub_sequence ascend -> cmp = less
+    longset_sub_sequence not_ascend -> cmp = less_equal
+    longset_sub_sequence descend -> cmp = greater
+    longset_sub_sequence not_descend -> cmp = greater_equal
+*/
+template <typename RandomAccessIter, typename Sentinel, typename BinaryOp>
+/* constexpr */ inline size_t 
+longest_sub_sequence(RandomAccessIter first, Sentinel last, BinaryOp cmp)
+{
+    if (first == last)
+        return 0;
+    if (first + 1 == last)
+        return 1;
+    
+    std::vector<typename std::iterator_traits<RandomAccessIter>::value_type> _stack{*first};
+    _stack.reserve((last - first) >> 1);
+    for (auto iter = first + 1; iter != last; ++iter)
+    {
+        if (cmp(_stack.back(), *iter))
+        {
+            _stack.emplace_back(*iter);
+        }
+        else
+        {
+            *std::lower_bound(_stack.begin(), _stack.end(), *iter, cmp) = *iter;
+        }        
+    }
+    return _stack.size();
+}
+
 
 template <typename InIt, typename OutIt, typename T, typename F>
 InIt split(InIt it, InIt end_it, OutIt out_it, T split_val, F bin_func) 
