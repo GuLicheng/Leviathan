@@ -5,7 +5,7 @@
 #include <vector>
 #include <utility>
 
-namespace leviathan::exceptions
+namespace leviathan::numeric
 {
 class diff_stencil_lower_error : std::exception
 {
@@ -52,7 +52,7 @@ ValueType diff_stencil_lower(ValueType x, FunctionType&& f,
 	}
     else
     {
-        throw exceptions::diff_stencil_lower_error{};
+        throw diff_stencil_lower_error{};
     }
 }
 

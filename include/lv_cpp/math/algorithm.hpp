@@ -2,9 +2,35 @@
 #define __ALGORITHM_HPP__
 
 #include <algorithm>
+#include <vector>
 
 namespace leviathan
 {
+
+template <typename RandomAccessIter, typename Sentinel, typename BinaryOp>
+/* constexpr */ inline size_t 
+longest_sub_sequence(RandomAccessIter first, Sentinel last, BinaryOp cmp)
+{
+    if (first == last)
+        return 0;
+    if (first + 1 == last)
+        return 1;
+    std::vector<size_t> res(last - first, 1);
+
+    for (auto right = first; right != last; ++right)
+    {
+        for (auto left = first; left != right; ++left)
+        {
+            if (cmp(*right, *left))
+            {
+                const auto index_r = right - first;
+                const auto index_l = left - first;
+                res[index_r] = max(res[index_r], res[index_l] + 1);
+            }
+        }
+    }
+    return *max_element(res.begin(), res.end());
+}
 
 template <typename InIt, typename OutIt, typename T, typename F>
 InIt split(InIt it, InIt end_it, OutIt out_it, T split_val, F bin_func) 

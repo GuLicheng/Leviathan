@@ -1,5 +1,6 @@
 /*
-	This header only avaliable for Visual Studio in Windows(may avaliable for Linux)
+	This header only avaliable for MSVC in Windows
+	and GCC for Linux
 */
 #pragma once
 #ifndef TRACKNEW_HPP 

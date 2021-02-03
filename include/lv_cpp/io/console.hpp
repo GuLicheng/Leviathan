@@ -261,18 +261,28 @@ public:
         write_line();
     }
 
-    template <typename... Ts>
-    static void write_multi(const Ts&... ts)
+    // at least one parameter
+    template <typename T1, typename... Ts>
+    static void write_multi(const T1& t1, const Ts&... ts)
     {
-        auto __tuple = ::std::forward_as_tuple<const Ts&...>(ts...);
-        print_tuple_impl(__tuple, ::std::make_index_sequence<sizeof...(Ts)>(), "", "", " ");
+        write(t1);
+        ((write(' '), write(ts)), ...);
     }
 
-    template <typename... Ts>
-    static void write_line_multi(const Ts&... ts)
+    // at least one parameter
+    template <typename T1, typename... Ts>
+    static void write_line_multi(const T1& t1, const Ts&... ts)
     {
-        write_multi(ts...);
+        write_multi(t1, ts...);
         write_line();
+    }
+
+    // at least one parameter
+    template <typename T1, typename... Ts>
+    static void write_lines_multi(const T1& t1, const Ts&... ts)
+    {
+        write_line(t1);
+        (write_line(ts), ...);
     }
 
     // for type
@@ -289,8 +299,14 @@ public:
         write_line();
     }
 
+    template <typename... Ts>
+    static void write_lines_type()
+    { 
+        (write_line_type<Ts>(), ...);
+    }
+
     // for instance please use macro PrintTypeCategory
-    // Since we cannot make sure whether a(assume declearing: int a = 0;) 
+    // Since we cannot make sure whether (assume declearing: int a = 0;) 
     // object a is int or int&&
 
 
@@ -357,11 +373,11 @@ public:
 
 }; //  end of class 
 
-using console = basic_console<char>;
-using wconsole = basic_console<wchar_t>;
 
 } //  namespace leviathan
 
+using console = leviathan::io::basic_console<char>;
+using wconsole = leviathan::io::basic_console<wchar_t>;
 
 
 #endif

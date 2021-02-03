@@ -4,7 +4,6 @@
 #include <set>
 
 
-using leviathan::io::console;
 using leviathan::io::console_color;
 using leviathan::io::console_style;
 

@@ -1,8 +1,8 @@
 #ifndef __TEMPLATE_TEST_HPP__
 #define __TEMPLATE_TEST_HPP__
 
-#include "template_info.hpp"
-
+#include <lv_cpp/type_list.hpp>
+#include <cstdint>
 #include <tuple>
 
 // Func<Arg1>, Func<Args2> ...
