@@ -47,6 +47,8 @@
 #include <fstream>
 #include <list>
 #include <string>
+#include <type_traits>
+#include <optional>
 
 // for debug
 #include <iostream>
@@ -134,6 +136,12 @@ namespace leviathan::INI
 
         explicit operator bool() const noexcept
         { return static_cast<bool>(this->in); }
+
+        std::optional<int64_t> 
+        getint(const std::string& section_name, const std::string& key_name) const;
+
+        std::optional<double> 
+        getfloat(const std::string& section_name, const std::string& key_name) const;
 
         void show()
         {
@@ -273,6 +281,41 @@ namespace leviathan::INI
         auto res_range = sub | ::leviathan::views::trim(::isspace);
         return {res_range.begin(), res_range.end()};
     }
+
+    std::optional<int64_t> 
+    INI_handler::getint(const std::string& section_name, const std::string& key_name) const  
+    {
+        auto sec_iter = sections.find(section_name);
+        if (sec_iter == sections.end())
+            return {};
+        auto value_iter = std::find_if(sec_iter->second.ls.begin(), sec_iter->second.ls.end(), [&](const auto& e)
+        {
+            return e.first == key_name;
+        });
+
+        if (value_iter == sec_iter->second.ls.end())
+            return {};
+    
+        return std::stoll(value_iter->second);
+    }
+
+    std::optional<double> 
+    INI_handler::getfloat(const std::string& section_name, const std::string& key_name) const  
+    {
+        auto sec_iter = sections.find(section_name);
+        if (sec_iter == sections.end())
+            return {};
+        auto value_iter = std::find_if(sec_iter->second.ls.begin(), sec_iter->second.ls.end(), [&](const auto& e)
+        {
+            return e.first == key_name;
+        });
+
+        if (value_iter == sec_iter->second.ls.end())
+            return {};
+    
+        return std::stod(value_iter->second);
+    }
+
 
 } // namespace leviathan::INI
 
