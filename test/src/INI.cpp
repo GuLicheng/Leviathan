@@ -1,4 +1,5 @@
 #include <lv_cpp/INI.hpp>
+#include <lv_cpp/io/console.hpp>
 #include <iostream>
 
 constexpr const char* path = R"(D:\Library\Leviathan\data.ini)";
@@ -39,6 +40,10 @@ void test_for_get()
 {
     leviathan::INI::INI_handler reader;
     reader.load(path);
-    std::cout << *reader.getint("section_one", "height") << std::endl;
-    std::cout << *reader.getfloat("section_one", "width") << std::endl;
+    console::write_lines_multi(
+        *reader.getint("correct_test", "int"),
+        *reader.getstring("correct_test", "src_path"),
+        *reader.getfloat("correct_test", "float"),
+        *reader.getboolean("correct_test", "switch"),
+        *reader.getboolean("correct_test", "boolean"));
 }

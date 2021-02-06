@@ -36,6 +36,10 @@
     INI_handler::get_items(): return all sections and entries
     INI_handler::get_sections(): return all sections
     INI_handler::get_entries(): return all entries
+    INI_handler::getint(): 
+    INI_handler::getfloat():
+    INI_handler::getboolean():
+    INI_handler::getstring():
 */
 
 #ifndef __INI_HPP__
@@ -49,7 +53,7 @@
 #include <string>
 #include <type_traits>
 #include <optional>
-
+#include <cctype>
 // for debug
 #include <iostream>
 
@@ -83,6 +87,7 @@ namespace leviathan::INI
         using std::pair<std::string, std::string>::operator=;
     };
 
+    // overload ostream
     std::ostream& operator<<(std::ostream& os, const entry& e)
     { 
         return os << '(' << e.first << ", " << e.second << ')'; 
@@ -94,6 +99,7 @@ namespace leviathan::INI
         std::list<entry> ls;
     };
 
+    // overload ostream
     std::ostream& operator<<(std::ostream& os, const section_node& s)
     {
         std::cout << "The size of current section node is :" << s.ls.size() << std::endl;
@@ -107,41 +113,128 @@ namespace leviathan::INI
     class INI_handler
     {
     public:
-        INI_handler() : lines{0} { }
-        ~INI_handler() = default;
+        INI_handler() : lines{0} 
+        {    
+        }
 
         INI_handler(const INI_handler&) = delete;
         INI_handler& operator=(const INI_handler&) = delete;
+        ~INI_handler() = default;
 
-        // Fetch and store INI data
+        /*
+         * load ini file
+         * paras:
+         *      file: the path of file
+         *      openmode: the openmode for fstream
+         * return:
+         *      true if successful load file and parse all items
+         *      false otherwise
+         */
         bool load(const char* file, std::ios::openmode = std::ios::in | std::ios::binary);
-
-        bool load(const std::string& file, std::ios::openmode mode)
-        { return load(file.c_str(), mode); }
+        bool load(const std::string& file, std::ios::openmode mode = std::ios::in | std::ios::binary)
+        { 
+            return load(file.c_str(), mode); 
+        }
 
         // erase all data within in this class
         // bool clear(section_node* node, entry* e);
         
+        /*
+         * whether the file is successfully loaded
+         * return:
+         *      true if load return true, otherwise false
+         */
         bool is_loaded() const noexcept
-        { return in.is_open(); }
-        
+        { 
+            return in.is_open() && sections.size();
+        }
+
+        /*
+         * get all sections from ini read
+         * return:
+         *      view of sections
+         */
         auto get_sections() const noexcept
-        { return sections | ::leviathan::views::keys ; }
+        {
+            return sections | ::leviathan::views::keys;
+        }
 
+        /*
+         * get all entries from ini read
+         * return:
+         *      view of entries
+         */
         auto get_entries() const noexcept
-        { return sections | ::leviathan::views::values; }
+        {
+            return sections | ::leviathan::views::values;
+        }
 
+        /*
+         * get all items from ini read
+         * return:
+         *      view of items
+         */
         auto get_items() const noexcept
-        { return sections | ::leviathan::views::all; }
+        {
+            return sections | ::leviathan::views::all;
+        }
 
+        /*
+         * whether INI_handler can work
+         * return: 
+         *      true if open and read all items successfully otherwise false
+         */
         explicit operator bool() const noexcept
-        { return static_cast<bool>(this->in); }
+        {
+            return static_cast<bool>(this->in) && is_loaded();
+        }
 
+        /*
+         * parse a string to integer
+         * paras:
+         *      section_name: ...
+         *      key_name: ...
+         * return:
+         *      optional if both section_name and key_name exist and the value can be 
+         *      convert to integer, otherwise nullpot
+         */
         std::optional<int64_t> 
         getint(const std::string& section_name, const std::string& key_name) const;
 
+        /*
+         * parse a string to integer
+         * paras:
+         *      section_name: ...
+         *      key_name: ...
+         * return:
+         *      optional if both section_name and key_name exist and the value can be 
+         *      convert to float, otherwise nullpot
+         */
         std::optional<double> 
         getfloat(const std::string& section_name, const std::string& key_name) const;
+
+        /*
+         * parse a string to integer
+         * paras:
+         *      section_name: ...
+         *      key_name: ...
+         * return:
+         *      optional if both section_name and key_name exist and the value can be 
+         *      convert to boolean(true or false, ignore case), otherwise nullpot
+         */
+        std::optional<bool>
+        getboolean(const std::string& section_name, const std::string& key_name) const;
+
+        /*
+         * parse a string to integer
+         * paras:
+         *      section_name: ...
+         *      key_name: ...
+         * return:
+         *      optional if both section_name and key_name exist, otherwise nullopt
+         */
+        std::optional<std::string>
+        getstring(const std::string& section_name, const std::string& key_name) const;
 
         void show()
         {
@@ -159,10 +252,11 @@ namespace leviathan::INI
         }
 
     private:
+
         // remove all ; and blank
         std::string trim(const std::string& s) const noexcept;
 
-        void insert_section(section_node*& node, std::string&& s, int line);
+        void insert_section(section_node*& node, std::string s, int line);
 
     public:
         std::ifstream in;
@@ -262,7 +356,7 @@ namespace leviathan::INI
         return true;
     }
 
-    void INI_handler::insert_section(section_node*& node, std::string&& s, int line)
+    void INI_handler::insert_section(section_node*& node, std::string s, int line)
     {
         // check whether the sections only contains one '[' and ']'
         // if not match, not change node
@@ -316,6 +410,48 @@ namespace leviathan::INI
         return std::stod(value_iter->second);
     }
 
+    std::optional<bool>
+    INI_handler::getboolean(const std::string& section_name, const std::string& key_name) const
+    {
+        auto sec_iter = sections.find(section_name);
+        if (sec_iter == sections.end())
+            return {};
+        auto value_iter = std::find_if(sec_iter->second.ls.begin(), sec_iter->second.ls.end(), [&](const auto& e)
+        {
+            return e.first == key_name;
+        });
+
+        if (value_iter == sec_iter->second.ls.end())
+            return {};
+    
+        // 
+        auto value = value_iter->second;
+        std::for_each(value.begin(), value.end(), [](char& c)
+        {
+            c = ::tolower(c);
+        });
+        if (value == "true")
+            return true;
+        if (value == "false")
+            return false;
+        return {};
+    }
+
+    std::optional<std::string>
+    INI_handler::getstring(const std::string& section_name, const std::string& key_name) const
+    {
+        auto sec_iter = sections.find(section_name);
+        if (sec_iter == sections.end())
+            return {};
+        auto value_iter = std::find_if(sec_iter->second.ls.begin(), sec_iter->second.ls.end(), [&](const auto& e)
+        {
+            return e.first == key_name;
+        });
+
+        if (value_iter == sec_iter->second.ls.end())
+            return {};
+        return value_iter->second;
+    }
 
 } // namespace leviathan::INI
 
