@@ -379,19 +379,12 @@ namespace leviathan::INI
     std::optional<int64_t> 
     INI_handler::getint(const std::string& section_name, const std::string& key_name) const  
     {
-        auto sec_iter = sections.find(section_name);
-        if (sec_iter == sections.end())
-            return {};
-        auto value_iter = std::find_if(sec_iter->second.ls.begin(), sec_iter->second.ls.end(), [&](const auto& e)
-        {
-            return e.first == key_name;
-        });
-
-        if (value_iter == sec_iter->second.ls.end())
+        auto value = getstring(section_name, key_name);
+        if (!value.has_value())
             return {};
         try
         {
-            auto res = std::stod(value_iter->second);
+            auto res = std::stod(*value);
             return res;
         }
         catch(...)
@@ -404,20 +397,12 @@ namespace leviathan::INI
     std::optional<double> 
     INI_handler::getfloat(const std::string& section_name, const std::string& key_name) const  
     {
-        auto sec_iter = sections.find(section_name);
-        if (sec_iter == sections.end())
+        auto value = getstring(section_name, key_name);
+        if (!value.has_value())
             return {};
-        auto value_iter = std::find_if(sec_iter->second.ls.begin(), sec_iter->second.ls.end(), [&](const auto& e)
-        {
-            return e.first == key_name;
-        });
-
-        if (value_iter == sec_iter->second.ls.end())
-            return {};
-    
         try
         {
-            auto res = std::stod(value_iter->second);
+            auto res = std::stod(*value);
             return res;
         }
         catch(...)
@@ -430,20 +415,11 @@ namespace leviathan::INI
     std::optional<bool>
     INI_handler::getboolean(const std::string& section_name, const std::string& key_name) const
     {
-        auto sec_iter = sections.find(section_name);
-        if (sec_iter == sections.end())
-            return {};
-        auto value_iter = std::find_if(sec_iter->second.ls.begin(), sec_iter->second.ls.end(), [&](const auto& e)
-        {
-            return e.first == key_name;
-        });
-
-        if (value_iter == sec_iter->second.ls.end())
+        auto value = getstring(section_name, key_name);
+        if (!value.has_value())
             return {};
     
-        // 
-        auto value = value_iter->second;
-        std::for_each(value.begin(), value.end(), [](char& c)
+        std::for_each(value->begin(), value->end(), [](char& c)
         {
             c = ::tolower(c);
         });

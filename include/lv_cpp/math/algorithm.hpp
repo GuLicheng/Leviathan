@@ -86,6 +86,11 @@ InIt split(InIt it, InIt end_it, OutIt out_it, T split_val, F bin_func)
 	return it;
 }
 
+
+
+
+
+
 template <typename T, typename... Ts>
 auto concat(T&& t, Ts&&... ts)
 {
@@ -140,49 +145,7 @@ auto multicall(Ts... functions)
 	};
 }
 
-template <typename Fn, typename... Ts>
-auto for_each_call(Fn f, Ts... ts)
-{
-    // to avoid optimize, make it complex
-    (void)std::initializer_list<int>
-	{
-        ((void)f(ts), 0)...
-    };
-	// 	(f(ts), ...);  for c++17
-}
-
 /*
-    auto for_each_call = [](auto f, auto ... xs) {
-        return std::initializer_list<int>{f(xs)...};
-    }
-1. 其使用f函数的所有调用返回值，构造了一个初始化列表。但我们并不关心返回值。
-2. 虽然其返回的初始化列表，但是我们想要一个“即发即弃”的函数，这些函数不用返回任何东西。
-3. f在这里可能是一个函数，因为其不会返回任何东西，可能在编译时就会被优化掉。
-
-不返回初始化列表，但会将所有表达式使用(void)std::initializer_list<int>{...}转换为void类型。
-初始化表达式中，其将f(xs)...包装进(f(xs),0)...表达式中。这会让程序将返回值完全抛弃，不过0将会放置在初始化列表中。
-f(xs)在(f(xs), 0)...表达式中，将会再次转换成void，所以这里就和没有返回值一样。
-
-不推荐使用C风格的类型转换，因为C++有自己的转换操作。
-我们可以使用reinterpret_cast<void>(expression)代替例程中的代码行，
-不过这样会降低代码的可读性，会给后面的阅读者带来一些困扰。
-
-*/
-
-static auto brace_print(char a, char b) {
-    return [=](auto x) {
-        std::cout << a << x << b << " ";
-    };
-}
-
-/*
-    auto f = brace_print('(', ')');
-    auto g = brace_print('[', ']');
-    auto h = brace_print('{', '}');
-    auto nl = [](auto) { std::cout << std::endl; };
-    auto call_fgh = (multicall(f, g, h, nl));
-    for_each_call(call_fgh, 1, 2, 3, 4, 5);
-*/
 
 template <typename T>
 auto map(T fn) {
@@ -206,7 +169,7 @@ auto filter(T predicate) {
     };
 }
 
-/*
+
     std::istream_iterator<int> it{ std::cin };
     std::istream_iterator<int> end_it;
     auto even = [](int x) { return ~x & 1; };
@@ -223,35 +186,6 @@ auto filter(T predicate) {
             )
         ));
     std::cout << std::endl;
-*/
-
-/*
-
-static void print_pair(int x, int y) {
-    std::cout << "(" << x << ", " << y << ")\n";
-}
-
-
-constexpr auto call_cart (
-    [=](auto f, auto x, auto ...rest) constexpr {
-        (void)std::initializer_list<int>{
-            (((x < rest)
-                ? (void)f(x, rest)
-                : (void)0)
-            ,0)...
-        };
-    });
-constexpr auto cartesian = [=](auto... xs) constexpr {
-    return [=](auto f) constexpr {
-        (void)std::initializer_list<int>{
-            ((void)call_cart(f, xs, xs...), 0)...
-        };
-    };
-};
-
-constexpr auto print_cart = cartesian(1, 2, 3, 4);
-print_cart(print_pair);
-
 */
 
 }  // namespace leviathan
