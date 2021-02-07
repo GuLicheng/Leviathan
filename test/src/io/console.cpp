@@ -1,5 +1,5 @@
 #include <lv_cpp/io/console.hpp>
-#include "../utils/struct.hpp"
+#include "../../utils/struct.hpp"
 #include <vector>
 #include <set>
 
@@ -28,8 +28,8 @@ void test_for_color_style();
 int main()
 {
     // test_for_input();
-    // test_for_output();
-    // test_for_multi_paras();
+    test_for_output();
+    test_for_multi_paras();
     test_for_color_style();
 }
 
