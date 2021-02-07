@@ -25,10 +25,10 @@ namespace leviathan::test
         {
             if (!m_bool) 
             {
+                console::reset();
                 console::set_foreground_color(console_color::red);
                 console::write_line_multi(
-                    "Assert Failed, Lines: ", m_line, 
-                    " ", m_correct,
+                    "Assert Failed, Lines:", m_line, m_correct,
                     " expression is: ", m_expr);
             }
         }
@@ -50,8 +50,8 @@ namespace leviathan::test
 
 // exported macro
 
-#define ASSERT_TRUE( boolean_expr ) ( leviathan::test::tester(boolean_expr, __LINE__, "expected true", STR(boolean_expr) ).assert_true() )
-#define ASSERT_FALSE( boolean_expr ) ( leviathan::test::tester(not (boolean_expr), __LINE__, "expected false", STR(boolean_expr) ).assert_true() )
+#define ASSERT_TRUE( boolean_expr ) ( leviathan::test::tester(boolean_expr, __LINE__, "", STR(boolean_expr) ).assert_true() )
+#define ASSERT_FALSE( boolean_expr ) ( leviathan::test::tester(not (boolean_expr), __LINE__, "", STR(boolean_expr) ).assert_true() )
 #define ASSERT_EQ( a, b ) ASSERT_TRUE(a == b)
 #define ASSERT_NE( a, b ) ASSERT_TRUE(a != b)
 #define ASSERT_LT( a, b ) ASSERT_TRUE(a < b)
