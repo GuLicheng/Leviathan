@@ -16,6 +16,6 @@ int main()
     // report error
     ASSERT_TRUE(a == b); 
     ASSERT_FALSE(a != b); 
-    ASSERT_EQ(a, 1);
-    ASSERT_LE(a, b);
+    ASSERT_EQ(a, 2);
+    ASSERT_LE(b, a);
 }
