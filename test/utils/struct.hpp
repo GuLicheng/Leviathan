@@ -1,7 +1,6 @@
 #pragma once
 
 #include <iostream>
-#include <lv_cpp/io/console.hpp>
 
 
 
@@ -19,30 +18,30 @@ public:
     int val;
 
     foo() : val{0} 
-    { std::cout << "default_constructor :" << default_constructor++ << std::endl;}
+    { std::cout << "default_constructor :" << ++default_constructor << std::endl;}
     
     foo(const foo& rhs) : val{rhs.val}
-    { std::cout << "copy_constructor :" << copy_constructor++ << std::endl;}
+    { std::cout << "copy_constructor :" << ++copy_constructor << std::endl;}
 
     foo(foo&& rhs) noexcept : val{rhs.val}
-    { std::cout << "move_constructor :" << move_constructor++ << std::endl;}
+    { std::cout << "move_constructor :" << ++move_constructor << std::endl;}
 
     foo& operator=(const foo& rhs) 
     {
         this->val = rhs.val; 
-        std::cout << "copy_assignment :" << copy_assignment++ << std::endl;
+        std::cout << "copy_assignment :" << ++copy_assignment << std::endl;
         return *this;
     }
 
     foo& operator=(foo&& rhs) noexcept
     { 
         this->val = rhs.val;
-        std::cout << "move_assignment :" << move_assignment++ << std::endl;
+        std::cout << "move_assignment :" << ++move_assignment << std::endl;
         return *this;
     }
 
     ~foo() 
-    { std::cout << "destructor :" << destructor++ << std::endl;}
+    { std::cout << "destructor :" << ++destructor << std::endl;}
 
     friend std::ostream& operator<<(std::ostream& os, const foo& f)
     {
