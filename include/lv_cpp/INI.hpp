@@ -389,8 +389,16 @@ namespace leviathan::INI
 
         if (value_iter == sec_iter->second.ls.end())
             return {};
-    
-        return std::stoll(value_iter->second);
+        try
+        {
+            auto res = std::stod(value_iter->second);
+            return res;
+        }
+        catch(...)
+        {
+            return {};
+        }
+        return {}; // useless
     }
 
     std::optional<double> 
@@ -407,7 +415,16 @@ namespace leviathan::INI
         if (value_iter == sec_iter->second.ls.end())
             return {};
     
-        return std::stod(value_iter->second);
+        try
+        {
+            auto res = std::stod(value_iter->second);
+            return res;
+        }
+        catch(...)
+        {
+            return {};
+        }
+        return {}; // useless
     }
 
     std::optional<bool>
