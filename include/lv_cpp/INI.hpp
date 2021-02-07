@@ -85,6 +85,22 @@ namespace leviathan::INI
     {
         using std::pair<std::string, std::string>::pair;
         using std::pair<std::string, std::string>::operator=;
+        const auto& key() const noexcept
+        {
+            return this->first;
+        }
+        auto& key() noexcept
+        {
+            return this->first;
+        }
+        auto& value() const noexcept
+        {
+            return this->second;
+        }
+        auto& value() noexcept
+        {
+            return this->second;
+        }
     };
 
     // overload ostream
@@ -438,7 +454,7 @@ namespace leviathan::INI
             return {};
         auto value_iter = std::find_if(sec_iter->second.ls.begin(), sec_iter->second.ls.end(), [&](const auto& e)
         {
-            return e.first == key_name;
+            return e.key() == key_name;
         });
 
         if (value_iter == sec_iter->second.ls.end())

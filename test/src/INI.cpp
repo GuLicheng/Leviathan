@@ -4,13 +4,27 @@
 
 constexpr const char* path = R"(D:\Library\Leviathan\data.ini)";
 
+constexpr const char* setting = R"(D:\GraphTheoryCode\Template\Tiamat\configuration\config.ini)";
+
 void test_for_read();
 void test_for_get();
+void test();
 
 int main()
 {
-    test_for_get();
+    test();
     std::cout << "Ok\n";
+}
+
+void test()
+{
+    leviathan::INI::INI_handler reader;
+    reader.load(setting);
+    for (const auto& [k, v] : reader.get_items())
+    {
+        std::cout << k << v << std::endl;
+        // console::write_line(__pair); 屑
+    }
 }
 
 void test_for_read()

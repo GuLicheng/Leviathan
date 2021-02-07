@@ -8,8 +8,8 @@ Makefile
 *.o
 *.txt
 *.ini
+*.py
 
 # root
 /*.cpp
-*.py
 /*.c
