@@ -31,8 +31,9 @@
 
 /*
     
-    INI_handler::load(const char* file) : read ini config file
-    INI_handler::load(string& file) : read ini config file
+    INI_handler::load(const char* file, std::openmode) : read ini config file
+    INI_handler::load(const string& file, std::openmode) : read ini config file
+    INI_handler::load(const string_view file, std::openmode) : read ini config file
     INI_handler::get_items(): return all sections and entries
     INI_handler::get_sections(): return all sections
     INI_handler::get_entries(): return all entries
@@ -40,6 +41,15 @@
     INI_handler::getfloat():
     INI_handler::getboolean():
     INI_handler::getstring():
+
+    Comming soon:
+    INI_handler::write(const char* file);
+    INI_handler::write(const std::string& file);
+    INI_handler::write(std::string_view file);
+    follow method will be implemented by overloading operator[]
+    INI_handler::add_sections
+    INI_handler::add_key
+    INI_handler::add_value
 */
 
 #ifndef __INI_HPP__
@@ -51,10 +61,9 @@
 #include <fstream>
 #include <list>
 #include <string>
-#include <type_traits>
+#include <string_view>
 #include <optional>
 #include <cctype>
-// for debug
 #include <iostream>
 
 namespace leviathan::INI
@@ -151,6 +160,10 @@ namespace leviathan::INI
         { 
             return load(file.c_str(), mode); 
         }
+        bool load(const std::string_view& file, std::ios::openmode mode = std::ios::in | std::ios::binary)
+        {
+            return load(file.data(), mode);
+        }
 
         // erase all data within in this class
         // bool clear(section_node* node, entry* e);
@@ -218,7 +231,7 @@ namespace leviathan::INI
         getint(const std::string& section_name, const std::string& key_name) const;
 
         /*
-         * parse a string to integer
+         * parse a string to float
          * paras:
          *      section_name: ...
          *      key_name: ...
@@ -230,7 +243,7 @@ namespace leviathan::INI
         getfloat(const std::string& section_name, const std::string& key_name) const;
 
         /*
-         * parse a string to integer
+         * parse a string to boolean
          * paras:
          *      section_name: ...
          *      key_name: ...
@@ -242,7 +255,7 @@ namespace leviathan::INI
         getboolean(const std::string& section_name, const std::string& key_name) const;
 
         /*
-         * parse a string to integer
+         * get value item by section and key
          * paras:
          *      section_name: ...
          *      key_name: ...
@@ -252,6 +265,7 @@ namespace leviathan::INI
         std::optional<std::string>
         getstring(const std::string& section_name, const std::string& key_name) const;
 
+        // for debug
         void show()
         {
             for (auto& [key, value] : sections)
@@ -272,6 +286,14 @@ namespace leviathan::INI
         // remove all ; and blank
         std::string trim(const std::string& s) const noexcept;
 
+        /* insert a section, if insert successfully, the node will pointer at section 
+         * otherwise the log will memory this line
+         * 
+         * paras:
+         *      node: the final address if insert successfully otherwise nullptr
+         *      s: current string read from file
+         *      line: the location of s in the file
+         */
         void insert_section(section_node*& node, std::string s, int line);
 
     public:
