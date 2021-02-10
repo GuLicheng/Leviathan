@@ -9,7 +9,15 @@
 #include <set>
 #include <ranges>
 #include <lv_cpp/utils/template_info.hpp>
-#include <lv_cpp/output.hpp>
+
+//  #include <lv_cpp/io/console.hpp>
+
+template <typename T1, typename T2>
+std::ostream& operator<<(std::ostream& os, const std::pair<T1, T2>& __pair)
+{
+    return os << '(' << __pair.first << ", " << __pair.second << ')';
+}
+
 
 std::vector vec{1, 2, 3, 4, 5};
 std::set buf = {6, 7, 9, 10};
@@ -35,17 +43,29 @@ using T5 = decltype(map);
 void test1();
 void test2();
 
+constexpr int test3()
+{
+    int arr[] = {1, 2, 3};
+    int buf[] = {1, 2, 3};
+    int res = 0;
+    for (auto [a, b] : leviathan::views::zip(arr, buf))
+    {
+        res += a + b;
+    }
+    return res;
+}
+
 int main()
 {
     test1();
     test2();
+    // static_assert(12 == test3());
     return 0;
 }
 
 
 void test1()
 {
-    using namespace output;
     using ::leviathan::views::zip;
     // using ::leviathan::views::zip0;
     std::ifstream is{"./data.txt", std::ios::binary};
@@ -61,6 +81,7 @@ void test1()
     {
         std::cout << a << '-' << b << '-' << 
             c << '-' << d << '-' << e << '-' << f << std::endl;
+        // console::write_line_multi(a, b, c,d, e, f);
     }
 
     // for (auto s : sub)
@@ -190,13 +211,22 @@ requires(_Iter __i, const _Iter __j,
 
 void test2()
 {
+    std::cout << "==========================================================\n";
     std::vector vec{3, 2, 1};
     int arr[] = {3, 2, 1};
     auto rg = ::leviathan::views::zip(vec, arr);
+    std::ranges::for_each(rg | std::views::reverse, [](auto x)
+    {
+        auto [a, b] = x;
+        std::cout << a << '-' << b << std::endl;
+    });
+    std::cout << "==========================================================\n";
+    // std::ranges::reverse(rg.begin(), rg.end()); not satisfied indirectly_writable
+    std::reverse(rg.begin(), rg.end());
     std::ranges::for_each(rg, [](auto x)
     {
         auto [a, b] = x;
         std::cout << a << '-' << b << std::endl;
     });
-
 }
+
