@@ -5,17 +5,15 @@
 #ifndef __LINQ_HPP__
 #define __LINQ_HPP__
 
-#include <functional>
-#include <tuple>
 #include <iostream>
+#include <exception>
 #include <iterator>
-#include <limits>
-
-#include <lv_cpp/io/console.hpp>
+#include <tuple>
+#include <functional>
 
 namespace leviathan::linq
 {
-
+    
     struct invalid_pair_iterator : std::exception
     {
         constexpr const char* what() const noexcept override
@@ -24,106 +22,211 @@ namespace leviathan::linq
         }
     };
 
-    // for iterator, we must support *, ++, ==, !=
-    
-    auto default_dereference = [](auto iter) -> auto& { return *iter; };
-    auto identity = [](auto iter) { return iter; };
-    auto next = [](auto iter) { return std::next(iter); };
-    auto equal = std::equal_to<>();
-
-    template <typename Storage, typename First,
-              typename Last, typename Next, typename Deref>
+    // for iterator, it may overloaded some operators such as
+    // ++, --, *, ==, != ...
+    template <typename Storage, typename Begin, typename End, typename Next, typename Prev, typename Dereference, typename Equal>       
     class linq
     {
-        [[no_unique_address]]Next nextFunc; // forward iterator a step
-        [[no_unique_address]]First firstFunc; // return first element
-        [[no_unique_address]]Deref derefFunc; // return *iter
-        [[no_unique_address]]Last lastFunc; // return last or default
-        Storange iter_pair; // store begin and end iterator
-        using value_type = typename std::iterator_traits<Iter>::value_type;
     public:
+        [[no_unique_address]]Begin m_begin;         
+        [[no_unique_address]]End m_end;             
+        [[no_unique_address]]Next m_next;           
+        [[no_unique_address]]Prev m_prev;         
+        [[no_unique_address]]Dereference m_deref;   
+        [[no_unique_address]]Equal m_equal;         
 
-        linq(Iter first, Sent last, First firstFunc, Last lastFunc, Next next, Deref deref)
-            : iterator{first}, sentinel{last}, firstFunc{firstFunc}, lastFunc{lastFunc},
-              nextFunc{next}, derefFunc{deref}
+        Storage m_store;                           // store iterator
+        using self = linq;
+    public:
+        // using value_type = TSource;
+
+        linq(Storage storage, Begin begin, End end, Next next, Prev prev, Dereference deref, Equal equal)
+            : m_store{storage}, m_begin{begin}, m_end{end}, m_next{next}, m_prev{prev}, m_deref{deref}, m_equal{equal}
         {
         }
 
-        template <typename Pred>
-        auto where(Pred predicate) const
+        template <typename Transform>
+        linq for_each(Transform transform) const
         {
-            auto new_next = [=](Iter iter) 
+            auto first = m_begin(m_store);
+            auto last = m_end(m_store);
+            for (auto iter = first; !m_equal(iter, last); iter = m_next(iter))
             {
-                auto forward = this->nextFunc(iter);
-                if (forward == this->sentinel || predicate(*forward))
-                {
-                    // console::write_line(*f)
-                    return forward;
-                }
-                else
-                {
-                    while (forward != this->sentinel && !predicate(*forward))
-                        forward = this->nextFunc(forward);
-                }
-                return forward;
-            };
-
-            using function_type = decltype(new_next);
-            return linq<Iter, Sent, function_type, Last, function_type, Deref>
-                {this->iterator, this->sentinel, new_next, this->lastFunc, new_next, this->derefFunc};
-        }
-
-
-        template <typename Apply>
-        const linq& for_each(Apply apply) const
-        {
-            for (auto iter = firstFunc(iterator); iter != lastFunc(sentinel); iter = nextFunc(iter))
-                apply(derefFunc(iter));
+                transform(m_deref(iter));
+            }
             return *this;
         }
 
-        template <typename BinaryOp, typename TResult = value_type>
-        TResult reduce(BinaryOp op, TResult init = TResult{}) const
+        auto reverse() const
         {
-            for (auto iter = firstFunc(iterator); iter != lastFunc(sentinel); iter = nextFunc(iter))
+            auto _begin = [=](auto storage)
             {
-                // std::cout << init << std::endl;
-                init = op(derefFunc(iter), std::move(init));
-            }
-            return init;
-        }
+                auto last_iter = this->m_end(storage);
+                auto last = this->m_prev(last_iter);
+                return last;
+            };
+            auto _end = [=](auto storage)
+            {
+                auto first_iter = this->m_begin(storage);
+                auto first = this->m_prev(first_iter);
+                return first;
+            };
+
+            auto _prev = [=](auto iter) { return this->m_next(iter); };
+            auto _next = [=](auto iter) { return this->m_prev(iter); };
+
+            return linq<Storage, decltype(_begin), decltype(_end), decltype(_next), decltype(_prev), Dereference, Equal>
+                {this->m_store, _begin, _end, _next, _prev, this->m_deref, this->m_equal};            
+        }     
         
-        template <typename TResult = value_type>
-        TResult sum(TResult init = {}) const
+        // filter
+        template <typename Pred>
+        auto where(Pred predicate) const
         {
-            return reduce(std::plus<>(), std::move(init));
-        }
-/*
-        template <typename Container>
-        Container to() const
-        {
-            return Container(iterator, sentinel);
+            // exchange ++ and begin
+            auto store = this->m_store;
+            auto _next = [=](auto iter)
+            {
+                auto next_iter = this->m_next(iter);
+                auto end = this->m_end(store);
+                while (!this->m_equal(next_iter, end) && !predicate(this->m_deref(next_iter)))
+                    next_iter = this->m_next(next_iter);
+                return next_iter;
+            };
+            
+            auto _begin = [=](auto storage)
+            {
+                auto first_iter = this->m_begin(storage);
+                auto end = this->m_end(store);
+                if (!this->m_equal(first_iter, end) && predicate(this->m_deref(first_iter)))
+                    return first_iter;
+                return _next(first_iter);
+            };
+
+            return linq<Storage, decltype(_begin), End, decltype(_next), Prev, Dereference, Equal>
+                {this->m_store, _begin, this->m_end, _next, this->m_prev, this->m_deref, this->m_equal};
         }
 
-        template <template <typename...> typename Container>
-        Container<value_type> to() const
+        // transform
+        template <typename Selector>
+        auto select(Selector selector) const
         {
-            return Container<value_type>(iterator, sentinel);
+            auto _deref = [=](auto iter) -> decltype(auto)
+            {
+                auto&& val = this->m_deref(iter);
+                return selector(std::forward<decltype(val)>(val));
+            };
+            return linq<Storage, Begin, End, Next, Prev, decltype(_deref), Equal>
+                {this->m_store, this->m_begin, this->m_end, this->m_next, this->m_prev, _deref, this->m_equal};
         }
-*/
+
+        // drop
+        auto skip(int count) const
+        {
+            auto _begin = [=] (auto storage)
+            {
+                auto first_iter = this->m_begin(storage);
+                auto last_iter = this->m_end(storage);
+                auto _count = count;
+                while (!this->m_equal(first_iter, last_iter) && _count--)
+                {
+                    first_iter = this->m_next(first_iter);
+                }
+                return first_iter;
+            };
+            return linq<Storage, decltype(_begin), End, Next, Prev, Dereference, Equal>
+                {this->m_store, _begin, this->m_end, this->m_next, this->m_prev, this->m_deref, this->m_equal};
+        }
+
+        // drop_while
+        template <typename Pred>
+        auto skip_while(Pred predicate) const
+        {
+            auto _begin = [=] (auto storage)
+            {
+                auto first_iter = this->m_begin(storage);
+                auto last_iter = this->m_end(storage);
+                while (!this->m_equal(first_iter, last_iter) && predicate(this->m_deref(first_iter)))
+                {
+                    first_iter = this->m_next(first_iter);
+                }
+                return first_iter;
+            };
+            return linq<Storage, decltype(_begin), End, Next, Prev, Dereference, Equal>
+                {this->m_store, _begin, this->m_end, this->m_next, this->m_prev, this->m_deref, this->m_equal};
+        }
+
+        auto take(int count) const
+        {
+            auto last_iter = m_end(m_store);
+            int i = 1;
+            auto _next = [=](auto iter) 
+            {
+                if (i < count)
+                {
+                    // ++i;
+                    const_cast<int&>(i) ++;
+                    return this->m_next(iter);
+                }
+                return last_iter;
+            };
+
+            return linq<Storage, Begin, End, decltype(_next), Prev, Dereference, Equal>
+                {this->m_store, this->m_begin, this->m_end, _next, this->m_prev, this->m_deref, this->m_equal};
+        }
 
 
-    }; // class linq
+#if 0
+        // concat
+        template <typename... Ts>
+        auto concat(linq<Ts...>& sequence)
+        {
+            return 0;
+        }
+
+        // repeat
+        auto repeat(int count) const 
+        {
+            auto first_iter = m_begin(m_store);
+            auto last_iter = m_end(m_store);
+
+        }
+
+        // zip
+        template <typename... Ts>
+        auto zip(const linq<TSource, Ts...>& source) const;
+
+        template <typename... Ts>
+        auto concat(const linq<TSource, Ts...> source) const;
+
+
+#endif
+    };
+    
+    
+    // Utils
+     
+    inline constexpr auto begin = [](auto store) { return std::get<0>(store); };
+    inline constexpr auto end = [](auto store) { return std::get<1>(store); };
+    inline constexpr auto next = [](auto iter) { return std::next(iter); };
+    inline constexpr auto prev = [](auto iter) { return std::prev(iter); };
+    inline constexpr auto deref = [](auto iter) -> auto& { return *iter; };
+    inline constexpr auto equal = std::equal_to<void>();
+
 
     template <typename Container>
-    auto from(Container& c)
+    auto from(const Container& container)
     {
-        // template <typename Iter, typename Sent, typename First, typename Last, 
-        // typename Next, typename Deref>
-        return linq{std::begin(c), std::end(c), identity, identity, next, default_dereference};
+        using value_type = typename std::iterator_traits<decltype(std::begin(container))>::value_type;
+        using storage_type = std::tuple<decltype(std::begin(container)), decltype(std::end(container))>;
+        return linq<storage_type, decltype(begin), decltype(end), decltype(next), decltype(prev), decltype(deref), decltype(equal)>{
+            std::make_tuple(std::begin(container), std::end(container)), 
+            begin, end, next, prev, deref, equal};
     }
 
-} // namespace linq
+
+} // namespace leviathan:linq
+
 
 
 #endif

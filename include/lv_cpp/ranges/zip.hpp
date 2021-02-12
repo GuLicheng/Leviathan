@@ -17,6 +17,8 @@
 #include <type_traits>
 #include <ranges>
 
+#include <iostream>
+
 namespace leviathan::ranges
 {
 
@@ -46,6 +48,12 @@ namespace leviathan::ranges
             return static_cast<const std::tuple<Ts...>&&>(*this);
         }
         
+        zip_result& operator=(const zip_result& rhs)
+        {
+            std::cout << "called\n";
+            base() = rhs.base();
+        }
+
     }; // class zip_result
 
     // we should adaptor for non-ref type
