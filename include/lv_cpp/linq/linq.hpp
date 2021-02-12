@@ -9,6 +9,7 @@
 #include <exception>
 #include <iterator>
 #include <tuple>
+#include <unordered_set>
 #include <functional>
 
 namespace leviathan::linq
@@ -39,6 +40,8 @@ namespace leviathan::linq
         using self = linq;
     public:
         // using value_type = TSource;
+
+        using value_type = decltype(m_deref(m_begin(m_store)));
 
         linq(Storage storage, Begin begin, End end, Next next, Prev prev, Dereference deref, Equal equal)
             : m_store{storage}, m_begin{begin}, m_end{end}, m_next{next}, m_prev{prev}, m_deref{deref}, m_equal{equal}
@@ -175,6 +178,41 @@ namespace leviathan::linq
                 {this->m_store, this->m_begin, this->m_end, _next, this->m_prev, this->m_deref, this->m_equal};
         }
 
+        template <typename Pred>
+        auto take_while(Pred predicate) const
+        {
+            auto last_iter = m_end(m_store);
+            auto _next = [=](auto iter)
+            {
+                if (this->m_equal(iter, last_iter))
+                    return last_iter;
+                if (predicate(this->m_deref(iter)))
+                    return this->m_next(iter);
+                return last_iter;
+            };
+            return linq<Storage, Begin, End, decltype(_next), Prev, Dereference, Equal>
+                {this->m_store, this->m_begin, this->m_end, _next, this->m_prev, this->m_deref, this->m_equal};
+
+        }
+
+        auto distinct() const
+        {
+            using hash_table_t = std::unordered_set<value_type>;
+            hash_table_t table;
+            auto last_iter = m_end(m_store);
+            auto _next = [=](auto iter)
+            {
+                const_cast<hash_table_t&>(table).emplace(this->m_deref(iter));
+                auto next_iter = this->m_next(iter);
+                while (!this->m_equal(next_iter, last_iter) && table.count(this->m_deref(next_iter)))
+                {
+                    next_iter = this->m_next(next_iter);
+                }
+                return next_iter;
+            };
+            return linq<Storage, Begin, End, decltype(_next), Prev, Dereference, Equal>
+                {this->m_store, this->m_begin, this->m_end, _next, this->m_prev, this->m_deref, this->m_equal};
+        }
 
 #if 0
         // concat
