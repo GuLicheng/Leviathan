@@ -1,6 +1,6 @@
 #include <lv_cpp/linq/linq.hpp>
 // #include <lv_cpp/io/console.hpp>
-
+#include <cctype>
 #include <vector>
 #include <list>
 #include <string>
@@ -37,9 +37,14 @@ int main()
         .select([](const std::string& str) { return std::stoi(str); })
         .take_while([](int x) { return x > 20; })
         .distinct()
-        .for_each([](auto x) { std::cout << "val = " << x << '\n'; })
+        // .for_each([](auto x) { std::cout << "val = " << x << '\n'; })
         ;
 
-    std::cout << std::endl;
-    // from(ls).select([](auto x) { return x.i; }).distinct().for_each([](auto x) { std::cout << "val = " << x << '\n'; });
+    std::cout << "===============================================" << std::endl;
+    std::string str = "   123   ";
+    from(str)
+        .skip_while(::isspace).reverse().skip_while(::isspace).reverse().for_each([](char c)
+    {
+        std::cout << c;
+    });
 }

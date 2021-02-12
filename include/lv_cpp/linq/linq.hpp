@@ -6,7 +6,7 @@
 #define __LINQ_HPP__
 
 #include <iostream>
-#include <exception>
+// #include <exception>
 #include <iterator>
 #include <tuple>
 #include <unordered_set>
@@ -15,13 +15,13 @@
 namespace leviathan::linq
 {
     
-    struct invalid_pair_iterator : std::exception
-    {
-        constexpr const char* what() const noexcept override
-        {
-            return "Linq out of range";
-        }
-    };
+    // struct invalid_pair_iterator : std::exception
+    // {
+    //     constexpr const char* what() const noexcept override
+    //     {
+    //         return "Linq out of range";
+    //     }
+    // };
 
     // for iterator, it may overloaded some operators such as
     // ++, --, *, ==, != ...
