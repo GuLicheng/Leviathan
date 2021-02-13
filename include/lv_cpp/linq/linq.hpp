@@ -28,7 +28,7 @@ namespace leviathan::linq
     template <typename Storage, typename Begin, typename End, typename Next, typename Prev, typename Dereference, typename Equal>       
     class linq
     {
-    public:
+    // public:
         [[no_unique_address]]Begin m_begin;         
         [[no_unique_address]]End m_end;             
         [[no_unique_address]]Next m_next;           
@@ -38,6 +38,12 @@ namespace leviathan::linq
 
         Storage m_store;                           // store iterator
         using self = linq;
+
+        template <typename _Storage, typename _Begin, 
+                typename _End, typename _Next, typename _Prev, 
+                typename _Dereference, typename _Equal>       
+        friend class linq;
+
     public:
         // using value_type = TSource;
 
@@ -49,11 +55,11 @@ namespace leviathan::linq
         }
 
         template <typename Transform>
-        linq for_each(Transform transform) const
+        linq for_each(Transform&& transform) const
         {
             auto first = m_begin(m_store);
             auto last = m_end(m_store);
-            for (auto iter = first; !m_equal(iter, last); iter = m_next(iter))
+            for (auto iter = first; !m_equal(iter, last); iter = m_next(std::move(iter)))
             {
                 transform(m_deref(iter));
             }
@@ -62,21 +68,21 @@ namespace leviathan::linq
 
         auto reverse() const
         {
-            auto _begin = [=](auto storage)
+            auto _begin = [=](auto& storage)
             {
                 auto last_iter = this->m_end(storage);
-                auto last = this->m_prev(last_iter);
+                auto last = this->m_prev(std::move(last_iter));
                 return last;
             };
-            auto _end = [=](auto storage)
+            auto _end = [=](auto& storage)
             {
                 auto first_iter = this->m_begin(storage);
-                auto first = this->m_prev(first_iter);
+                auto first = this->m_prev(std::move(first_iter));
                 return first;
             };
 
-            auto _prev = [=](auto iter) { return this->m_next(iter); };
-            auto _next = [=](auto iter) { return this->m_prev(iter); };
+            auto _prev = [=](auto&& iter) { return this->m_next(std::move(iter)); };
+            auto _next = [=](auto&& iter) { return this->m_prev(std::move(iter)); };
 
             return linq<Storage, decltype(_begin), decltype(_end), decltype(_next), decltype(_prev), Dereference, Equal>
                 {this->m_store, _begin, _end, _next, _prev, this->m_deref, this->m_equal};            
@@ -88,22 +94,22 @@ namespace leviathan::linq
         {
             // exchange ++ and begin
             auto store = this->m_store;
-            auto _next = [=](auto iter)
+            auto _next = [=](auto&& iter)
             {
-                auto next_iter = this->m_next(iter);
+                auto next_iter = this->m_next(std::move(iter));
                 auto end = this->m_end(store);
                 while (!this->m_equal(next_iter, end) && !predicate(this->m_deref(next_iter)))
-                    next_iter = this->m_next(next_iter);
+                    next_iter = this->m_next(std::move(next_iter));
                 return next_iter;
             };
             
-            auto _begin = [=](auto storage)
+            auto _begin = [=](auto& storage)
             {
                 auto first_iter = this->m_begin(storage);
                 auto end = this->m_end(store);
                 if (!this->m_equal(first_iter, end) && predicate(this->m_deref(first_iter)))
                     return first_iter;
-                return _next(first_iter);
+                return _next(std::move(first_iter));
             };
 
             return linq<Storage, decltype(_begin), End, decltype(_next), Prev, Dereference, Equal>
@@ -114,7 +120,7 @@ namespace leviathan::linq
         template <typename Selector>
         auto select(Selector selector) const
         {
-            auto _deref = [=](auto iter) -> decltype(auto)
+            auto _deref = [=](auto&& iter) -> decltype(auto)
             {
                 auto&& val = this->m_deref(iter);
                 return selector(std::forward<decltype(val)>(val));
@@ -126,14 +132,14 @@ namespace leviathan::linq
         // drop
         auto skip(int count) const
         {
-            auto _begin = [=] (auto storage)
+            auto _begin = [=] (auto& storage)
             {
                 auto first_iter = this->m_begin(storage);
                 auto last_iter = this->m_end(storage);
                 auto _count = count;
                 while (!this->m_equal(first_iter, last_iter) && _count--)
                 {
-                    first_iter = this->m_next(first_iter);
+                    first_iter = this->m_next(std::move(first_iter));
                 }
                 return first_iter;
             };
@@ -151,7 +157,7 @@ namespace leviathan::linq
                 auto last_iter = this->m_end(storage);
                 while (!this->m_equal(first_iter, last_iter) && predicate(this->m_deref(first_iter)))
                 {
-                    first_iter = this->m_next(first_iter);
+                    first_iter = this->m_next(std::move(first_iter));
                 }
                 return first_iter;
             };
@@ -163,7 +169,7 @@ namespace leviathan::linq
         {
             auto last_iter = m_end(m_store);
             int i = 1;
-            auto _next = [=](auto iter) 
+            auto _next = [=](auto&& iter) 
             {
                 if (i < count)
                 {
@@ -182,16 +188,26 @@ namespace leviathan::linq
         auto take_while(Pred predicate) const
         {
             auto last_iter = m_end(m_store);
-            auto _next = [=](auto iter)
+            auto _next = [=](auto&& iter)
             {
                 if (this->m_equal(iter, last_iter))
                     return last_iter;
-                if (predicate(this->m_deref(iter)))
-                    return this->m_next(iter);
+                auto next_iter = this->m_next(std::move(iter));
+                if (predicate(this->m_deref(next_iter)))
+                    return next_iter;
                 return last_iter;
             };
-            return linq<Storage, Begin, End, decltype(_next), Prev, Dereference, Equal>
-                {this->m_store, this->m_begin, this->m_end, _next, this->m_prev, this->m_deref, this->m_equal};
+
+            auto _begin = [=](auto& storage)
+            {
+                auto first = this->m_begin(storage);
+                if (predicate(this->m_deref(first)))    
+                    return first;
+                return this->m_end(storage);
+            };
+
+            return linq<Storage, decltype(_begin), End, decltype(_next), Prev, Dereference, Equal>
+                {this->m_store, _begin, this->m_end, _next, this->m_prev, this->m_deref, this->m_equal};
 
         }
 
@@ -200,13 +216,13 @@ namespace leviathan::linq
             using hash_table_t = std::unordered_set<value_type>;
             hash_table_t table;
             auto last_iter = m_end(m_store);
-            auto _next = [=](auto iter)
+            auto _next = [=](auto&& iter)
             {
                 const_cast<hash_table_t&>(table).emplace(this->m_deref(iter));
                 auto next_iter = this->m_next(iter);
                 while (!this->m_equal(next_iter, last_iter) && table.count(this->m_deref(next_iter)))
                 {
-                    next_iter = this->m_next(next_iter);
+                    next_iter = this->m_next(std::move(next_iter));
                 }
                 return next_iter;
             };
@@ -214,41 +230,107 @@ namespace leviathan::linq
                 {this->m_store, this->m_begin, this->m_end, _next, this->m_prev, this->m_deref, this->m_equal};
         }
 
-#if 0
         // concat
         template <typename... Ts>
-        auto concat(linq<Ts...>& sequence)
+        auto concat(const linq<Ts...>& sequence) const
         {
-            return 0;
+            auto _store1 = this->m_store;  // iter_pair
+            auto _store2 = sequence.m_store;
+            auto rhs = &sequence;
+            auto _store = std::make_tuple(_store1, _store2, false);
+            auto first1 = this->m_begin(_store1);
+            auto first2 = rhs->m_begin(_store2);
+            auto last1 = this->m_end(_store1);
+            auto last2 = rhs->m_end(_store2);
+            // if iter ref second sequence, _store<3> will be true
+            auto _begin = [=](auto& storage)
+            {
+                return std::make_tuple(std::move(first1), std::move(first2), false);
+            };
+
+            auto _end = [=](auto& storage)
+            {
+                return std::make_tuple(std::move(last1), std::move(last2), true);
+            };
+
+            auto _next = [=](auto&& iter_pair)
+            {
+                // auto [f, s, is_second] = iter_pair;
+                auto [f, s, is_second] = iter_pair;
+                if (!is_second && !this->m_equal(f, last1))
+                {
+                    // first iterator
+                    f = this->m_next(std::move(f));
+                    if (this->m_equal(f, last1))
+                        return std::make_tuple(std::move(f), std::move(s), true);
+                    return std::make_tuple(std::move(f), std::move(s), is_second);
+                }
+                else if (!is_second && this->m_equal(f, last1))
+                {   
+                    return std::make_tuple(std::move(f), std::move(s), false);
+                }
+                else
+                {
+                    return std::make_tuple(std::move(f), rhs->m_next(s), is_second);
+                }
+            };
+
+            auto _deref = [=](auto&& iter_pair) -> decltype(auto)
+            {
+                if (this->m_equal(std::get<0>(iter_pair), last1))
+                {
+                    return rhs->m_deref(std::get<1>(iter_pair));
+                }
+                else
+                {
+                    return this->m_deref(std::get<0>(iter_pair));
+                }
+            };
+
+            auto _equal = [=](const auto& __lhs, const auto& __rhs)
+            {
+                return this->m_equal(std::get<0>(__lhs), std::get<0>(__rhs)) &&
+                        rhs->m_equal(std::get<1>(__lhs), std::get<1>(__rhs));
+            };
+
+            // _prev should be changed also, but I just simplifer it
+            return linq<decltype(_store), decltype(_begin), decltype(_end), decltype(_next), Prev, decltype(_deref), decltype(_equal)>
+                {_store, _begin, _end, _next, this->m_prev, _deref, _equal};
         }
 
+#if 0
         // repeat
         auto repeat(int count) const 
         {
             auto first_iter = m_begin(m_store);
             auto last_iter = m_end(m_store);
-
         }
 
         // zip
         template <typename... Ts>
         auto zip(const linq<TSource, Ts...>& source) const;
 
-        template <typename... Ts>
-        auto concat(const linq<TSource, Ts...> source) const;
-
-
 #endif
+
+        int count() const 
+        {
+            int res = 0;
+            auto first = m_begin(m_store);
+            auto last = m_end(m_store);
+            for (auto iter = first; !m_equal(iter, last); iter = m_next(std::move(iter))) ++res;
+            return res;
+        }
+
     };
     
     
     // Utils
      
-    inline constexpr auto begin = [](auto store) { return std::get<0>(store); };
-    inline constexpr auto end = [](auto store) { return std::get<1>(store); };
-    inline constexpr auto next = [](auto iter) { return std::next(iter); };
-    inline constexpr auto prev = [](auto iter) { return std::prev(iter); };
-    inline constexpr auto deref = [](auto iter) -> auto& { return *iter; };
+    inline constexpr auto begin = [](auto& store) { return std::get<0>(store); };
+    inline constexpr auto end = [](auto& store) { return std::get<1>(store); };
+    inline constexpr auto next = [](auto&& iter) { return std::next(iter); };
+    inline constexpr auto prev = [](auto&& iter) { return std::prev(iter); };
+    inline constexpr auto deref = [](auto&& iter) -> decltype(auto) { return *iter; };
     inline constexpr auto equal = std::equal_to<void>();
 
 
