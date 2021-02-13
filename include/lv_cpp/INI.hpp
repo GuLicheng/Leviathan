@@ -41,11 +41,11 @@
     INI_handler::getfloat():
     INI_handler::getboolean():
     INI_handler::getstring():
-
-    Comming soon:
     INI_handler::write(const char* file);
     INI_handler::write(const std::string& file);
     INI_handler::write(std::string_view file);
+    
+    Comming soon:
     follow method will be implemented by overloading operator[]
     INI_handler::add_sections
     INI_handler::add_key
