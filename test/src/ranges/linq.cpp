@@ -44,7 +44,7 @@ void test1()
         .distinct()  // 30
         .concat(from(arr).select([](auto x) { return x.i * 10; })) // 30 10 20 30
         .distinct() // 30 10 20
-        .for_each(printer)  // print follow
+        .for_each(printer)  // print above
         ;
 }
 
