@@ -28,7 +28,7 @@ void test1()
     std::vector<integer> arr;
     for (int i = 0; i < 10; ++i)
         arr.emplace_back(i), arr.emplace_back(i);
-    std::list ls(arr.begin(), arr.end());
+    std::list<integer> ls(arr.begin(), arr.end());
     auto res = from(ls)  // [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9]
         .reverse()      // [9, 9, 8, 8, 7, 7, 6, 6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1, 0, 0]
         .where([](int x) { return x <= 3 || x >= 7; })
@@ -39,6 +39,8 @@ void test1()
         .select([](const std::string& str) { return std::stoi(str); }) // 30 30 20 20 10
         .take_while([](int x) { return x > 20; }) // 30 30
         .distinct()  // 30
+        .concat(from(arr).select([](auto x) { return x.i * 10; }))
+        .distinct()
         .for_each(printer)  // only print 30
         ;
 }

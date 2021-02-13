@@ -1,5 +1,10 @@
 /*
-    Just a tool
+    Just a tool, 
+        cpp standard: 
+            lambda closure types are non-literal types before C++17 -> c++17 
+            decltype(auto) -> c++14
+            rest -> c++11
+        
 */
 
 #ifndef __LINQ_HPP__
@@ -25,7 +30,8 @@ namespace leviathan::linq
 
     // for iterator, it may overloaded some operators such as
     // ++, --, *, ==, != ...
-    template <typename Storage, typename Begin, typename End, typename Next, typename Prev, typename Dereference, typename Equal>       
+    // TSource now is useless
+    template <typename Storage, typename Begin, typename End, typename Next, typename Prev, typename Dereference, typename Equal, typename TSource>       
     class linq
     {
     // public:
@@ -41,21 +47,21 @@ namespace leviathan::linq
 
         template <typename _Storage, typename _Begin, 
                 typename _End, typename _Next, typename _Prev, 
-                typename _Dereference, typename _Equal>       
+                typename _Dereference, typename _Equal, typename _TSource>       
         friend class linq;
 
     public:
-        // using value_type = TSource;
+        using value_type = TSource;
 
-        using value_type = decltype(m_deref(m_begin(m_store)));
+        // using value_type = std::decay_t<decltype(m_deref(m_begin(m_store)))>;
 
-        linq(Storage storage, Begin begin, End end, Next next, Prev prev, Dereference deref, Equal equal)
+        constexpr linq(Storage storage, Begin begin, End end, Next next, Prev prev, Dereference deref, Equal equal)
             : m_store{storage}, m_begin{begin}, m_end{end}, m_next{next}, m_prev{prev}, m_deref{deref}, m_equal{equal}
         {
         }
 
         template <typename Transform>
-        linq for_each(Transform&& transform) const
+        constexpr linq for_each(Transform&& transform) const
         {
             auto first = m_begin(m_store);
             auto last = m_end(m_store);
@@ -66,7 +72,7 @@ namespace leviathan::linq
             return *this;
         }
 
-        auto reverse() const
+        constexpr auto reverse() const
         {
             auto _begin = [=](auto& storage)
             {
@@ -74,6 +80,7 @@ namespace leviathan::linq
                 auto last = this->m_prev(std::move(last_iter));
                 return last;
             };
+
             auto _end = [=](auto& storage)
             {
                 auto first_iter = this->m_begin(storage);
@@ -84,21 +91,20 @@ namespace leviathan::linq
             auto _prev = [=](auto&& iter) { return this->m_next(std::move(iter)); };
             auto _next = [=](auto&& iter) { return this->m_prev(std::move(iter)); };
 
-            return linq<Storage, decltype(_begin), decltype(_end), decltype(_next), decltype(_prev), Dereference, Equal>
+            return linq<Storage, decltype(_begin), decltype(_end), decltype(_next), decltype(_prev), Dereference, Equal, TSource>
                 {this->m_store, _begin, _end, _next, _prev, this->m_deref, this->m_equal};            
         }     
         
         // filter
         template <typename Pred>
-        auto where(Pred predicate) const
+        constexpr auto where(Pred predicate) const
         {
             // exchange ++ and begin
-            auto store = this->m_store;
+            auto last_iter = m_end(m_store);
             auto _next = [=](auto&& iter)
             {
                 auto next_iter = this->m_next(std::move(iter));
-                auto end = this->m_end(store);
-                while (!this->m_equal(next_iter, end) && !predicate(this->m_deref(next_iter)))
+                while (!this->m_equal(next_iter, last_iter) && !predicate(this->m_deref(next_iter)))
                     next_iter = this->m_next(std::move(next_iter));
                 return next_iter;
             };
@@ -106,31 +112,43 @@ namespace leviathan::linq
             auto _begin = [=](auto& storage)
             {
                 auto first_iter = this->m_begin(storage);
-                auto end = this->m_end(store);
-                if (!this->m_equal(first_iter, end) && predicate(this->m_deref(first_iter)))
+                if (!this->m_equal(first_iter, last_iter) && predicate(this->m_deref(first_iter)))
                     return first_iter;
                 return _next(std::move(first_iter));
             };
 
-            return linq<Storage, decltype(_begin), End, decltype(_next), Prev, Dereference, Equal>
-                {this->m_store, _begin, this->m_end, _next, this->m_prev, this->m_deref, this->m_equal};
+            // 
+            auto rlast_iter = m_prev(m_begin(m_store));
+            auto _prev = [=](auto&& iter)
+            {
+                auto prev_iter = this->m_prev(std::move(iter));
+                while (!this->m_equal(prev_iter, rlast_iter) && !predicate(this->m_deref(prev_iter)))
+                    prev_iter = this->m_prev(std::move(prev_iter));
+                return prev_iter;
+            };
+
+            return linq<Storage, decltype(_begin), End, decltype(_next), decltype(_prev), Dereference, Equal, TSource>
+                {this->m_store, _begin, this->m_end, _next, _prev, this->m_deref, this->m_equal};
+            // return linq<Storage, decltype(_begin), End, decltype(_next), Prev, Dereference, Equal>
+                // {this->m_store, _begin, this->m_end, _next, this->m_prev, this->m_deref, this->m_equal};
         }
 
         // transform
         template <typename Selector>
-        auto select(Selector selector) const
+        constexpr auto select(Selector selector) const
         {
             auto _deref = [=](auto&& iter) -> decltype(auto)
             {
                 auto&& val = this->m_deref(iter);
                 return selector(std::forward<decltype(val)>(val));
             };
-            return linq<Storage, Begin, End, Next, Prev, decltype(_deref), Equal>
+            using TResult = std::decay_t<decltype(_deref(this->m_begin(this->m_store)))>;
+            return linq<Storage, Begin, End, Next, Prev, decltype(_deref), Equal, TResult>
                 {this->m_store, this->m_begin, this->m_end, this->m_next, this->m_prev, _deref, this->m_equal};
         }
 
         // drop
-        auto skip(int count) const
+        constexpr auto skip(int count) const
         {
             auto _begin = [=] (auto& storage)
             {
@@ -143,13 +161,13 @@ namespace leviathan::linq
                 }
                 return first_iter;
             };
-            return linq<Storage, decltype(_begin), End, Next, Prev, Dereference, Equal>
+            return linq<Storage, decltype(_begin), End, Next, Prev, Dereference, Equal, TSource>
                 {this->m_store, _begin, this->m_end, this->m_next, this->m_prev, this->m_deref, this->m_equal};
         }
 
         // drop_while
         template <typename Pred>
-        auto skip_while(Pred predicate) const
+        constexpr auto skip_while(Pred predicate) const
         {
             auto _begin = [=] (auto storage)
             {
@@ -161,11 +179,11 @@ namespace leviathan::linq
                 }
                 return first_iter;
             };
-            return linq<Storage, decltype(_begin), End, Next, Prev, Dereference, Equal>
+            return linq<Storage, decltype(_begin), End, Next, Prev, Dereference, Equal, TSource>
                 {this->m_store, _begin, this->m_end, this->m_next, this->m_prev, this->m_deref, this->m_equal};
         }
 
-        auto take(int count) const
+        constexpr auto take(int count) const
         {
             auto last_iter = m_end(m_store);
             int i = 1;
@@ -180,12 +198,12 @@ namespace leviathan::linq
                 return last_iter;
             };
 
-            return linq<Storage, Begin, End, decltype(_next), Prev, Dereference, Equal>
+            return linq<Storage, Begin, End, decltype(_next), Prev, Dereference, Equal, TSource>
                 {this->m_store, this->m_begin, this->m_end, _next, this->m_prev, this->m_deref, this->m_equal};
         }
 
         template <typename Pred>
-        auto take_while(Pred predicate) const
+        constexpr auto take_while(Pred predicate) const
         {
             auto last_iter = m_end(m_store);
             auto _next = [=](auto&& iter)
@@ -206,14 +224,14 @@ namespace leviathan::linq
                 return this->m_end(storage);
             };
 
-            return linq<Storage, decltype(_begin), End, decltype(_next), Prev, Dereference, Equal>
+            return linq<Storage, decltype(_begin), End, decltype(_next), Prev, Dereference, Equal, TSource>
                 {this->m_store, _begin, this->m_end, _next, this->m_prev, this->m_deref, this->m_equal};
 
         }
 
         auto distinct() const
         {
-            using hash_table_t = std::unordered_set<value_type>;
+            using hash_table_t = std::unordered_set<TSource>;
             hash_table_t table;
             auto last_iter = m_end(m_store);
             auto _next = [=](auto&& iter)
@@ -226,13 +244,13 @@ namespace leviathan::linq
                 }
                 return next_iter;
             };
-            return linq<Storage, Begin, End, decltype(_next), Prev, Dereference, Equal>
+            return linq<Storage, Begin, End, decltype(_next), Prev, Dereference, Equal, TSource>
                 {this->m_store, this->m_begin, this->m_end, _next, this->m_prev, this->m_deref, this->m_equal};
         }
 
         // concat
         template <typename... Ts>
-        auto concat(const linq<Ts...>& sequence) const
+        constexpr auto concat(const linq<Ts...>& sequence) const
         {
             auto _store1 = this->m_store;  // iter_pair
             auto _store2 = sequence.m_store;
@@ -294,7 +312,7 @@ namespace leviathan::linq
             };
 
             // _prev should be changed also, but I just simplifer it
-            return linq<decltype(_store), decltype(_begin), decltype(_end), decltype(_next), Prev, decltype(_deref), decltype(_equal)>
+            return linq<decltype(_store), decltype(_begin), decltype(_end), decltype(_next), Prev, decltype(_deref), decltype(_equal), TSource>
                 {_store, _begin, _end, _next, this->m_prev, _deref, _equal};
         }
 
@@ -339,7 +357,7 @@ namespace leviathan::linq
     {
         using value_type = typename std::iterator_traits<decltype(std::begin(container))>::value_type;
         using storage_type = std::tuple<decltype(std::begin(container)), decltype(std::end(container))>;
-        return linq<storage_type, decltype(begin), decltype(end), decltype(next), decltype(prev), decltype(deref), decltype(equal)>{
+        return linq<storage_type, decltype(begin), decltype(end), decltype(next), decltype(prev), decltype(deref), decltype(equal), value_type>{
             std::make_tuple(std::begin(container), std::end(container)), 
             begin, end, next, prev, deref, equal};
     }
