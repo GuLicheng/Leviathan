@@ -8,11 +8,15 @@ constexpr const char* setting = R"(D:\GraphTheoryCode\Template\Tiamat\configurat
 
 void test_for_read();
 void test_for_get();
+void test_for_write();
 void test();
 
 int main()
 {
-    test();
+    // test();
+    test_for_write();
+    // test_for_read();
+    // test_for_get();
     std::cout << "Ok\n";
 }
 
@@ -60,4 +64,15 @@ void test_for_get()
         *reader.getfloat("correct_test", "float"),
         *reader.getboolean("correct_test", "switch"),
         *reader.getboolean("correct_test", "boolean"));
+}
+
+void test_for_write()
+{
+    leviathan::INI::INI_handler reader;
+    // reader.load("D:/Library/Leviathan/result.txt");
+    reader["correct_test"]["add1"] = "one";
+    reader["correct_test"]["add2"] = "two";
+    reader["new_section"]["add0"] = "zero";
+    reader.show();
+    reader.write("D:/Library/Leviathan/result.ini");
 }

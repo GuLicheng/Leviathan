@@ -121,7 +121,42 @@ namespace leviathan::INI
     // list of key-value
     struct section_node
     {
+        section_node() = default;
+        section_node(const section_node&) = default;
+        section_node(section_node&&) noexcept = default;
+        section_node& operator=(const section_node&) = default;
+        section_node& operator=(section_node&&) noexcept = default;
+        ~section_node() = default;
+
         std::list<entry> ls;
+        std::string& operator[](const std::string& section_name)
+        {
+            auto iter = std::find_if(ls.begin(), ls.end(), [&](auto&& e)
+            {
+                return e.key() == section_name;
+            });
+            if (iter == ls.end())
+                return ls.emplace_back(section_name, std::string("")).value();
+            return iter->value();
+        }
+        std::string& operator[](std::string&& section_name)
+        {
+            auto iter = std::find_if(ls.begin(), ls.end(), [&](auto&& e)
+            {
+                return e.key() == section_name;
+            });
+            if (iter == ls.end())
+                return ls.emplace_back(std::move(section_name), std::string("")).value();
+            return iter->value();
+        }
+
+        std::string& operator[](const char* section_name)
+        {
+            std::string name = section_name;
+            return this->operator[](std::move(name));
+        }
+
+
     };
 
     // overload ostream
@@ -175,7 +210,7 @@ namespace leviathan::INI
          */
         bool is_loaded() const noexcept
         { 
-            return in.is_open() && sections.size();
+            return sections.size();
         }
 
         /*
@@ -206,16 +241,6 @@ namespace leviathan::INI
         auto get_items() const noexcept
         {
             return sections | ::leviathan::views::all;
-        }
-
-        /*
-         * whether INI_handler can work
-         * return: 
-         *      true if open and read all items successfully otherwise false
-         */
-        explicit operator bool() const noexcept
-        {
-            return static_cast<bool>(this->in) && is_loaded();
         }
 
         /*
@@ -265,6 +290,47 @@ namespace leviathan::INI
         std::optional<std::string>
         getstring(const std::string& section_name, const std::string& key_name) const;
 
+        /*
+         * add or change a section into handler such as map/unordered_map
+         * you can simply use reader[section_name][key_name] = value_name
+         * for adding or changing 
+         * paras:
+         *      section_name: ...
+         * return:
+         *      reference of section_node,if section_name not exist, 
+         *      it will create a new section_node
+         */
+        section_node& operator[](const std::string& section_name)
+        {
+            return sections[section_name];
+        }
+
+        // for less than 15(or some other number) charactors, 
+        // std::string may not allocate memory on heap
+        // so I just put it here
+        section_node& operator[](const char* section_name)
+        {
+            std::string name = section_name;
+            return sections[std::move(name)];
+        }
+
+        /*
+         * write all items in handler into file
+         * paras:
+         *      file: the destiny file
+         */
+        void write(const char* file);
+
+        void write(const std::string& file)
+        {
+            write(file.c_str());
+        }
+
+        void write(const std::string_view& file)
+        {
+            write(file.data());
+        }
+
         // for debug
         void show()
         {
@@ -297,7 +363,6 @@ namespace leviathan::INI
         void insert_section(section_node*& node, std::string s, int line);
 
     public:
-        std::ifstream in;
         // I may change HashTable to LinkList some day
         std::unordered_map<std::string, section_node> sections;
         std::list<error_log> log; // save the line of error sections or entry
@@ -307,7 +372,7 @@ namespace leviathan::INI
 
     bool INI_handler::load(const char* file, std::ios::openmode mode) 
     {
-        in.open(file, mode);
+        std::ifstream in{file, mode};
 
         // file not exist
         if (!in.is_open())
@@ -482,6 +547,26 @@ namespace leviathan::INI
         if (value_iter == sec_iter->second.ls.end())
             return {};
         return value_iter->second;
+    }
+    
+    void INI_handler::write(const char* file) 
+    {
+        std::ofstream out{file};
+        if (!out.is_open()) 
+        {
+            std::cout << "File Not Exist\n";
+            return;
+        }
+        for (auto&& [section_name, entry_name] : sections)
+        {
+            out << '[' << section_name << ']' << '\n';
+            for (auto&& [key_name, value_name] : entry_name.ls)
+            {
+                out << key_name << " = " << value_name << '\n';
+            }
+            out << '\n';
+        }
+        out.close();
     }
 
 } // namespace leviathan::INI
