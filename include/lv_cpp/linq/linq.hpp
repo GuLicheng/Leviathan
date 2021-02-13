@@ -342,7 +342,7 @@ namespace leviathan::linq
     };
     
     
-    // Utils
+    // Utils, prev shoule not be such simply
      
     inline constexpr auto begin = [](auto& store) { return std::get<0>(store); };
     inline constexpr auto end = [](auto& store) { return std::get<1>(store); };
