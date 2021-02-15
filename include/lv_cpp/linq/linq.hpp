@@ -386,7 +386,7 @@ namespace leviathan::linq
 
 
     template <typename Container>
-    auto from(const Container& container)
+    auto from(Container& container)
     {
         using value_type = typename std::iterator_traits<decltype(std::begin(container))>::value_type;
         using storage_type = std::tuple<decltype(std::begin(container)), decltype(std::end(container))>;
