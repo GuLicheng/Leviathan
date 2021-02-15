@@ -149,14 +149,6 @@ namespace leviathan::INI
                 return ls.emplace_back(std::move(section_name), std::string("")).value();
             return iter->value();
         }
-
-        std::string& operator[](const char* section_name)
-        {
-            std::string name = section_name;
-            return this->operator[](std::move(name));
-        }
-
-
     };
 
     // overload ostream
@@ -181,12 +173,12 @@ namespace leviathan::INI
         INI_handler& operator=(const INI_handler&) = delete;
         ~INI_handler() = default;
 
-        /*
+        /**
          * load ini file
-         * paras:
+         * @paras:
          *      file: the path of file
          *      openmode: the openmode for fstream
-         * return:
+         * @return:
          *      true if successful load file and parse all items
          *      false otherwise
          */
@@ -203,9 +195,9 @@ namespace leviathan::INI
         // erase all data within in this class
         // bool clear(section_node* node, entry* e);
         
-        /*
+        /**
          * whether the file is successfully loaded
-         * return:
+         * @return:
          *      true if load return true, otherwise false
          */
         bool is_loaded() const noexcept
@@ -213,9 +205,9 @@ namespace leviathan::INI
             return sections.size();
         }
 
-        /*
+        /**
          * get all sections from ini read
-         * return:
+         * @return:
          *      view of sections
          */
         auto get_sections() const noexcept
@@ -223,9 +215,9 @@ namespace leviathan::INI
             return sections | ::leviathan::views::keys;
         }
 
-        /*
+        /**
          * get all entries from ini read
-         * return:
+         * @return:
          *      view of entries
          */
         auto get_entries() const noexcept
@@ -233,9 +225,9 @@ namespace leviathan::INI
             return sections | ::leviathan::views::values;
         }
 
-        /*
+        /**
          * get all items from ini read
-         * return:
+         * @return:
          *      view of items
          */
         auto get_items() const noexcept
@@ -243,60 +235,60 @@ namespace leviathan::INI
             return sections | ::leviathan::views::all;
         }
 
-        /*
+        /**
          * parse a string to integer
-         * paras:
+         * @paras:
          *      section_name: ...
          *      key_name: ...
-         * return:
+         * @return:
          *      optional if both section_name and key_name exist and the value can be 
          *      convert to integer, otherwise nullpot
          */
         std::optional<int64_t> 
         getint(const std::string& section_name, const std::string& key_name) const;
 
-        /*
+        /**
          * parse a string to float
-         * paras:
+         * @paras:
          *      section_name: ...
          *      key_name: ...
-         * return:
+         * @return:
          *      optional if both section_name and key_name exist and the value can be 
          *      convert to float, otherwise nullpot
          */
         std::optional<double> 
         getfloat(const std::string& section_name, const std::string& key_name) const;
 
-        /*
+        /**
          * parse a string to boolean
-         * paras:
+         * @paras:
          *      section_name: ...
          *      key_name: ...
-         * return:
+         * @return:
          *      optional if both section_name and key_name exist and the value can be 
          *      convert to boolean(true or false, ignore case), otherwise nullpot
          */
         std::optional<bool>
         getboolean(const std::string& section_name, const std::string& key_name) const;
 
-        /*
+        /**
          * get value item by section and key
-         * paras:
+         * @paras:
          *      section_name: ...
          *      key_name: ...
-         * return:
+         * @return:
          *      optional if both section_name and key_name exist, otherwise nullopt
          */
         std::optional<std::string>
         getstring(const std::string& section_name, const std::string& key_name) const;
 
-        /*
+        /**
          * add or change a section into handler such as map/unordered_map
          * you can simply use reader[section_name][key_name] = value_name
          * for adding or changing 
-         * paras:
+         * @paras:
          *      section_name: ...
-         * return:
+         * @return:
          *      reference of section_node,if section_name not exist, 
          *      it will create a new section_node
          */
@@ -308,15 +300,14 @@ namespace leviathan::INI
         // for less than 15(or some other number) charactors, 
         // std::string may not allocate memory on heap
         // so I just put it here
-        section_node& operator[](const char* section_name)
+        section_node& operator[](std::string&& section_name)
         {
-            std::string name = section_name;
-            return sections[std::move(name)];
+            return sections[std::move(section_name)];
         }
 
-        /*
+        /**
          * write all items in handler into file
-         * paras:
+         * @paras:
          *      file: the destiny file
          */
         void write(const char* file);
@@ -352,10 +343,10 @@ namespace leviathan::INI
         // remove all ; and blank
         std::string trim(const std::string& s) const noexcept;
 
-        /* insert a section, if insert successfully, the node will pointer at section 
+        /** insert a section, if insert successfully, the node will pointer at section 
          * otherwise the log will memory this line
          * 
-         * paras:
+         * @paras:
          *      node: the final address if insert successfully otherwise nullptr
          *      s: current string read from file
          *      line: the location of s in the file
