@@ -21,6 +21,15 @@ struct integer
     {
         return std::to_string(this->i) + "0";
     }
+    bool operator<(const integer& rhs) const noexcept
+    {
+        return this->i > rhs.i;
+    }
+    // ~integer()
+    // {
+    //     std::cout << "Destoried\n";
+    // }
+
 };
 
 void test1()
@@ -107,10 +116,23 @@ void test5()
     std::cout << "=======================\n";
     int arr[] = {1, 2, 3, 4, 5, 6};
     from(arr).take_while([](int x) { return x < 3; })
+             .ordered_by([](int x) { return -x; })
              .for_each(printer)
              ;
     std::cout << '\n';
 }
+
+// void test6()
+// {
+//     std::vector<int> ls;
+//     for (int i = 0; i < 2; ++i)
+//         ls.emplace_back(i);
+
+//     auto res = leviathan::linq::from(ls)
+//         .ordered_by([](auto& x) { return integer(x); })
+//         .for_each([](auto&& x) { std::cout << x << ' ';})
+//         ;
+// }
 
 int main()
 {
@@ -118,5 +140,5 @@ int main()
     test2();  // 123456789
     test3();  // 6, 10
     test4();  // 2
-    test5();  // 12
+    test5();  // 21
 }

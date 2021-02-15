@@ -16,10 +16,20 @@
 #include <tuple>
 #include <unordered_set>
 #include <functional>
+#include <memory>
 
 namespace leviathan::linq
 {
-    
+
+    // Utils, prev shoule not be such simply
+     
+    inline constexpr auto begin = [](auto& store) { return std::get<0>(store); };
+    inline constexpr auto end = [](auto& store) { return std::get<1>(store); };
+    inline constexpr auto next = [](auto&& iter) { return std::next(iter); };
+    inline constexpr auto prev = [](auto&& iter) { return std::prev(iter); };
+    inline constexpr auto deref = [](auto&& iter) -> decltype(auto) { return *iter; };
+    inline constexpr auto equal = std::equal_to<void>();
+
     // struct invalid_pair_iterator : std::exception
     // {
     //     constexpr const char* what() const noexcept override
@@ -316,6 +326,36 @@ namespace leviathan::linq
                 {_store, _begin, _end, _next, this->m_prev, _deref, _equal};
         }
 
+        template <typename Selector>
+        auto ordered_by(Selector selector) const
+        {
+            using TResult = std::decay_t<decltype(selector(this->m_deref(this->m_begin(this->m_store))))>;
+            
+            auto vec_ptr = std::make_shared<std::vector<TResult>>();
+            auto first = m_begin(m_store);
+            auto last = m_end(m_store);
+            for (auto iter = first; !m_equal(iter, last); iter = m_next(std::move(iter)))
+            {
+                vec_ptr->emplace_back(m_deref(iter));
+            }
+            std::sort(vec_ptr->begin(), vec_ptr->end(), [&](const auto& lhs, const auto& rhs)
+            {
+                return selector(lhs) < selector(rhs);
+            });
+            auto _store = std::make_tuple(vec_ptr);
+            auto _begin = [=](auto& storage)
+            {
+                return std::get<0>(storage)->begin();
+            };
+            auto _end = [=](auto& storage)
+            {
+                return std::get<0>(storage)->end();
+            };
+
+            return linq<decltype(_store), decltype(_begin), decltype(_end), decltype(next), decltype(prev), decltype(deref), decltype(equal), TResult>
+                { _store, _begin, _end, next, prev, deref, equal};
+        }
+
 #if 0
         // repeat
         auto repeat(int count) const 
@@ -342,14 +382,7 @@ namespace leviathan::linq
     };
     
     
-    // Utils, prev shoule not be such simply
-     
-    inline constexpr auto begin = [](auto& store) { return std::get<0>(store); };
-    inline constexpr auto end = [](auto& store) { return std::get<1>(store); };
-    inline constexpr auto next = [](auto&& iter) { return std::next(iter); };
-    inline constexpr auto prev = [](auto&& iter) { return std::prev(iter); };
-    inline constexpr auto deref = [](auto&& iter) -> decltype(auto) { return *iter; };
-    inline constexpr auto equal = std::equal_to<void>();
+
 
 
     template <typename Container>
