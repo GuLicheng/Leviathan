@@ -356,20 +356,6 @@ namespace leviathan::linq
                 { _store, _begin, _end, next, prev, deref, equal};
         }
 
-#if 0
-        // repeat
-        auto repeat(int count) const 
-        {
-            auto first_iter = m_begin(m_store);
-            auto last_iter = m_end(m_store);
-        }
-
-        // zip
-        template <typename... Ts>
-        auto zip(const linq<TSource, Ts...>& source) const;
-
-#endif
-
         int count() const 
         {
             int res = 0;
@@ -382,9 +368,6 @@ namespace leviathan::linq
     };
     
     
-
-
-
     template <typename Container>
     auto from(Container& container)
     {
