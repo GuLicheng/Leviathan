@@ -60,6 +60,8 @@ namespace leviathan::linq
                 typename _Dereference, typename _Equal, typename _TSource>       
         friend class linq;
 
+public:
+
     public:
         using value_type = TSource;
 

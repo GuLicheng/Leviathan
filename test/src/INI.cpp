@@ -1,4 +1,4 @@
-#include <lv_cpp/INI.hpp>
+#include <lv_cpp/config_parser/INI.hpp>
 #include <lv_cpp/io/console.hpp>
 #include <iostream>
 
@@ -15,14 +15,14 @@ int main()
 {
     // test();
     test_for_write();
-    // test_for_read();
+    test_for_read();
     // test_for_get();
     std::cout << "Ok\n";
 }
 
 void test()
 {
-    leviathan::INI::INI_handler reader;
+    leviathan::ini::INI_handler reader;
     reader.load(setting);
     for (const auto& [k, v] : reader.get_items())
     {
@@ -34,7 +34,7 @@ void test()
 void test_for_read()
 {
     // std::function<void(int, int)> a = std::swap<int, int>;
-    leviathan::INI::INI_handler reader;
+    leviathan::ini::INI_handler reader;
     reader.load(path);
     // reader.show();
     for (auto&& key : reader.get_sections())
@@ -56,7 +56,7 @@ void test_for_read()
 
 void test_for_get()
 {
-    leviathan::INI::INI_handler reader;
+    leviathan::ini::INI_handler reader;
     reader.load(path);
     console::write_lines_multi(
         *reader.getint("correct_test", "int"),
@@ -68,10 +68,11 @@ void test_for_get()
 
 void test_for_write()
 {
-    leviathan::INI::INI_handler reader;
+    leviathan::ini::INI_handler reader;
     // reader.load("D:/Library/Leviathan/result.txt");
     reader["correct_test"]["add1"] = "one";
     reader["correct_test"]["add2"] = "two";
+    reader["correct_test"]["add3"];
     reader["new_section"]["add0"] = "zero";
     reader.show();
     reader.write("D:/Library/Leviathan/result.ini");

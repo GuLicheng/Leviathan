@@ -31,16 +31,16 @@
 
 /*
     
-    INI_handler::load(const char* file, std::openmode) : read ini config file
-    INI_handler::load(const string& file, std::openmode) : read ini config file
-    INI_handler::load(const string_view file, std::openmode) : read ini config file
+    INI_handler::load(const char* file) : read ini config file
+    INI_handler::load(const string& file) : read ini config file
+    INI_handler::load(const string_view file) : read ini config file
     INI_handler::get_items(): return all sections and entries
     INI_handler::get_sections(): return all sections
     INI_handler::get_entries(): return all entries
-    INI_handler::getint(): 
-    INI_handler::getfloat():
-    INI_handler::getboolean():
-    INI_handler::getstring():
+    INI_handler::getint():  parser value to integer
+    INI_handler::getfloat(): parser value to floating
+    INI_handler::getboolean(): parser value to boolean
+    INI_handler::getstring(): get value
     INI_handler::write(const char* file);
     INI_handler::write(const std::string& file);
     INI_handler::write(std::string_view file);
@@ -66,7 +66,7 @@
 #include <cctype>
 #include <iostream>
 
-namespace leviathan::INI
+namespace leviathan::ini
 {
 
     class error_log 
@@ -177,19 +177,18 @@ namespace leviathan::INI
          * load ini file
          * @paras:
          *      file: the path of file
-         *      openmode: the openmode for fstream
          * @return:
          *      true if successful load file and parse all items
          *      false otherwise
          */
-        bool load(const char* file, std::ios::openmode = std::ios::in | std::ios::binary);
-        bool load(const std::string& file, std::ios::openmode mode = std::ios::in | std::ios::binary)
+        bool load(const char* file);
+        bool load(const std::string& file)
         { 
-            return load(file.c_str(), mode); 
+            return load(file.c_str()); 
         }
-        bool load(const std::string_view& file, std::ios::openmode mode = std::ios::in | std::ios::binary)
+        bool load(const std::string_view& file)
         {
-            return load(file.data(), mode);
+            return load(file.data());
         }
 
         // erase all data within in this class
@@ -361,9 +360,9 @@ namespace leviathan::INI
     }; //  end of class INI_handler
 
 
-    bool INI_handler::load(const char* file, std::ios::openmode mode) 
+    bool INI_handler::load(const char* file) 
     {
-        std::ifstream in{file, mode};
+        std::ifstream in{file, std::ios::in | std::ios::binary};
 
         // file not exist
         if (!in.is_open())
@@ -560,7 +559,7 @@ namespace leviathan::INI
         out.close();
     }
 
-} // namespace leviathan::INI
+} // namespace leviathan::ini
 
 
 

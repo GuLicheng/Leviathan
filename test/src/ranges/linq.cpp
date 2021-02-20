@@ -1,3 +1,4 @@
+#include <iterator>
 #include <lv_cpp/linq/linq.hpp>
 // #include <lv_cpp/io/console.hpp>
 #include <cctype>
@@ -62,10 +63,11 @@ void test2()
     std::cout << "\n===============================================\n";
     std::string str = "   123   ";
     std::string str1 = "456";
+    std::string str2 = "  789";
     from(str)
         .skip_while(::isspace).reverse().skip_while(::isspace).reverse()
         .concat(from(str1))
-        .concat(from(std::string("789")))
+        .concat(from(str2).skip_while(::isspace))
         .for_each([](char c) { std::cout << c; }) // 123456789
         ;
     std::cout << "\n===============================================\n";
@@ -115,11 +117,10 @@ void test5()
 {
     std::cout << "=======================\n";
     int arr[] = {1, 2, 3, 4, 5, 6};
-    from(arr).take_while([](int x) { return x < 3; })
+    auto seq = from(arr).take_while([](int x) { return x < 3; })
              .ordered_by([](int x) { return -x; })
              .for_each(printer)
              ;
-    std::cout << '\n';
 }
 
 // void test6()
@@ -141,4 +142,5 @@ int main()
     test3();  // 6, 10
     test4();  // 2
     test5();  // 21
+
 }
