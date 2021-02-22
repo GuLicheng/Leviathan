@@ -10,7 +10,7 @@
 
 #include <lv_cpp/io/enum.hpp>
 #include <lv_cpp/io/constraint.hpp>
-#include <lv_cpp/utils/template_info.hpp>
+#include <lv_cpp/meta/template_info.hpp>
 
 #include <tuple>
 

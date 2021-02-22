@@ -6,7 +6,7 @@
 #define __TUPLE_ALGORITHM_HPP__
 
 #include <lv_cpp/tuples/static_looer.hpp>
-#include <lv_cpp/type_list.hpp>
+#include <lv_cpp/meta/type_list.hpp>
 
 namespace leviathan::tuple
 {

@@ -16,7 +16,6 @@ namespace leviathan::io
     template <typename T>
     concept range_c = ::std::ranges::range<T>;
 
-
     template <typename T>
     concept string_c = range_c<T> && requires (const T& str)
     {
