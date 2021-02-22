@@ -14,7 +14,11 @@ namespace leviathan::io
     concept number_c = ::std::integral<T> || ::std::floating_point<T>;
 
     template <typename T>
-    concept range_c = ::std::ranges::range<T>;
+    concept range_c = requires (const T& rg)
+    {
+        ::std::ranges::begin(rg);
+        ::std::ranges::end(rg);
+    };
 
     template <typename T>
     concept string_c = range_c<T> && requires (const T& str)

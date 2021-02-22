@@ -124,10 +124,10 @@ namespace leviathan::io
             for (auto iter = first; iter != last; ++iter)
             {
                 if (iter != first) 
-                    write(", ");
+                    // write(", ");
                 write(*iter);
             }
-            write(']');
+            // write(']');
         }
 
         template <typename T> requires (!printable<T, _Char> && range_c<T>)
