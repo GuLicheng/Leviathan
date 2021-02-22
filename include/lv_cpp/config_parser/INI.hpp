@@ -34,6 +34,7 @@
     INI_handler::load(const char* file) : read ini config file
     INI_handler::load(const string& file) : read ini config file
     INI_handler::load(const string_view file) : read ini config file
+
     INI_handler::get_items(): return all sections and entries
     INI_handler::get_sections(): return all sections
     INI_handler::get_entries(): return all entries
@@ -41,15 +42,20 @@
     INI_handler::getfloat(): parser value to floating
     INI_handler::getboolean(): parser value to boolean
     INI_handler::getstring(): get value
+
     INI_handler::write(const char* file);
     INI_handler::write(const std::string& file);
     INI_handler::write(std::string_view file);
     
-    Comming soon:
     follow method will be implemented by overloading operator[]
-    INI_handler::add_sections
+    INI_handler::add_sections 
     INI_handler::add_key
     INI_handler::add_value
+    examples:
+        INI_handler reader;
+        reader["section_name"]; // add a section
+        reader["section_name"]["key_name"]; // add entry with key "key_name" and value ""
+        reader["section_name"]["key_name"] = "value"; // add entry with key "key_name" and value "value"
 */
 
 #ifndef __INI_HPP__
@@ -174,7 +180,7 @@ namespace leviathan::ini
 
         /**
          * load ini file
-         * @paras:
+         * @param:
          *      file: the path of file
          * @return:
          *      true if successful load file and parse all items
@@ -235,7 +241,7 @@ namespace leviathan::ini
 
         /**
          * parse a string to integer
-         * @paras:
+         * @param:
          *      section_name: ...
          *      key_name: ...
          * @return:
@@ -247,7 +253,7 @@ namespace leviathan::ini
 
         /**
          * parse a string to float
-         * @paras:
+         * @param:
          *      section_name: ...
          *      key_name: ...
          * @return:
@@ -259,7 +265,7 @@ namespace leviathan::ini
 
         /**
          * parse a string to boolean
-         * @paras:
+         * @param:
          *      section_name: ...
          *      key_name: ...
          * @return:
@@ -271,7 +277,7 @@ namespace leviathan::ini
 
         /**
          * get value item by section and key
-         * @paras:
+         * @param:
          *      section_name: ...
          *      key_name: ...
          * @return:
@@ -284,7 +290,7 @@ namespace leviathan::ini
          * add or change a section into handler such as map/unordered_map
          * you can simply use reader[section_name][key_name] = value_name
          * for adding or changing 
-         * @paras:
+         * @param:
          *      section_name: ...
          * @return:
          *      reference of section_node,if section_name not exist, 
@@ -305,7 +311,7 @@ namespace leviathan::ini
 
         /**
          * write all items in handler into file
-         * @paras:
+         * @param:
          *      file: the destiny file
          */
         void write(const char* file);
@@ -341,10 +347,11 @@ namespace leviathan::ini
         // remove all ; and blank
         std::string trim(const std::string& s) const noexcept;
 
-        /** insert a section, if insert successfully, the node will pointer at section 
+        /** 
+         * insert a section, if insert successfully, the node will pointer at section 
          * otherwise the log will memory this line
          * 
-         * @paras:
+         * @param:
          *      node: the final address if insert successfully otherwise nullptr
          *      s: current string read from file
          *      line: the location of s in the file
