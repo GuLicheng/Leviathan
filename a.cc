@@ -1,8 +1,5 @@
-#pragma once
-
-#include <iostream>
-
-
+#include <list>
+#include <lv_cpp/io/console.hpp>
 
 struct foo
 {
@@ -50,4 +47,13 @@ public:
 
 };
 
-struct empty_class { };
+int main()
+{
+    std::list<foo> ls;
+    ls.emplace_back(foo());
+    ls.emplace_back(foo());
+    ls.emplace_back(foo());
+    // ls.push_front(ls.back()); ls.pop_back()
+    ls.splice(ls.end(), ls, ls.begin());
+    console::write_line(ls);
+}
