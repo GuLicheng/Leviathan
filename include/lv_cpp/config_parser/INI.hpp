@@ -47,7 +47,7 @@
     INI_handler::write(const std::string& file);
     INI_handler::write(std::string_view file);
     
-    follow method will be implemented by overloading operator[]
+    follow method will be implemented by overloading operator[] such as map/unordered_map
     INI_handler::add_sections 
     INI_handler::add_key
     INI_handler::add_value
