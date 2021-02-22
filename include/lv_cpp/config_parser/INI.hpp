@@ -55,8 +55,6 @@
 #ifndef __INI_HPP__
 #define __INI_HPP__
 
-#include <lv_cpp/ranges/core.hpp>
-
 #include <unordered_map>
 #include <fstream>
 #include <list>
@@ -65,6 +63,7 @@
 #include <optional>
 #include <cctype>
 #include <iostream>
+#include <ranges>
 
 namespace leviathan::ini
 {
@@ -211,7 +210,7 @@ namespace leviathan::ini
          */
         auto get_sections() const noexcept
         {
-            return sections | ::leviathan::views::keys;
+            return sections | ::std::views::keys;
         }
 
         /**
@@ -221,7 +220,7 @@ namespace leviathan::ini
          */
         auto get_entries() const noexcept
         {
-            return sections | ::leviathan::views::values;
+            return sections | ::std::views::values;
         }
 
         /**
@@ -231,7 +230,7 @@ namespace leviathan::ini
          */
         auto get_items() const noexcept
         {
-            return sections | ::leviathan::views::all;
+            return sections | ::std::views::all;
         }
 
         /**
@@ -434,12 +433,15 @@ namespace leviathan::ini
 
             // trim key
             std::ranges::subrange left{str.begin(), str.begin() + equal};
-            auto left_part = left | ::leviathan::views::trim_back(::isspace);
+            auto left_part = left 
+                            | ::std::views::reverse
+                            | ::std::views::drop_while(::isspace)
+                            | ::std::views::reverse;
             auto key = std::string(left_part.begin(), left_part.end());
 
             // trim value
             std::ranges::subrange right{str.begin() + equal + 1, str.end()};
-            auto right_part = right | ::leviathan::views::trim_front(::isspace);
+            auto right_part = right | ::std::views::drop_while(::isspace);
             auto value = std::string(right_part.begin(), right_part.end());
             
             // save entry
@@ -465,7 +467,11 @@ namespace leviathan::ini
     {
         auto iter = std::find(s.begin(), s.end(), ';');
         std::ranges::subrange sub{s.cbegin(), iter};
-        auto res_range = sub | ::leviathan::views::trim(::isspace);
+        auto res_range = sub 
+                        | ::std::views::drop_while(::isspace)
+                        | ::std::views::reverse
+                        | ::std::views::drop_while(::isspace)
+                        | ::std::views::reverse;
         return {res_range.begin(), res_range.end()};
     }
 
