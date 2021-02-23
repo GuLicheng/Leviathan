@@ -1,8 +1,9 @@
 #include <lv_cpp/config_parser/INI.hpp>
 #include <lv_cpp/io/console.hpp>
+#include <lv_cpp/utils/timer.hpp>
 #include <iostream>
 
-constexpr const char* path = R"(D:\Library\Leviathan\data.ini)";
+constexpr const char* path = R"(D:\Library\Leviathan\rulesmo.ini)";
 
 constexpr const char* setting = R"(D:\GraphTheoryCode\Template\Tiamat\configuration\config.ini)";
 
@@ -13,8 +14,9 @@ void test();
 
 int main()
 {
+    leviathan::timer t;
     // test();
-    test_for_write();
+    // test_for_write();
     test_for_read();
     // test_for_get();
     std::cout << "Ok\n";
@@ -37,6 +39,8 @@ void test_for_read()
     leviathan::ini::INI_handler reader;
     reader.load(path);
     // reader.show();
+    std::cout << reader.lines << std::endl;
+#if 0
     for (auto&& key : reader.get_sections())
     {
         std::cout << key << ',';
@@ -52,6 +56,7 @@ void test_for_read()
         std::cout << "key is" << k << "and value is " << v << std::endl;
     }
     std::cout << "=================================" << std::endl;
+#endif
 }
 
 void test_for_get()

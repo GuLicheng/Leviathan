@@ -4,11 +4,6 @@
 #ifndef __XML_HPP__
 #define __XML_HPP__
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stddef.h>
-#include <string.h>
 
 /*
       <!--联系信息
@@ -31,10 +26,8 @@
 </note>
 
 */
-#ifdef __cplusplus
 namespace leviathan::xml
 {
-#endif
 
     /*
         start-tag <project version="4">
@@ -69,9 +62,7 @@ namespace leviathan::xml
 
 
 
-#ifdef __cplusplus
 } // namespace leviathan::xml
-#endif
 
 
 
