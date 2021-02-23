@@ -4,6 +4,7 @@
 #ifndef __XML_HPP__
 #define __XML_HPP__
 
+#include <stdint.h>
 
 /*
       <!--联系信息
