@@ -4,7 +4,15 @@
 #ifndef __XML_HPP__
 #define __XML_HPP__
 
+#include "./base.hpp"
+
 #include <cstdint>
+#include <string>
+#include <fstream>
+#include <utility>
+#include <vector>
+#include <memory>
+
 
 /*
       <!--联系信息
@@ -39,29 +47,39 @@ namespace leviathan::xml
         -> start with '<' and end with '/>'
     */
 
-    typedef struct _List
-    {
-        void** data;
-        size_t size;
-        size_t capacity;
-    }list_t; 
+    using attribute_entry = leviathan::parser::entry;
+    using error_log = leviathan::parser::error_log;
 
-    struct XML_tag
+    struct xml_node
     {
-        char* name;
-        list_t attributes;
+        std::string name;
+        std::vector<attribute_entry> attributes;
+        std::vector<xml_node*> children;
     };
-    // <greeting>Hello, world!</greeting>
-    struct XML_node
+
+    constexpr inline const char* space = " \t\n";
+    
+    class XML_handler
     {
-        char* element; // Hello, world
-        struct XML_tag* tag; // <greeting>
-        struct XML_node* nested; // ...
+        xml_node* root;
+    public:
+
+        bool read(const char* path);
     };
-    
-    
 
+    bool XML_handler::read(const char* path)
+    {
+        // read file
+        std::ifstream in{path, std::ios::in | std::ios::binary};
+        
+        // if file not exist, return false
+        if (!in.is_open())
+            return false;
 
+        std::string buffer;
+
+        
+    }
 
 } // namespace leviathan::xml
 

@@ -59,6 +59,8 @@
 #ifndef __INI_HPP__
 #define __INI_HPP__
 
+#include "./base.hpp"
+
 #include <unordered_map>
 #include <fstream>
 #include <list>
@@ -72,54 +74,8 @@
 namespace leviathan::ini
 {
 
-    class error_log 
-    {
-    protected:
-        int line;
-        std::string contend;
-        std::string error_info;
-    public:
-        error_log(int line, std::string contend, std::string error_info) 
-            : line{line}, contend{std::move(contend)}, error_info{std::move(error_info)} { }
-        
-        void report() const 
-        {
-            std::cout << "Line: " << line << 
-                ", error infomation:  " << error_info << 
-                " Seeing here:" << contend << std::endl;  
-        }
-
-        ~error_log() { }
-    };
-
-    // entry, consist of key-value
-    struct entry : public std::pair<std::string, std::string>
-    {
-        using std::pair<std::string, std::string>::pair;
-        using std::pair<std::string, std::string>::operator=;
-        const auto& key() const noexcept
-        {
-            return this->first;
-        }
-        auto& key() noexcept
-        {
-            return this->first;
-        }
-        auto& value() const noexcept
-        {
-            return this->second;
-        }
-        auto& value() noexcept
-        {
-            return this->second;
-        }
-    };
-
-    // overload ostream
-    std::ostream& operator<<(std::ostream& os, const entry& e)
-    { 
-        return os << '(' << e.first << ", " << e.second << ')'; 
-    }  
+    using error_log = leviathan::parser::error_log;
+    using entry = leviathan::parser::entry;
 
     // list of key-value
     struct section_node
