@@ -33,11 +33,11 @@ namespace leviathan::io
     static_assert(string_c<::std::string>);
     static_assert(string_c<::std::string_view>);
 
-
-    template <typename T, typename Char, typename Traits = ::std::char_traits<Char>>
-    concept printable = requires(::std::basic_ostream<Char, Traits>& os, const T& obj)
+    // use std::cout for output, so char_traits must be char_traits
+    template <typename T, typename Char>
+    concept printable = requires(::std::basic_ostream<Char>& os, const T& obj)
     {
-        {os << obj} -> ::std::same_as<::std::basic_ostream<Char, Traits>&>;
+        {os << obj} -> ::std::same_as<::std::basic_ostream<Char>&>;
     };
 } //  namespace io
 
