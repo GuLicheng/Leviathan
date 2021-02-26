@@ -1,12 +1,31 @@
-#include <lv_cpp/io/console.hpp>
-#include <vector>
-#include <set>
+// #include <lv_cpp/io/console.hpp>
 
-std::vector vec{1, 2, 3, 4, 50};
-std::set set{0, 0, 0, 1, 1};
+struct A
+{
+    void T(int);
+    template <typename U>
+    void Y(U);
+};
+
+struct B
+{
+    struct T
+    {
+        using type = int;
+    };
+    template <typename U>
+    struct Y
+    {
+        using type = U;
+    };
+};
+
+struct C : A, B
+{
+};
 
 int main()
 {
-    console::write_line(vec);
-    console::write_line(set);
+    C::T::type a;
+    C::B::Y<int>::type b;
 }
