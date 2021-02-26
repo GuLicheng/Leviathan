@@ -1,10 +1,15 @@
 /*
     A rang-loop expression may such as:
     
-    for (var iter = obj.GetEnumerator(); iter.IsOver(); iter.Next())
-        iter.Current();
+    for (var iter = sequence.GetEnumerator(); iter.IsOver(); iter.Next())
+        do 
+            iter.Current();
         
-    
+    ->
+
+    for (auto iter = begin(sequence); iter != end(sequence); ++iter)
+        do 
+            *iter;
 
 */
 
@@ -19,16 +24,16 @@
 namespace leviathan::linq
 {
 
-    constexpr auto begin = [](auto& store) { return std::get<0>(store); };
-    constexpr auto end = [](auto& store) { return std::get<1>(store); };
-    constexpr auto next = [](auto&& iter) { return std::next(iter); };
-    constexpr auto prev = [](auto&& iter) { return std::prev(iter); };
-    constexpr auto deref = [](auto&& iter) -> decltype(auto) { return *iter; };
+    constexpr auto begin = [](auto& __iter_pair) { return std::get<0>(__iter_pair); };
+    constexpr auto end = [](auto& __iter_pair) { return std::get<1>(__iter_pair); };
+    constexpr auto next = [](auto&& __iter) { return std::next(__iter); };
+    constexpr auto prev = [](auto&& __iter) { return std::prev(__iter); };
+    constexpr auto deref = [](auto&& __iter) -> decltype(auto) { return *__iter; };
     constexpr auto equal = std::equal_to<void>();
 
     enum
     {
-        ITER_PAIR = 0, BEGIN, END, NEXT, PREV, DEREF, IS_OVER
+        ITER_PAIR = 0, BEGIN, END, NEXT, PREV, DEREF, EQUAL
     };
 
     template <typename Storage>
@@ -40,6 +45,10 @@ namespace leviathan::linq
         {
         }
     public:
+
+        template <typename _Storage>
+        friend class linq<_Storage>;
+
         template <typename Range>
         friend from(Range& ranges);
 
@@ -48,8 +57,8 @@ namespace leviathan::linq
     template <typename Range>
     auto from(Range& ranges)
     {
-        auto pair_iter = std::make_pair(std::begin(ranges), std::end(ranges));
-        auto tuple = std::make_tuple(pair_iter, begin, end, next, prev, deref, equal);
+        auto iter_pair = std::make_tuple(std::begin(ranges), std::end(ranges));
+        auto tuple = std::make_tuple(iter_pair, begin, end, next, prev, deref, equal);
         return linq<decltype(tuple)>(tuple);
     }
 
