@@ -10,9 +10,11 @@
 namespace leviathan::io
 {
 
+    // std::is_arithmetic_v
     template <typename T>
     concept number_c = ::std::integral<T> || ::std::floating_point<T>;
 
+    // we make T const& to avoid generator<>
     template <typename T>
     concept range_c = requires (const T& rg)
     {
@@ -33,7 +35,7 @@ namespace leviathan::io
     static_assert(string_c<::std::string>);
     static_assert(string_c<::std::string_view>);
 
-    // use std::cout for output, so char_traits must be char_traits
+    // use std::cout for output, so char_traits must be std::char_traits
     template <typename T, typename Char>
     concept printable = requires(::std::basic_ostream<Char>& os, const T& obj)
     {

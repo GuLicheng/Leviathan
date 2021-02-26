@@ -121,10 +121,10 @@ namespace leviathan::io
             write('[');
             auto first = ::std::ranges::begin(rg);
             auto last = ::std::ranges::end(rg);
+            int i = 0;
             for (auto iter = first; iter != last; ++iter)
             {
-                if (iter != first) 
-                    write(", ");
+                if (i++) write(", ");
                 write(*iter);
             }
             write(']');
