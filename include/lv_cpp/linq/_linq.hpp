@@ -50,14 +50,14 @@ namespace leviathan::linq
         friend class linq<_Storage>;
 
         template <typename Range>
-        friend from(Range& ranges);
+        friend from(Range&);
 
     };
 
     template <typename Range>
-    auto from(Range& ranges)
+    auto from(Range& __r)
     {
-        auto iter_pair = std::make_tuple(std::begin(ranges), std::end(ranges));
+        auto iter_pair = std::make_tuple(std::begin(__r), std::end(__r));
         auto tuple = std::make_tuple(iter_pair, begin, end, next, prev, deref, equal);
         return linq<decltype(tuple)>(tuple);
     }
