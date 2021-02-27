@@ -24,8 +24,6 @@
 namespace leviathan::linq
 {
 
-
-
     enum
     {
         ITER_PAIR = 0, BEGIN, END, NEXT, PREV, DEREF, EQUAL
@@ -78,23 +76,29 @@ namespace leviathan::linq
             auto m_begin = this->get<BEGIN>();
             auto _begin = [=](auto& storage)
             {
-                auto last_iter = this->m_end(storage);
-                auto last = this->m_prev(std::move(last_iter));
+                auto last_iter = m_end(storage);
+                auto last = m_prev(std::move(last_iter));
                 return last;
             };
 
             auto _end = [=](auto& storage)
             {
-                auto first_iter = this->m_begin(storage);
-                auto first = this->m_prev(std::move(first_iter));
+                auto first_iter = m_begin(storage);
+                auto first = m_prev(std::move(first_iter));
                 return first;
             };
 
             auto _prev = [=](auto&& iter) { return m_next(std::move(iter)); };
             auto _next = [=](auto&& iter) { return m_prev(std::move(iter)); };
 
-            auto _store = std::make_tuple(this->get<ITER_PAIR>(), _begin, _end, _next, _prev, 
-                                    this->get<DEREF>(), this->get<EQUAL>());
+            auto _store = std::make_tuple(
+                            this->get<ITER_PAIR>(), 
+                            _begin, 
+                            _end, 
+                            _next, 
+                            _prev, 
+                            this->get<DEREF>(), 
+                            this->get<EQUAL>());
 
             return linq<decltype(_store)>{std::move(_store)};          
         }
