@@ -42,6 +42,13 @@ namespace leviathan::linq
         linq(Storage store) : m_store{std::move(store)}
         {
         }
+
+        template <size_t N>
+        constexpr auto get() const noexcept
+        {
+            return std::get<N>(this->m_store);
+        }
+        
     public:
 
 
@@ -51,17 +58,45 @@ namespace leviathan::linq
         template <typename Transform>
         constexpr linq for_each(Transform&& transform) const
         {
-            auto store = std::get<ITER_PAIR>(this->m_store);
-            auto first = std::get<BEGIN>(this->m_store)(store);
-            auto last = std::get<END>(this->m_store)(store);
-            auto is_over = std::get<EQUAL>(this->m_store);
-            auto next = std::get<NEXT>(this->m_store);
-            auto deref = std::get<DEREF>(this->m_store);
-            for (auto iter = first; !is_over(iter, last); iter = next(iter))
+            auto store = this->get<ITER_PAIR>();
+            auto first = this->get<BEGIN>()(store);
+            auto last = this->get<END>()(store);
+            auto is_over = this->get<EQUAL>();
+            auto next = this->get<NEXT>();
+            auto deref = this->get<DEREF>();
+            for (auto iter = first; !is_over(iter, last); iter = next(std::move(iter)))
             {
                 transform(deref(iter));
             }
             return *this;
+        }
+
+        constexpr auto reverse() const
+        {
+            auto m_end = this->get<END>();
+            auto m_prev = this->get<PREV>();
+            auto m_begin = this->get<BEGIN>();
+            auto _begin = [=](auto& storage)
+            {
+                auto last_iter = this->m_end(storage);
+                auto last = this->m_prev(std::move(last_iter));
+                return last;
+            };
+
+            auto _end = [=](auto& storage)
+            {
+                auto first_iter = this->m_begin(storage);
+                auto first = this->m_prev(std::move(first_iter));
+                return first;
+            };
+
+            auto _prev = [=](auto&& iter) { return m_next(std::move(iter)); };
+            auto _next = [=](auto&& iter) { return m_prev(std::move(iter)); };
+
+            auto _store = std::make_tuple(this->get<ITER_PAIR>(), _begin, _end, _next, _prev, 
+                                    this->get<DEREF>(), this->get<EQUAL>());
+
+            return linq<decltype(_store)>{std::move(_store)};          
         }
 
     };
