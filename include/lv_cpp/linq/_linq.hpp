@@ -74,6 +74,7 @@ namespace leviathan::linq
             auto m_end = this->get<END>();
             auto m_prev = this->get<PREV>();
             auto m_begin = this->get<BEGIN>();
+            auto m_next = this->get<NEXT>();
             auto _begin = [=](auto& storage)
             {
                 auto last_iter = m_end(storage);
