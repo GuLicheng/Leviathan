@@ -24,12 +24,7 @@
 namespace leviathan::linq
 {
 
-    constexpr auto begin = [](auto& __iter_pair) { return std::get<0>(__iter_pair); };
-    constexpr auto end = [](auto& __iter_pair) { return std::get<1>(__iter_pair); };
-    constexpr auto next = [](auto&& __iter) { return std::next(__iter); };
-    constexpr auto prev = [](auto&& __iter) { return std::prev(__iter); };
-    constexpr auto deref = [](auto&& __iter) -> decltype(auto) { return *__iter; };
-    constexpr auto equal = std::equal_to<void>();
+
 
     enum
     {
@@ -39,20 +34,44 @@ namespace leviathan::linq
     template <typename Storage>
     class linq
     {
-    private:
+        template <typename _Storage>
+        friend class linq;
+
         Storage m_store;
-        linq(Storage store) : m_store{store}
+
+        linq(Storage store) : m_store{std::move(store)}
         {
         }
     public:
 
-        template <typename _Storage>
-        friend class linq<_Storage>;
 
         template <typename Range>
-        friend from(Range&);
+        friend auto from(Range& __r);
+
+        template <typename Transform>
+        constexpr linq for_each(Transform&& transform) const
+        {
+            auto store = std::get<ITER_PAIR>(this->m_store);
+            auto first = std::get<BEGIN>(this->m_store)(store);
+            auto last = std::get<END>(this->m_store)(store);
+            auto is_over = std::get<EQUAL>(this->m_store);
+            auto next = std::get<NEXT>(this->m_store);
+            auto deref = std::get<DEREF>(this->m_store);
+            for (auto iter = first; !is_over(iter, last); iter = next(iter))
+            {
+                transform(deref(iter));
+            }
+            return *this;
+        }
 
     };
+
+    constexpr auto begin = [](auto& __iter_pair) { return std::get<0>(__iter_pair); };
+    constexpr auto end = [](auto& __iter_pair) { return std::get<1>(__iter_pair); };
+    constexpr auto next = [](auto&& __iter) { return std::next(__iter); };
+    constexpr auto prev = [](auto&& __iter) { return std::prev(__iter); };
+    constexpr auto deref = [](auto&& __iter) -> decltype(auto) { return *__iter; };
+    constexpr auto equal = std::equal_to<void>();
 
     template <typename Range>
     auto from(Range& __r)
