@@ -50,24 +50,24 @@ namespace leviathan::xml
     using attribute_entry = leviathan::parser::entry;
     using error_log = leviathan::parser::error_log;
 
-    struct xml_node
+    struct xml_label
     {
         std::string name;
         std::vector<attribute_entry> attributes;
-        std::vector<xml_node*> children;
+        std::vector<xml_label*> children;
     };
 
     constexpr inline const char* space = " \t\n";
     
-    class XML_handler
+    class XML_document
     {
-        xml_node* root;
+        xml_label* root;
     public:
 
         bool read(const char* path);
     };
 
-    bool XML_handler::read(const char* path)
+    bool XML_document::read(const char* path)
     {
         // read file
         std::ifstream in{path, std::ios::in | std::ios::binary};
@@ -77,6 +77,7 @@ namespace leviathan::xml
             return false;
 
         std::string buffer;
+        buffer.resize(256);
 
         
     }

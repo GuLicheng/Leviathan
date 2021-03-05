@@ -55,6 +55,21 @@ namespace leviathan::parser
         return os << '(' << e.first << ", " << e.second << ')'; 
     }  
 
+    class exception_base
+    {
+        virtual constexpr const char* what() const noexcept = 0;
+    };
+
+    class parse_error : public exception_base
+    {
+        std::string error_info;
+    public:
+        constexpr const char* what() const noexcept override
+        {
+            return error_info.c_str();
+        }
+    };
+
 } // namespace leviathan::parser
 
 
