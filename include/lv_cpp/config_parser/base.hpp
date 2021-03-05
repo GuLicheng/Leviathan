@@ -55,6 +55,7 @@ namespace leviathan::parser
         return os << '(' << e.first << ", " << e.second << ')'; 
     }  
 
+    // maybe useless
     class exception_base
     {
         virtual constexpr const char* what() const noexcept = 0;
