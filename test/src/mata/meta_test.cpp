@@ -3,7 +3,7 @@
 #include <variant>
 #include <string>
 #include <string_view>
-#include <lv_cpp/type_list.hpp>
+#include <lv_cpp/meta/type_list.hpp>
 
 namespace meta = leviathan::meta;
 namespace lv = leviathan;
