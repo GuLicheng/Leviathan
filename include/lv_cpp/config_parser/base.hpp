@@ -56,9 +56,8 @@ namespace leviathan::parser
     }  
 
     // maybe useless
-    class exception_base
+    class exception_base : public std::exception
     {
-        virtual constexpr const char* what() const noexcept = 0;
     };
 
     class parse_error : public exception_base
