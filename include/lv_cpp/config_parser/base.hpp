@@ -56,11 +56,11 @@ namespace leviathan::parser
     }  
 
     // maybe useless
-    class exception_base : public std::exception
+    class parser_exception_base : public std::exception
     {
     };
 
-    class parse_error : public exception_base
+    class parse_error : public parser_exception_base
     {
         std::string error_info;
     public:
