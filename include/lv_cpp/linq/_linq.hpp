@@ -260,7 +260,8 @@ namespace leviathan::linq
         constexpr auto concat(linq<T> sequence)
         {
             GetLinqMember();
-            // auto r_iter_pair = sequence.get<ITER_PAIR>();
+
+            auto r_iter_pair = sequence.template get<ITER_PAIR>();
             auto r_begin = sequence.template get<BEGIN>(); 
             auto r_end = sequence.template get<END>(); 
             auto r_next = sequence.template get<NEXT>(); 
@@ -268,13 +269,11 @@ namespace leviathan::linq
             auto r_deref = sequence.template get<DEREF>(); 
             auto r_equal = sequence.template get<EQUAL>();
 
-            auto _store1 = iter_pair;  // iter_pair
-            auto _store2 = sequence.template get<ITER_PAIR>();
-            auto _store = std::make_tuple(_store1, _store2, false);
-            auto first1 = m_begin(_store1);
-            auto first2 = r_begin(_store2);
-            auto last1 = m_end(_store1);
-            auto last2 = r_end(_store2);
+            
+            auto first1 = m_begin(iter_pair);
+            auto first2 = r_begin(r_iter_pair);
+            auto last1 = m_end(iter_pair);
+            auto last2 = r_end(r_iter_pair);
             // if iter ref second sequence, _store<3> will be true
             auto _begin = [=](auto& storage)
             {
@@ -328,10 +327,15 @@ namespace leviathan::linq
             };
 
             // _prev should be changed also, but I just simplifer it
-            auto __store = this->move_as_tuple(_store, _begin, _end, _next, m_prev, _deref, _equal);
-            return linq<decltype(__store)>{std::move(__store)};
-            // return linq<decltype(_store), decltype(_begin), decltype(_end), decltype(_next), Prev, decltype(_deref), decltype(_equal), TSource>
-                // {_store, _begin, _end, _next, this->m_prev, _deref, _equal};
+            auto _store = this->move_as_tuple(
+                        std::make_tuple(iter_pair, r_iter_pair, false), 
+                        _begin, 
+                        _end, 
+                        _next, 
+                        m_prev, 
+                        _deref, 
+                        _equal);
+            return linq<decltype(_store)>{std::move(_store)};
         }
     
     };
