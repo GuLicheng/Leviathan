@@ -39,11 +39,18 @@ namespace leviathan::linq
         ITER_PAIR = 0, BEGIN, END, NEXT, PREV, DEREF, EQUAL
     };
 
-    template <typename Storage>
+    constexpr auto begin = [](auto& __iter_pair) { return std::get<0>(__iter_pair); };
+    constexpr auto end = [](auto& __iter_pair) { return std::get<1>(__iter_pair); };
+    constexpr auto next = [](auto&& __iter) { return std::next(__iter); };
+    constexpr auto prev = [](auto&& __iter) { return std::prev(__iter); };
+    constexpr auto deref = [](auto&& __iter) -> decltype(auto) { return *__iter; };
+    constexpr auto equal = std::equal_to<void>();
+
+    template <typename T, typename Storage>
     class linq
     {
     private:
-        template <typename _Storage>
+        template <typename _T, typename _Storage>
         friend class linq;
 
         Storage m_store; 
@@ -66,8 +73,12 @@ namespace leviathan::linq
             return std::make_tuple(std::move(ts)...);
         }
 
+
+
+
     public:
 
+        using value_type = T;
 
         template <typename Range>
         friend auto from(Range& __r);
@@ -108,7 +119,7 @@ namespace leviathan::linq
 
             auto _store = this->move_as_tuple(iter_pair, _begin, _end, _next, _prev, m_deref, m_equal);
 
-            return linq<decltype(_store)>{std::move(_store)};          
+            return linq<T, decltype(_store)>{std::move(_store)};          
         }
 
         // transform
@@ -123,7 +134,8 @@ namespace leviathan::linq
             };
 
             auto _store = this->move_as_tuple(iter_pair, m_begin, m_end, m_next, m_prev, _deref, m_equal);
-            return linq<decltype(_store)>{std::move(_store)};
+            using TSource = decltype(_deref(m_begin(iter_pair)));
+            return linq<TSource, decltype(_store)>{std::move(_store)};
 
         }
 
@@ -144,7 +156,7 @@ namespace leviathan::linq
             };
 
             auto _store = this->move_as_tuple(iter_pair, _begin, m_end, m_next, m_prev, m_deref, m_equal);
-            return linq<decltype(_store)>{std::move(_store)};
+            return linq<T, decltype(_store)>{std::move(_store)};
         }
     
         // drop_while
@@ -164,7 +176,7 @@ namespace leviathan::linq
             };
 
             auto _store = this->move_as_tuple(iter_pair, _begin, m_end, m_next, m_prev, m_deref, m_equal);
-            return linq<decltype(_store)>{std::move(_store)};
+            return linq<T, decltype(_store)>{std::move(_store)};
         }
     
 
@@ -185,7 +197,7 @@ namespace leviathan::linq
             };
 
             auto _store = this->move_as_tuple(iter_pair, m_begin, m_end, _next, m_prev, m_deref, m_equal);
-            return linq<decltype(_store)>{std::move(_store)};
+            return linq<T, decltype(_store)>{std::move(_store)};
         }
 
         // take while
@@ -214,7 +226,7 @@ namespace leviathan::linq
             };
 
             auto _store = this->move_as_tuple(iter_pair, _begin, m_end, _next, m_prev, m_deref, m_equal);
-            return linq<decltype(_store)>{std::move(_store)};
+            return linq<T, decltype(_store)>{std::move(_store)};
 
         }        
     
@@ -252,12 +264,12 @@ namespace leviathan::linq
             };
 
             auto _store = this->move_as_tuple(iter_pair, _begin, m_end, _next, _prev, m_deref, m_equal);
-            return linq<decltype(_store)>{std::move(_store)};
+            return linq<T, decltype(_store)>{std::move(_store)};
         }
     
         // concat
-        template <typename T>
-        constexpr auto concat(linq<T> sequence)
+        template <typename... Ts>
+        constexpr auto concat(linq<Ts...> sequence)
         {
             GetLinqMember();
 
@@ -335,26 +347,85 @@ namespace leviathan::linq
                         m_prev, 
                         _deref, 
                         _equal);
-            return linq<decltype(_store)>{std::move(_store)};
+            return linq<T, decltype(_store)>{std::move(_store)};
         }
     
+        auto distinct() 
+        {
+            using hash_table_t = std::unordered_set<value_type>;
+            hash_table_t table;
+            GetLinqMember();
+            auto last_iter = m_end(iter_pair);
+            auto _next = [=](auto&& iter)
+            {
+                const_cast<hash_table_t&>(table).emplace(m_deref(iter));
+                auto next_iter = m_next(iter);
+                while (!m_equal(next_iter, last_iter) && table.count(m_deref(next_iter)))
+                {
+                    next_iter = m_next(std::move(next_iter));
+                }
+                return next_iter;
+            };
+            auto _store = this->move_as_tuple(iter_pair, m_begin, m_end, _next, m_prev, m_deref, m_equal);
+            return linq<T, decltype(_store)>{std::move(_store)};
+        }
+
+        template <typename Selector>
+        auto ordered_by(Selector selector) 
+        {
+            GetLinqMember();
+            using TResour = decltype(selector(m_deref(m_begin(iter_pair))));
+            static_assert(std::is_same_v<std::decay_t<TResour>, TResour>);
+            auto vec_ptr = std::make_shared<std::vector<TResour>>();
+            auto first = m_begin(iter_pair);
+            auto last = m_end(iter_pair);
+            for (auto iter = first; !m_equal(iter, last); iter = m_next(std::move(iter)))
+            {
+                vec_ptr->emplace_back(m_deref(iter));
+            }
+            std::sort(vec_ptr->begin(), vec_ptr->end(), [=](const auto& lhs, const auto& rhs)
+            {
+                return selector(lhs) < selector(rhs);
+            });
+            // auto _store = std::make_tuple(vec_ptr);
+            auto _begin = [=](auto& storage)
+            {
+                return std::get<0>(storage)->begin();
+            };
+            auto _end = [=](auto& storage)
+            {
+                return std::get<0>(storage)->end();
+            };
+
+            // reset all operators
+            auto _store = this->move_as_tuple(std::make_tuple(vec_ptr), _begin, _end, next, prev, deref, equal);
+            return linq<TResour, decltype(_store)>{std::move(_store)};
+
+        }
+
+        int count()
+        {
+            GetLinqMember();
+            int res = 0;
+            auto first = m_begin(iter_pair);
+            auto last = m_end(iter_pair);
+            for (auto iter = first; !m_equal(iter, last); iter = m_next(std::move(iter))) ++res;
+            return res;
+        }
+
     };
 
 #undef GetLinqMember
 
-    constexpr auto begin = [](auto& __iter_pair) { return std::get<0>(__iter_pair); };
-    constexpr auto end = [](auto& __iter_pair) { return std::get<1>(__iter_pair); };
-    constexpr auto next = [](auto&& __iter) { return std::next(__iter); };
-    constexpr auto prev = [](auto&& __iter) { return std::prev(__iter); };
-    constexpr auto deref = [](auto&& __iter) -> decltype(auto) { return *__iter; };
-    constexpr auto equal = std::equal_to<void>();
+
 
     template <typename BidirectionalRange>
     auto from(BidirectionalRange& __r)
     {
+        using value_type = typename std::iterator_traits<decltype(std::begin(__r))>::value_type;
         auto iter_pair = std::make_tuple(std::begin(__r), std::end(__r));
         auto tuple = std::make_tuple(iter_pair, begin, end, next, prev, deref, equal);
-        return linq<decltype(tuple)>(tuple);
+        return linq<value_type, decltype(tuple)>(tuple);
     }
 
 } // end of namespace leviathan::linq

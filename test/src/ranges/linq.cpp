@@ -1,6 +1,6 @@
 #include <iterator>
 #include <lv_cpp/linq/linq.hpp>
-// #include <lv_cpp/io/console.hpp>
+#include <lv_cpp/io/console.hpp>
 #include <cctype>
 #include <vector>
 #include <list>
