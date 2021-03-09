@@ -5,6 +5,7 @@
 #include <vector>
 #include <list>
 #include <string>
+#include <ranges>
 
 using namespace leviathan::linq;
 
@@ -61,7 +62,7 @@ void test1()
 void test2()
 {
     std::cout << "\n===============================================\n";
-    std::string str = "   123   ";
+    std::string str = "   1 2 3   ";
     std::string str1 = "456";
     std::string str2 = "  789";
     from(str)
@@ -123,24 +124,27 @@ void test5()
              ;
 }
 
-// void test6()
-// {
-//     std::vector<int> ls;
-//     for (int i = 0; i < 2; ++i)
-//         ls.emplace_back(i);
+void test6()
+{
+    std::cout << "\n=====================================\n";
+    std::vector<int> ls{1, 0, 1, 2, 2, 4, 4, 4, 5};
 
-//     auto res = leviathan::linq::from(ls)
-//         .ordered_by([](auto& x) { return integer(x); })
-//         .for_each([](auto&& x) { std::cout << x << ' ';})
-//         ;
-// }
+    leviathan::linq::from(ls)
+        .reverse()
+        // .distinct()
+        .take(3)
+        .reverse()
+        .for_each([](auto&& x) { std::cout << x << ' ';})
+        ;
+}
 
 int main()
 {
-    test1();  // 30
+    test1();  // 30 10 20
     test2();  // 123456789
     test3();  // 6, 10
     test4();  // 2
     test5();  // 21
+    test6();  // 0
 
 }

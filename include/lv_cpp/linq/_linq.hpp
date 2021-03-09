@@ -196,7 +196,18 @@ namespace leviathan::linq
                 return last_iter;
             };
 
-            auto _store = this->move_as_tuple(iter_pair, m_begin, m_end, _next, m_prev, m_deref, m_equal);
+            auto r_last_iter = m_prev(m_begin(iter_pair));
+            auto _prev = [=](auto&& iter)
+            {
+                if (i < count)
+                {
+                    const_cast<int&>(i) ++;
+                    return m_prev(iter);
+                }
+                return r_last_iter;
+            };
+
+            auto _store = this->move_as_tuple(iter_pair, m_begin, m_end, _next, _prev, m_deref, m_equal);
             return linq<T, decltype(_store)>{std::move(_store)};
         }
 
@@ -217,6 +228,17 @@ namespace leviathan::linq
                 return last_iter;
             };
 
+            auto r_last_iter = m_prev(m_begin(iter_pair));
+            auto _prev = [=](auto&& iter)
+            {
+                if (m_equal(iter, r_last_iter))
+                    return r_last_iter;
+                auto prev_iter = m_prev(std::move(iter));
+                if (predicate(m_deref(prev_iter)))
+                    return prev_iter;
+                return last_iter;
+            };
+
             auto _begin = [=](auto& storage)
             {
                 auto first = m_begin(storage);
@@ -225,7 +247,15 @@ namespace leviathan::linq
                 return m_end(storage);
             };
 
-            auto _store = this->move_as_tuple(iter_pair, _begin, m_end, _next, m_prev, m_deref, m_equal);
+            // auto _end = [=](auto&& storage)
+            // {
+            //     auto first = m_prev(m_end(storage));
+            //     if (predicate(m_deref(first)))
+            //         return first;
+            //     return m_prev(storage);
+            // };
+
+            auto _store = this->move_as_tuple(iter_pair, _begin, m_end, _next, _prev, m_deref, m_equal);
             return linq<T, decltype(_store)>{std::move(_store)};
 
         }        
@@ -366,6 +396,19 @@ namespace leviathan::linq
                 }
                 return next_iter;
             };
+            
+            // auto r_last_iter = m_prev(m_begin(iter_pair));
+            // auto _prev = [=](auto&& iter)
+            // {
+            //     const_cast<hash_table_t&>(table).emplace(m_deref(iter));
+            //     auto prev_iter = m_prev(iter);
+            //     while (!m_equal(prev_iter, r_last_iter) && table.count(m_deref(prev_iter)))
+            //     {
+            //         prev_iter = m_prev(std::move(prev_iter));
+            //     }
+            //     return prev_iter;
+            // };
+
             auto _store = this->move_as_tuple(iter_pair, m_begin, m_end, _next, m_prev, m_deref, m_equal);
             return linq<T, decltype(_store)>{std::move(_store)};
         }
@@ -412,6 +455,22 @@ namespace leviathan::linq
             for (auto iter = first; !m_equal(iter, last); iter = m_next(std::move(iter))) ++res;
             return res;
         }
+
+
+        struct linq_iterator
+        {
+            linq* data;
+
+            decltype(auto) operator*() 
+            {
+                auto&& _store = data->get<ITER_PAIR>();
+            }
+
+            using value_type = typename linq::value_type;
+            using iterator_category = std::input_iterator_tag;
+            using difference_type = std::ptrdiff_t;
+            // using reference_type = decltype()
+        };
 
     };
 

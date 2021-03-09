@@ -1,10 +1,5 @@
 /*
-    Just a tool, 
-        cpp standard: 
-            lambda closure types are non-literal types before C++17 -> c++17 
-            decltype(auto) -> c++14
-            rest -> c++11
-        
+    See _linq.hpp
 */
 
 
