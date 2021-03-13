@@ -64,7 +64,7 @@ namespace leviathan::parser
     {
         std::string error_info;
     public:
-        constexpr const char* what() const noexcept override
+        const char* what() const noexcept override
         {
             return error_info.c_str();
         }
