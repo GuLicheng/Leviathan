@@ -18,6 +18,8 @@
 #include <lv_cpp/io/console.hpp>
 #include <assert.h>
 
+#define dist(x, y, msg) (std::cout << msg << (y - x) << std::endl)
+
 /*
       <!--联系信息
 			ElementNo
@@ -57,6 +59,7 @@ namespace leviathan::xml
     struct xml_label
     {
         std::string name;
+        std::string body;
         std::vector<attribute_entry> attributes;
         std::vector<xml_label*> children;
     };
@@ -74,7 +77,12 @@ namespace leviathan::xml
     {
         xml_label* root;
         std::vector<xml_label*> stack; // check pair label
+        const char* cur;
     public:
+
+        XML_document() : root(nullptr), stack{} 
+        {
+        }
 
         bool read(const char* path);
 
@@ -89,14 +97,56 @@ namespace leviathan::xml
 
     private:
         // <name sdasd>
-        bool parse_label(xml_label* node, const char* start, const char* end);
-        bool parse_declearation(int offset, xml_label* node, const char* start, const char* end);
-
-    
+        bool parse_label(const char* start, const char* end);
+        void parse_declearation(int offset, const char* start, const char* end);
+        void parse_close(const char* start, const char* end);
+        void parse_commit(const char* start, const char* end);
+        void parse_text(const char* start, const char* end);
     };
+
+    void XML_document::parse_text(const char* start, const char* end)
+    {
+        auto iter = std::find_if_not(start, end, ::isblank);
+        if (iter == end) 
+            return; // nothing
+        if (*iter == '<')
+        {
+            // <a>  <b>... </b> </a>
+            //    ^ ^
+            //      iter
+            xml_label* new_node = new xml_label();
+            stack.back()->children.emplace_back(new_node);
+            stack.emplace_back(new_node);
+            cur = iter; 
+            parse_label(iter, end);
+        }
+        else
+        {
+            console::write_line("text");
+            //  <a>inner text </a>
+            //     ^            ^
+            //                ^
+            auto body_end = std::find(iter, end, '<');
+            stack.back()->body = std::string(start, body_end);
+            cur = body_end;
+            parse_close(cur, end);
+        }
+
+    }
+
+    void XML_document::parse_commit(const char* start, const char* end)
+    {
+        // <!-- something here-->
+        auto iter = std::find(start, end, '>');
+        if (iter == end)
+            assert(false);
+        cur = iter + 1;
+    }
 
     bool XML_document::read(const char* path)
     {
+        if (root != nullptr)
+            assert(false);
         // read file
         std::ifstream in{path, std::ios::in | std::ios::binary};
         
@@ -104,11 +154,11 @@ namespace leviathan::xml
         if (!in.is_open())
             return false;
 
-        const std::string buffer{std::istreambuf_iterator<char>{in}, std::istreambuf_iterator<char>{}};;
+        const std::string buffer{std::istreambuf_iterator<char>{in}, std::istreambuf_iterator<char>{}};
         std::cout << buffer << std::endl;
         const auto size = buffer.size();
-        const auto end = buffer.data() + buffer.size();
-        auto iter = std::find_if_not(buffer.data(), end, ::isspace);
+        const auto end = buffer.data() + buffer.size();  // end of file
+        auto iter = std::find_if_not(buffer.data(), end, ::isspace);  // the first char must be '<'
         // empty
         if (iter == end)
             return false;
@@ -116,53 +166,79 @@ namespace leviathan::xml
         // must start with '<'
         if (*iter != '<')
             return false;
+        cur = iter;
+        root = new xml_label();
+        root->name = "I am the root";
+        stack.emplace_back(root);
 
-        xml_label* node = nullptr;
+        // std::cout << "Here";
 
-        parse_label(node, iter, end);
+        parse_text(cur, end);
 
         return true;    
     }
 
-    bool XML_document::parse_label(xml_label* node, const char* start, const char* end)
+    bool XML_document::parse_label(const char* start, const char* end)
     {
-        const char ch = *(start + 1);
-        auto right_angle_bracket = std::find(start, end, '>');
-
-        if (right_angle_bracket == end)
-            return false;
-
-        if (ch == '?')
-            parse_declearation(2, node, start, right_angle_bracket);
-        else if (::isalpha(ch))
-            // parse identity
-            return false; 
-        else if (ch == '!')
-            // parse commit
-            return false;
-        else if (ch == '/')
-            // parse end
-            return false;
-        else 
-            return false;
+        // std::string s {start, end};
+        // console::write_line(s);
+        while (cur != end)
+        {
+            const char ch = *(start + 1);
+            if (ch == '?')
+                parse_declearation(2, start, end);
+            else if (::isalpha(ch))
+                parse_declearation(1, start, end);
+            else if (ch == '!')
+                // parse commit
+                parse_commit(cur, end);
+            else if (ch == '/')
+                parse_close(start, end);
+            else
+                return false;
             // error
+        }
+        return true;
     }
 
-    bool XML_document::parse_declearation(int offset, xml_label* node, const char* left_angle_bracket, const char* right_angle_bracket)
+    void XML_document::parse_declearation(int offset, const char* start, const char* end)
     {
+        // start is '<' and end is EOF
+
+        auto right_angle_bracket = std::find(start, end, '>');
+        // console::write_line(*right_angle_bracket);
+        if (right_angle_bracket == end) 
+            assert(false);
+
+
+        // left <
+        auto left_angle_bracket = start;
+        // <name 
+        //      ^
+        //      iter
         auto iter = std::find_if(left_angle_bracket, right_angle_bracket, ::isspace);
         std::string label_name{left_angle_bracket + offset, iter};
+        stack.back()->name = label_name;
         iter = std::find_if_not(iter, right_angle_bracket, ::isspace);
-        if (iter == right_angle_bracket || !::isalpha(*iter))
+
+        if (iter == right_angle_bracket)
         {
-            // <?xml 0id = >
-            return false;
+            // not attr
+
+            console::write_line_multi("msg is ", stack.back()->name);
+            cur = iter + 1;
+            parse_text(cur, end);
+            return;
         }
+        assert(::isalpha(*iter));
+        // parse attr
+    
         const char* left = iter;
         const char* right = right_angle_bracket;
         while (*right != '"') right--;
         right++;
         // console::write_line_multi(*left, *right, "over");
+
         for (auto ch = left + 1; ch != right;)
         {
             // parse name
@@ -179,13 +255,64 @@ namespace leviathan::xml
 
             // std::cout << attr_name << " ; " << attr_value << std::endl;            
             console::write_line_multi("(", label_name, attr_name, attr_value, ")");
-            // node->attributes.emplace_back(std::move(attr_name), std::move(attr_value));
+            stack.back()->attributes.emplace_back(std::move(attr_name), std::move(attr_value));
             ch++;
             while (ch != right && !::isalpha(*ch)) ch++;
             left = ch;
         }
+
+        // stack.emplace_back(node); // match close label
+        cur = right_angle_bracket + 1;
+        const auto ch = *(right_angle_bracket - 1);
+        if (ch == '/' || ch == '?')
+        {
+            // just a label without body
+            // exit(0);
+            cur = std::find(cur, end, '<');
+
+            //  console::write_line("Here");;
+            // console::write_line_multi("cur is ", *cur);
+            parse_label(cur, end);
+        }
+        else
+        {
+            // parse body and match close-label
+            parse_text(cur, end);
+        }
+
         std::cout << "OK" << std::endl;
-        return true;
+    }
+
+    void XML_document::parse_close(const char* start, const char* end)
+    {
+        assert(stack.size() > 0);
+        //    </id>
+        //    ^   ^
+        // start  right_...
+        auto right_angel_bracket = std::find(start, end, '>');
+        const size_t length = right_angel_bracket - start - 2;
+        const auto& back = stack.back()->name;
+        // for (auto p = start + 2; p != right_angel_bracket; ++p) std::cout << *p;
+        std::string match{start + 2, right_angel_bracket};
+        std::cout << std::endl << "back is " << back << " and match is " << match << std::endl;
+        if (length != back.size() || !std::equal(start + 2, right_angel_bracket, back.data()))
+        {
+            puts("All Node:");
+            for (auto& node : stack) console::write_line(node->name);
+            assert(false);
+            // not match
+        }
+        else
+        {
+            stack.pop_back();
+        }
+        // stack.pop_back();
+        cur = std::find(cur, end, '<'); // next_left_angle_bracket
+        if (cur == end)
+            return;  // over
+        root->children.emplace_back(new xml_label());
+        stack.emplace_back(root->children.back());
+        parse_label(cur, end);
     }
 
 } // namespace leviathan::xml
