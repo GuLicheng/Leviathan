@@ -66,7 +66,7 @@ namespace leviathan::io
         struct index_selector
         {
             template <typename... Ts>
-            static void apply(const std::tuple<Ts...> &t, int index)
+            static void apply(const ::std::tuple<Ts...> &t, int index)
             {
                 if constexpr (N == Max)
                 {
@@ -75,7 +75,7 @@ namespace leviathan::io
                 else if (index == N)
                 {
                     // return std::to_string(std::get<N>(t));
-                    basic_console<_Char>::write(std::get<N>(t));
+                    basic_console<_Char>::write(::std::get<N>(t));
                 }
                 else
                 {
@@ -93,15 +93,15 @@ namespace leviathan::io
         using traits_type = typename base::traits_type;
 
         template <typename... Ts>
-        static void dynamic_get(const std::tuple<Ts...> &t, int index)
+        static void dynamic_get(const ::std::tuple<Ts...> &t, int index)
         {
             index_selector<0, sizeof...(Ts)>::apply(t, index);
         }
 
         template <typename... Ts>
-        static void format(const std::basic_string<char_type>& fmt, Ts&&... ts)
+        static void format(const ::std::basic_string<char_type>& fmt, Ts&&... ts)
         {
-            const auto t = std::forward_as_tuple(ts...);
+            const auto t = ::std::forward_as_tuple(ts...);
             for (size_t i = 0; i < fmt.size(); ++i)
             {
                 if (fmt[i] != '{') write(fmt[i]);
@@ -109,7 +109,7 @@ namespace leviathan::io
                 {
                     int j = i + 1;
                     while (fmt[j] != '}') ++j;
-                    int index = std::stoi(fmt.substr(i + 1, j - i - 1));
+                    int index = ::std::stoi(fmt.substr(i + 1, j - i - 1));
                     dynamic_get(t, index);
                     i = j;
                 }
