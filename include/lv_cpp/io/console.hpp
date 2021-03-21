@@ -18,6 +18,8 @@
 namespace leviathan::io
 {
 
+
+
     template <typename _Char> 
     struct basic_console_base;
 
@@ -60,6 +62,28 @@ namespace leviathan::io
             write(right);
         }
 
+        template <int N, int Max>
+        struct index_selector
+        {
+            template <typename... Ts>
+            static void apply(const std::tuple<Ts...> &t, int index)
+            {
+                if constexpr (N == Max)
+                {
+                    return ;
+                }
+                else if (index == N)
+                {
+                    // return std::to_string(std::get<N>(t));
+                    basic_console<_Char>::write(std::get<N>(t));
+                }
+                else
+                {
+                    // return index_selector<N + 1, Max>::apply(t, index);
+                    index_selector<N + 1, Max>::apply(t, index);
+                }
+            }
+        };
 
     public:
         using char_type = typename base::char_type;
@@ -67,6 +91,31 @@ namespace leviathan::io
         using pos_type = typename base::pos_type;
         using off_type = typename base::off_type;
         using traits_type = typename base::traits_type;
+
+        template <typename... Ts>
+        static void dynamic_get(const std::tuple<Ts...> &t, int index)
+        {
+            index_selector<0, sizeof...(Ts)>::apply(t, index);
+        }
+
+        template <typename... Ts>
+        static void format(const std::basic_string<char_type>& fmt, Ts&&... ts)
+        {
+            const auto t = std::forward_as_tuple(ts...);
+            for (size_t i = 0; i < fmt.size(); ++i)
+            {
+                if (fmt[i] != '{') write(fmt[i]);
+                else
+                {
+                    int j = i + 1;
+                    while (fmt[j] != '}') ++j;
+                    int index = std::stoi(fmt.substr(i + 1, j - i - 1));
+                    dynamic_get(t, index);
+                    i = j;
+                }
+            }
+    
+        }
 
         static void write(bool val)
         {

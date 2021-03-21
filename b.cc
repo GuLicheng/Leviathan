@@ -1,12 +1,13 @@
-#include <algorithm>
-#include <string>
 #include <iostream>
-#include <regex>
-std::string str1 = "hello";
-std::string str2 = "hello";
+#include <tuple>
+#include <utility>
+#include <functional>
+#include <lv_cpp/io/console.hpp>
+
+std::array arr{1, 2, 3};
 
 int main()
 {
-    auto iter = std::mismatch(str1.begin(), str1.end(), str2.begin());
-    std::cout << std::equal(str1.begin(), str1.end(), str2.begin());
+    // std::cout << format("the paras is {0} and {1} and first is {0}", 1, 2.0);
+    console::format("the paras is {0} and {1} and first is {0}", 1, arr);
 }
