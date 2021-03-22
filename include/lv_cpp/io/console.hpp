@@ -117,6 +117,7 @@ namespace leviathan::io
     
         }
 
+
         static void write(bool val)
         {
             write(val ? "true" : "false");
@@ -144,24 +145,6 @@ namespace leviathan::io
 
         static void write_line()
         { ::std::endl(os); }
-
-        static void write(const _Char* buffer, off_type count)
-        { os.write(buffer, count); }
-
-        static void write_line(const _Char* buffer, off_type count)
-        { 
-            write(buffer, count); 
-            write_line();
-        }
-
-        static void write(const _Char* buffer, pos_type index, off_type count)
-        { write(buffer + index, count); }
-
-        static void write_line(const _Char* buffer, pos_type index, off_type count)
-        {
-            write(buffer, index, count);
-            write_line();
-        }
 
         // The iterator must be copyable
         template <typename T> requires (!printable<T, _Char> && range_c<T>)
