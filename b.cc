@@ -8,6 +8,5 @@ std::array arr{1, 2, 3};
 
 int main()
 {
-    // std::cout << format("the paras is {0} and {1} and first is {0}", 1, 2.0);
-    console::format("the paras is {0} and {1} and first is {0}", 1, arr);
+    console::write_line("the paras is {0} and {1} and first is {1}", 1, arr);
 }

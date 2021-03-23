@@ -81,8 +81,18 @@ void test_for_output()
 
 void test_for_multi_paras()
 {
-    console::write_line_multi
-        (empty_class{}, 
+    // console::write_line_multi
+    //     (empty_class{}, 
+    //     1, 
+    //     foo(), 
+    //     ::std::make_pair(1, 3), 
+    //     "hello world", 
+    //     ::isspace, 
+    //     true,
+    //     std::make_tuple(0));
+    console::set_foreground_color(console_color::blue);
+    console::write_line("Multi-paras pack: ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7})",
+        empty_class{}, 
         1, 
         foo(), 
         ::std::make_pair(1, 3), 

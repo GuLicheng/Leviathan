@@ -85,6 +85,11 @@ namespace leviathan::io
             }
         };
 
+        template <typename... Ts>
+        static void dynamic_get(const ::std::tuple<Ts...> &t, int index)
+        {
+            index_selector<0, sizeof...(Ts)>::apply(t, index);
+        }
     public:
         using char_type = typename base::char_type;
         using int_type = typename base::int_type;
@@ -92,11 +97,6 @@ namespace leviathan::io
         using off_type = typename base::off_type;
         using traits_type = typename base::traits_type;
 
-        template <typename... Ts>
-        static void dynamic_get(const ::std::tuple<Ts...> &t, int index)
-        {
-            index_selector<0, sizeof...(Ts)>::apply(t, index);
-        }
 
         template <typename... Ts>
         static void format(const ::std::basic_string<char_type>& fmt, Ts&&... ts)
@@ -115,6 +115,19 @@ namespace leviathan::io
                 }
             }
     
+        }
+
+        template <typename... Ts> requires (sizeof...(Ts) >= 1)
+        static void write(const ::std::basic_string<_Char>& fmt, Ts&&... ts)
+        {
+            format(fmt, ::std::forward<Ts...>(ts)...);
+        }
+
+        template <typename... Ts> requires (sizeof...(Ts) >= 1)
+        static void write_line(const ::std::basic_string<_Char>& fmt, Ts&&... ts)
+        {
+            format(fmt, ::std::forward<Ts>(ts)...);
+            write_line();
         }
 
 
@@ -210,35 +223,36 @@ namespace leviathan::io
             write_line();
         }
 
-        // at least one parameter
-        template <typename T1, typename... Ts>
-        static void write_multi(const T1& t1, const Ts&... ts)
-        {
-            write(t1);
-            ((write(' '), write(ts)), ...);
-        }
+        // // at least one parameter
+        // template <typename T1, typename... Ts>
+        // static void write_multi(const T1& t1, const Ts&... ts)
+        // {
+        //     write(t1);
+        //     ((write(' '), write(ts)), ...);
+        // }
+
+        // // at least one parameter
+        // template <typename T1, typename... Ts>
+        // static void write_line_multi(const T1& t1, const Ts&... ts)
+        // {
+        //     write_multi(t1, ts...);
+        //     write_line();
+        // }
 
         // at least one parameter
-        template <typename T1, typename... Ts>
-        static void write_line_multi(const T1& t1, const Ts&... ts)
-        {
-            write_multi(t1, ts...);
-            write_line();
-        }
-
-        // at least one parameter
-        template <typename T1, typename... Ts>
-        static void write_lines_multi(const T1& t1, const Ts&... ts)
-        {
-            write_line(t1);
-            (write_line(ts), ...);
-        }
+        // template <typename T1, typename... Ts>
+        // static void write_lines_multi(const T1& t1, const Ts&... ts)
+        // {
+        //     write_line(t1);
+        //     (write_line(ts), ...);
+        // }
 
         // for type
         template <typename... Ts>
         static void write_type()
         {
-            write_multi(type_to_str<Ts>()...);
+            // write_multi(type_to_str<Ts>()...);
+            write(::std::make_tuple(type_to_str<Ts>()...));
         }
 
         template <typename... Ts>
