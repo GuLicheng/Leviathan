@@ -92,7 +92,6 @@ class SeparateHashTable {
     void clear() {  // 未测试
         SeparateHashTable other{};
         std::swap(*this, other);
-        other.~SeparateHashTable();
     }
 
     bool insert(const _Ky &x) {
