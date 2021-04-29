@@ -11,6 +11,19 @@
 namespace leviathan::tuple
 {
 
+
+    template <template <typename...> typename Tuple1, typename... Ts1, 
+              template <typename...> typename Tuple2, typename... Ts2,
+              typename BinaryOp>
+    constexpr ssize_t tuple_mismatch(const Tuple1<Ts1...>& t1, const Tuple2<Ts2...>& t2, BinaryOp op)
+    {
+        constexpr auto size1 = sizeof...(Ts1);
+        constexpr auto size2 = sizeof...(Ts2);
+        static_assert(size1 == size2);
+        return static_looper<0, size1>::mismatch(t1, t2, std::move(op));
+    }
+
+
     template <template <typename...> typename Tuple1, typename... Ts1, 
               template <typename...> typename Tuple2, typename... Ts2,
               typename BinaryOp1, typename BinaryOp2, typename Init>
@@ -20,7 +33,7 @@ namespace leviathan::tuple
         constexpr auto size1 = sizeof...(Ts1);
         constexpr auto size2 = sizeof...(Ts2);
         static_assert(size1 == size2);
-        return static_looper<0, size1>::inner_product(t1, t2, op1, op2, init);
+        return static_looper<0, size1>::inner_product(t1, t2, std::move(op1), std::move(op2), std::move(init));
     }
 
     template <template <typename...> typename Tuple, typename... Ts, typename BinaryOp, typename Init>

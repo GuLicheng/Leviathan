@@ -27,9 +27,9 @@ namespace leviathan::test
             {
                 console::reset();
                 console::set_foreground_color(console_color::red);
-                console::write_line_multi(
-                    "Assert Failed, Lines:", m_line, m_correct,
-                    " expression is: ", m_expr);
+                console::write_line( 
+                    "Assert Failed, Lines: {0}, {1} expression is: {2}.", 
+                    m_line, m_correct, m_expr);
             }
         }
 
