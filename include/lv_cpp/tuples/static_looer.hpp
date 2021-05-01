@@ -1,6 +1,8 @@
 #ifndef __STATIC_LOPPER_HPP__
 #define __STATIC_LOPPER_HPP__
 
+#include <lv_cpp/io/console.hpp>
+
 #include <tuple>
 #include <type_traits>
 #include <functional>
@@ -12,8 +14,7 @@ namespace leviathan::tuple
     * for Left < Right, it will perform as for (int i = Left, i < Right; i += Step), so you should pass <0, size>
     * for Left >= Right, it will perform as for (int i = Left; i >= Right; i += Step), so you should pass <size-1, 0>
     */
-    template <int Left, int Right, 
-        int Step = std::conditional_t<(Left < Right), std::integral_constant<int, 1>, std::integral_constant<int, -1>>::value, 
+    template <int Left, int Right, int Step = std::conditional_t<(Left < Right), std::integral_constant<int, 1>, std::integral_constant<int, -1>>::value, 
         typename Comparetor = std::conditional_t<(Step > 0), std::less<void>, std::greater_equal<void>>>
     struct static_looper
     {    
@@ -75,6 +76,34 @@ namespace leviathan::tuple
             }
         }
 
+
+        template <template <typename...> typename Tuple, typename... Ts, typename Operation>
+        constexpr static void dynamic_set(Tuple<Ts...>& t, Operation op, int idx)
+        {
+            if constexpr (comparator(Left, Right))
+            {
+                if constexpr (std::invocable<decltype(op), decltype(std::get<Left>(t))>)
+                {
+                    if (Left == idx)
+                        op(std::get<Left>(t));
+                    else
+                        static_looper<Left + Step, Right, Step, Comparetor>::
+                            dynamic_set(t, std::move(op), idx);
+                }
+                else
+                {
+                    static_looper<Left + Step, Right, Step, Comparetor>::
+                        dynamic_set(t, std::move(op), idx);
+                }
+            }
+            else
+            {
+                // this routine will be exec if idx > sizeof...(Tuple)
+                return ;
+            }
+        }
+
+    
     };
 
 } // namespace tuple

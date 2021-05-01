@@ -11,6 +11,12 @@
 namespace leviathan::tuple
 {
 
+    template <template <typename...> typename Tuple, typename... Ts, typename Operation>
+    constexpr void dynamic_set(Tuple<Ts...>& t, Operation op, int idx)
+    {
+        constexpr auto size = sizeof...(Ts);
+        return static_looper<0, size>::dynamic_set(t, std::move(op), idx);
+    }   
 
     template <template <typename...> typename Tuple1, typename... Ts1, 
               template <typename...> typename Tuple2, typename... Ts2,

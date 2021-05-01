@@ -112,15 +112,16 @@ namespace leviathan
     };
 
     template <typename Iterator>
-    concept iterator_derived = meta::is_instance<
-        iterator_interface,
+    concept iterator_derived = std::derived_from<
+        Iterator,
         iterator_interface<
             Iterator, 
             typename Iterator::value_type, 
             typename Iterator::iterator_category,
             typename Iterator::reference_type,
-            typename Iterator::difference_type>
-    >::value;
+            typename Iterator::difference_type
+            >
+        >;
 
     template <typename DifferenceType, iterator_derived Iterator> 
     requires (std::same_as<DifferenceType, typename Iterator::difference_type>)
@@ -155,24 +156,28 @@ namespace leviathan
     }
 
     template <iterator_derived Iterator1, iterator_derived Iterator2>
+    requires (std::derived_from<typename Iterator1::iterator_category, std::random_access_iterator_tag> && std::derived_from<typename Iterator2::iterator_category, std::random_access_iterator_tag>)
     constexpr bool operator<(const Iterator1& lhs, const Iterator2& rhs)
     {
         return lhs.equal(rhs) < 0;
     }
 
     template <iterator_derived Iterator1, iterator_derived Iterator2>
+    requires (std::derived_from<typename Iterator1::iterator_category, std::random_access_iterator_tag> && std::derived_from<typename Iterator2::iterator_category, std::random_access_iterator_tag>)
     constexpr bool operator<=(const Iterator1& lhs, const Iterator2& rhs)
     {
         return lhs.equal(rhs) <= 0;
     }
 
     template <iterator_derived Iterator1, iterator_derived Iterator2>
+    requires (std::derived_from<typename Iterator1::iterator_category, std::random_access_iterator_tag> && std::derived_from<typename Iterator2::iterator_category, std::random_access_iterator_tag>)
     constexpr bool operator>(const Iterator1& lhs, const Iterator2& rhs)
     {
         return lhs.equal(rhs) > 0;
     }
 
     template <iterator_derived Iterator1, iterator_derived Iterator2>
+    requires (std::derived_from<typename Iterator1::iterator_category, std::random_access_iterator_tag> && std::derived_from<typename Iterator2::iterator_category, std::random_access_iterator_tag>)
     constexpr bool operator>=(const Iterator1& lhs, const Iterator2& rhs)
     {
         return lhs.equal(rhs) >= 0;
