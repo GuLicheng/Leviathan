@@ -130,15 +130,8 @@ namespace leviathan
         return (iter + n);
     }
 
-    template <typename DifferenceType, iterator_derived Iterator> 
-    requires (std::same_as<DifferenceType, typename Iterator::difference_type>)
-    constexpr auto operator-(DifferenceType n, const Iterator& iter)
-    {
-        return (iter - n);
-    }
-
-    template <iterator_derived Iterator> 
-    constexpr auto operator-(const Iterator& lhs, const Iterator& rhs)
+    template <iterator_derived Iterator1, iterator_derived Iterator2> 
+    constexpr auto operator-(const Iterator1& lhs, const Iterator2& rhs)
     {
         return lhs.distance(rhs);
     }

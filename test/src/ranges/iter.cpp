@@ -62,6 +62,6 @@ int main()
     count_iterator<int> iter1{&x}, iter2{&y}, iter3{&z};
     using T = decltype(iter1);
     console::write_line("distance of x and y is {0}, and distance of x and z is {1}", iter2 - iter1, iter3 - iter1);
-    console::write_line(std::bidirectional_iterator<T>);
-    console::write_line(std::random_access_iterator<T>);
+    console::write_line("bidirectional_iterator ? {0}", std::bidirectional_iterator<T>);
+    console::write_line("random_access_iterator ? {0}", std::random_access_iterator<T>);
 }
