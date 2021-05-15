@@ -62,7 +62,7 @@ namespace leviathan::ranges
             template <int Left, int Right>
             _ReferenceType dereference_impl(int idx) const
             {
-                if constexpr (Left < Right)
+                if constexpr (Left + 1 < Right)
                 {
                     if (Left == idx)
                         return *std::get<Left>(m_iters);
@@ -71,8 +71,7 @@ namespace leviathan::ranges
                 }
                 else
                 {
-                    // unless you dereference end iterator, or this routine will not be executed
-                    throw 0;
+                    return *std::get<Left>(m_iters);
                 }
             }
 
@@ -84,17 +83,18 @@ namespace leviathan::ranges
                 return *this;
             }
 
-            constexpr bool equal(const _Iterator& rhs) const 
-            {
-                const auto idx = leviathan::tuple::tuple_mismatch(m_iters, m_sens, std::equal_to<>());
-                return value_size == idx ? 0 : -1; 
-            }
-
-            constexpr bool equal(const _Sentinel& rhs) const 
+            constexpr auto equal_to(const _Iterator& rhs) const noexcept
             {
                 const auto idx = leviathan::tuple::tuple_mismatch(m_iters, m_sens, std::equal_to<>());
                 return value_size == idx ? 0 : -1;
             }
+
+            constexpr auto equal_to(const _Sentinel& rhs) const noexcept
+            {
+                const auto idx = leviathan::tuple::tuple_mismatch(m_iters, m_sens, std::equal_to<>());
+                return value_size == idx ? 0 : -1;
+            }
+
         };
     public:
 

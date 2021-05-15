@@ -9,7 +9,7 @@ namespace leviathan
 
     /*
         For derived iterator, you should provide follow method:
-        dereference, <=>, next, prev, advance, distance
+        dereference, equal_to, next, prev, advance, distance
     */
 
     template <typename Derived, 
@@ -142,10 +142,24 @@ namespace leviathan
         return lhs.distance(rhs);
     }
 
+
+    template <typename Lhs, typename Rhs>
+    concept binray_order = requires (const std::remove_cvref_t<Lhs>& lhs, const std::remove_cvref_t<Rhs>& rhs)
+    {
+        {lhs.equal_to(rhs)} -> std::convertible_to<bool>;
+    };
+
     template <iterator_derived Iterator1, iterator_derived Iterator2>
     constexpr auto operator==(const Iterator1& lhs, const Iterator2& rhs)
     {
-        return lhs <=> rhs == 0;
+        if constexpr (binray_order<Iterator1, Iterator2>)
+        {
+            return lhs.equal_to(rhs) == 0;
+        }
+        else
+        {
+            return rhs.equal_to(lhs) == 0;
+        }
     }
 
     template <iterator_derived Iterator1, iterator_derived Iterator2>
@@ -158,21 +172,28 @@ namespace leviathan
     requires (std::derived_from<typename Iterator1::iterator_category, std::random_access_iterator_tag> || std::derived_from<typename Iterator2::iterator_category, std::random_access_iterator_tag>)
     constexpr auto operator<(const Iterator1& lhs, const Iterator2& rhs)
     {
-        return lhs <=> rhs < 0;
+        if constexpr (binray_order<Iterator1, Iterator2>)
+        {
+            return lhs.equal_to(rhs) < 0;
+        }
+        else
+        {
+            return rhs.equal_to(lhs) >= 0;
+        }
     }
 
     template <iterator_derived Iterator1, iterator_derived Iterator2>
     requires (std::derived_from<typename Iterator1::iterator_category, std::random_access_iterator_tag> || std::derived_from<typename Iterator2::iterator_category, std::random_access_iterator_tag>)
     constexpr auto operator<=(const Iterator1& lhs, const Iterator2& rhs)
     {
-        return lhs <=> rhs <= 0;
+        return !(lhs > rhs);
     }
 
     template <iterator_derived Iterator1, iterator_derived Iterator2>
     requires (std::derived_from<typename Iterator1::iterator_category, std::random_access_iterator_tag> || std::derived_from<typename Iterator2::iterator_category, std::random_access_iterator_tag>)
     constexpr auto operator>(const Iterator1& lhs, const Iterator2& rhs)
     {
-        return lhs <=> rhs > 0;
+        return rhs < lhs;
     }
 
     
@@ -180,7 +201,7 @@ namespace leviathan
     requires (std::derived_from<typename Iterator1::iterator_category, std::random_access_iterator_tag> || std::derived_from<typename Iterator2::iterator_category, std::random_access_iterator_tag>)
     constexpr auto operator>=(const Iterator1& lhs, const Iterator2& rhs)
     {
-        return lhs <=> rhs >= 0;
+        return !(lhs < rhs);
     }
 
 }

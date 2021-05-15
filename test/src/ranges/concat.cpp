@@ -14,6 +14,9 @@ int main()
         val ++, console::write("{0} ", val);
     for (auto val : leviathan::ranges::concat_view(ls2, ls1, v1)) 
         console::write("{0} ", val);
-    auto iter1 = leviathan::ranges::concat_view(ls2, ls1, v1).begin();
+    auto view = leviathan::ranges::concat_view(ls2, ls1, v1);
+    auto iter1 = view.begin();
+    auto iter2 = view.end();
     console::write_line(std::input_iterator<decltype(iter1)>);
+    console::write_line(iter2 == iter1);
 }
