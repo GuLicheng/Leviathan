@@ -155,18 +155,21 @@ namespace leviathan
     }
 
     template <iterator_derived Iterator1, iterator_derived Iterator2>
+    requires (std::derived_from<typename Iterator1::iterator_category, std::random_access_iterator_tag> || std::derived_from<typename Iterator2::iterator_category, std::random_access_iterator_tag>)
     constexpr auto operator<(const Iterator1& lhs, const Iterator2& rhs)
     {
         return lhs <=> rhs < 0;
     }
 
     template <iterator_derived Iterator1, iterator_derived Iterator2>
+    requires (std::derived_from<typename Iterator1::iterator_category, std::random_access_iterator_tag> || std::derived_from<typename Iterator2::iterator_category, std::random_access_iterator_tag>)
     constexpr auto operator<=(const Iterator1& lhs, const Iterator2& rhs)
     {
         return lhs <=> rhs <= 0;
     }
 
     template <iterator_derived Iterator1, iterator_derived Iterator2>
+    requires (std::derived_from<typename Iterator1::iterator_category, std::random_access_iterator_tag> || std::derived_from<typename Iterator2::iterator_category, std::random_access_iterator_tag>)
     constexpr auto operator>(const Iterator1& lhs, const Iterator2& rhs)
     {
         return lhs <=> rhs > 0;
@@ -174,6 +177,7 @@ namespace leviathan
 
     
     template <iterator_derived Iterator1, iterator_derived Iterator2>
+    requires (std::derived_from<typename Iterator1::iterator_category, std::random_access_iterator_tag> || std::derived_from<typename Iterator2::iterator_category, std::random_access_iterator_tag>)
     constexpr auto operator>=(const Iterator1& lhs, const Iterator2& rhs)
     {
         return lhs <=> rhs >= 0;
