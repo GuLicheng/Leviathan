@@ -2,6 +2,7 @@
 #include <lv_cpp/io/console.hpp>
 
 #include <ranges>
+#include <compare>
 
 template <typename T>
 struct count_iterator
@@ -30,6 +31,13 @@ struct count_iterator
     {
         return *value - *rhs.value;
     }
+
+    auto operator<=>(count_iterator const& rhs) const noexcept
+    {
+        std::cout << "called\n";
+        return *value <=> *rhs.value;
+    }
+
 
     count_iterator& next() noexcept
     {
@@ -61,6 +69,7 @@ int main()
     int x = 1, y = 2, z = 3;
     count_iterator<int> iter1{&x}, iter2{&y}, iter3{&z};
     using T = decltype(iter1);
+    auto iter = 3 + iter1;
     console::write_line("distance of x and y is {0}, and distance of x and z is {1}", iter2 - iter1, iter3 - iter1);
     console::write_line("bidirectional_iterator ? {0}", std::bidirectional_iterator<T>);
     console::write_line("random_access_iterator ? {0}", std::random_access_iterator<T>);
