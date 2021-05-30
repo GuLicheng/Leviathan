@@ -51,3 +51,23 @@ public:
 };
 
 struct empty_class { };
+
+
+template <typename... Args>
+class Base
+{
+};
+
+template <typename T>
+class Derived1 : public Base<T>
+{
+};
+
+template <typename T>
+struct Derived2 : public Base<Derived2<T>>
+{
+};
+
+struct Derived3 final : Base<int>, Base<double>
+{
+};
