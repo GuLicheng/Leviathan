@@ -23,6 +23,12 @@ namespace leviathan::parser
                 " Seeing here:" << contend << std::endl;  
         }
 
+        friend std::ostream& operator<<(std::ostream& os, const error_log& err)
+        {
+            err.report();
+            return os;
+        }
+
         ~error_log() { }
     };
 
