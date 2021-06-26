@@ -9,6 +9,10 @@ namespace leviathan
 	template <typename Distribution = std::uniform_int_distribution<int>, typename Generator = std::mt19937_64>
 	struct distribution_iterator
 	{
+
+        static_assert(std::is_same_v<Distribution, std::remove_cv_t<Distribution>>);
+        static_assert(std::is_same_v<Generator, std::remove_cv_t<Generator>>);
+
 		using distribution_type = Distribution;
 		using generator_type = Generator;
 
@@ -27,8 +31,13 @@ namespace leviathan
 			value = this->operator*();
 		}
 
-		distribution_iterator(const distribution_iterator&) = default;
-		distribution_iterator& operator=(const distribution_iterator&) = default;
+		distribution_iterator(const distribution_iterator&)			
+			noexcept(noexcept(std::is_nothrow_copy_constructible_v<distribution_type>
+			&& std::is_nothrow_copy_constructible_v<generator_type>)) = default;
+
+		distribution_iterator& operator=(const distribution_iterator&)			
+			noexcept(noexcept(std::is_nothrow_assignable_v<distribution_type, const distribution_type&>
+			&& std::is_nothrow_assignable_v<generator_type, const generator_type&>)) = default;
 
 		distribution_iterator(distribution_iterator&&) 
 			noexcept(noexcept(std::is_nothrow_move_constructible_v<distribution_type>

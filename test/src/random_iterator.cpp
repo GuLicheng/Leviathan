@@ -12,6 +12,7 @@ void test1(Args... args)
 	}
 	static_assert(std::forward_iterator<decltype(iter)>);
 	std::cout << std::is_nothrow_move_constructible_v<decltype(iter)> << '-';
+	std::cout << std::is_nothrow_copy_constructible_v<decltype(iter)> << '-';
 	std::cout << std::is_nothrow_move_assignable_v<decltype(iter)> << std::endl;
 	std::endl(std::cout);
 }
