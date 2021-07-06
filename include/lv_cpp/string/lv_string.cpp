@@ -83,6 +83,7 @@ namespace leviathan
 			{
 				state = State::Long;
 				_heap._ptr = allocator.allocate(len);
+				// assert(_heap._ptr != nullptr);
 				CharTrait::copy(_heap._ptr, ptr, len);
 				_heap._size = _heap._ptr + len;
 				_heap._res = _heap._size;
