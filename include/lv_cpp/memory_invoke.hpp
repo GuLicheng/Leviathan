@@ -25,7 +25,7 @@
 #endif
 
 // for function_traits
-#include <lv_cpp/type_list.hpp>
+#include <lv_cpp/meta/type_list.hpp>
 
 // extend std::hash
 namespace std
