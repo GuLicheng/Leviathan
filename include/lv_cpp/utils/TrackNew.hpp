@@ -1,23 +1,17 @@
-/*
-	This header only avaliable for MSVC in Windows
-	and GCC for Linux
-*/
-#pragma once
 #ifndef TRACKNEW_HPP 
 #define TRACKNEW_HPP 
+
+#include <stdlib.h>
+
 #include <new>
 #include <cstdio>
-#include <cstdlib>
 #include <cstdint>
 
-#ifdef _MSC_VER 
-#include <malloc.h> // for_aligned_malloc() and_aligned_free() 
-#endif 
 
 class TrackNew {
 private:
 	inline static int numMalloc = 0;
-	inline static size_t sumSize = 0;
+	inline static std::size_t sumSize = 0;
 	inline static bool doTrace = false;
 	inline static bool inNew = false;
 
@@ -39,24 +33,11 @@ public:
 			p = std::malloc(size);
 		}
 		else {
-#ifdef _MSC_VER
-			p = _aligned_malloc(size, align); // Windows API
-#else
-
-			p = std::aligned_alloc(align, size); // C++17 API
-			/*
-			#if __cplusplus >= 201703L && defined(_GLIBCXX_HAVE_ALIGNED_ALLOC)
-  			using ::aligned_alloc;
-			#endif
-			*/
-			// it doesn't work... you can use it in VS2019
-			// https://stackoverflow.com/questions/29247065/compiler-cant-find-aligned-alloc-function
-			
-#endif // _MSC_VER
+			p = ::operator new(size, std::align_val_t{align});
 		}
 		if (doTrace) {
 			// DON'T use std::cout here because it might allocate memory
-			// while we are allocating memory(core dump at best
+			// while we are allocating memory(core dump at best)
 			printf("#%d %s", numMalloc, call);
 			printf("(%zu bytes, ", size);
 			if (align > 0) {
@@ -96,24 +77,42 @@ void* operator new[](std::size_t size, std::align_val_t align) {
 	return TrackNew::allocate(size, static_cast<size_t>(align), "::new[] aligned");
 }
 
-[[nodiscard]]
 void operator delete(void* p) noexcept {
-	std::free(p);
+	::free(p);
 }
 
 void operator delete(void* p, std::size_t) noexcept {
-	::operator delete(p);
+	::free(p);
 }
 
 void operator delete(void* p, std::align_val_t) noexcept {
-#ifdef _MSC_VER
-	_aligned_free(p); // Windows API
-#else
-	std::free(p); // C++17 API
-#endif
+	::free(p);
 }
 
 void operator delete(void* p, std::size_t, std::align_val_t align) noexcept {
-	::operator delete(p, align);
+	::free(p);
 }
+
 #endif
+
+/*
+
+int main()
+{
+    // allocate some memory on the stack:
+    std::array<std::byte, 200000> buf;
+    for (int num : {1000, 2000, 500, 2000, 3000, 50000, 1000}) 
+    {
+        std::cout << "-- check with " << num << " elements:\n";
+        TrackNew::reset();
+        std::pmr::monotonic_buffer_resource pool{buf.data(), buf.size()};
+        std::pmr::vector<std::pmr::string> coll{&pool};
+        for (int i=0; i < num; ++i) 
+        {
+            coll.emplace_back("just a non-SSO string");
+        }
+        TrackNew::status();
+    }
+}
+
+*/
