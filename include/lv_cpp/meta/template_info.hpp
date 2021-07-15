@@ -45,8 +45,6 @@ constexpr std::string_view type_to_str() noexcept
 #define GetValueCategory(type_instance) type_to_str<decltype((type_instance))>()
 
 
-// add parentheses to adapt fold-expr
-
 #define TEMPLATE_INFORMATION() (std::cout << __PRETTY_FUNCTION__ << std::endl)
 
 #define PrintTypeCategory(type_instance) \

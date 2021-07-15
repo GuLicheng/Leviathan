@@ -169,4 +169,35 @@ namespace leviathan
         bucket m_bkt;
     };
 
+    template <typename T, std::size_t N>
+    class PmrAllocator : public std::pmr::memory_resource
+    {
+    public:
+        PmrAllocator()
+            : m_bkt{ sizeof(T), N }
+        {
+        }
+
+        virtual void*
+        do_allocate(size_t bytes, size_t alignment)
+        {
+            return static_cast<void*>(this->m_bkt.allocate(bytes));
+        }
+
+        virtual void
+        do_deallocate(void* p, size_t bytes, size_t alignment)
+        {
+            this->m_bkt.deallocate(p, bytes);
+        }
+
+        virtual bool
+        do_is_equal(const memory_resource& other) const noexcept
+        {
+            return this == std::addressof(other);
+        }
+
+    private:
+        bucket m_bkt;
+    };
+
 }
