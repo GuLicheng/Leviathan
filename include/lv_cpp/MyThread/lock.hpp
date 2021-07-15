@@ -454,14 +454,10 @@ template <typename Callable, typename... Args>
 void CallOnce(OnceFlag& once_flag, Callable&& callable, Args&&... args)
 {
     // FIXME:
-    static Mutex cstyle_func_mutex;
-    static std::function<void()> cstyle_func;
-    UniqueLock lk{ cstyle_func_mutex };
-    auto wrapper = [&]() 
+    thread_local std::function<void()> cstyle_func = [&]() 
     {
         std::invoke(std::forward<Callable>(callable), std::forward<Args>(args)...);
     };
-    cstyle_func = wrapper;
     void (*call_once_warpper)() = []() { cstyle_func(); };
     int e = pthread_once(&once_flag.m_once, call_once_warpper);
     if (e)

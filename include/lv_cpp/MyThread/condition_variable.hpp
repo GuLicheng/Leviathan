@@ -186,7 +186,7 @@ public:
         UniqueLock<Mutex> guard(*ptr);
         UnLockGuard<LockType> unlocker(lock);
         UniqueLock<Mutex> lock2(std::move(guard));
-        this->m_cond.wait_until(lock2, atime);
+        return this->m_cond.wait_until(lock2, atime);
     }
 
     template <typename LockType, typename ClockType, typename DurationType, typename Predicate>
