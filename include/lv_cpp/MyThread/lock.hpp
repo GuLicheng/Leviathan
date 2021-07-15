@@ -9,7 +9,7 @@
 #include <chrono>
 #include <type_traits>
 #include <tuple>
-#include <functional> 
+#include <functional>
 
 template <typename MutexType>
 class LockGuard
@@ -454,12 +454,12 @@ template <typename Callable, typename... Args>
 void CallOnce(OnceFlag& once_flag, Callable&& callable, Args&&... args)
 {
     // FIXME:
-    thread_local auto cstyle_func = [&]() 
+    thread_local auto warpper = [&]() 
     {
         std::invoke(std::forward<Callable>(callable), std::forward<Args>(args)...);
     };
-    void (*call_once_warpper)() = []() { cstyle_func(); };
-    int e = pthread_once(&once_flag.m_once, call_once_warpper);
+    void (*cfunc)() = []() { warpper(); };
+    int e = pthread_once(&once_flag.m_once, cfunc);
     if (e)
         throw std::system_error(std::make_error_code(static_cast<std::errc>(e)));
 }
