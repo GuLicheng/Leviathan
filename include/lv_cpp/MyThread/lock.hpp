@@ -454,7 +454,7 @@ template <typename Callable, typename... Args>
 void CallOnce(OnceFlag& once_flag, Callable&& callable, Args&&... args)
 {
     // FIXME:
-    thread_local std::function<void()> cstyle_func = [&]() 
+    thread_local auto cstyle_func = [&]() 
     {
         std::invoke(std::forward<Callable>(callable), std::forward<Args>(args)...);
     };
