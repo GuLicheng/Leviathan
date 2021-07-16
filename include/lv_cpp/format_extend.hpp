@@ -7,9 +7,9 @@
 #include <type_traits>
 #include <concepts>
 
-#define OK 1
+#define LV_OK 1
 
-#if OK
+#if LV_OK
 template <typename Container>
 concept ContainerChecker = std::ranges::range<Container>;
 // tuple - like
