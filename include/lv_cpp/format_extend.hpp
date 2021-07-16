@@ -1,15 +1,6 @@
+#ifdef __cpp_lib_format
 #include <format>
-#include <string>
-#include <iostream>
-#include <vector>
-#include <list>
-#include <set>
-#include <type_traits>
-#include <concepts>
 
-#define LV_OK 1
-
-#if LV_OK
 template <typename Container>
 concept ContainerChecker = std::ranges::range<Container>;
 // tuple - like
@@ -20,7 +11,7 @@ concept TupleChecker = requires (const Tuple & t)
 };
 
 template <template <typename...> typename Container, typename... Types, typename CharT>
-struct std::formatter<Container<Types...>, CharT> 
+struct std::formatter<Container<Types...>, CharT>
 	: std::formatter<char, CharT>
 {
 	template <typename FormatContext>
@@ -50,7 +41,7 @@ struct std::formatter<Container<Types...>, CharT>
 		{
 			if (vec_iter != begin)
 			{
-				iter = ',';
+				iter = ',', iter = ' ';
 			}
 			iter = std::formatter<value_type, CharT>().format(*vec_iter, format_context);
 		}
@@ -65,14 +56,16 @@ struct std::formatter<Container<Types...>, CharT>
 		{
 			auto iter = std::formatter<char, CharT>().format('(', format_context);
 
-			auto write = [&]<typename U>(const U & val) 
+			auto write = [&]<typename U>(const U & val, bool is_first)
 			{
+				if (is_first)
+					iter = ',', iter = ' ';
 				iter = std::formatter<U, CharT>().format(val, format_context);
 			};
 
-			((Idx == 0 ?
-				write(::std::get<0>(_t)) :
-				(write(','), write(::std::get<Idx>(_t)))), ...);
+			(
+				(Idx == 0 ? write(::std::get<0>(_t), false) : write(::std::get<Idx>(_t), true))
+			, ...);
 
 			iter = ')';
 			return iter;
@@ -81,7 +74,6 @@ struct std::formatter<Container<Types...>, CharT>
 		return __print_tuple(t, std::make_index_sequence<sizeof...(Types)>());
 	}
 };
-
 #endif
 
 /*
@@ -93,8 +85,8 @@ int main()
 	auto tuple = std::make_tuple(1, 2, 3);
 	std::string str = "hello world";
 	std::cout << std::format
-		("The vec = {}\nls = {}\nset = {}\nstr = {}\ntuple = {}\nchars = {}"
-			, arr, ls, s, str, tuple, 0);
+	("The vec = {}\nls = {}\nset = {}\nstr = {}\ntuple = {}\nchars = {}"
+		, arr, ls, s, str, tuple, 0);
 
 	return 0;
 }
