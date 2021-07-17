@@ -72,22 +72,22 @@ namespace leviathan
 			return old;
 		}
 
-		Distribution& get_distribution()
+		Distribution& get_distribution() noexcept
 		{
 			return distribution;
 		}
 
-		Generator& get_generator()
+		Generator& get_generator() noexcept
 		{
 			return random_generator;
 		}
 
-		bool operator==(const distribution_iterator&) const noexcept
+		constexpr bool operator==(const distribution_iterator&) const noexcept
 		{
 			return false;
 		}
 
-		bool operator!=(const distribution_iterator&) const noexcept
+		constexpr bool operator!=(const distribution_iterator&) const noexcept
 		{
 			return true;
 		}
