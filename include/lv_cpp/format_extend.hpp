@@ -2,7 +2,12 @@
 #include <format>
 
 template <typename Container>
-concept ContainerChecker = std::ranges::range<Container>;
+concept ContainerChecker = requires (const Container &c)
+{
+	// not support std::generator
+	std::ranges::begin(c);
+	std::ranges::end(c);
+};
 // tuple - like
 template <typename Tuple>
 concept TupleChecker = requires (const Tuple & t)
@@ -56,16 +61,15 @@ struct std::formatter<Container<Types...>, CharT>
 		{
 			auto iter = std::formatter<char, CharT>().format('(', format_context);
 
-			auto write = [&]<typename U>(const U & val, bool is_first)
+			auto write = [&]<int Index>()
 			{
-				if (is_first)
+				if constexpr (Index != 0)
 					iter = ',', iter = ' ';
-				iter = std::formatter<U, CharT>().format(val, format_context);
+				using U = std::tuple_element_t<Index, _Tuple>;
+				iter = std::formatter<U, CharT>().format(std::get<Index>(_t), format_context);
 			};
 
-			(
-				(Idx == 0 ? write(::std::get<0>(_t), false) : write(::std::get<Idx>(_t), true))
-			, ...);
+			(write.operator()<Idx>(), ...);
 
 			iter = ')';
 			return iter;
