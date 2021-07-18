@@ -3,6 +3,7 @@
 .vscode
 
 Makefile
+__pycache__
 
 *.exe
 *.o
