@@ -1,52 +1,62 @@
+module;
 
 #include <random>
 #include <iterator>
 #include <iostream>
+#include <ranges>
+#include <concepts>
 
-namespace leviathan
+export module random_iterator;
+
+export namespace leviathan
 {
 
+	struct distribution_sentinel { };
+
 	template <typename Distribution = std::uniform_int_distribution<int>, typename Generator = std::mt19937_64>
-	struct distribution_iterator
+		struct distribution_iterator
 	{
+	private:
 
-        static_assert(std::is_same_v<Distribution, std::remove_cv_t<Distribution>>);
-        static_assert(std::is_same_v<Generator, std::remove_cv_t<Generator>>);
+		static_assert(std::same_as<Distribution, std::remove_cvref_t<Distribution>>);
+		static_assert(std::same_as<Generator, std::remove_cvref_t<Generator>>);
 
+		void next_random_number()
+		{
+			value = distribution(random_generator);
+		}
+
+	public:
 		using distribution_type = Distribution;
 		using generator_type = Generator;
 
-		distribution_iterator() 
-			: random_generator{ std::random_device()() }, distribution{ }, value { }
+		distribution_iterator()
+			: random_generator{ std::random_device()() }, distribution{ }, value{ }
 		{
-			this->operator++();
-			value = this->operator*();
+			next_random_number();
 		}
 
 		template <typename Seed, typename... Args>
-		distribution_iterator(Seed seed, Args... args)
-			: random_generator{ seed }, distribution{ args... }, value { } 
+		explicit distribution_iterator(Seed seed, Args... args)
+			: random_generator{ seed }, distribution{ args... }, value{ }
 		{
-			this->operator++();
-			value = this->operator*();
+			next_random_number();
 		}
 
-		distribution_iterator(const distribution_iterator&)			
+		distribution_iterator(const distribution_iterator&)
 			noexcept(noexcept(std::is_nothrow_copy_constructible_v<distribution_type>
-			&& std::is_nothrow_copy_constructible_v<generator_type>)) = default;
+				&& std::is_nothrow_copy_constructible_v<generator_type>)) = default;
 
-		distribution_iterator& operator=(const distribution_iterator&)			
+		distribution_iterator& operator=(const distribution_iterator&)
 			noexcept(noexcept(std::is_nothrow_assignable_v<distribution_type, const distribution_type&>
-			&& std::is_nothrow_assignable_v<generator_type, const generator_type&>)) = default;
+				&& std::is_nothrow_assignable_v<generator_type, const generator_type&>)) = default;
 
-		distribution_iterator(distribution_iterator&&) 
+		distribution_iterator(distribution_iterator&&)
 			noexcept(noexcept(std::is_nothrow_move_constructible_v<distribution_type>
 				&& std::is_nothrow_move_constructible_v<generator_type>)) = default;
-
-        // without this noexpect expr, there are difference behavior between MSVC and GCC
-		distribution_iterator& operator=(distribution_iterator&&)			
+		distribution_iterator& operator=(distribution_iterator&&)
 			noexcept(noexcept(std::is_nothrow_move_assignable_v<distribution_type>
-			&& std::is_nothrow_move_assignable_v<generator_type>)) = default;
+				&& std::is_nothrow_move_assignable_v<generator_type>)) = default;
 
 
 		using value_type = typename distribution_type::result_type;
@@ -61,7 +71,7 @@ namespace leviathan
 
 		distribution_iterator& operator++()
 		{
-			value = distribution(random_generator);
+			next_random_number();
 			return *this;
 		}
 
@@ -72,22 +82,32 @@ namespace leviathan
 			return old;
 		}
 
-		Distribution& get_distribution() noexcept
+		Distribution& get_distribution()
 		{
 			return distribution;
 		}
 
-		Generator& get_generator() noexcept
+		Generator& get_generator()
 		{
 			return random_generator;
 		}
 
-		constexpr bool operator==(const distribution_iterator&) const noexcept
+		bool operator==(const distribution_iterator&) const noexcept
 		{
 			return false;
 		}
 
-		constexpr bool operator!=(const distribution_iterator&) const noexcept
+		bool operator==(const distribution_sentinel&) const noexcept
+		{
+			return false;
+		}
+
+		bool operator!=(const distribution_iterator&) const noexcept
+		{
+			return true;
+		}
+
+		bool operator!=(const distribution_sentinel&) const noexcept
 		{
 			return true;
 		}
@@ -97,32 +117,47 @@ namespace leviathan
 		value_type value;
 	};
 
+	//export template <typename D = std::uniform_int_distribution<int>, typename G = std::mt19937_64>
+	//	auto random_range(distribution_iterator<D, G> dist_iter, int count)
+	//{
+	//	return std::ranges::subrange(dist_iter, distribution_sentinel())
+	//		| std::views::take(count);
+	//}
 
+	struct random_range_fn
+	{
+		template <typename D = std::uniform_int_distribution<int>, typename G = std::mt19937_64>
+		auto operator()(distribution_iterator<D, G> dist_iter, int count) const
+		{
+			return std::ranges::subrange(dist_iter, distribution_sentinel())
+				| std::views::take(count);
+		}
+	};
+
+	constexpr random_range_fn random_range{};
+
+} // end of namespace
+
+template <typename D, typename G, typename... Args>
+void test1(Args... args)
+{
+	leviathan::distribution_iterator<D, G> iter{ args... };
+	using T = typename leviathan::distribution_iterator<D, G>::value_type;
+	auto range5 = leviathan::random_range(iter, 10);
+	std::ranges::copy(range5, std::ostream_iterator<T>{std::cout, " "});
+	std::endl(std::cout);
+
+	static_assert(std::forward_iterator<decltype(iter)>);
+	static_assert(std::ranges::forward_range<decltype(range5)>);
 }
 
-// template <typename D, typename G, typename... Args>
-// void test1(Args... args)
-// {
-// 	leviathan::distribution_iterator<D, G> iter{ args... };
-// 	for (int i = 0; i < 3; ++i)
-// 	{
-// 		std::cout << *iter << ' ';
-// 		iter++;
-// 	}
-// 	static_assert(std::forward_iterator<decltype(iter)>);
-// 	std::cout << std::is_nothrow_move_constructible_v<decltype(iter)> << std::endl;
-// 	std::cout << std::is_nothrow_move_assignable_v<decltype(iter)> << std::endl;
-// 	std::endl(std::cout);
-// }
 
-
-
-// void test()
-// {
-// 	std::random_device rd;
-// 	test1<std::uniform_int_distribution<int>, std::mt19937_64>();
-// 	test1<std::normal_distribution<double>, std::mt19937_64>(rd(), 0., 1.);
-// 	test1<std::geometric_distribution<>, std::mt19937_64>();
-// 	test1<std::gamma_distribution<>, std::mt19937_64>();
-// 	test1<std::discrete_distribution<>, std::mt19937_64>();
-// }
+export void test()
+{
+	std::random_device rd;
+	test1<std::uniform_int_distribution<int>, std::mt19937_64>(0, 1, 5);
+	test1<std::normal_distribution<double>, std::mt19937_64>(rd(), 0., 1.);
+	test1<std::geometric_distribution<>, std::mt19937_64>();
+	test1<std::gamma_distribution<>, std::mt19937_64>();
+	test1<std::discrete_distribution<>, std::mt19937_64>();
+}

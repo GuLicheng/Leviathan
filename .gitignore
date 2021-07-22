@@ -10,6 +10,8 @@ __pycache__
 *.txt
 *.ini
 *.py
+*.xml
+*.json
 
 # root
 /*.cpp
