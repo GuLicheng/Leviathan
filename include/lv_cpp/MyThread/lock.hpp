@@ -9,6 +9,7 @@
 #include <chrono>
 #include <type_traits>
 #include <tuple>
+#include <memory>
 #include <functional>
 
 template <typename MutexType>
@@ -440,15 +441,6 @@ private:
     native_type m_once = PTHREAD_ONCE_INIT;
 };
 
-// template< class Function, class... Args > 
-// explicit thread( Function&& f, Args&&... args ) {
-//     auto wrapper = new auto([f, args...]{ return f(args...); });
-//     using pointertype = decltype(wrapper);
-//     using realtype = std::remove_pointer_t<pointertype>;
-//     using entry = void (*)(void*);
-//     entry invoke_wrapper = [](void* p) { std::unique_ptr<realtype> pf (static_cast<pointertype>(p)); (*pf)(); };
-//     thread_create(invoke_wrapper, wrapper);
-// }
 
 template <typename Callable, typename... Args>
 void CallOnce(OnceFlag& once_flag, Callable&& callable, Args&&... args)
@@ -464,3 +456,36 @@ void CallOnce(OnceFlag& once_flag, Callable&& callable, Args&&... args)
         throw std::system_error(std::make_error_code(static_cast<std::errc>(e)));
 }
 
+/*
+struct Thread
+{
+    template<typename Function, typename... Args> 
+    explicit Thread(Function&& f, Args&&... args) 
+    {
+        auto warpper = new auto([f, args...]()
+        { 
+            std::invoke(f, args...);
+        });
+
+        using type = decltype(warpper);
+        using real_type = std::remove_pointer_t<type>;
+        void* (*func)(void*) = [](void* arg) -> void*
+        { 
+            std::unique_ptr<real_type> ptr{static_cast<type>(arg)}; 
+            (*ptr)();
+            return nullptr;
+        };
+        pthread_create(&id, nullptr, func, warpper);
+    }
+
+    Thread() = default;
+
+    void join()
+    {
+        pthread_join(id, nullptr);
+    }
+
+    pthread_t id;
+
+};
+*/
