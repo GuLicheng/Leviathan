@@ -456,36 +456,3 @@ void CallOnce(OnceFlag& once_flag, Callable&& callable, Args&&... args)
         throw std::system_error(std::make_error_code(static_cast<std::errc>(e)));
 }
 
-/*
-struct Thread
-{
-    template<typename Function, typename... Args> 
-    explicit Thread(Function&& f, Args&&... args) 
-    {
-        auto warpper = new auto([f, args...]()
-        { 
-            std::invoke(f, args...);
-        });
-
-        using type = decltype(warpper);
-        using real_type = std::remove_pointer_t<type>;
-        void* (*func)(void*) = [](void* arg) -> void*
-        { 
-            std::unique_ptr<real_type> ptr{static_cast<type>(arg)}; 
-            (*ptr)();
-            return nullptr;
-        };
-        pthread_create(&id, nullptr, func, warpper);
-    }
-
-    Thread() = default;
-
-    void join()
-    {
-        pthread_join(id, nullptr);
-    }
-
-    pthread_t id;
-
-};
-*/

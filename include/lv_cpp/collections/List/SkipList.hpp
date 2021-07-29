@@ -11,7 +11,6 @@
 template<typename T>
 struct SkipNode {
 	T elem;
-	
 	std::vector<SkipNode *> next;		 // 后继
 
 	SkipNode() = default;
@@ -27,7 +26,7 @@ class SkipList {
 
 	using SkipNode = SkipNode<T>;
 	
-	constexpr static char MAXLEVEL = 32;
+	constexpr static int MAXLEVEL = 32;
 
 public:
 
@@ -65,9 +64,11 @@ private:
 	std::size_t  curSize;
 
 	int getLevel() const {
-		char level = 1;
-		std::random_device rd;
-		while ((rd() & 1) && ++level);
+		int level = 1;
+		constexpr double p = 0.25;
+		constexpr double rand_max = std::random_device::max();
+		static std::random_device rd;
+		for (; ((rd() / rand_max) < p && level < MAXLEVEL); ++level);
 		return std::min(MAXLEVEL, level);
 	}
 

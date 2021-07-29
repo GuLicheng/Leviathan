@@ -21,7 +21,7 @@ namespace leviathan::test
             m_expr = expr;
         }
 
-        void assert_true() 
+        bool assert_true() 
         {
             if (!m_bool) 
             {
@@ -31,6 +31,7 @@ namespace leviathan::test
                     "Assert Failed, Lines: {0}, {1} expression is: {2}.", 
                     m_line, m_correct, m_expr);
             }
+            return m_bool;
         }
 
         ~tester()
