@@ -213,7 +213,6 @@ namespace leviathan
             static std::random_device rd;
             for (; ((rd() / rand_max) < p && level < MAXLEVEL); ++level);
             return std::min(MAXLEVEL, level);
-
         }
 
 
