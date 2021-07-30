@@ -14,5 +14,5 @@ __pycache__
 *.json
 
 # root
-/*.cpp
-/*.c
+# /*.cpp
+# /*.c

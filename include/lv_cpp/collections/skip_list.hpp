@@ -46,7 +46,7 @@ namespace leviathan
 
         constexpr static int MAXLEVEL = 32;
         inline static std::random_device rd;
-        
+
         template <typename Derived>
         struct header
         {
@@ -94,12 +94,12 @@ namespace leviathan
     public:
         skip_list() noexcept(noexcept(std::is_nothrow_default_constructible_v<key_allocator_type> 
             && std::is_nothrow_default_constructible_v<Compare>)) 
-            : m_cmp{ }, m_alloc{ }, m_size{ 0 }, m_header{ }
+            : m_cmp{ }, m_alloc{ }, m_size{ 0 }, m_header{ }, m_level { 1 }
         {
         }
 
         skip_list(Compare compare) 
-            : m_cmp{ std::move(compare) }, m_alloc{ }, m_size{ 0 }, m_header{ }
+            : m_cmp{ std::move(compare) }, m_alloc{ }, m_size{ 0 }, m_header{ }, m_level { 1 }
         {
         }
         
@@ -205,6 +205,7 @@ namespace leviathan
         [[no_unique_address]] key_allocator_type m_alloc;
         std::size_t m_size;
         header<skip_node> m_header;
+        int m_level;
         
         static int get_level()  
         {
@@ -296,6 +297,7 @@ namespace leviathan
             insert_after(cur, new_node, prev);
             update_header(new_node);
             ++this->m_size;
+            this->m_level = std::max(this->m_level, static_cast<int>(new_node->m_next.size()));
             return { new_node, true };
         }
 
