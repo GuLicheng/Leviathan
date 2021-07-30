@@ -230,7 +230,7 @@ namespace leviathan
                 auto next_node = cur->m_next[i];
                 if (next_node && KeyTraits::compare(std::equal_to<>(), next_node->m_data, val)) 
                 {
-                    assert(KeyTraits::compare(std::equal_to<>(), next_node->m_data, val));   // UB
+                    // assert(KeyTraits::compare(std::equal_to<>(), next_node->m_data, val));   // UB
                     if constexpr (!CompletelyPrev)
                         return { next_node, true }; // find it and do nothing
                     else
