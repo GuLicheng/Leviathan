@@ -45,7 +45,8 @@ namespace leviathan
     public:
 
         constexpr static int MAXLEVEL = 32;
-
+        inline static std::random_device rd;
+        
         template <typename Derived>
         struct header
         {
@@ -210,8 +211,7 @@ namespace leviathan
             int level = 1;
             // constexpr double p = 0.25;
             constexpr auto p = std::random_device::max() / 4;
-            static std::random_device rd;
-            for (; rd() < p && level < MAXLEVEL); ++level);
+            for (; rd() < p; ++level);
             return std::min(MAXLEVEL, level);
         }
 
