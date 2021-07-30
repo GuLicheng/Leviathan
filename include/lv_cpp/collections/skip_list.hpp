@@ -208,10 +208,10 @@ namespace leviathan
         static int get_level()  
         {
             int level = 1;
-            constexpr double p = 0.25;
-            constexpr double rand_max = std::random_device::max();
+            // constexpr double p = 0.25;
+            constexpr auto p = std::random_device::max() / 4;
             static std::random_device rd;
-            for (; ((rd() / rand_max) < p && level < MAXLEVEL); ++level);
+            for (; rd() < p && level < MAXLEVEL); ++level);
             return std::min(MAXLEVEL, level);
         }
 
