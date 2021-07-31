@@ -54,10 +54,19 @@ namespace leviathan
 	template <typename Key, typename Compare = std::less<Key>, typename Allocator = std::allocator<Key>, typename KeyTraits = indentity<Key>>
 	class skip_list
 	{
+
 	public:
 
 		constexpr static int MAXLEVEL = 32;
 		inline static std::random_device rd;
+		constexpr static unsigned int p = std::random_device::max() / 4;
+
+		static int get_level()
+		{
+			int level = 1;
+			for (; rd() < p; ++level);
+			return std::min(MAXLEVEL, level);
+		}
 
 		template <typename Derived>
 		struct header
@@ -193,9 +202,8 @@ namespace leviathan
 		std::pair<iterator, bool> emplace(Args&&... args)
 		{
             // check type -> emplace or insert
-            if constexpr (sizeof...(Args) == 1)
-                if constexpr (insert_emplace_selector<Key, Args...>::value)
-                    return insert(std::forward<Args>(args)...);
+            if constexpr (sizeof...(Args) == 1 && insert_emplace_selector<Key, Args...>::value)
+                return insert(std::forward<Args>(args)...);
 			auto [node, exist] = emplace_unique(this->m_header.derived_ptr(), std::forward<Args>(args)...);
 			return { iterator(node, this), exist };
 		}
@@ -256,14 +264,7 @@ namespace leviathan
 		header<skip_node> m_header;
 		int m_level;
 
-		static int get_level()
-		{
-			int level = 1;
-			// constexpr double p = 0.25;
-			constexpr unsigned int p = std::random_device::max() / 4;
-			for (; rd() < p; ++level);
-			return std::min(MAXLEVEL, level);
-		}
+
 
 
 		// return target node if succeed else prev position of target node for inserting

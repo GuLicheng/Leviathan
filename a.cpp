@@ -10,7 +10,7 @@
 
 auto random_num = []()
 {
-    return std::random_device()() % 50;
+    return std::random_device()();
 };
 std::vector<int> vec;
 leviathan::skip_list<int> ls;
@@ -48,13 +48,14 @@ auto skip_list_insert3()
 
 int main()
 {
-    std::generate_n(std::back_inserter(vec), 100'000, random_num);
+    std::generate_n(std::back_inserter(vec), 100'00, random_num);
 
     // std::iota(vec.begin(), vec.end(), 0);
     // std::reverse(vec.begin(), vec.end());
     // std::sort(vec.begin(), vec.end());
     // vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
     // std::shuffle(vec.begin(), vec.end(), std::default_random_engine(std::random_device()()));
+    std::cout << vec.size() << std::endl;
     set_insert();
     skip_list_insert();
     skip_list_insert2();
