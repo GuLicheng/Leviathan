@@ -29,7 +29,7 @@ auto skip_list_insert()
 {
     leviathan::timer _;
     for (const auto& e : vec) 
-        ls.insert(e);
+        ls.emplace(e);
 }
 
 auto skip_list_insert2()
@@ -48,10 +48,10 @@ auto skip_list_insert3()
 
 int main()
 {
-    std::generate_n(std::back_inserter(vec), 100'0000, random_num);
+    std::generate_n(std::back_inserter(vec), 100'000, random_num);
 
-    std::iota(vec.begin(), vec.end(), 0);
-    std::reverse(vec.begin(), vec.end());
+    // std::iota(vec.begin(), vec.end(), 0);
+    // std::reverse(vec.begin(), vec.end());
     // std::sort(vec.begin(), vec.end());
     // vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
     // std::shuffle(vec.begin(), vec.end(), std::default_random_engine(std::random_device()()));

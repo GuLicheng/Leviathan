@@ -25,7 +25,7 @@ template<typename T, typename Cmp = std::less<T>>
 class SkipList {
 
 	using SkipNode = SkipNode<T>;
-	
+	inline static std::random_device rd;
 	constexpr static int MAXLEVEL = 32;
 
 public:
@@ -65,10 +65,9 @@ private:
 
 	int getLevel() const {
 		int level = 1;
-		constexpr double p = 0.25;
-		constexpr double rand_max = std::random_device::max();
-		static std::random_device rd;
-		for (; ((rd() / rand_max) < p && level < MAXLEVEL); ++level);
+		// constexpr double p = 0.25;
+		constexpr unsigned int p = std::random_device::max() / 4;
+		for (; rd() < p; ++level);
 		return std::min(MAXLEVEL, level);
 	}
 
