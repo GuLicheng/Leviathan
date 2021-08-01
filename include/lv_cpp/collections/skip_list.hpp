@@ -9,19 +9,20 @@
 #include <iostream>
 #include <vector>
 #include <random>
+#include <array>
 #include <iterator>
 #include <type_traits>
 
 
 namespace leviathan
 {
-    template <typename T, typename U>
-    struct insert_emplace_selector : std::conditional_t
-        <
-            std::is_same_v<std::remove_cvref_t<U>, std::remove_cvref_t<T>>,
-            std::true_type, // insert
-            std::false_type  // emplace
-        > { };
+	template <typename T, typename U>
+	struct insert_emplace_selector : std::conditional_t
+		<
+		std::is_same_v<std::remove_cvref_t<U>, std::remove_cvref_t<T>>,
+		std::true_type, // insert
+		std::false_type  // emplace
+		> { };
 
 	template <typename T>
 	struct indentity
@@ -36,7 +37,9 @@ namespace leviathan
 
 		template <typename U>
 		constexpr static auto& get_key(const U& u) noexcept
-		{ return u; }
+		{
+			return u;
+		}
 
 	};
 
@@ -59,7 +62,9 @@ namespace leviathan
 
 		template <typename U>
 		constexpr static auto& get_key(const U& u) noexcept
-		{ return u.first; }
+		{
+			return u.first;
+		}
 
 	};
 
@@ -88,6 +93,11 @@ namespace leviathan
 			header(Derived* prev = nullptr, std::size_t num = MAXLEVEL) noexcept
 				: m_prev{ prev }, m_next{ num, nullptr } { } // make it noexcept
 
+			header(const header&) = default;
+			header(header&&) noexcept = default;
+			header& operator=(const header&) = default;
+			header& operator=(header&&) = default;
+
 			auto derived_ptr() noexcept
 			{
 				return static_cast<Derived*>(this);
@@ -105,12 +115,19 @@ namespace leviathan
 			typename KeyTraits::iter_value_type m_data;
 			using base = header<skip_node>;
 			// skip_node() = default;
+
+			skip_node(const skip_node&) = default;
+			skip_node(skip_node&&) noexcept = default;
+			skip_node& operator=(const skip_node&) = default;
+			skip_node& operator=(skip_node&&) = default;
+
 			skip_node(const Key& x, std::size_t nextNum)
 				: base(this, nextNum), m_data(x) { }
 			skip_node(Key&& x, std::size_t nextNum)
 				: base(this, nextNum), m_data(std::move(x)) { }
 		};
 		using key_allocator_type = typename std::allocator_traits<Allocator>::template rebind_alloc<skip_node>;
+
 	public:
 		template <bool Const>
 		struct skip_list_iterator;
@@ -128,6 +145,10 @@ namespace leviathan
 		using key_compare = Compare;
 		using value_compare = Compare;
 
+		constexpr static bool is_noexcept_move = noexcept(std::is_nothrow_assignable_v<value_type, value_type&&>
+			&& std::is_nothrow_assignable_v<key_compare, key_compare&&>
+			&& std::is_nothrow_assignable_v<key_allocator_type, key_allocator_type&&>);
+
 	public:
 		skip_list() noexcept(noexcept(std::is_nothrow_default_constructible_v<key_allocator_type>
 			&& std::is_nothrow_default_constructible_v<Compare>))
@@ -135,29 +156,116 @@ namespace leviathan
 		{
 		}
 
-		skip_list(Compare compare)
-			: m_cmp{ std::move(compare) }, m_alloc{ }, m_size{ 0 }, m_header{ }, m_level{ 1 }
-		{
-		}
-
 		~skip_list() noexcept
 		{
 			clear();
 		}
+		// https://github.com/CppCon/CppCon2017 - How to Write a Custom Allocator 
+		// https://github.com/CppCon/CppCon2017/blob/master/Tutorials/How%20to%20Write%20a%20Custom%20Allocator/How%20to%20Write%20a%20Custom%20Allocator%20-%20Bob%20Steagall%20-%20CppCon%202017.pdf
+		skip_list(const skip_list& rhs)
+			: m_cmp{ rhs.m_cmp }, m_alloc{ rhs.m_alloc }, m_size{ }, m_header{ }, m_level{ 1 }
+		{
+			// may use impl to warp all flied but alloc
+			// traits::select_on_container_copy_construction(rhs.m_alloc)
+			// this->assign_from(rhs.cbegin(), rhs.cend());
+			assign_from(rhs.cbegin(), rhs.cend());
+		}
+
+		skip_list(skip_list&& rhs) noexcept(is_noexcept_move)
+			: m_cmp{ std::move(rhs.m_cmp) }, m_alloc{ std::move(rhs.m_alloc) }, m_size{ rhs.m_size }, m_header{ std::move(rhs.m_header) }, m_level{ rhs.m_level }
+		{
+		}
+
+		skip_list& operator=(const skip_list& rhs)
+		{
+			if (std::addressof(rhs) != this)
+			{
+				// std::true_type
+				if constexpr (typename std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment())
+				{
+					if (this->m_alloc != rhs.m_alloc)
+					{
+						// this->clear_and_deallocate_memory()
+						clear_and_deallocate_memory();
+					}
+					this->m_alloc = rhs.m_alloc;
+				}
+				// this->assign_from(rhs.begin(), rhs.end());
+				assign_from(rhs.cbegin(), rhs.cend());
+			}
+			return *this;
+		}
+
+		skip_list& operator=(skip_list&& rhs) noexcept(is_noexcept_move)
+		{
+			if (this != std::addressof(rhs))
+			{
+				if constexpr (typename std::allocator_traits<key_allocator_type>::propagate_on_container_move_assignment())
+				{
+					// this->clear_and_deallocate_memory
+					// move alloc and impl
+					clear_and_deallocate_memory();
+					this->m_alloc = std::move(rhs.m_alloc);
+					this->m_header = std::move(rhs.m_header);
+					this->m_size = rhs.m_size;
+					this->m_cmp = std::move(rhs.m_cmp);
+					this->m_level = rhs.m_level;
+				}
+				else if (typename std::allocator_traits<key_allocator_type>::is_always_equal() || this->m_alloc == rhs.m_alloc)
+				{
+					// this->clear_and_deallocate_memory()
+					// this->impl = move(rhs.impl)
+					clear_and_deallocate_memory();
+					this->m_header = std::move(rhs.m_header);
+					this->m_size = rhs.m_size;
+					this->m_cmp = std::move(rhs.m_cmp);
+					this->m_level = rhs.m_level;
+				}
+				else
+				{
+					// this->assign(move_iter(rhs.begin()), move_iter(rhs.end()));
+					assign_from(std::make_move_iterator(rhs.begin()), std::make_move_iterator(rhs.end()));
+				}
+			}
+			return *this;
+		}
+
+		void swap(skip_list& rhs)
+		{
+			if (this != std::addressof(rhs))
+			{
+				if constexpr (typename std::allocator_traits<key_allocator_type>::propagate_on_container_swap())
+				{
+					// std::swap(impl and alloc)
+					std::swap(this->m_cmp, rhs.m_cmp);
+					std::swap(this->m_size, rhs.m_size);
+					std::swap(this->m_header, rhs.m_header);
+					std::swap(this->m_level, rhs.m_level);
+					std::swap(this->m_alloc, rhs.m_alloc);
+				}
+				else if (typename std::allocator_traits<key_allocator_type>::is_always_equal()
+					|| this->m_alloc == rhs.m_alloc)
+				{
+					// std::swap(impl)
+					std::swap(this->m_cmp, rhs.m_cmp);
+					std::swap(this->m_size, rhs.m_size);
+					std::swap(this->m_header, rhs.m_header);
+					std::swap(this->m_level, rhs.m_level);
+				}
+				else
+				{
+					// Undefined Behaviour
+					throw std::runtime_error("Undefined Behaviour");
+				}
+			}
+		}
 
 		void clear() noexcept
 		{
-			// TODO: ... for (iter = begin(); iter != end;) iter = erase(*iter); 
-			auto cur = this->m_header.m_next[0];
-			while (cur)
-			{
-				auto next = cur->m_next[0];
-				destory_one_node(cur);
-				cur = next;
-			}
+			clear_and_deallocate_memory();
 			this->m_size = 0;
 			this->m_header.m_prev = nullptr;
-			std::fill_n(this->m_header.m_next.begin(), MAXLEVEL, nullptr);
+			std::fill(this->m_header.m_next.begin(), this->m_header.m_next.end(), nullptr);
 		}
 		void show() const
 		{
@@ -184,9 +292,19 @@ namespace leviathan
 			return const_iterator(this->m_header.m_next[0], this);
 		}
 
+		const_iterator cbegin() const noexcept
+		{
+			return begin();
+		}
+
 		const_iterator end() const noexcept
 		{
 			return const_iterator(nullptr, this);
+		}
+
+		const_iterator cend() const noexcept
+		{
+			return end();
 		}
 
 		reverse_iterator rbegin() noexcept
@@ -213,9 +331,9 @@ namespace leviathan
 		template <typename... Args>
 		std::pair<iterator, bool> emplace(Args&&... args)
 		{
-            // check type -> emplace or insert
-            if constexpr (sizeof...(Args) == 1 && insert_emplace_selector<Key, Args...>::value)
-                return insert(std::forward<Args>(args)...);
+			// check type -> emplace or insert
+			if constexpr (sizeof...(Args) == 1 && insert_emplace_selector<Key, Args...>::value)
+				return insert(std::forward<Args>(args)...);
 			auto [node, exist] = emplace_unique(this->m_header.derived_ptr(), std::forward<Args>(args)...);
 			return { iterator(node, this), exist };
 		}
@@ -276,7 +394,25 @@ namespace leviathan
 		header<skip_node> m_header;
 		int m_level;
 
+		template <typename Iter, typename Sent>
+		void assign_from(Iter first, Sent last)
+		{
+			for (auto iter = first; iter != last; ++iter)
+				insert(*iter);
+		}
 
+		void clear_and_deallocate_memory()
+		{
+			if (this->m_header.m_next.empty())
+				return;
+			auto cur = this->m_header.m_next[0];
+			while (cur)
+			{
+				auto next = cur->m_next[0];
+				destory_one_node(cur);
+				cur = next;
+			}
+		}
 
 
 		// return target node if succeed else prev position of target node for inserting
@@ -363,7 +499,7 @@ namespace leviathan
 			// insert a new node
 			auto level = get_level();
 			auto new_node = create_one_node(level, std::forward<U>(val));
-            insert_and_update_all_member(cur, new_node, prev, level);
+			insert_and_update_all_member(cur, new_node, prev, level);
 			return { new_node, true };
 		}
 
@@ -381,17 +517,17 @@ namespace leviathan
 				destory_one_node(new_node);
 				return { cur, false };
 			}
-            insert_and_update_all_member(cur, new_node, prev, level);
+			insert_and_update_all_member(cur, new_node, prev, level);
 			return { new_node, true };
 		}
 
-        void insert_and_update_all_member(skip_node* pos, skip_node* new_node, std::array<skip_node*, MAXLEVEL>& prev, int new_level)
-        {
+		void insert_and_update_all_member(skip_node* pos, skip_node* new_node, std::array<skip_node*, MAXLEVEL>& prev, int new_level)
+		{
 			insert_after(pos, new_node, prev);
 			update_header(new_node);
 			this->m_level = std::max(this->m_level, new_level);
 			++this->m_size;
-        }
+		}
 
 		skip_node* erase_node(skip_node* pos, const key_type& val)
 		{
@@ -406,7 +542,7 @@ namespace leviathan
 				deleted_node->m_next[0]->m_prev = cur;
 			for (std::size_t i = 0; i < deleted_node->m_next.size(); ++i)
 				prev[i]->m_next[i] = deleted_node->m_next[i];
-			
+
 			int new_level;
 			for (new_level = this->m_level - 1; new_level >= 0 && this->m_header.m_next[new_level] == nullptr; --new_level);
 			this->m_level = new_level + 1;
@@ -435,8 +571,8 @@ namespace leviathan
 		template <typename... Args>
 		skip_node* create_one_node(int level, Args&&... args)
 		{
-            // return new skip_node(std::forward<Args>(args)..., level);
-            // default allocator is must slower than new, I don't know why
+			// return new skip_node(std::forward<Args>(args)..., level);
+			// default allocator is must slower than new, I don't know why
 			auto addr = this->m_alloc.allocate(sizeof(skip_node));
 			std::construct_at(addr, std::forward<Args>(args)..., level);
 			return addr;
@@ -444,30 +580,27 @@ namespace leviathan
 
 	};
 
-    template <bool IsConst, typename T>
-    struct maybe_const : std::conditional<IsConst, const T, T> { };
+	template <bool IsConst, typename T>
+	struct maybe_const : std::conditional<IsConst, const T, T> { };
 
-    template <bool IsConst, typename T>
-    struct maybe_const<IsConst, T*> : std::conditional<IsConst, const T*, T*> { };
+	template <bool IsConst, typename T>
+	struct maybe_const<IsConst, T*> : std::conditional<IsConst, const T*, T*> { };
 
-    template <bool IsConst, typename T>
-    using maybe_const_t = typename maybe_const<IsConst, T>::type;
+	template <bool IsConst, typename T>
+	struct maybe_const<IsConst, T&> : std::conditional<IsConst, const T&, T&> { };
+
+	template <bool IsConst, typename T>
+	using maybe_const_t = typename maybe_const<IsConst, T>::type;
 
 	template <typename Key, typename Compare, typename Allocator, typename KeyTraits>
 	template <bool Const>
 	struct skip_list<Key, Compare, Allocator, KeyTraits>::skip_list_iterator
 	{
-		// using link_container_type = std::conditional_t<
-		// 	Const,
-		// 	const skip_list<Key, Compare, Allocator, KeyTraits>*,
-		// 	skip_list<Key, Compare, Allocator, KeyTraits>*>;
-		// using link_type = std::conditional_t<Const, const skip_node*, skip_node*>;
-
 		using value_type = typename KeyTraits::iter_value_type;
-        using link_container_type = maybe_const_t<Const, skip_list<Key, Compare, Allocator, KeyTraits>*>;
-        using link_type = maybe_const_t<Const, skip_node*>;
+		using link_container_type = maybe_const_t<Const, skip_list<Key, Compare, Allocator, KeyTraits>*>;
+		using link_type = maybe_const_t<Const, skip_node*>;
 
-		using reference = value_type&;
+		using reference = maybe_const_t<Const, value_type&>;
 		using iterator_category = std::bidirectional_iterator_tag;
 		using difference_type = std::ptrdiff_t;
 		link_type m_ptr;
@@ -548,7 +681,7 @@ namespace leviathan
 	class map : public skip_list<std::pair<Key, Value>, Compare, Allocator, select1st<std::pair<const Key, Value>>>
 	{
 	public:
-		auto& operator[](const Key& key) 
+		auto& operator[](const Key& key)
 		{
 			auto iter = this->insert(std::make_pair(key, Value{ }));
 			return iter.first->second;

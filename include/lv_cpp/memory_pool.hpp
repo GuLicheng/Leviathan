@@ -125,6 +125,8 @@ namespace leviathan
         //using const_pointer = const pointer;  // removed in c++20
 
         // propagate_on_container_move_assignment(C++14)
+        // propagate_on_container_copy_assignment(C++14)
+        // propagate_on_container_swap(C++14)
         // is_always_equal(C++17)(deprecated in C++20)
 
         //template<typename _U>
