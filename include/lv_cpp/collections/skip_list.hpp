@@ -407,12 +407,10 @@ namespace leviathan
 			for (std::size_t i = 0; i < deleted_node->m_next.size(); ++i)
 				prev[i]->m_next[i] = deleted_node->m_next[i];
 			
-			int new_level = this->m_level - 1;
-			while (new_level >= 0 && this->m_header.m_next[new_level] == nullptr)
-			{
-				this->m_level = new_level;
-				new_level--;
-			}
+			int new_level;
+			for (new_level = this->m_level - 1; new_level >= 0 && this->m_header.m_next[new_level] == nullptr; --new_level);
+			this->m_level = new_level + 1;
+
 			// int new_level = m_level;
 			// while (--new_level >= 0 && m_header.m_next[new_level] == nullptr)
 			// 	m_level = new_level;
