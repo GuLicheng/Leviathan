@@ -1,4 +1,5 @@
-module;
+#ifndef __RANDOM_ITERATOR_HPP__
+#define __RANDOM_ITERATOR_HPP__
 
 #include <random>
 #include <iterator>
@@ -6,9 +7,8 @@ module;
 #include <ranges>
 #include <concepts>
 
-export module random_iterator;
 
-export namespace leviathan
+namespace leviathan
 {
 
 	struct distribution_sentinel { };
@@ -138,26 +138,28 @@ export namespace leviathan
 
 } // end of namespace
 
-template <typename D, typename G, typename... Args>
-void test1(Args... args)
-{
-	leviathan::distribution_iterator<D, G> iter{ args... };
-	using T = typename leviathan::distribution_iterator<D, G>::value_type;
-	auto range5 = leviathan::random_range(iter, 10);
-	std::ranges::copy(range5, std::ostream_iterator<T>{std::cout, " "});
-	std::endl(std::cout);
+// template <typename D, typename G, typename... Args>
+// void test1(Args... args)
+// {
+// 	leviathan::distribution_iterator<D, G> iter{ args... };
+// 	using T = typename leviathan::distribution_iterator<D, G>::value_type;
+// 	auto range5 = leviathan::random_range(iter, 10);
+// 	std::ranges::copy(range5, std::ostream_iterator<T>{std::cout, " "});
+// 	std::endl(std::cout);
 
-	static_assert(std::forward_iterator<decltype(iter)>);
-	static_assert(std::ranges::forward_range<decltype(range5)>);
-}
+// 	static_assert(std::forward_iterator<decltype(iter)>);
+// 	static_assert(std::ranges::forward_range<decltype(range5)>);
+// }
 
 
-export void test()
-{
-	std::random_device rd;
-	test1<std::uniform_int_distribution<int>, std::mt19937_64>(0, 1, 5);
-	test1<std::normal_distribution<double>, std::mt19937_64>(rd(), 0., 1.);
-	test1<std::geometric_distribution<>, std::mt19937_64>();
-	test1<std::gamma_distribution<>, std::mt19937_64>();
-	test1<std::discrete_distribution<>, std::mt19937_64>();
-}
+// void test()
+// {
+// 	std::random_device rd;
+// 	test1<std::uniform_int_distribution<int>, std::mt19937_64>(0, 1, 5);
+// 	test1<std::normal_distribution<double>, std::mt19937_64>(rd(), 0., 1.);
+// 	test1<std::geometric_distribution<>, std::mt19937_64>();
+// 	test1<std::gamma_distribution<>, std::mt19937_64>();
+// 	test1<std::discrete_distribution<>, std::mt19937_64>();
+// }
+
+#endif

@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-static const int P = RAND_MAX / 4, MAX_LEVEL = 16;
+static const int P = RAND_MAX / 4, MAX_LEVEL = 32;
 class Skiplist {
 public:
     struct Node {
@@ -11,7 +11,8 @@ public:
     };
 
     Node* head;
-    int level = 0;
+    int level = 1;
+    std::size_t size = 0;
 
     Skiplist() {
         head = new Node();
@@ -29,24 +30,47 @@ public:
         }
         return false;
     }
-    
-    void add(int num) {
-        int rLevel = randomLevel();
-        level = max(level, rLevel);
-        Node* cur = new Node(num, rLevel);
+    static int get_level()
+    {
+        constexpr auto p = std::random_device::max() / 4;
+        static std::random_device rd;
+        int level = 1;
+        for (; rd() < p; ++level);
+        return std::min(MAX_LEVEL, level);
+    }
+    Node* add(int num) {
+        int rLevel = get_level();
+        std::vector<Node *> prevNode(MAX_LEVEL, nullptr);
         Node* node = head;
         for (int i = level - 1; i >= 0; --i) {
-            while (node->nexts[i] && num>node->nexts[i]->val) {
-                node = node->nexts[i];
+            for (; node->nexts[i] && num>node->nexts[i]->val; node = node->nexts[i]);
+            if (node->nexts[i] && node->nexts[i]->val == num) {
+                // find it
+                return node;
             }
-            if (i<rLevel) {
-                Node* next = node->nexts[i];
-                node->nexts[i] = cur;
-                cur->nexts[i] = next;
+            prevNode[i] = node;
+        }
+        Node* cur = new Node(num, rLevel);
+
+        for (int i = 0; i < rLevel; ++i)
+        {
+            if (i >= this->level)
+                head->nexts[i] = cur;
+            else
+            {
+                cur->nexts[i] = prevNode[i]->nexts[i];
+                prevNode[i]->nexts[i] = cur;
             }
         }
+        level = max(level, rLevel);
+        this->size ++;
+        return cur;
     }
     
+    std::size_t Size() const {
+        return this->size;
+    }
+
     bool erase(int num) {
         Node* node = head;
         for (int i = level - 1; i >= 0; --i) {

@@ -5,12 +5,13 @@
 #include "l.hpp"
 #include <lv_cpp/utils/timer.hpp>
 #include <assert.h>
+#include <map>
 #include <set>
 #include <lv_cpp/collections/List/SkipList.hpp>
 
 auto random_num = []()
 {
-    return std::random_device()();
+    return std::random_device()() % 10000;
 };
 std::vector<int> vec;
 leviathan::skip_list<int> ls;
@@ -48,17 +49,20 @@ auto skip_list_insert3()
 
 int main()
 {
-    std::generate_n(std::back_inserter(vec), 100'00, random_num);
+    std::generate_n(std::back_inserter(vec), 1'0000, random_num);
 
     // std::iota(vec.begin(), vec.end(), 0);
     // std::reverse(vec.begin(), vec.end());
-    // std::sort(vec.begin(), vec.end());
-    // vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
-    // std::shuffle(vec.begin(), vec.end(), std::default_random_engine(std::random_device()()));
+    std::sort(vec.begin(), vec.end());
+    vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
+    std::shuffle(vec.begin(), vec.end(), std::default_random_engine(std::random_device()()));
     std::cout << vec.size() << std::endl;
     set_insert();
     skip_list_insert();
     skip_list_insert2();
     skip_list_insert3();
-    std::cout << (s.size() == ls.size() && s.size() == LS.size()) << std::endl;
+    std::cout << (s.size() == vec.size()) << std::endl;
+    std::cout << (ls.size() == vec.size()) << std::endl;
+    std::cout << (LS.size() == vec.size()) << std::endl;
+    std::cout << (leet.Size() == vec.size()) << std::endl;
 }

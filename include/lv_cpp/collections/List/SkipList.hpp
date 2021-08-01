@@ -90,7 +90,7 @@ private:
 		std::vector<SkipNode *> prevNode(MAXLEVEL, nullptr);
 		
 		for (int i = p->next.size() - 1; i >= 0; --i) {
-			SkipNode *cur = p;
+			SkipNode *cur = p; // Very Slow, remove out of loop
 			for (; cur->next[i] != nullptr && cmp(cur->next[i]->elem, x); cur = cur->next[i]);
 
 			if (cur->next[i] != nullptr && cur->next[i]->elem == x)

@@ -27,12 +27,17 @@ namespace leviathan
 	struct indentity
 	{
 		using iter_value_type = T;
-
+		using key_type = T;
 		template <typename Compare, typename Lhs, typename Rhs>
 		constexpr static bool compare(const Compare& cmp, const Lhs& lhs, const Rhs& rhs)
 		{
 			return cmp(lhs, rhs);
 		}
+
+		template <typename U>
+		constexpr static auto& get_key(const U& u) noexcept
+		{ return u; }
+
 	};
 
 	template <typename T>
@@ -43,12 +48,19 @@ namespace leviathan
 		using _2nd = std::tuple_element_t<1, T>;
 	public:
 		using iter_value_type = std::pair<std::add_const_t<_1st>, _2nd>;
+		using key_type = _1st;
 
 		template <typename Compare, typename Lhs, typename Rhs>
 		constexpr static bool compare(const Compare& cmp, const Lhs& lhs, const Rhs& rhs)
 		{
-			return cmp(lhs.first, rhs.first);
+			// lhs is pair already inserted, but rhs may just a key_type
+			return cmp(lhs.first, rhs);
 		}
+
+		template <typename U>
+		constexpr static auto& get_key(const U& u) noexcept
+		{ return u.first; }
+
 	};
 
 	template <typename Key, typename Compare = std::less<Key>, typename Allocator = std::allocator<Key>, typename KeyTraits = indentity<Key>>
@@ -109,7 +121,7 @@ namespace leviathan
 		using const_reverse_iterator = reverse_iterator;
 
 		using allocator_type = Allocator;
-		using key_type = Key;
+		using key_type = typename KeyTraits::key_type;
 		using value_type = typename KeyTraits::iter_value_type; // add const for map
 		using size_type = std::size_t;
 		using difference_type = std::ptrdiff_t;
@@ -135,7 +147,7 @@ namespace leviathan
 
 		void clear() noexcept
 		{
-			// TODO: ... for (iter = begin(), iter != end;) iter = erase(*iter); 
+			// TODO: ... for (iter = begin(); iter != end;) iter = erase(*iter); 
 			auto cur = this->m_header.m_next[0];
 			while (cur)
 			{
@@ -208,41 +220,41 @@ namespace leviathan
 			return { iterator(node, this), exist };
 		}
 
-		std::pair<iterator, bool> insert(const Key& val)
+		std::pair<iterator, bool> insert(const value_type& val)
 		{
 			auto [node, exist] = insert_unique(this->m_header.derived_ptr(), val);
 			return { iterator(node, this), exist };
 		}
 
-		std::pair<iterator, bool> insert(Key&& val)
+		std::pair<iterator, bool> insert(value_type&& val)
 		{
 			auto [node, exist] = insert_unique(this->m_header.derived_ptr(), std::move(val));
 			return { iterator(node, this), exist };
 		}
 
-		const_iterator lower_bound(const Key& val) const
+		const_iterator lower_bound(const key_type& val) const
 		{
 			return const_iterator{ lower_bound_impl(this->m_header.derived_ptr(), val), this };
 		}
 
-		iterator lower_bound(const Key& val)
+		iterator lower_bound(const key_type& val)
 		{
 			return iterator{ lower_bound_impl(this->m_header.derived_ptr(), val), this };
 		}
 
-		const_iterator find(const Key& val) const
+		const_iterator find(const key_type& val) const
 		{
 			auto [node, exist] = find_node(this->m_header.derived_ptr(), val);
 			return const_iterator{ (exist ? node : nullptr), this };
 		}
 
-		iterator find(const Key& val)
+		iterator find(const key_type& val)
 		{
 			auto [node, exist] = find_node(this->m_header.derived_ptr(), val);
 			return iterator{ (exist ? node : nullptr), this };
 		}
 
-		iterator erase(const Key& val)
+		iterator erase(const key_type& val)
 		{
 			return iterator{ erase_node(this->m_header.derived_ptr(), val), this };
 		}
@@ -270,14 +282,13 @@ namespace leviathan
 		// return target node if succeed else prev position of target node for inserting
 		template <bool CompletelyPrev>
 		std::pair<skip_node*, bool>
-			find_node_with_prev(skip_node* pos, const Key& val, std::vector<skip_node*>& prev) const noexcept
+			find_node_with_prev(skip_node* pos, const key_type& val, std::array<skip_node*, MAXLEVEL>& prev) const noexcept
 		{
-			skip_node* cur{}; // cur will always be initialized
+			skip_node* cur = pos;
 			bool exist = false;
 			for (int i = this->m_level - 1; i >= 0; --i)
 			{
-				cur = pos;
-				assert(i < cur->m_next.size());
+				// cur = pos;
 				for (; cur->m_next[i] && KeyTraits::compare(this->m_cmp, cur->m_next[i]->m_data, val); cur = cur->m_next[i]);
 				auto next_node = cur->m_next[i];
 				if (next_node && KeyTraits::compare(std::equal_to<>(), next_node->m_data, val))
@@ -293,7 +304,7 @@ namespace leviathan
 			return { cur, exist };
 		}
 
-		void insert_after(skip_node* pos, skip_node* new_node, const std::vector<skip_node*>& prev) noexcept
+		void insert_after(skip_node* pos, skip_node* new_node, const std::array<skip_node*, MAXLEVEL>& prev) noexcept
 		{
 			// update prev
 			new_node->m_prev = pos;
@@ -325,12 +336,11 @@ namespace leviathan
 
 		// find node without prev
 		std::pair<skip_node*, bool>
-			find_node(skip_node* p, const Key& val) const
+			find_node(skip_node* pos, const key_type& val) const
 		{
-			skip_node* cur;
+			skip_node* cur = pos;
 			for (int i = this->m_level; i >= 0; --i)
 			{
-				cur = p;
 				for (; cur->m_next[i] && KeyTraits::compare(this->m_cmp, cur->m_next[i]->m_data, val); cur = cur->m_next[i]);
 				auto next_node = cur->m_next[i];
 				if (next_node && KeyTraits::compare(std::equal_to<>(), next_node->m_data, val))
@@ -344,8 +354,9 @@ namespace leviathan
 		template <typename U>
 		std::pair<skip_node*, bool> insert_unique(skip_node* pos, U&& val)
 		{
-			std::vector<skip_node*> prev(MAXLEVEL, nullptr);
-			auto [cur, exist] = find_node_with_prev<false>(pos, val, prev);
+			std::array<skip_node*, MAXLEVEL> prev;
+			prev.fill(nullptr);
+			auto [cur, exist] = find_node_with_prev<false>(pos, KeyTraits::get_key(val), prev);
 			if (exist)
 				return { cur, false };
 
@@ -356,13 +367,15 @@ namespace leviathan
 			return { new_node, true };
 		}
 
+		// insert and emplace will always recept a value_type
 		template <typename... Args>
 		std::pair<skip_node*, bool> emplace_unique(skip_node* pos, Args&&... args)
 		{
 			auto level = get_level();
 			auto new_node = create_one_node(level, std::forward<Args>(args)...);
-			std::vector<skip_node*> prev(MAXLEVEL, nullptr);
-			auto [cur, exist] = find_node_with_prev<false>(pos, new_node->m_data, prev);
+			std::array<skip_node*, MAXLEVEL> prev;
+			prev.fill(nullptr);
+			auto [cur, exist] = find_node_with_prev<false>(pos, KeyTraits::get_key(new_node->m_data), prev);
 			if (exist)
 			{
 				destory_one_node(new_node);
@@ -372,7 +385,7 @@ namespace leviathan
 			return { new_node, true };
 		}
 
-        void insert_and_update_all_member(skip_node* pos, skip_node* new_node, std::vector<skip_node*>& prev, int new_level)
+        void insert_and_update_all_member(skip_node* pos, skip_node* new_node, std::array<skip_node*, MAXLEVEL>& prev, int new_level)
         {
 			insert_after(pos, new_node, prev);
 			update_header(new_node);
@@ -380,10 +393,10 @@ namespace leviathan
 			++this->m_size;
         }
 
-        // FIXME:
-		skip_node* erase_node(skip_node* pos, const Key& val)
+		skip_node* erase_node(skip_node* pos, const key_type& val)
 		{
-			std::vector<skip_node*> prev(MAXLEVEL, nullptr);
+			std::array<skip_node*, MAXLEVEL> prev;
+			prev.fill(nullptr);
 			auto [cur, exist] = find_node_with_prev<true>(pos, val, prev);
 			if (!exist)
 				return cur->m_next[0];
@@ -393,13 +406,23 @@ namespace leviathan
 				deleted_node->m_next[0]->m_prev = cur;
 			for (std::size_t i = 0; i < deleted_node->m_next.size(); ++i)
 				prev[i]->m_next[i] = deleted_node->m_next[i];
+			
+			int new_level = this->m_level - 1;
+			while (new_level >= 0 && this->m_header.m_next[new_level] == nullptr)
+			{
+				this->m_level = new_level;
+				new_level--;
+			}
+			// int new_level = m_level;
+			// while (--new_level >= 0 && m_header.m_next[new_level] == nullptr)
+			// 	m_level = new_level;
 
 			destory_one_node(deleted_node);
 			--this->m_size;
 			return prev[0]->m_next[0];
 		}
 
-		skip_node* lower_bound_impl(skip_node* pos, const Key& val) const
+		skip_node* lower_bound_impl(skip_node* pos, const key_type& val) const
 		{
 			auto [cur, exist] = find_node(pos, val);
 			return exist ? cur : cur->m_next[0];
@@ -414,7 +437,7 @@ namespace leviathan
 		template <typename... Args>
 		skip_node* create_one_node(int level, Args&&... args)
 		{
-            return new skip_node(std::forward<Args>(args)..., level);
+            // return new skip_node(std::forward<Args>(args)..., level);
             // default allocator is must slower than new, I don't know why
 			auto addr = this->m_alloc.allocate(sizeof(skip_node));
 			std::construct_at(addr, std::forward<Args>(args)..., level);
@@ -446,7 +469,6 @@ namespace leviathan
         using link_container_type = maybe_const_t<Const, skip_list<Key, Compare, Allocator, KeyTraits>*>;
         using link_type = maybe_const_t<Const, skip_node*>;
 
-		// using reference = const Key&;
 		using reference = value_type&;
 		using iterator_category = std::bidirectional_iterator_tag;
 		using difference_type = std::ptrdiff_t;
@@ -510,19 +532,33 @@ namespace leviathan
 			return this->m_ptr->m_data;
 		}
 
-		constexpr bool operator==(const skip_list_iterator& rhs) const noexcept
+		template <bool IsConst>
+		constexpr bool operator==(const skip_list_iterator<IsConst>& rhs) const noexcept
 		{
 			return this->m_ptr == rhs.m_ptr;
 		}
 
-		constexpr bool operator!=(const skip_list_iterator& rhs) const noexcept
+		template <bool IsConst>
+		constexpr bool operator!=(const skip_list_iterator<IsConst>& rhs) const noexcept
 		{
 			return !this->operator==(rhs);
 		}
 
 	};
 
-}
+	template <typename Key, typename Value, typename Compare = std::less<Key>, typename Allocator = std::allocator<std::pair<const Key, Value>>>
+	class map : public skip_list<std::pair<Key, Value>, Compare, Allocator, select1st<std::pair<const Key, Value>>>
+	{
+	public:
+		auto& operator[](const Key& key) 
+		{
+			auto iter = this->insert(std::make_pair(key, Value{ }));
+			return iter.first->second;
+		}
+
+	};
+
+} // namespace 
 
 #include <ranges>
 
