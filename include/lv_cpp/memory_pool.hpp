@@ -134,13 +134,13 @@ namespace leviathan
         //    typedef Allocator<_U> other; // type_cast if the type is difference(type not unique)
         //};  // removed in c++20
 
-        Allocator() : m_bkt{ sizeof(_Ty), 8 }
+        Allocator() : m_bkt{ sizeof(_Ty), 1024 }
         {
         }
 
         template<typename _otherAll>
         Allocator(const Allocator<_otherAll>&) noexcept 
-            : m_bkt{ sizeof(_Ty), 8 }
+            : m_bkt{ sizeof(_Ty), 1024 }
         {
            // for Node-based container, List<int, Allocate<int>> -> rebind<ListNode<int>>
         };

@@ -11,6 +11,7 @@
 #include <random>
 #include <array>
 #include <iterator>
+#include <memory_resource>
 #include <type_traits>
 
 
@@ -114,7 +115,7 @@ namespace leviathan
 		{
 			typename KeyTraits::iter_value_type m_data;
 			using base = header<skip_node>;
-			// skip_node() = default;
+			// skip_node() { }
 
 			skip_node(const skip_node&) = default;
 			skip_node(skip_node&&) noexcept = default;
@@ -125,6 +126,13 @@ namespace leviathan
 				: base(this, nextNum), m_data(x) { }
 			skip_node(Key&& x, std::size_t nextNum)
 				: base(this, nextNum), m_data(std::move(x)) { }
+
+			skip_node(std::size_t nextNum)
+			{
+				skip_node(typename KeyTraits::iter_value_type{ }, nextNum);
+			}
+
+
 		};
 		using key_allocator_type = typename std::allocator_traits<Allocator>::template rebind_alloc<skip_node>;
 
@@ -144,7 +152,7 @@ namespace leviathan
 		using difference_type = std::ptrdiff_t;
 		using key_compare = Compare;
 		using value_compare = Compare;
-
+	private:
 		constexpr static bool is_noexcept_move = noexcept(std::is_nothrow_assignable_v<value_type, value_type&&>
 			&& std::is_nothrow_assignable_v<key_compare, key_compare&&>
 			&& std::is_nothrow_assignable_v<key_allocator_type, key_allocator_type&&>);
@@ -153,6 +161,11 @@ namespace leviathan
 		skip_list() noexcept(noexcept(std::is_nothrow_default_constructible_v<key_allocator_type>
 			&& std::is_nothrow_default_constructible_v<Compare>))
 			: m_cmp{ }, m_alloc{ }, m_size{ 0 }, m_header{ }, m_level{ 1 }
+		{
+		}
+
+		skip_list(const allocator_type& alloc)
+			: m_cmp{ }, m_alloc{ alloc }, m_size{ 0 }, m_header{ }, m_level{ 1 } 
 		{
 		}
 
@@ -168,7 +181,15 @@ namespace leviathan
 			// may use impl to warp all flied but alloc
 			// traits::select_on_container_copy_construction(rhs.m_alloc)
 			// this->assign_from(rhs.cbegin(), rhs.cend());
-			assign_from(rhs.cbegin(), rhs.cend());
+			try 
+			{
+				assign_from(rhs.cbegin(), rhs.cend());
+			}
+			catch (...)
+			{
+				clear();
+				throw; // rethrow exception
+			}
 		}
 
 		skip_list(skip_list&& rhs) noexcept(is_noexcept_move)
@@ -332,10 +353,19 @@ namespace leviathan
 		std::pair<iterator, bool> emplace(Args&&... args)
 		{
 			// check type -> emplace or insert
-			if constexpr (sizeof...(Args) == 1 && insert_emplace_selector<Key, Args...>::value)
-				return insert(std::forward<Args>(args)...);
-			auto [node, exist] = emplace_unique(this->m_header.derived_ptr(), std::forward<Args>(args)...);
-			return { iterator(node, this), exist };
+			// emplace will create node first and then try to insert
+			// if args is value_type, emplace will call move or copy construct 
+			// and cost more if node already exist
+			if constexpr (sizeof...(Args) == 1)
+			{
+				if constexpr (insert_emplace_selector<Key, Args...>::value)
+					return insert(std::forward<Args>(args)...);
+			}
+			else
+			{
+				auto [node, exist] = emplace_unique(this->m_header.derived_ptr(), std::forward<Args>(args)...);
+				return { iterator(node, this), exist };
+			}
 		}
 
 		std::pair<iterator, bool> insert(const value_type& val)
@@ -574,6 +604,7 @@ namespace leviathan
 			// return new skip_node(std::forward<Args>(args)..., level);
 			// default allocator is must slower than new, I don't know why
 			auto addr = this->m_alloc.allocate(sizeof(skip_node));
+			assert(addr != nullptr); // if (!addr) throw std::bad_alloc { }
 			std::construct_at(addr, std::forward<Args>(args)..., level);
 			return addr;
 		}
@@ -677,6 +708,7 @@ namespace leviathan
 
 	};
 
+
 	template <typename Key, typename Value, typename Compare = std::less<Key>, typename Allocator = std::allocator<std::pair<const Key, Value>>>
 	class map : public skip_list<std::pair<Key, Value>, Compare, Allocator, select1st<std::pair<const Key, Value>>>
 	{
@@ -686,8 +718,15 @@ namespace leviathan
 			auto iter = this->insert(std::make_pair(key, Value{ }));
 			return iter.first->second;
 		}
-
 	};
+
+	template <typename Key, typename Compare = std::less<Key>, typename KeyTraits = indentity<Key>>
+	using pmr_skip_list = skip_list<Key, Compare, std::pmr::polymorphic_allocator<Key>, KeyTraits>;
+
+	template <typename Key, typename Value, typename Compare = std::less<Key>, typename KeyTraits = select1st<std::pair<Key, Value>>>
+	using pmr_map = skip_list<std::pair<Key, Value>, Compare, std::pmr::polymorphic_allocator<std::pair<Key, Value>>, KeyTraits>;
+
+
 
 } // namespace 
 
