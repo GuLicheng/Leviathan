@@ -723,8 +723,8 @@ namespace leviathan
 	template <typename Key, typename Compare = std::less<Key>, typename KeyTraits = indentity<Key>>
 	using pmr_skip_list = skip_list<Key, Compare, std::pmr::polymorphic_allocator<Key>, KeyTraits>;
 
-	template <typename Key, typename Value, typename Compare = std::less<Key>, typename KeyTraits = select1st<std::pair<Key, Value>>>
-	using pmr_map = skip_list<std::pair<Key, Value>, Compare, std::pmr::polymorphic_allocator<std::pair<Key, Value>>, KeyTraits>;
+	template <typename Key, typename Value, typename Compare = std::less<Key>>
+	using pmr_map = map<Key, Value, Compare, std::pmr::polymorphic_allocator<std::pair<const Key, Value>>>;
 
 
 
