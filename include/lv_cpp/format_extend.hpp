@@ -79,11 +79,11 @@ void range_test()
 	std::vector arr{ 1, 2, 3 };
 	std::list ls{ 4, 5, 6 };
 	std::set s{ 7, 8, 9 };
-	int nestd_arr[] = { 3, 2, 1 };
+	int nested_arr[] = { 3, 2, 1 };
 	std::string str = "hello world";
 	std::cout << std::format
 	("The vec = {}\nls = {}\nset = {}\nstr = {}\nchars = {}\nstatic_arr = {}\n"
-		, arr, ls, s, str, 0, nestd_arr);
+		, arr, ls, s, str, 0, nested_arr);
 }
 void tuple_test()
 {
