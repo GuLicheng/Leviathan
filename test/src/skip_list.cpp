@@ -2,10 +2,10 @@
 #include <vector>
 #include <set>
 #include <lv_cpp/random_iterator.hpp>
-
-leviathan::distribution_iterator<> iter1(0, 0, 10000);
-leviathan::distribution_iterator<> iter2(1, 0, 10000);
-leviathan::distribution_iterator<> iter3(2, 0, 10000);
+std::random_device rd;
+leviathan::distribution_iterator<> iter1(rd(), 0, 10000);
+leviathan::distribution_iterator<> iter2(rd(), 0, 10000);
+leviathan::distribution_iterator<> iter3(rd(), 0, 10000);
 std::vector<int> inserted_set;
 std::vector<int> erased_set;
 std::vector<int> search_set;

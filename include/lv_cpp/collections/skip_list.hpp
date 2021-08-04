@@ -32,6 +32,7 @@ namespace leviathan
 		using key_type = T;
 		template <typename Compare, typename Lhs, typename Rhs>
 		constexpr static bool compare(const Compare& cmp, const Lhs& lhs, const Rhs& rhs)
+		noexcept(noexcept(cmp(lhs, rhs)))
 		{
 			return cmp(lhs, rhs);
 		}
@@ -56,6 +57,7 @@ namespace leviathan
 
 		template <typename Compare, typename Lhs, typename Rhs>
 		constexpr static bool compare(const Compare& cmp, const Lhs& lhs, const Rhs& rhs)
+		noexcept(noexcept(cmp(lhs.first, rhs)))
 		{
 			// lhs is pair already inserted, but rhs may just a key_type
 			return cmp(lhs.first, rhs);
@@ -97,7 +99,7 @@ namespace leviathan
 			header(const header&) = default;
 			header(header&&) noexcept = default;
 			header& operator=(const header&) = default;
-			header& operator=(header&&) = default;
+			header& operator=(header&&) noexcept = default;
 
 			auto derived_ptr() noexcept
 			{
@@ -118,9 +120,11 @@ namespace leviathan
 			// skip_node() { }
 
 			skip_node(const skip_node&) = default;
-			skip_node(skip_node&&) noexcept = default;
+			skip_node(skip_node&&) 
+				noexcept(noexcept(std::is_nothrow_move_constructible_v<typename KeyTraits::iter_value_type>)) = default;
 			skip_node& operator=(const skip_node&) = default;
-			skip_node& operator=(skip_node&&) = default;
+			skip_node& operator=(skip_node&&) 
+				noexcept(noexcept(std::is_nothrow_move_assignable_v<typename KeyTraits::iter_value_type>)) = default;
 
 			skip_node(const Key& x, std::size_t nextNum)
 				: base(this, nextNum), m_data(x) { }

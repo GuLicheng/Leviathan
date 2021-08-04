@@ -89,16 +89,16 @@ namespace leviathan
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-        hash_table()
+        hash_table() noexcept
             : m_hash{ }, m_key_equal{ }, m_size{ }
         {
             init_table();
         }
 
         hash_table(const hash_table&) = default;
-        hash_table(hash_table&&) = default;
+        hash_table(hash_table&&) noexcept(noexcept(true)) = default;  // FIXME: noexcept
         hash_table& operator=(const hash_table&) = default;
-        hash_table& operator=(hash_table&&) = default;
+        hash_table& operator=(hash_table&&) noexcept(noexcept(true)) = default; // // FIXME: noexcept
 
         ~hash_table() noexcept
         {
@@ -166,7 +166,7 @@ namespace leviathan
             125555621, 188333437, 282500161, 423750241, 635625377, 953438137
         };
 
-        void init_table()
+        void init_table() noexcept // assert our memory is enough
         {
             this->m_table.reserve(prime_table[0]);
             this->m_state.resize(prime_table[0]); // 0 for state::empty

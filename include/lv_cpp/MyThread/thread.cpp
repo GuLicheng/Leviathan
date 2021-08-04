@@ -1,27 +1,30 @@
-
-
+#include "thread.hpp"
+#include <lv_cpp/io/console.hpp>
 #include <string>
+#include <assert.h>
 #include <iostream>
-#include <type_traits>
-#include <memory>
-#include "core.hpp"
 
-void func(std::string s) {
-    std::cout << s << '\n';
-}
-
-
-struct foo
+struct Foo
 {
-    void say() { std::cout << "foo\n"; }
-} ;
+    Foo() = default;
+    Foo(const Foo&) { std::cout << "const Foo&\n"; }
+    Foo(Foo&&) { std::cout << "Foo&&\n"; }
+    void say_hello() const
+    { std::cout << "hello\n"; }
+};
 
 int main()
 {
-    foo f;
-    Thread th1{func, std::string("hello")};
-    Thread th2{std::mem_fn(&foo::say), f};
-    th1.join();
-    th2.join();
+    int a = 100;
+    Foo f;
+    std::string s = "hello world";
+    {
+        Thread t1([](int x) { std::cout << x << '\n'; }, 0);
+        Thread t2([](int& x) { std::cout << x++ << '\n'; }, std::ref(a));
+        Thread t3([](const std::string& s) { std::cout << s << '\n'; }, std::cref(s));
+        Thread t4(&Foo::say_hello, f);
+        Thread t5([](Foo) { std::cout << "create a foo\n" ;}, Foo());
+    }
+    assert(s == "hello world");
+    assert(a == 101);
 }
-
