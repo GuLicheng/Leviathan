@@ -79,7 +79,8 @@ namespace leviathan
         using entry_allocator_type = typename std::allocator_traits<allocator_type>::template rebind_alloc<value_type>;
         using table_type = std::vector<entry_type, entry_allocator_type>;
 
-        template <bool>
+        // TODO: implement hash_iterator
+        template <bool> 
         struct hash_iterator;
     
     public:
@@ -93,6 +94,11 @@ namespace leviathan
         {
             init_table();
         }
+
+        hash_table(const hash_table&) = default;
+        hash_table(hash_table&&) = default;
+        hash_table& operator=(const hash_table&) = default;
+        hash_table& operator=(hash_table&&) = default;
 
         ~hash_table() noexcept
         {
