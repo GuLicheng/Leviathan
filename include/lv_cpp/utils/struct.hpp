@@ -1,8 +1,8 @@
 #pragma once
 
 #include <iostream>
-
-
+#include <functional>
+#include <compare>
 
 struct foo
 {
@@ -13,6 +13,7 @@ private:
     inline static int move_constructor = 0;
     inline static int move_assignment = 0;
     inline static int destructor = 0;
+    inline static int int_constructor = 0;
 public:
 
     int val;
@@ -20,6 +21,9 @@ public:
     foo() : val{default_constructor} 
     { std::cout << "default_constructor :" << ++default_constructor << std::endl;}
     
+    foo(int x) : val{ x }
+    { std::cout << "int_constructor : " << ++int_constructor << std::endl; }
+
     foo(const foo& rhs) : val{rhs.val}
     { std::cout << "copy_constructor :" << ++copy_constructor << std::endl;}
 
@@ -48,7 +52,19 @@ public:
         return os << f.val;
     }
 
+    auto operator<=>(const foo&) const noexcept = default;
+
 };
+
+namespace std 
+{
+    template <>
+    struct hash<foo>
+    {
+        auto operator()(const foo& f) const noexcept
+        { return std::hash<int>()(f.val); }
+    };
+}
 
 struct empty_class { };
 
