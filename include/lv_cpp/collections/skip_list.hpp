@@ -155,7 +155,6 @@ namespace leviathan
 		using size_type = std::size_t;
 		using difference_type = std::ptrdiff_t;
 		using key_compare = Compare;
-		using value_compare = Compare;
 	private:
 		constexpr static bool is_noexcept_move = noexcept(std::is_nothrow_assignable_v<value_type, value_type&&>
 			&& std::is_nothrow_assignable_v<key_compare, key_compare&&>
@@ -184,6 +183,7 @@ namespace leviathan
 		{
 			// may use impl to warp all flied but alloc
 			// traits::select_on_container_copy_construction(rhs.m_alloc)
+			this->m_alloc = std::allocator_traits<key_allocator_type>::select_on_container_copy_construction(rhs.m_alloc);
 			// this->assign_from(rhs.cbegin(), rhs.cend());
 			try 
 			{
@@ -220,7 +220,7 @@ namespace leviathan
 			}
 			return *this;
 		}
-
+		// https://stackoverflow.com/questions/27471053/example-usage-of-propagate-on-container-move-assignment
 		skip_list& operator=(skip_list&& rhs) noexcept(is_noexcept_move)
 		{
 			if (this != std::addressof(rhs))
