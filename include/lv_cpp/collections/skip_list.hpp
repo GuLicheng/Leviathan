@@ -196,7 +196,10 @@ namespace leviathan
 			}
 		}
 
-		skip_list(skip_list&& rhs) noexcept(is_noexcept_move)
+		skip_list(skip_list&& rhs) 
+		noexcept(noexcept(std::allocator_traits<key_allocator_type>::propagate_on_container_move_assignment::value 
+			&& std::is_nothrow_move_assignable_v<key_allocator_type>)
+			&& is_noexcept_move)
 			: m_cmp{ std::move(rhs.m_cmp) }, m_alloc{ std::move(rhs.m_alloc) }, m_size{ rhs.m_size }, m_header{ std::move(rhs.m_header) }, m_level{ rhs.m_level }
 		{
 		}
@@ -221,7 +224,10 @@ namespace leviathan
 			return *this;
 		}
 		// https://stackoverflow.com/questions/27471053/example-usage-of-propagate-on-container-move-assignment
-		skip_list& operator=(skip_list&& rhs) noexcept(is_noexcept_move)
+		skip_list& operator=(skip_list&& rhs) 
+		noexcept(noexcept(std::allocator_traits<key_allocator_type>::propagate_on_container_move_assignment::value 
+			&& std::is_nothrow_move_assignable_v<key_allocator_type>)
+			&& is_noexcept_move)
 		{
 			if (this != std::addressof(rhs))
 			{

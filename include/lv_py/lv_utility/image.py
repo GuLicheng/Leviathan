@@ -87,5 +87,7 @@ class ImageHandle:
         cv.imshow(name, imgs)
         cv.waitKey(0)
         
-   
+    @staticmethod
+    def HSV(filename):
+       pass
 
