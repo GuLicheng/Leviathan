@@ -13,6 +13,23 @@
 
 namespace leviathan
 {
+
+    // find first `1` in array
+    template <typename UnsignedInt>
+    constexpr int find_firstbit(UnsignedInt* ptr, int sz)
+    {
+        constexpr int width = sizeof(UnsignedInt) * 8;
+        for (int i = 0; i < sz; ++i)
+        {
+            auto index = std::bit_width(ptr[i]);
+            if (index != 0) 
+                return i * width + (width - index);
+        }
+        return sz * width;
+    }
+
+
+
     class bucket
     {
     public:
