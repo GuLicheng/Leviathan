@@ -72,7 +72,7 @@ namespace leviathan
         using allocator_type = typename Configuration::allocator_type;
         using hasher = typename Configuration::hasher;
         using key_equal = typename Configuration::key_equal;
-        enum class state : unsigned int { empty = 0, active, deleted };
+        enum class state : unsigned char { empty = 0, active, deleted };
 
     private:
         using entry_type = value_type;
@@ -218,7 +218,7 @@ namespace leviathan
             if (is_deleted(index))
                 std::destroy_at(&this->m_table[index]);
 
-            // debug 
+            // MSVC debug may not allowed
             std::construct_at(&this->m_table[index], std::forward<T>(x));
             this->m_state[index] = state::active;
             this->m_size++;
@@ -274,6 +274,9 @@ private:
 
             // reset table
             const auto new_capacity = next_size(old.capacity());
+            // user-defined allocator with clear method must destory all objects
+            // if move performer as copy semanstic
+            this->m_table.clear(); 
             this->m_table.reserve(new_capacity); // realloc memory
 
             // reset states

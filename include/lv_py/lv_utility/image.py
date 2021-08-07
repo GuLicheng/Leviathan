@@ -1,9 +1,6 @@
-from typing import Iterable
 import numpy as np
 import cv2 as cv
 import os
-import torch.nn as nn
-import torch
 import functools
 
 class ImageHandle:
