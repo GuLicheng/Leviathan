@@ -269,14 +269,12 @@ private:
         void rehash()
         {
             // vector with any allocator should satisfied copy or move semantics 
+            // in our case must performed as move semantics
             std::vector old = std::move(this->m_table);
             std::vector old_state = std::move(this->m_state);
 
             // reset table
             const auto new_capacity = next_size(old.capacity());
-            // user-defined allocator with clear method must destory all objects
-            // if move performer as copy semanstic
-            this->m_table.clear(); 
             this->m_table.reserve(new_capacity); // realloc memory
 
             // reset states
