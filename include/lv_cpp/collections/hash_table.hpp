@@ -85,7 +85,7 @@ namespace leviathan
     
     public:
         using const_iterator = hash_iterator<true>;
-        using iterator = hash_iterator<true>;
+        using iterator = hash_iterator<false>;
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -95,10 +95,30 @@ namespace leviathan
             init_table();
         }
 
-        hash_table(const hash_table&) = default;
-        hash_table(hash_table&&) noexcept(noexcept(true)) = default;  // FIXME: noexcept
-        hash_table& operator=(const hash_table&) = default;
-        hash_table& operator=(hash_table&&) noexcept(noexcept(true)) = default; // // FIXME: noexcept
+        hash_table(const hash_table& rhs)
+             : m_hash{ rhs.m_hash }, m_key_equal{ rhs.m_key_equal }, m_size{ 0 }
+        {
+            const auto sz = rhs.m_state.size();
+            this->m_state.resize(sz); // static_cast<state>(0) -> state::empty
+            this->m_table.reserve(sz);
+            for (std::size_t i = 0; i < rhs.sz; ++i)
+                if (rhs.is_active(i))
+                    insert(rhs.m_table[i]);
+        }
+
+
+        hash_table& operator=(const hash_table& rhs) 
+        {
+            if (this != std::addressof(rhs))
+            {
+                auto tmp = rhs;
+                *this = std::move(tmp);  // FIXME
+            }
+            return *this;
+        }
+
+        hash_table(hash_table&&) noexcept(noexcept(true)) = default;  // FIXME: 
+        hash_table& operator=(hash_table&&) noexcept(noexcept(true)) = default; // // FIXME:
 
         ~hash_table() noexcept
         {
@@ -238,7 +258,8 @@ public:
             // not active
             if (!is_active(index))
                 return this->m_table.data() + this->m_table.capacity();
-            return &(this->m_table[index]);
+            // return &(this->m_table[index]);
+            return nullptr;
         }
 
         entry_type* erase_entry(const key_type& x)
@@ -268,13 +289,21 @@ private:
 
         void rehash()
         {
-            // vector with any allocator should satisfied copy or move semantics 
-            // in our case must performed as move semantics
-            std::vector old = std::move(this->m_table);
-            std::vector old_state = std::move(this->m_state);
-
+            std::vector<entry_type, entry_allocator_type> old;
+            old.reserve(this->m_size);
+            for (std::size_t i = 0; i < this->m_state.size(); ++i)
+            {
+                // move active elem and destory deleted elem
+                switch (this->m_state[i])
+                {
+                    case state::active: old.emplace_back(std::move(this->m_table[i])); 
+                    case state::deleted: std::destroy_at(&this->m_table[i]); break;
+                    default: break;
+                }
+                this->m_state[i] = state::empty;
+            }
             // reset table
-            const auto new_capacity = next_size(old.capacity());
+            const auto new_capacity = next_size(this->m_table.capacity());
             this->m_table.reserve(new_capacity); // realloc memory
 
             // reset states
@@ -283,11 +312,9 @@ private:
             // reset size
             this->m_size = 0;
 
-            for (std::size_t i = 0; i < old_state.size(); ++i)
-            {
-                if (old_state[i] == state::active) 
-                    insert(std::move(old[i]));
-            }
+            // reinsert elem
+            for (auto& val : old)
+                insert(std::move(val));
         }
 
         std::size_t next_size(std::size_t sz) const noexcept

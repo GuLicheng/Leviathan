@@ -443,8 +443,9 @@ namespace leviathan
 
 		void clear_and_deallocate_memory()
 		{
-			if (this->m_header.m_next.empty())
-				return;
+			// if (this->m_header.m_next.empty())
+			// 	return;
+			assert(this->m_header.m_next.size() > 0);
 			auto cur = this->m_header.m_next[0];
 			while (cur)
 			{

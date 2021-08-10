@@ -18,7 +18,7 @@ public:
 
     int val;
 
-    foo() : val{default_constructor} 
+    foo() : val{ 0 } 
     { std::cout << "default_constructor :" << ++default_constructor << std::endl;}
     
     foo(int x) : val{ x }
@@ -27,7 +27,7 @@ public:
     foo(const foo& rhs) : val{rhs.val}
     { std::cout << "copy_constructor :" << ++copy_constructor << std::endl;}
 
-    foo(foo&& rhs) noexcept : val{rhs.val}
+    foo(foo&& rhs) noexcept : val{ std::exchange(rhs.val, 0) }
     { std::cout << "move_constructor :" << ++move_constructor << std::endl;}
 
     foo& operator=(const foo& rhs) 
@@ -39,13 +39,13 @@ public:
 
     foo& operator=(foo&& rhs) noexcept
     { 
-        this->val = rhs.val;
+        this->val = std::exchange(rhs.val, 0);
         std::cout << "move_assignment :" << ++move_assignment << std::endl;
         return *this;
     }
 
     ~foo() 
-    { std::cout << "destructor :" << ++destructor << std::endl;}
+    { std::cout << "value is: " << val << " and destructor :" << ++destructor << std::endl;}
 
     friend std::ostream& operator<<(std::ostream& os, const foo& f)
     {
