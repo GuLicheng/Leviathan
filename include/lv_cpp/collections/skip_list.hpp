@@ -4,6 +4,8 @@
 #ifndef __SKIPLIST_HPP__
 #define __SKIPLIST_HPP__
 
+#include <lv_cpp/meta/meta.hpp>
+
 #include <assert.h>
 #include <algorithm>
 #include <iostream>
@@ -622,27 +624,15 @@ namespace leviathan
 
 	};
 
-	template <bool IsConst, typename T>
-	struct maybe_const : std::conditional<IsConst, const T, T> { };
-
-	template <bool IsConst, typename T>
-	struct maybe_const<IsConst, T*> : std::conditional<IsConst, const T*, T*> { };
-
-	template <bool IsConst, typename T>
-	struct maybe_const<IsConst, T&> : std::conditional<IsConst, const T&, T&> { };
-
-	template <bool IsConst, typename T>
-	using maybe_const_t = typename maybe_const<IsConst, T>::type;
-
 	template <typename Key, typename Compare, typename Allocator, typename KeyTraits>
 	template <bool Const>
 	struct skip_list<Key, Compare, Allocator, KeyTraits>::skip_list_iterator
 	{
 		using value_type = typename KeyTraits::iter_value_type;
-		using link_container_type = maybe_const_t<Const, skip_list<Key, Compare, Allocator, KeyTraits>*>;
-		using link_type = maybe_const_t<Const, skip_node*>;
+		using link_container_type = meta::maybe_const_t<Const, skip_list<Key, Compare, Allocator, KeyTraits>*>;
+		using link_type = meta::maybe_const_t<Const, skip_node*>;
 
-		using reference = maybe_const_t<Const, value_type&>;
+		using reference = meta::maybe_const_t<Const, value_type&>;
 		using iterator_category = std::bidirectional_iterator_tag;
 		using difference_type = std::ptrdiff_t;
 		link_type m_ptr;
