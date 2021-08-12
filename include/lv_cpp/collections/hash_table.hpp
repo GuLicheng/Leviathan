@@ -81,7 +81,6 @@ namespace leviathan
         using entry_allocator_type = typename std::allocator_traits<allocator_type>::template rebind_alloc<value_type>;
         using table_type = std::vector<entry_type, entry_allocator_type>;
 
-        // TODO: implement hash_iterator
         template <bool> 
         struct hash_iterator;
     
