@@ -100,12 +100,17 @@ namespace leviathan
              : m_hash{ rhs.m_hash }, m_key_equal{ rhs.m_key_equal }, m_size{ 0 }
         {
             const auto sz = rhs.m_state.size();
-            this->m_state.resize(sz); // static_cast<state>(0) -> state::empty
-            this->m_table.reserve(sz);
-            assign_from(rhs.begin(), rhs.end());
-            // for (std::size_t i = 0; i < rhs.sz; ++i)
-            //     if (rhs.is_active(i))
-            //         insert(rhs.m_table[i]);
+            try
+            {
+                this->m_state.resize(sz); // static_cast<state>(0) -> state::empty
+                this->m_table.reserve(sz);
+                assign_from(rhs.begin(), rhs.end());
+            }
+            catch(...)
+            {
+                clear();
+                throw;
+            }
         }
 
 
