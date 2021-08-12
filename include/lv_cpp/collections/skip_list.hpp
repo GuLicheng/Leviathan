@@ -158,9 +158,15 @@ namespace leviathan
 		using difference_type = std::ptrdiff_t;
 		using key_compare = Compare;
 	private:
-		constexpr static bool is_noexcept_move = noexcept(std::is_nothrow_assignable_v<value_type, value_type&&>
+		constexpr static bool isNoexceptMoveAssign 
+			= std::is_nothrow_assignable_v<value_type, value_type&&>
 			&& std::is_nothrow_assignable_v<key_compare, key_compare&&>
-			&& std::is_nothrow_assignable_v<key_allocator_type, key_allocator_type&&>);
+			&& std::is_nothrow_assignable_v<key_allocator_type, key_allocator_type&&>;
+		constexpr static bool isNoexceptMoveConstruct 
+			= std::is_nothrow_constructible_v<value_type, value_type&&> 
+			&& std::is_nothrow_constructible_v<key_compare, key_compare&&>
+			&& std::is_nothrow_constructible_v<key_allocator_type, key_allocator_type&&>
+			&& std::allocator_traits<key_allocator_type>::propagate_on_container_move_assignment::value;
 
 	public:
 		skip_list() noexcept(noexcept(std::is_nothrow_default_constructible_v<key_allocator_type>
@@ -181,7 +187,7 @@ namespace leviathan
 		// https://github.com/CppCon/CppCon2017 - How to Write a Custom Allocator 
 		// https://github.com/CppCon/CppCon2017/blob/master/Tutorials/How%20to%20Write%20a%20Custom%20Allocator/How%20to%20Write%20a%20Custom%20Allocator%20-%20Bob%20Steagall%20-%20CppCon%202017.pdf
 		skip_list(const skip_list& rhs)
-			: m_cmp{ rhs.m_cmp }, m_alloc{ rhs.m_alloc }, m_size{ }, m_header{ }, m_level{ 1 }
+			: m_cmp{ rhs.m_cmp }, m_size{ }, m_header{ }, m_level{ 1 }
 		{
 			// may use impl to warp all flied but alloc
 			// traits::select_on_container_copy_construction(rhs.m_alloc)
@@ -199,9 +205,7 @@ namespace leviathan
 		}
 
 		skip_list(skip_list&& rhs) 
-		noexcept(noexcept(std::allocator_traits<key_allocator_type>::propagate_on_container_move_assignment::value 
-			&& std::is_nothrow_move_assignable_v<key_allocator_type>)
-			&& is_noexcept_move)
+		noexcept(isNoexceptMoveConstruct)
 			: m_cmp{ std::move(rhs.m_cmp) }, m_alloc{ std::move(rhs.m_alloc) }, m_size{ rhs.m_size }, m_header{ std::move(rhs.m_header) }, m_level{ rhs.m_level }
 		{
 		}
@@ -220,16 +224,25 @@ namespace leviathan
 					}
 					this->m_alloc = rhs.m_alloc;
 				}
-				// this->assign_from(rhs.begin(), rhs.end());
-				assign_from(rhs.cbegin(), rhs.cend());
+				else
+				{
+					// this->assign_from(rhs.begin(), rhs.end());
+					try
+					{
+						assign_from(rhs.cbegin(), rhs.cend());
+					}
+					catch (...)
+					{
+						clear();
+						throw;
+					}
+				}
 			}
 			return *this;
 		}
 		// https://stackoverflow.com/questions/27471053/example-usage-of-propagate-on-container-move-assignment
 		skip_list& operator=(skip_list&& rhs) 
-		noexcept(noexcept(std::allocator_traits<key_allocator_type>::propagate_on_container_move_assignment::value 
-			&& std::is_nothrow_move_assignable_v<key_allocator_type>)
-			&& is_noexcept_move)
+		noexcept(isNoexceptMoveAssign)
 		{
 			if (this != std::addressof(rhs))
 			{
