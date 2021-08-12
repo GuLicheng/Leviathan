@@ -648,8 +648,8 @@ namespace leviathan
 		link_type m_ptr;
 		link_container_type m_slist;
 
-		constexpr skip_list_iterator() = default;
-		constexpr skip_list_iterator(link_type ptr, link_container_type c)
+		constexpr skip_list_iterator() noexcept = default;
+		constexpr skip_list_iterator(link_type ptr, link_container_type c) noexcept
 			: m_ptr{ ptr }, m_slist{ c } { }
 
 		constexpr skip_list_iterator(const skip_list_iterator&) noexcept = default;

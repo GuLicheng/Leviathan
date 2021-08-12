@@ -12,6 +12,13 @@ std::vector<int> inserted_set;
 std::vector<int> searched_set;
 std::vector<int> erased_set;
 
+void init()
+{
+    std::generate_n(std::back_inserter(inserted_set), 100'00'00, std::random_device());
+    std::generate_n(std::back_inserter(searched_set), 100'00'00, std::random_device());
+    std::generate_n(std::back_inserter(erased_set), 100'00'00, std::random_device());
+}
+
 void unordered_set_test()
 {
     leviathan::timer _;
@@ -45,14 +52,32 @@ int count_hash()
     return c;
 }
 
-
-int main()
+void operation_test()
 {
-    std::generate_n(std::back_inserter(inserted_set), 100'00'00, std::random_device());
-    std::generate_n(std::back_inserter(searched_set), 100'00'00, std::random_device());
-    // std::generate_n(std::back_inserter(erased_set), 100'00'00, std::random_device());
     unordered_set_test();
     hash_set_test();
     // assert(stl_count() == hash_count());
     std::cout << (count_stl() == count_hash()) << '\n';
+}
+
+void iterator_test()
+{
+    leviathan::hash_set<int> s;
+    int cnt{};
+    for (int i = 0; i < 10; ++i)
+        s.insert(inserted_set[i] % 150);
+    for (auto& i : s) std::cout << i << ' ';
+    std::cout << '\n';
+    s.show();
+    // for (auto& i : s) std::cout << '(' << cnt++ << ", " << i << ") ";
+    // std::cout << "size is: " << s.size() << '\n';
+    std::endl(std::cout);
+    for (auto iter = s.rcbegin(); iter != s.rcend(); ++iter)
+        std::cout << (*iter) << ' ';
+}
+
+int main()
+{
+    init();
+    iterator_test();
 }

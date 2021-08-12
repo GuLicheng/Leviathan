@@ -5,6 +5,8 @@
 #ifndef __HASH_TABLE_HPP__
 #define __HASH_TABLE_HPP__
 
+#include <lv_cpp/meta/meta.hpp>
+
 #include <iostream>
 #include <memory>
 #include <functional>
@@ -101,9 +103,10 @@ namespace leviathan
             const auto sz = rhs.m_state.size();
             this->m_state.resize(sz); // static_cast<state>(0) -> state::empty
             this->m_table.reserve(sz);
-            for (std::size_t i = 0; i < rhs.sz; ++i)
-                if (rhs.is_active(i))
-                    insert(rhs.m_table[i]);
+            assign_from(rhs.begin(), rhs.end());
+            // for (std::size_t i = 0; i < rhs.sz; ++i)
+            //     if (rhs.is_active(i))
+            //         insert(rhs.m_table[i]);
         }
 
 
@@ -111,8 +114,13 @@ namespace leviathan
         {
             if (this != std::addressof(rhs))
             {
-                auto tmp = rhs;
-                *this = std::move(tmp);  // FIXME
+                clear();
+                const auto sz = rhs.m_state.size();
+                this->m_state.resize(sz); // static_cast<state>(0) -> state::empty
+                this->m_table.reserve(sz);
+                this->m_hash = rhs.m_hash;
+                this->m_key_equal = rhs.m_key_equal;
+                assign_from(rhs.begin(), rhs.end());
             }
             return *this;
         }
@@ -147,14 +155,37 @@ namespace leviathan
             return this->m_size == 0;
         }
 
-        void insert(const value_type& x)
+        std::pair<iterator, bool> insert(const value_type& x)
         {
-            insert_unique(x);
+            auto [entry, exist] = insert_unique(x);
+            auto cur = std::distance(this->m_table.data(), entry);
+            return { iterator(cur, this), !exist };
         }
 
-        void insert(value_type&& x)
+        std::pair<iterator, bool> insert(value_type&& x)
         {
-            insert_unique(std::move(x));
+            auto [entry, exist] = insert_unique(x);
+            auto cur = std::distance(this->m_table.data(), entry);
+            return { iterator(cur, this), !exist };
+        }
+
+        iterator find(const key_type& x) 
+        {
+            auto entry = find_entry(x);
+            auto cur = std::distance(this->m_table.data(), entry);
+            return { cur, this };
+        }
+
+        const_iterator find(const key_type& x) const
+        {
+            return const_cast<hash_table*>(this)->find(x);
+        }
+
+        iterator erase(const key_type& x)
+        {
+            auto entry = erase_entry(x);
+            auto cur = std::distance(this->m_table.data(), entry);
+            return { cur, this };
         }
 
         void show() const
@@ -166,7 +197,47 @@ namespace leviathan
             }
         }
 
+        iterator begin() noexcept
+        {
+            auto cur = std::distance(
+                this->m_state.begin(),
+                std::find(this->m_state.begin(), this->m_state.end(), state::active)
+            );
+            return { cur, this }; 
+        }
 
+        iterator end() noexcept
+        { return { static_cast<std::ptrdiff_t>(this->m_state.size()), this }; }
+
+        const_iterator begin() const noexcept
+        { return const_cast<hash_table*>(this)->begin(); }
+
+        const_iterator end() const noexcept
+        { return { static_cast<std::ptrdiff_t>(this->m_state.size()), this }; }
+
+        const_iterator cbegin() const noexcept
+        { return const_cast<hash_table*>(this)->begin(); }       
+
+        const_iterator cend() const noexcept
+        { return { static_cast<std::ptrdiff_t>(this->m_state.size()), this }; }
+
+        reverse_iterator rbegin() noexcept
+        { return std::make_reverse_iterator(end()); }
+
+        reverse_iterator rend() noexcept
+        { return std::make_reverse_iterator(begin()); }
+
+        const_reverse_iterator rbegin() const noexcept
+        { return std::make_reverse_iterator(end()); }
+
+        const_reverse_iterator rend() const noexcept
+        { return std::make_reverse_iterator(begin()); }
+
+        const_reverse_iterator rcbegin() const noexcept
+        { return std::make_reverse_iterator(end()); }
+
+        const_reverse_iterator rcend() const noexcept
+        { return std::make_reverse_iterator(begin()); }
 
     private:
         [[no_unique_address]] hasher m_hash;
@@ -258,8 +329,8 @@ public:
             // not active
             if (!is_active(index))
                 return this->m_table.data() + this->m_table.capacity();
-            // return &(this->m_table[index]);
-            return nullptr;
+            return &(this->m_table[index]);
+            // return nullptr;
         }
 
         entry_type* erase_entry(const key_type& x)
@@ -274,6 +345,14 @@ public:
             return &(this->m_table[dist]);
         }
 private:
+
+        template <typename Iter, typename Sent>
+        void assign_from(Iter iter, Sent sent)
+        {
+            while (iter != sent)
+                insert(*iter);
+        }
+
         void destory_objects()
         {
             const auto sz = this->m_state.size();
@@ -317,7 +396,7 @@ private:
                 insert(std::move(val));
         }
 
-        std::size_t next_size(std::size_t sz) const noexcept
+        static std::size_t next_size(std::size_t sz) noexcept
         {
             constexpr auto max_size = sizeof(prime_table) / sizeof(prime_table[0]);
             auto iter = std::find(prime_table, prime_table + max_size, sz);
@@ -325,6 +404,103 @@ private:
             return *(++iter);
         }
     };
+
+
+    template <typename Configuration>
+    template <bool Const>
+    struct hash_table<Configuration>::hash_iterator
+    {
+        using link_container_type = meta::maybe_const_t<Const, hash_table<Configuration>*>;
+        link_container_type m_container;
+        std::ptrdiff_t m_cur;
+
+        using value_type = typename Configuration::value_type;
+        using reference = meta::maybe_const_t<Const, value_type&>;
+		using iterator_category = std::bidirectional_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+
+		constexpr hash_iterator() noexcept = default;
+		constexpr hash_iterator(std::ptrdiff_t cur, link_container_type c) noexcept
+			: m_cur{ cur }, m_container{ c } { }
+
+		constexpr hash_iterator(const hash_iterator&) noexcept = default;
+
+		template <bool IsConst, typename = std::enable_if_t<((Const == IsConst) || Const)>>
+		constexpr hash_iterator(const hash_iterator<IsConst>& rhs) noexcept
+			: m_cur{ rhs.m_cur }, m_container{ rhs.m_container } { }
+
+		template <bool IsConst, typename = std::enable_if_t<((Const == IsConst) || Const)>>
+		constexpr hash_iterator&
+			operator=(const hash_iterator<IsConst>& rhs) noexcept
+		{
+			this->m_cur = rhs.m_cur;
+			this->m_container = rhs.m_container;
+		}
+
+		template <bool IsConst>
+		constexpr bool operator==(const hash_iterator<IsConst>& rhs) const noexcept
+		{
+			return this->m_container == rhs.m_container 
+                && this->m_cur == rhs.m_cur;
+		}
+
+		template <bool IsConst>
+		constexpr bool operator!=(const hash_iterator<IsConst>& rhs) const noexcept
+		{
+			return !this->operator==(rhs);
+		}
+
+		constexpr auto operator->() const noexcept
+		{
+			return &(this->operator*());
+		}
+
+		constexpr reference operator*() const noexcept
+		{
+            return this->m_container->m_table[this->m_cur];
+		}
+
+		constexpr hash_iterator& operator++()
+		{
+            // find next state::active
+            auto& state = this->m_container->m_state;
+            auto first = state.begin();
+            auto last = state.end();
+            auto now = first + this->m_cur;
+            auto iter = std::find(now + 1, last, state::active);
+            auto dist = std::distance(first, iter);
+            this->m_cur = dist;
+            return *this;
+		}
+
+		constexpr hash_iterator& operator--()
+		{
+            auto& state = this->m_container->m_state;
+            auto first = state.begin();
+            auto last = state.end();
+            auto now = first + this->m_cur;
+
+            auto iter = std::find(std::make_reverse_iterator(now), std::make_reverse_iterator(first), state::active);
+            this->m_cur = std::distance(first, iter.base()) - 1;
+            return *this;
+		}
+
+		constexpr hash_iterator operator++(int)
+		{
+			auto old = *this;
+			++* this;
+			return old;
+		}
+
+		constexpr hash_iterator operator--(int)
+		{
+			auto old = *this;
+			--* this;
+			return old;
+		}
+
+    };
+
 
     template <typename Key, typename HashFunction = std::hash<Key>, typename KeyEqual = std::equal_to<>, typename Allocator = std::allocator<Key>>
     class hash_set : public hash_table<hash_set_config<Key, HashFunction, KeyEqual, Allocator>> { };
@@ -335,6 +511,9 @@ private:
 
 }
 
+#include <ranges>
 
+static_assert(std::ranges::bidirectional_range<leviathan::hash_set<int>>);
+static_assert(std::ranges::bidirectional_range<const leviathan::hash_set<int>>);
 
 #endif
