@@ -21,14 +21,15 @@ namespace leviathan
     struct hash_map_config
     {
         using key_type = Key;
-        using value_type = std::pair<Key, Value>;
+        using value_type = std::pair<const Key, Value>;
         using hasher = HashFunction;
         using allocator_type = Allocator;
         using key_equal = KeyEqual;
 
         // Lhs is value_type, and rhs is key_type
         template <typename Compare, typename Lhs, typename Rhs>
-        constexpr static bool compare(const Compare& cmp, const Lhs& lhs, const Rhs& rhs) noexcept
+        constexpr static bool compare(const Compare& cmp, const Lhs& lhs, const Rhs& rhs) 
+        noexcept(noexcept(cmp(lhs.first, rhs)))
         {
             return cmp(lhs.first, rhs);
         }
@@ -51,7 +52,8 @@ namespace leviathan
         using key_equal = KeyEqual;
 
         template <typename Compare, typename Lhs, typename Rhs>
-        constexpr static bool compare(const Compare& cmp, const Lhs& lhs, const Rhs& rhs) noexcept
+        constexpr static bool compare(const Compare& cmp, const Lhs& lhs, const Rhs& rhs) 
+        noexcept(noexcept(cmp(lhs, rhs)))
         {
             return cmp(lhs, rhs);
         }
@@ -163,14 +165,14 @@ namespace leviathan
         {
             auto [entry, exist] = insert_unique(x);
             auto cur = std::distance(this->m_table.data(), entry);
-            return { iterator(cur, this), !exist };
+            return { iterator(cur, this), exist };
         }
 
         std::pair<iterator, bool> insert(value_type&& x)
         {
             auto [entry, exist] = insert_unique(x);
             auto cur = std::distance(this->m_table.data(), entry);
-            return { iterator(cur, this), !exist };
+            return { iterator(cur, this), exist };
         }
 
         iterator find(const key_type& x) 
@@ -217,13 +219,13 @@ namespace leviathan
         { return const_cast<hash_table*>(this)->begin(); }
 
         const_iterator end() const noexcept
-        { return { static_cast<std::ptrdiff_t>(this->m_state.size()), this }; }
+        { return const_cast<hash_table*>(this)->end(); }
 
         const_iterator cbegin() const noexcept
-        { return const_cast<hash_table*>(this)->begin(); }       
+        { return begin(); }       
 
         const_iterator cend() const noexcept
-        { return { static_cast<std::ptrdiff_t>(this->m_state.size()), this }; }
+        { return end(); }
 
         reverse_iterator rbegin() noexcept
         { return std::make_reverse_iterator(end()); }
@@ -372,7 +374,7 @@ private:
 
         void rehash()
         {
-            std::vector<entry_type, entry_allocator_type> old;
+            std::vector<entry_type, entry_allocator_type> old; // entry_allocator_type must have default ctor
             old.reserve(this->m_size);
             for (std::size_t i = 0; i < this->m_state.size(); ++i)
             {
@@ -380,7 +382,7 @@ private:
                 switch (this->m_state[i])
                 {
                     case state::active: old.emplace_back(std::move(this->m_table[i])); 
-                    case state::deleted: std::destroy_at(&this->m_table[i]); break;
+                    case state::deleted: std::destroy_at(&this->m_table[i]); 
                     default: break;
                 }
                 this->m_state[i] = state::empty;
@@ -427,8 +429,8 @@ private:
 		constexpr hash_iterator(std::ptrdiff_t cur, link_container_type c) noexcept
 			: m_cur{ cur }, m_container{ c } { }
 
-		constexpr hash_iterator(const hash_iterator&) noexcept = default;
-
+        // for const_iter -> const_iter/iter
+        // for iter -> iter
 		template <bool IsConst, typename = std::enable_if_t<((Const == IsConst) || Const)>>
 		constexpr hash_iterator(const hash_iterator<IsConst>& rhs) noexcept
 			: m_cur{ rhs.m_cur }, m_container{ rhs.m_container } { }

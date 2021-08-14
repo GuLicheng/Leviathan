@@ -385,6 +385,11 @@ namespace leviathan
 			{
 				if constexpr (insert_emplace_selector<Key, Args...>::value)
 					return insert(std::forward<Args>(args)...);
+				else
+				{
+					auto [node, exist] = emplace_unique(this->m_header.derived_ptr(), std::forward<Args>(args)...);
+					return { iterator(node, this), exist };
+				}
 			}
 			else
 			{
@@ -654,8 +659,6 @@ namespace leviathan
 		constexpr skip_list_iterator() noexcept = default;
 		constexpr skip_list_iterator(link_type ptr, link_container_type c) noexcept
 			: m_ptr{ ptr }, m_slist{ c } { }
-
-		constexpr skip_list_iterator(const skip_list_iterator&) noexcept = default;
 
 		template <bool IsConst, typename = std::enable_if_t<((Const == IsConst) || Const)>>
 		constexpr skip_list_iterator(const skip_list_iterator<IsConst>& rhs) noexcept
