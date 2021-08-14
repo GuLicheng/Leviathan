@@ -159,13 +159,13 @@ namespace leviathan
 		using key_compare = Compare;
 	private:
 		constexpr static bool isNoexceptMoveAssign 
-			= std::is_nothrow_assignable_v<value_type, value_type&&>
-			&& std::is_nothrow_assignable_v<key_compare, key_compare&&>
-			&& std::is_nothrow_assignable_v<key_allocator_type, key_allocator_type&&>;
+			= std::is_nothrow_move_assignable_v<value_type>
+			&& std::is_nothrow_move_assignable_v<key_compare>
+			&& std::is_nothrow_move_assignable_v<key_allocator_type>;
 		constexpr static bool isNoexceptMoveConstruct 
-			= std::is_nothrow_constructible_v<value_type, value_type&&> 
-			&& std::is_nothrow_constructible_v<key_compare, key_compare&&>
-			&& std::is_nothrow_constructible_v<key_allocator_type, key_allocator_type&&>
+			= std::is_nothrow_move_constructible_v<value_type> 
+			&& std::is_nothrow_move_constructible_v<key_compare>
+			&& std::is_nothrow_move_constructible_v<key_allocator_type>
 			&& std::allocator_traits<key_allocator_type>::propagate_on_container_move_assignment::value;
 
 	public:
