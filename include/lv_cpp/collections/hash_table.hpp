@@ -270,6 +270,8 @@ namespace leviathan
         }
 
         std::size_t get_index(const key_type& x) const noexcept // assert hasher and key_compare is exception-safe
+        // noexcept(this->m_key_equal(std::declval<const key_type&>(), std::declval<const key_type&>()))
+        // noexcept(this->m_hash(std::declval<const key_type&>()))
         {
             std::size_t offset = 1;
             const auto table_size = this->m_table.capacity();
@@ -323,7 +325,7 @@ namespace leviathan
 
         }
 
-public:
+private:
         const entry_type* find_entry(const key_type& x) const 
         {
             return const_cast<hash_table*>(this)->find_entry(x);
@@ -355,7 +357,7 @@ private:
         template <typename Iter, typename Sent>
         void assign_from(Iter iter, Sent sent)
         {
-            while (iter != sent)
+            for (;iter != sent; ++iter)
                 insert(*iter);
         }
 
@@ -381,6 +383,7 @@ private:
                 // move active elem and destory deleted elem
                 switch (this->m_state[i])
                 {
+                    // no break since active also must be destoried
                     case state::active: old.emplace_back(std::move(this->m_table[i])); 
                     case state::deleted: std::destroy_at(&this->m_table[i]); 
                     default: break;
