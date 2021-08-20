@@ -9,25 +9,24 @@ namespace leviathan::action
     public:
         constexpr bind_back_impl(Lambda lambda) : m_func(std::move(lambda))
         {
-            console::write_line_type<Lambda>();
         }
 
         template <typename Range>
         constexpr friend auto operator|(Range &&rg, bind_back_impl &&back)
         {
-            return back.m_func(std::ranges::begin(rg), std::ranges::end(rg));
+            return std::invoke(back.m_func, std::ranges::begin(rg), std::ranges::end(rg));
         }
 
         template <typename Range>
         constexpr friend auto operator|(Range &&rg, bind_back_impl &back)
         {
-            return back.m_func(std::ranges::begin(rg), std::ranges::end(rg));
+            return std::invoke(back.m_func, std::ranges::begin(rg), std::ranges::end(rg));
         }
 
         template <typename Range>
         constexpr friend auto operator|(Range &&rg, const bind_back_impl &back)
         {
-            return back.m_func(std::ranges::begin(rg), std::ranges::end(rg));
+            return std::invoke(back.m_func, std::ranges::begin(rg), std::ranges::end(rg));
         }
 
     private:

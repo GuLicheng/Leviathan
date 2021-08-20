@@ -5,6 +5,8 @@
 #include <random>
 #include <unordered_set>
 #include <lv_cpp/utils/timer.hpp>
+#include <ranges>
+#include <lv_cpp/ranges/action.hpp>
 
 leviathan::hash_set<int> hash;
 std::unordered_set<int> stl_hash;
@@ -74,10 +76,19 @@ void iterator_test()
     std::endl(std::cout);
     for (auto iter = s.rcbegin(); iter != s.rcend(); ++iter)
         std::cout << (*iter) << ' ';
+    std::endl(std::cout);
+    auto res = s 
+      | std::views::take(5) 
+      | std::views::reverse
+      | leviathan::action::bind_back(std::ranges::for_each, [](int x) { std::cout << x << ' ';});
+      ;
 }
 
 int main()
 {
     init();
     iterator_test();
+
+
+
 }

@@ -76,7 +76,6 @@ namespace leviathan
 	template <typename Key, typename Compare = std::less<Key>, typename Allocator = std::allocator<Key>, typename KeyTraits = indentity<Key>>
 	class skip_list
 	{
-
 	public:
 
 		constexpr static int MAXLEVEL = 32;
