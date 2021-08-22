@@ -135,11 +135,12 @@ namespace leviathan
             this->m_item.resize(1); // default is zero
         }
 
-        basic_biginteger(const underlying_type* str)
+        explicit basic_biginteger(const underlying_type* str)
         {
             const auto len = EncodingTraits::length(str);
             if (len > 0)
             {
+                this->m_sign = sign::pos;
                 init(str, len);
             }
             else
@@ -147,6 +148,8 @@ namespace leviathan
                 basic_biginteger();  // bigint i = "" => i = 0
             }
             normalize();
+            if (this->m_sign == illegal)
+                std::cout << "Error\n";
         }
 
 
@@ -238,10 +241,71 @@ namespace leviathan
             return *this;
         }
 
+        bool operator<(const basic_biginteger& rhs) const noexcept
+        {
+            if ((int)this->m_sign * (int)rhs.m_sign < 0)
+            {
+                return this->m_sign == sign::neg;
+            }
+            // compare numeric
+            bool res;
+            if (this->m_item.size() > rhs.m_item.size())
+                res = false;
+            else if (this->m_item.size() < rhs.m_item.size())
+                res = true;
+            
+            // compare number
+            int cmp = equal_reversed_range(rhs.m_item);
+            
+            if (cmp == 0)
+                return false;
+            res = cmp == 1 ? true : false;
+            
+            return this->m_sign == sign::neg ? !res : res;
+        }
+
+        bool operator==(const basic_biginteger& rhs) const noexcept
+        {
+            return this->m_sign == rhs.m_sign && this->m_item.size() == rhs.m_item.size() 
+                && std::equal(this->m_item.begin(), this->m_item.end(), rhs.m_item.begin());
+        }
+
+        bool operator!=(const basic_biginteger& rhs) const noexcept
+        {
+            return !this->operator==(rhs);
+        }
+
+        bool operator<=(const basic_biginteger& rhs) const noexcept
+        {
+            return !this->operator>(rhs);
+        }
+
+        bool operator>=(const basic_biginteger& rhs) const noexcept 
+        {
+            return !this->operator<(rhs);
+        }
+
+        bool operator>(const basic_biginteger& rhs) const noexcept
+        {
+            return rhs.operator<(*this);
+        }
+
     private:
 
+        int equal_reversed_range(const std::vector<underlying_type>& vec) const noexcept
+        {
+            for (size_t i = this->m_item.size() - 1; i != static_cast<size_t>(-1); --i)
+            {
+                if (this->m_item[i] < vec[i])
+                    return -1;
+                else if (this->m_item[i] > vec[i])
+                    return 1;
+            }
+            return 0;
+        }
+
         /**
-         *  Remove zero
+         *  Remove zero, if value is 0, keep sign positive
          */
         void normalize()
         {
@@ -249,7 +313,10 @@ namespace leviathan
             while (this->m_item.size() && this->m_item.back() == zero) 
                 this->m_item.pop_back();
             if (this->m_item.empty())
+            {
                 this->m_item.emplace_back(0);
+                this->m_sign = sign::pos;
+            }
         }
 
         static bool check(const underlying_type* str, size_t len)
@@ -271,7 +338,7 @@ namespace leviathan
         /**
          *  Convert string to integer when the character is legal
          */
-        void init(const underlying_type* str, size_t len)
+        void init(const underlying_type* str, size_t len) 
         {
             auto is_illegal = check(str, len);
             if (!is_illegal)
@@ -295,7 +362,7 @@ namespace leviathan
                 this->m_item.emplace_back(EncodingTraits::encode(str[index]));
             std::reverse(this->m_item.begin(), this->m_item.end());
         }
-
+public:
         sign m_sign;
         std::vector<underlying_type> m_item;
     };  

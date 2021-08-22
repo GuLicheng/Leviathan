@@ -1,6 +1,7 @@
 
 #include <lv_cpp/utils/bigint.hpp>
 #include <iostream>
+#include <lv_cpp/utils/test.hpp>
 
 using leviathan::bigint;
 
@@ -26,7 +27,17 @@ void test_for_copy_move()
 }
 
 
+void test_compare()
+{
+    std::cout << (bigint("123") == bigint("123")) << '\n';
+    std::cout << (bigint("123") > bigint("-123")) << '\n';
+    std::cout << (bigint("-123") < bigint("-124")) << '\n';
+    std::cout << (bigint("123") <= bigint("123")) << '\n';
+    std::cout << (bigint("0") == bigint("0")) << '\n';
+}
+
 int main()
 {
-    test_for_copy_move();
+    // test_for_copy_move();
+    test_compare();
 }
