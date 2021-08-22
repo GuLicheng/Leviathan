@@ -5,16 +5,16 @@
 
 namespace leviathan
 {
-// helper class, used as instance of void
-struct null 
-{
-    null(...) { }
-};
+    // helper class, used as instance of void
+    struct null
+    {
+        null(...) {}
+    };
 
-std::ostream& operator<<(std::ostream& os, [[maybe_unused]]const null& n)
-{
-    return os << "null";
-}
+    std::ostream &operator<<(std::ostream &os, const null &)
+    {
+        return os << "null";
+    }
 
 }
 
