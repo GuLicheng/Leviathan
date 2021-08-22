@@ -175,15 +175,15 @@ namespace leviathan
                 return *this;
             }
 
-            underlying_type curry = 0;
+            underlying_type carry = 0;
             auto min_size = std::min(this->m_item.size(), rhs.m_item.size());
             for (size_t i = 0; i < min_size; ++i)
             {
-                this->m_item[i] += rhs.m_item[i] + curry;
-                curry = 0;
+                this->m_item[i] += rhs.m_item[i] + carry;
+                carry = 0;
                 if (this->m_item[i] >= 10)
                 {
-                    curry = 1;
+                    carry = 1;
                     this->m_item[i] -= 10;
                 }
             }
@@ -192,19 +192,19 @@ namespace leviathan
             this->m_item.insert(this->m_item.end(), rhs.m_item.begin() + min_size, rhs.m_item.end());
             // this.length > rhs.length
             auto max_size = std::max(this->m_item.size(), rhs.m_item.size());
-            for (size_t i = 0; i < max_size; ++i)
+            for (size_t i = min_size; i < max_size; ++i)
             {
-                if (curry == 0)
+                if (carry == 0)
                     break;
                 this->m_item[i] ++;
-                curry = 0;
+                carry = 0;
                 if (this->m_item[i] >= 10)
                 {
                     this->m_item[i] -= 10;
-                    curry = 1;
+                    carry = 1;
                 }
             }
-            if (curry)
+            if (carry)
                 this->m_item.emplace_back(1);
             return *this;
         }

@@ -36,8 +36,15 @@ void test_compare()
     std::cout << (bigint("0") == bigint("0")) << '\n';
 }
 
+void test_add()
+{
+    std::cout << (bigint("1") + bigint("12999")).string() << '\n';
+    std::cout << (bigint("12999") + bigint("1")).string() << '\n';
+}
+
 int main()
 {
     // test_for_copy_move();
-    test_compare();
+    // test_compare();
+    test_add();
 }
