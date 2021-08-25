@@ -1,4 +1,4 @@
-// https://www.codeproject.com/Articles/2728/C-big_integer-Class
+// https://www.codeproject.com/Articles/2728/C-integer-Class
 
 #include <iostream>
 #include <assert.h>
@@ -7,7 +7,7 @@
 #include <string>     // std::string for to_string()
 #include <string_view>
 #include <compare>    // for std::strong_ordering, if your comlipier not support C++20, just disable it
-#include <clang/Parse/Parser.h>
+
 
 namespace leviathan::math
 {
@@ -31,7 +31,7 @@ namespace leviathan::math
 	};
 
 
-	class big_integer
+	class integer
 	{
 
 		// maximum length of the big integer in uint(4 bytes)
@@ -51,14 +51,14 @@ namespace leviathan::math
 		/**
 		 *  Constructor (Default value is 0)
 		 */
-		big_integer()
+		integer()
 			: m_length{ 1 }
 		{
 			this->m_data.resize(MaxLength);
 		}
 
 		// not support
-		explicit big_integer(std::vector<uint> inData)
+		explicit integer(std::vector<uint> inData)
 			: m_data{ std::move(inData) }
 		{
 			m_data.resize(MaxLength);
@@ -68,13 +68,13 @@ namespace leviathan::math
 		}
 
 		// explicit avoid implicit convert when debugging 
-		explicit big_integer(llong value)
+		explicit integer(llong value)
 			: m_length{ 0 }
 		{
 			this->m_data.resize(MaxLength);
 			llong tempVal = value;
 
-			// copy bytes from long to big_integer without any assumption of
+			// copy bytes from long to integer without any assumption of
 			// the length of the long datatype
 
 			while (value != 0 && m_length < MaxLength)
@@ -99,11 +99,11 @@ namespace leviathan::math
 				m_length = 1;
 		}
 
-		explicit big_integer(std::string value, int radix = 10)
+		explicit integer(std::string value, int radix = 10)
 		{
 
-			big_integer multiplier{ 1 };
-			big_integer result;
+			integer multiplier{ 1 };
+			integer result;
 			// value = (value.ToUpper()).Trim();
 			// value = value | trim | transform(::toupper) | to<string>()
 			// trim = drop_while(::isblank) | reverse | drop_while(::isblank)
@@ -131,10 +131,10 @@ namespace leviathan::math
 					if (value[0] == '-')
 						posVal = -posVal;
 
-					result = result + (multiplier * static_cast<big_integer>(posVal));
+					result = result + (multiplier * static_cast<integer>(posVal));
 
 					if ((i - 1) >= limit)
-						multiplier = multiplier * static_cast<big_integer>(radix);
+						multiplier = multiplier * static_cast<integer>(radix);
 				}
 			}
 
@@ -165,7 +165,7 @@ namespace leviathan::math
 			static const char charSet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 			std::string result;
 
-			big_integer a = *this;
+			integer a = *this;
 
 			bool negative = false;
 			if ((m_data[MaxLength - 1] & 0x80000000) != 0)
@@ -180,9 +180,9 @@ namespace leviathan::math
 				}
 			}
 
-			big_integer quotient;
-			big_integer remainder;
-			big_integer biRadix = big_integer{ radix };
+			integer quotient;
+			integer remainder;
+			integer biRadix = integer{ radix };
 
 			if (a.m_length == 1 && a.m_data[0] == 0)
 				result = "0";
@@ -209,14 +209,14 @@ namespace leviathan::math
 
 
 
-		big_integer operator-() const
+		integer operator-() const
 		{
 			// handle neg of zero separately since it'll cause an overflow
 			// if we proceed.
 			if (this->m_length == 1 && this->m_data[0] == 0)
-				return big_integer{};
+				return integer{};
 
-			big_integer result = big_integer(*this);
+			integer result = integer(*this);
 
 			// Total process: -x = ~x + 1
 			// 1's complement
@@ -248,9 +248,9 @@ namespace leviathan::math
 			return result;
 		}
 
-		big_integer operator+(const big_integer& rhs) const
+		integer operator+(const integer& rhs) const
 		{
-			big_integer result;
+			integer result;
 
 			result.m_length = (this->m_length > rhs.m_length) ? this->m_length : rhs.m_length;
 
@@ -282,9 +282,9 @@ namespace leviathan::math
 
 			return result;
 		}
-		big_integer operator-(const big_integer& rhs) const
+		integer operator-(const integer& rhs) const
 		{
-			big_integer result;
+			integer result;
 
 			result.m_length = (this->m_length > rhs.m_length) ? this->m_length : rhs.m_length;
 
@@ -325,12 +325,12 @@ namespace leviathan::math
 
 			return result;
 		}
-		big_integer operator*(const big_integer& rhs) const
+		integer operator*(const integer& rhs) const
 		{
 			int lastPos = MaxLength - 1;
 			bool bi1Neg = false, bi2Neg = false;
-			big_integer b1 = *this;
-			big_integer b2 = rhs;
+			integer b1 = *this;
+			integer b2 = rhs;
 			// take the absolute value of the inputs
 			try
 			{
@@ -345,7 +345,7 @@ namespace leviathan::math
 			}
 			catch (const std::exception&) {}
 
-			big_integer result;
+			integer result;
 
 			// multiply the absolute values
 			try
@@ -415,13 +415,13 @@ namespace leviathan::math
 
 			return result;
 		}
-		big_integer operator/(const big_integer& rhs) const
+		integer operator/(const integer& rhs) const
 		{
-			big_integer quotient;
-			big_integer remainder;
+			integer quotient;
+			integer remainder;
 
-			big_integer bi1 = *this;
-			big_integer bi2 = rhs;
+			integer bi1 = *this;
+			integer bi2 = rhs;
 			int lastPos = MaxLength - 1;
 			bool divisorNeg = false, dividendNeg = false;
 
@@ -454,12 +454,12 @@ namespace leviathan::math
 				return quotient;
 			}
 		}
-		big_integer operator%(const big_integer& rhs) const
+		integer operator%(const integer& rhs) const
 		{
-			big_integer bi1 = *this;
-			big_integer bi2 = rhs;
-			big_integer quotient;
-			big_integer remainder{ bi1 };
+			integer bi1 = *this;
+			integer bi2 = rhs;
+			integer quotient;
+			integer remainder{ bi1 };
 
 			int lastPos = MaxLength - 1;
 			bool dividendNeg = false;
@@ -492,9 +492,9 @@ namespace leviathan::math
 		}
 
 		// Bit operation 
-		big_integer operator&(const big_integer& rhs) const
+		integer operator&(const integer& rhs) const
 		{
-			big_integer result;
+			integer result;
 			int len = (this->m_length > rhs.m_length) ? this->m_length : rhs.m_length;
 			for (int i = 0; i < len; i++)
 			{
@@ -506,9 +506,9 @@ namespace leviathan::math
 				result.m_length--;
 			return result;
 		}
-		big_integer operator^(const big_integer& rhs) const
+		integer operator^(const integer& rhs) const
 		{
-			big_integer result;
+			integer result;
 			int len = (this->m_length > rhs.m_length) ? this->m_length : rhs.m_length;
 			for (int i = 0; i < len; i++)
 			{
@@ -520,9 +520,9 @@ namespace leviathan::math
 				result.m_length--;
 			return result;
 		}
-		big_integer operator|(const big_integer& rhs) const
+		integer operator|(const integer& rhs) const
 		{
-			big_integer result;
+			integer result;
 			int len = (this->m_length > rhs.m_length) ? this->m_length : rhs.m_length;
 			for (int i = 0; i < len; i++)
 			{
@@ -534,9 +534,9 @@ namespace leviathan::math
 				result.m_length--;
 			return result;
 		}
-		big_integer operator~() const
+		integer operator~() const
 		{
-			big_integer result = *this;;
+			integer result = *this;;
 
 			for (int i = 0; i < MaxLength; i++)
 				result.m_data[i] = ~(this->m_data[i]);
@@ -550,100 +550,100 @@ namespace leviathan::math
 		}
 
 		// shift operation
-		big_integer operator<<(int value) const
+		integer operator<<(int value) const
 		{
-			big_integer result = *this;
+			integer result = *this;
 			result.m_length = shift_left(result.m_data, value);
 			return result;
 		}
-		big_integer operator>>(int value) const
+		integer operator>>(int value) const
 		{
-			big_integer result = *this;
+			integer result = *this;
 			result.m_length = shift_right(result.m_data, value);
 			return result;
 		}
 
 		// op=
-		big_integer& operator+=(const big_integer& rhs)
+		integer& operator+=(const integer& rhs)
 		{
 			*this = this->operator+(rhs);
 			return *this;
 		}
-		big_integer& operator-=(const big_integer& rhs)
+		integer& operator-=(const integer& rhs)
 		{
 			*this = this->operator-(rhs);
 			return *this;
 		}
-		big_integer& operator*=(const big_integer& rhs)
+		integer& operator*=(const integer& rhs)
 		{
 			*this = this->operator*(rhs);
 			return *this;
 		}
-		big_integer& operator/=(const big_integer& rhs)
+		integer& operator/=(const integer& rhs)
 		{
 			*this = this->operator/(rhs);
 			return *this;
 		}
-		big_integer& operator%=(const big_integer& rhs)
+		integer& operator%=(const integer& rhs)
 		{
 			*this = this->operator%(rhs);
 			return *this;
 		}
-		big_integer& operator&=(const big_integer& rhs)
+		integer& operator&=(const integer& rhs)
 		{
 			*this = this->operator&(rhs);
 			return *this;
 		}
-		big_integer& operator|=(const big_integer& rhs)
+		integer& operator|=(const integer& rhs)
 		{
 			*this = this->operator|(rhs);
 			return *this;
 		}
-		big_integer& operator^=(const big_integer& rhs)
+		integer& operator^=(const integer& rhs)
 		{
 			*this = this->operator^(rhs);
 			return *this;
 		}
-		big_integer& operator>>=(int value)
+		integer& operator>>=(int value)
 		{
 			*this = this->operator>>(value);
 			return *this;
 		}
-		big_integer& operator<<=(int value)
+		integer& operator<<=(int value)
 		{
 			*this = this->operator<<(value);
 			return *this;
 		}
 
-		big_integer& operator++()
+		integer& operator++()
 		{
-			big_integer b1 = *this;
-			big_integer b2{ 1 };
+			integer b1 = *this;
+			integer b2{ 1 };
 			*this = b1 + b2;
 			return *this;
 		}
-		big_integer operator++(int)
+		integer operator++(int)
 		{
-			big_integer old = *this;
+			integer old = *this;
 			++(*this);
 			return old;
 		}
-		big_integer& operator--()
+		integer& operator--()
 		{
-			big_integer b1 = *this;
-			big_integer b2{ 1 };
+			integer b1 = *this;
+			integer b2{ 1 };
 			*this = b1 - b2;
 			return *this;
 		}
-		big_integer operator--(int)
+		integer operator--(int)
 		{
-			big_integer old = *this;
+			integer old = *this;
 			--(*this);
 			return old;
 		}
 
 		// Compare
-		bool operator==(const big_integer& rhs) const
+		bool operator==(const integer& rhs) const
 		{
 			if (this->m_length != rhs.m_length)
 				return false;
@@ -652,11 +652,11 @@ namespace leviathan::math
 					return false;
 			return true;
 		}
-		bool operator!=(const big_integer& rhs) const
+		bool operator!=(const integer& rhs) const
 		{
 			return this->operator!=(rhs);
 		}
-		bool operator<(const big_integer& rhs) const
+		bool operator<(const integer& rhs) const
 		{
 			int pos = MaxLength - 1;
 
@@ -680,21 +680,21 @@ namespace leviathan::math
 			}
 			return false;
 		}
-		bool operator<=(const big_integer& rhs) const
+		bool operator<=(const integer& rhs) const
 		{
 			return !(this->operator>(rhs));
 		}
-		bool operator>=(const big_integer& rhs) const
+		bool operator>=(const integer& rhs) const
 		{
 			return !(this->operator<(rhs));
 		}
-		bool operator>(const big_integer& rhs) const
+		bool operator>(const integer& rhs) const
 		{
 			return rhs.operator<(*this);
 		}
 
 		// An efficiently way to implement <=> in C++20
-		auto operator<=>(const big_integer& rhs) const
+		auto operator<=>(const integer& rhs) const
 		{
 			int pos = MaxLength - 1;
 
@@ -715,10 +715,10 @@ namespace leviathan::math
 
 
 		// Other methods
-		big_integer gcd(const big_integer& bi) const
+		integer gcd(const integer& bi) const
 		{
-			big_integer x;
-			big_integer y;
+			integer x;
+			integer y;
 
 			if ((m_data[MaxLength - 1] & 0x80000000) != 0)     // negative
 				x = -(*this);
@@ -730,7 +730,7 @@ namespace leviathan::math
 			else
 				y = bi;
 
-			big_integer g = y;
+			integer g = y;
 
 			while (x.m_length > 1 || (x.m_length == 1 && x.m_data[0] != 0))
 			{
@@ -743,12 +743,12 @@ namespace leviathan::math
 		}
 
 		//***********************************************************************
-		// Returns the position of the most significant bit in the big_integer.
+		// Returns the position of the most significant bit in the integer.
 		//
-		// Eg.  The result is 0, if the value of big_integer is 0...0000 0000
-		//      The result is 1, if the value of big_integer is 0...0000 0001
-		//      The result is 2, if the value of big_integer is 0...0000 0010
-		//      The result is 2, if the value of big_integer is 0...0000 0011
+		// Eg.  The result is 0, if the value of integer is 0...0000 0000
+		//      The result is 1, if the value of integer is 0...0000 0001
+		//      The result is 2, if the value of integer is 0...0000 0010
+		//      The result is 2, if the value of integer is 0...0000 0011
 		//
 		//***********************************************************************
 		int bit_count() const
@@ -787,9 +787,9 @@ namespace leviathan::math
 			return !positive();
 		}
 
-		static big_integer max_value()
+		static integer max_value()
 		{
-			big_integer value;
+			integer value;
 			for (auto& val : value.m_data)
 				val = 0xFFFFFFFF;
 			value.m_data[MaxLength - 1] &= 0x7FFFFFFF;
@@ -797,21 +797,21 @@ namespace leviathan::math
 			return value;
 		}
 
-		static big_integer min_value()
+		static integer min_value()
 		{
-			big_integer value;
+			integer value;
 			value.m_data[MaxLength - 1] = 0x80000000;
 			value.m_length = MaxLength;
 			return value;
 		}
 
-		big_integer mod_pow(const big_integer& exp, big_integer n) const
+		integer mod_pow(const integer& exp, integer n) const
 		{
 			if ((exp.m_data[MaxLength - 1] & 0x80000000) != 0)
 				throw bad_arithmetic{ "Positive exponents only." };
 
-			big_integer resultNum{ 1 };
-			big_integer tempNum;
+			integer resultNum{ 1 };
+			integer tempNum;
 			bool thisNegative = false;
 
 			if ((m_data[MaxLength - 1] & 0x80000000) != 0)   // negative this
@@ -826,7 +826,7 @@ namespace leviathan::math
 				n = -n;
 
 			// calculate constant = b^(2k) / m
-			big_integer constant;
+			integer constant;
 
 			int i = n.m_length << 1;
 			constant.m_data[i] = 0x00000001;
@@ -869,7 +869,7 @@ namespace leviathan::math
 			return resultNum;
 		}
 
-		big_integer sqrt() const
+		integer sqrt() const
 		{
 			if (is_zero())
 				return { };
@@ -885,7 +885,7 @@ namespace leviathan::math
 
 			uint mask;
 
-			big_integer result;
+			integer result;
 			if (bitPos == 0)
 				mask = 0x80000000;
 			else
@@ -913,28 +913,28 @@ namespace leviathan::math
 			return result;
 		}
 
-		big_integer mod_inverse(const big_integer& modulus) const
+		integer mod_inverse(const integer& modulus) const
 		{
-			//big_integer[] p = { 0, 1 };
-			//big_integer[] q = new big_integer[2];    // quotients
-			//big_integer[] r = { 0, 0 };             // remainders
+			//integer[] p = { 0, 1 };
+			//integer[] q = new integer[2];    // quotients
+			//integer[] r = { 0, 0 };             // remainders
 
-			big_integer p[] = { big_integer{0}, big_integer{1} };
-			big_integer q[] = { big_integer{}, big_integer{} };
-			big_integer r[] = { big_integer{}, big_integer{} };
+			integer p[] = { integer{0}, integer{1} };
+			integer q[] = { integer{}, integer{} };
+			integer r[] = { integer{}, integer{} };
 			int step = 0;
 
-			big_integer a = modulus;
-			big_integer b = *this;
+			integer a = modulus;
+			integer b = *this;
 
 			while (b.m_length > 1 || (b.m_length == 1 && b.m_data[0] != 0))
 			{
-				big_integer quotient;
-				big_integer remainder;
+				integer quotient;
+				integer remainder;
 
 				if (step > 1)
 				{
-					big_integer pval = (p[0] - (p[1] * q[0])) % modulus;
+					integer pval = (p[0] - (p[1] * q[0])) % modulus;
 					p[0] = p[1];
 					p[1] = pval;
 				}
@@ -964,7 +964,7 @@ namespace leviathan::math
 			if (r[0].m_length > 1 || (r[0].m_length == 1 && r[0].m_data[0] != 1))
 				throw (new bad_arithmetic("No inverse!"));
 
-			big_integer result = ((p[0] - (p[1] * q[0])) % modulus);
+			integer result = ((p[0] - (p[1] * q[0])) % modulus);
 
 			if ((result.m_data[MaxLength - 1] & 0x80000000) != 0)
 				result = result + modulus;  // get the least positive modulus
@@ -972,7 +972,7 @@ namespace leviathan::math
 			return result;
 		}
 
-		static int jacobi(big_integer a, big_integer b)
+		static int jacobi(integer a, integer b)
 		{
 			// jacobi defined only for odd integers
 			if ((b.m_data[0] & 0x1) == 0)
@@ -983,9 +983,9 @@ namespace leviathan::math
 			if (a.m_length == 1 && a.m_data[0] == 0)      return 0;  // a == 0
 			if (a.m_length == 1 && a.m_data[0] == 1)      return 1;  // a == 1
 
-			if (a < static_cast<big_integer>(0))
+			if (a < static_cast<integer>(0))
 			{
-				if ((((b - static_cast<big_integer>(1)).m_data[0]) & 0x2) == 0)       //if( (((b-1) >> 1).m_data[0] & 0x1) == 0)
+				if ((((b - static_cast<integer>(1)).m_data[0]) & 0x2) == 0)       //if( (((b-1) >> 1).m_data[0] & 0x1) == 0)
 					return jacobi(-a, b);
 				else
 					return -jacobi(-a, b);
@@ -1008,7 +1008,7 @@ namespace leviathan::math
 				}
 			}
 
-			big_integer a1 = a >> e;
+			integer a1 = a >> e;
 
 			int s = 1;
 			if ((e & 0x1) != 0 && ((b.m_data[0] & 0x7) == 3 || (b.m_data[0] & 0x7) == 5))
@@ -1023,15 +1023,74 @@ namespace leviathan::math
 				return (s * jacobi(b % a1, a1));
 		}
 
+		template <typename RandomDevice>
+		void gen_random_bits(int bits, RandomDevice& rd)
+		{
+			int dwords = bits >> 5;
+			int remBits = bits & 0x1F;
+
+			if (remBits != 0)
+				dwords++;
+
+			if (dwords > MaxLength)
+				throw bad_arithmetic{ "Number of required bits > MaxLength." };
+
+			for (int i = 0; i < dwords; i++)
+				m_data[i] = (uint)(rd() * 0x100000000);
+
+			for (int i = dwords; i < MaxLength; i++)
+				m_data[i] = 0;
+
+			if (remBits != 0)
+			{
+				uint mask = (uint)(0x01 << (remBits - 1));
+				m_data[dwords - 1] |= mask;
+
+				mask = (uint)(0xFFFFFFFF >> (32 - remBits));
+				m_data[dwords - 1] &= mask;
+			}
+			else
+				m_data[dwords - 1] |= 0x80000000;
+
+			m_length = dwords;
+
+			if (m_length == 0)
+				m_length = 1;
+		}
+
+		//***********************************************************************
+		// Generates a random number with the specified number of bits such
+		// that gcd(number, this) = 1
+		//***********************************************************************
+		template <typename RandomDevice>
+		integer gen_coprime(int bits, RandomDevice& rand)
+		{
+			bool done = false;
+			integer result;
+
+			while (!done)
+			{
+				result.gen_random_bits(bits, rand);
+				//Console.WriteLine(result.ToString(16));
+
+			// gcd test
+				integer g = result.gcd(*this);
+				if (g.m_length == 1 && g.m_data[0] == 1)
+					done = true;
+			}
+
+			return result;
+		}
+
 	private:
 
-		static big_integer barrett_reduction(const big_integer& x, const big_integer& n, const big_integer& constant)
+		static integer barrett_reduction(const integer& x, const integer& n, const integer& constant)
 		{
 			int k = n.m_length,
 				kPlusOne = k + 1,
 				kMinusOne = k - 1;
 
-			big_integer q1;
+			integer q1;
 
 			// q1 = x / b^(k-1)
 			for (int i = kMinusOne, j = 0; i < x.m_length; i++, j++)
@@ -1041,8 +1100,8 @@ namespace leviathan::math
 				q1.m_length = 1;
 
 
-			big_integer q2 = q1 * constant;
-			big_integer q3;
+			integer q2 = q1 * constant;
+			integer q3;
 
 			// q3 = q2 / b^(k+1)
 			for (int i = kPlusOne, j = 0; i < q2.m_length; i++, j++)
@@ -1054,7 +1113,7 @@ namespace leviathan::math
 
 			// r1 = x mod b^(k+1)
 			// i.e. keep the lowest (k+1) words
-			big_integer r1;
+			integer r1;
 			int lengthToCopy = (x.m_length > kPlusOne) ? kPlusOne : x.m_length;
 			for (int i = 0; i < lengthToCopy; i++)
 				r1.m_data[i] = x.m_data[i];
@@ -1064,7 +1123,7 @@ namespace leviathan::math
 			// r2 = (q3 * n) mod b^(k+1)
 			// partial multiplication of q3 and n
 
-			big_integer r2;
+			integer r2;
 			for (int i = 0; i < q3.m_length; i++)
 			{
 				if (q3.m_data[i] == 0)     continue;
@@ -1091,7 +1150,7 @@ namespace leviathan::math
 			r1 = r1 - r2;
 			if ((r1.m_data[MaxLength - 1] & 0x80000000) != 0)        // negative
 			{
-				big_integer val;
+				integer val;
 				val.m_data[kPlusOne] = 0x00000001;
 				val.m_length = kPlusOne + 1;
 				r1 = r1 + val;
@@ -1103,7 +1162,7 @@ namespace leviathan::math
 			return r1;
 		}
 
-		static void single_byte_divide(big_integer b1, big_integer b2, big_integer& outQuotient, big_integer& outRemainder)
+		static void single_byte_divide(integer b1, integer b2, integer& outQuotient, integer& outRemainder)
 		{
 			std::vector<uint> result(MaxLength);
 			int resultPos = 0;
@@ -1158,7 +1217,7 @@ namespace leviathan::math
 
 		}
 
-		static void multi_byte_divide(big_integer b1, big_integer b2, big_integer& outQuotient, big_integer& outRemainder)
+		static void multi_byte_divide(integer b1, integer b2, integer& outQuotient, integer& outRemainder)
 		{
 			//uint[] result = new uint[MaxLength];
 			std::vector<uint> result(MaxLength);
@@ -1221,9 +1280,9 @@ namespace leviathan::math
 				for (int h = 0; h < divisorLen; h++)
 					dividendPart[h] = remainder[pos - h];
 
-				//big_integer kk = new big_integer(dividendPart);
-				big_integer kk{ dividendPart }; // move
-				big_integer ss = b2 * static_cast<big_integer>((llong)q_hat);
+				//integer kk = new integer(dividendPart);
+				integer kk{ dividendPart }; // move
+				integer ss = b2 * static_cast<integer>((llong)q_hat);
 
 				//Console.WriteLine("ss before = " + ss);
 				while (ss > kk)
@@ -1232,7 +1291,7 @@ namespace leviathan::math
 					//ss -= b2;
 					ss = ss - b2;
 				}
-				big_integer yy = kk - ss;
+				integer yy = kk - ss;
 
 				for (int h = 0; h < divisorLen; h++)
 					remainder[pos - h] = yy.m_data[b2.m_length - h];
