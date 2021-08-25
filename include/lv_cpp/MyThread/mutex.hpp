@@ -107,7 +107,7 @@ public:
 
 
 template <typename Derived>
-struct TimeOperation
+struct TimedInterface
 {
     template <typename RepType, typename PeriodType>
     bool try_lock_for(const std::chrono::duration<RepType, PeriodType>& rtime)
@@ -137,7 +137,7 @@ struct TimeOperation
 };
 
 // avoid multiple inheritance
-class TimedMutex : public MutexBase, public TimeOperation<TimedMutex>
+class TimedMutex : public MutexBase, public TimedInterface<TimedMutex>
 {
 public:
     using MutexBase::MutexBase;
@@ -230,7 +230,7 @@ public:
 };
 
 template <typename Derived>
-struct SharedTimedOperation
+struct SharedTimedInterface
 {
     template <typename RepType, typename PeriodType>
     bool try_lock_shared_for(const std::chrono::duration<RepType, PeriodType>& rtime)
@@ -257,7 +257,7 @@ struct SharedTimedOperation
     }
 };
 
-class SharedTimedMutex : public SharedMutex, public TimeOperation<SharedTimedMutex>, public SharedTimedOperation<SharedTimedMutex>
+class SharedTimedMutex : public SharedMutex, public TimedInterface<SharedTimedMutex>, public SharedTimedInterface<SharedTimedMutex>
 {
 public:
 

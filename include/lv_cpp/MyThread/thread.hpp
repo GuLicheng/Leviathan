@@ -21,7 +21,7 @@ public:
         void *(*c_func) (void *) = [](void* args) -> void*
         {
             std::unique_ptr<handle_type> ptr { static_cast<handle_type*>(args) };
-            (*ptr)();
+            （void)(*ptr)();
             return nullptr;
         };
         pthread_create(&this->id, nullptr, c_func, arg);
