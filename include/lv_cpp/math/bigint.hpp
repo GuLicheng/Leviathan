@@ -141,12 +141,12 @@ namespace leviathan::math
 			if (value[0] == '-')     // negative values
 			{
 				if ((result.m_data[MaxLength - 1] & 0x80000000) == 0)
-					throw(new bad_arithmetic("Negative underflow in constructor."));
+					throw bad_arithmetic{ "Negative underflow in constructor." };
 			}
 			else    // positive values
 			{
 				if ((result.m_data[MaxLength - 1] & 0x80000000) != 0)
-					throw(new bad_arithmetic("Positive overflow in constructor."));
+					throw bad_arithmetic{ "Positive overflow in constructor." };
 			}
 
 			//m_data = new uint[MaxLength];
