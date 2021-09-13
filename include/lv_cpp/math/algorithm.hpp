@@ -87,7 +87,33 @@ InIt split(InIt it, InIt end_it, OutIt out_it, T split_val, F bin_func)
 }
 
 
-
+template <typename BidirectionalIterator>
+constexpr auto find_most_frequently(BidirectionalIterator first, BidirectionalIterator last)
+{
+    // assert(std::is_sorted(first, last))
+    if (first == last)
+        throw std::runtime_error("Empty range is illegal");
+    BidirectionalIterator left = first;
+    BidirectionalIterator right = left;
+    auto value = *left;
+    typename std::iterator_traits<BidirectionalIterator>::difference_type max_dist = 0;
+    typename std::iterator_traits<BidirectionalIterator>::difference_type d;
+    while (left != last)
+    {
+        auto val = *left;
+        std::cout << val << '\n';
+        auto iter = left + 1;
+        for (d = 0; iter != last && *iter == val; ++iter, ++d);
+        // update
+        if (d > max_dist)
+        {
+            max_dist = d;
+            value = val;
+        }
+        left = iter;
+    }
+    return value;
+}
 
 
 
