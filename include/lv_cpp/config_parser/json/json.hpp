@@ -110,6 +110,7 @@ namespace leviathan::json
 
     };
 
+    // see leviathan::meta::should_be
     template <typename T, typename... Ts>
     struct contains : std::disjunction<std::is_same<std::remove_cvref_t<T>, Ts>...> { };
 
