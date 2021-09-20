@@ -14,7 +14,7 @@
 #include <type_traits>
 #include <assert.h>
 
-namespace leviathan
+namespace leviathan::collections
 {
 
     template <typename Key, typename Value, typename HashFunction = std::hash<Key>, typename KeyEqual = std::equal_to<>, typename Allocator = std::allocator<std::pair<Key, Value>>>

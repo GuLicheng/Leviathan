@@ -17,7 +17,7 @@
 #include <type_traits>
 
 
-namespace leviathan
+namespace leviathan::collections
 {
 	template <typename T, typename U>
 	struct insert_emplace_selector : std::conditional_t
