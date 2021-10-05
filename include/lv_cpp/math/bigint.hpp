@@ -30,7 +30,7 @@ namespace leviathan::math
 		const char* msg;
 	};
 
-
+	template <size_t BitWidth = 70>
 	class integer
 	{
 
@@ -46,7 +46,7 @@ namespace leviathan::math
 		int m_length;  // number of actual chars used
 
 	public:
-		inline static int MaxLength = 70;
+		constexpr static int MaxLength = BitWidth;
 
 		/**
 		 *  Constructor (Default value is 0)

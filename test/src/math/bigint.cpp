@@ -1,10 +1,10 @@
 
 #include <lv_cpp/math/bigint.hpp>
 #include <random>
-using namespace leviathan::math;
+// using namespace leviathan::math;
 
 static std::random_device rd;
-
+using integer = leviathan::math::integer<70>;
 void ToStringTest()
 {
     for (int i = 0; i < 10000; ++i)

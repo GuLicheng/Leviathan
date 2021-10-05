@@ -1,3 +1,6 @@
+#ifndef __FORMAT_EXTEND_HPP__
+#define __FORMAT_EXTEND_HPP__
+
 #include <iostream>
 #include <tuple>
 #include <vector>
@@ -5,7 +8,6 @@
 #include <set>
 #include <array>
 #include <variant>
-#ifdef __cpp_lib_format
 #include <format>
 
 template <typename Container>
@@ -73,6 +75,7 @@ struct std::formatter<Tuple, CharT> : std::formatter<char, CharT>
 		return __print_tuple(std::make_index_sequence<size>());
 	}
 };
+/*
 
 void range_test()
 {
@@ -97,4 +100,5 @@ int main()
 	static_assert(TupleChecker<std::tuple<>>);
 	return 0;
 }
+*/
 #endif
