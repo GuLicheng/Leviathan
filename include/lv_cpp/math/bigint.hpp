@@ -106,7 +106,7 @@ namespace leviathan::math
 			integer result;
 			// value = (value.ToUpper()).Trim();
 			// value = value | trim | transform(::toupper) | to<string>()
-			// trim = drop_while(::isblank) | reverse | drop_while(::isblank)
+			// trim = drop_while(::isblank) | reverse | drop_while(::isblank) | reverse
 
 			int limit = 0;
 
