@@ -14,4 +14,5 @@ int main()
     ls0.insert(3);
     ls1 = ls0;
     ls1.show();
+    const int* const p = nullptr;
 }
