@@ -223,18 +223,15 @@ namespace leviathan::collections
 					}
 					this->m_alloc = rhs.m_alloc;
 				}
-				else
+				// this->assign_from(rhs.begin(), rhs.end());
+				try
 				{
-					// this->assign_from(rhs.begin(), rhs.end());
-					try
-					{
-						assign_from(rhs.cbegin(), rhs.cend());
-					}
-					catch (...)
-					{
-						clear();
-						throw;
-					}
+					assign_from(rhs.cbegin(), rhs.cend());
+				}
+				catch (...)
+				{
+					clear();
+					throw;
 				}
 			}
 			return *this;
@@ -748,7 +745,7 @@ namespace leviathan::collections
 
 #include <ranges>
 
-static_assert(std::ranges::bidirectional_range<leviathan::skip_list<int>>);
-static_assert(std::ranges::bidirectional_range<const leviathan::skip_list<int>>);
+static_assert(std::ranges::bidirectional_range<leviathan::collections::skip_list<int>>);
+static_assert(std::ranges::bidirectional_range<const leviathan::collections::skip_list<int>>);
 
 #endif
