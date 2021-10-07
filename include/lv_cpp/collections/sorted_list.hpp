@@ -11,7 +11,7 @@ template <typename T, typename Compare = std::less<T>, bool Duplicate = true>
 class sorted_list
 {
 	// trunk
-	constexpr static int trunk_size = 10;
+	constexpr static size_t trunk_size = 1000;
 	constexpr static auto last_element = []<typename U>(const U & vec)
 	{ return vec.back(); };
 
