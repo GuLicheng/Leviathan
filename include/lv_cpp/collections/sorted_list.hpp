@@ -61,7 +61,7 @@ public:
 
 	bool remove(const T& val)
 	{
-		auto bucket_loc = std::ranges::upper_bound(m_lists, val, m_cmp, last_element);
+		auto bucket_loc = std::ranges::lower_bound(m_lists, val, m_cmp, last_element);
 		if (bucket_loc == m_lists.end())
 			return false;
 
@@ -102,7 +102,6 @@ public:
 private:
 	std::vector<std::vector<T>> m_lists;
 	Compare m_cmp;
-	size_t m_offset = 0;
 	size_t m_size = 0;
 
 	void expand(size_t pos)
