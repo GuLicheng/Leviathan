@@ -100,5 +100,43 @@ int main()
 	static_assert(TupleChecker<std::tuple<>>);
 	return 0;
 }
+
+
+template<typename _Tp, size_t Num>
+concept tuple_element_getable1 = requires(_Tp __t)
+{ { std::get<Num>(__t) } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; };
+
+template<typename _Tp, size_t Num>
+concept tuple_element_getable2 = requires(_Tp __t)
+{ { __t.template get<Num>() } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; };
+
+template<typename _Tp, size_t Num>
+concept has_tuple_element = requires(_Tp __t)
+{
+    typename std::tuple_size<_Tp>::type;
+    requires (Num < std::tuple_size_v<_Tp>);
+    typename std::tuple_element_t<Num, _Tp>;
+    requires (
+        tuple_element_getable1<_Tp, Num> || 
+        tuple_element_getable2<_Tp, Num>
+    );
+};
+
+
+template <typename Tuple, size_t Num>
+struct check_one_element : std::bool_constant<has_tuple_element<Tuple, Num>> { };
+
+template <typename Tuple, typename IndexSequence>
+struct is_tuple_impl;
+
+template <typename Tuple, size_t... Idx>
+struct is_tuple_impl<Tuple, std::index_sequence<Idx...>> : std::conjunction<check_one_element<Tuple, Idx>...> { };
+
+template <typename Tuple>
+struct is_tuple : is_tuple_impl<Tuple, decltype(std::make_index_sequence<std::tuple_size_v<Tuple>>())>{ };
+
+template <typename Tuple>
+constexpr bool is_tuple_v = is_tuple<Tuple>::value;
+
 */
 #endif
