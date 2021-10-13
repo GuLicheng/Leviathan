@@ -13,7 +13,9 @@ class sorted_list
 	// trunk
 	constexpr static size_t trunk_size = 1000;
 	constexpr static auto last_element = []<typename U>(const U & vec)
-	{ return vec.back(); };
+	{
+		return vec.back();
+	};
 
 public:
 
@@ -23,23 +25,23 @@ public:
 	{
 		if (m_lists.size())
 		{
-			auto bucket = std::ranges::upper_bound(m_lists, val, m_cmp, last_element);
-			if (bucket == m_lists.end())
+			auto bucket_loc = std::ranges::lower_bound(m_lists, val, m_cmp, last_element);
+			if (bucket_loc == m_lists.end())
 			{
-				bucket--;
-				bucket->emplace_back(val);
+				m_lists.back().emplace_back(val);
+				bucket_loc--;
 			}
-			else 
+			else
 			{
-				auto iter = std::ranges::upper_bound(*bucket, val, m_cmp);
+				auto iter = std::ranges::lower_bound(*bucket_loc, val, m_cmp);
 				if constexpr (Duplicate)
 				{
-					if (*(iter - 1) == val)
+					if (*iter == val)
 						return;
 				}
-				bucket->insert(iter, val);
+				bucket_loc->insert(iter, val);
 			}
-			expand(std::ranges::distance(m_lists.begin(), bucket));
+			expand(std::ranges::distance(m_lists.begin(), bucket_loc));
 		}
 		else
 		{
@@ -55,6 +57,7 @@ public:
 		if (bucket_loc == m_lists.end())
 			return nullptr;
 
+		// the second lower_bound will always find a non-end position
 		auto iter = std::ranges::lower_bound(*bucket_loc, val, m_cmp);
 		return *iter == val ? &(*iter) : nullptr;
 	}
@@ -106,7 +109,7 @@ private:
 
 	void expand(size_t pos)
 	{
-		if (m_lists[pos].size() > trunk_size)
+		if (m_lists[pos].size() > trunk_size * 2)
 		{
 			auto& bucket = m_lists[pos];
 			std::vector<T> half;
@@ -114,9 +117,9 @@ private:
 			half.reserve(std::ranges::distance(bucket.begin() + trunk_size, bucket.end()));
 			if constexpr (std::is_nothrow_constructible_v<T>)
 			{
-				half.insert(half.end(), 
-						std::make_move_iterator(bucket.begin() + trunk_size), 
-						std::make_move_iterator(bucket.end()));
+				half.insert(half.end(),
+					std::make_move_iterator(bucket.begin() + trunk_size),
+					std::make_move_iterator(bucket.end()));
 			}
 			else
 			{

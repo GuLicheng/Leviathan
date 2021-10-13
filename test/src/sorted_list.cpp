@@ -13,7 +13,7 @@ sorted_list<int> ls;
 void init()
 {
 	for (int i = 0; i < 1000'000; ++i)
-		numbers.push_back(i);
+		numbers.push_back(rd());
 }
 
 auto test_for_ms()
