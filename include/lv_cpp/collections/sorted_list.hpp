@@ -7,7 +7,7 @@
 #include <iostream>
 #include <functional>
 
-template <typename T, typename Compare = std::less<T>, bool Duplicate = true>
+template <typename T, typename Compare = std::less<T>, bool Duplicate = false>
 class sorted_list
 {
 	// trunk
@@ -134,6 +134,22 @@ private:
 	{
 		if (m_lists[pos].empty())
 			m_lists.erase(m_lists.begin() + pos);
+		return;
+		//if (m_lists[pos].size() < trunk_size / 2 && m_lists.size() > 1)
+		//{
+		//	if (pos == 0)
+		//		pos++;
+		//	auto prev = pos - 1;
+		//	m_lists[prev].insert(m_lists[prev].end(), m_lists[pos].begin(), m_lists[pos].end());
+		//	if (m_lists[prev].size() < trunk_size * 2)
+		//		m_lists.erase(m_lists.begin() + pos);
+		//	else
+		//	{
+		//		m_lists[pos].clear();
+		//		m_lists[pos].insert(m_lists[pos].end(), m_lists[prev].begin() + m_lists.size() / 2, m_lists[prev].end());
+		//		m_lists[prev].erase(m_lists[prev].begin() + m_lists.size() / 2, m_lists[prev].end());
+		//	}
+		//}
 	}
 
 };
