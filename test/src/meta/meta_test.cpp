@@ -5,10 +5,10 @@
 #include <string_view>
 #include <lv_cpp/meta/type_list.hpp>
 #include <lv_cpp/meta/meta.hpp>
+#include <lv_cpp/tuples/tuple_base.hpp>
 
 namespace meta = leviathan::meta;
 namespace lv = leviathan;
-
 
 
 int main()
@@ -88,10 +88,11 @@ int main()
             typename meta::transform<std::add_const, int, double>::type, 
             std::tuple<const int, const double>>);
 
-    static_assert(leviathan::meta::is_tuple_v<std::tuple<>>);
-    static_assert(leviathan::meta::is_tuple_v<std::tuple<int>>);
-    static_assert(leviathan::meta::is_tuple_v<std::pair<int, int>>);
-//     static_assert(!leviathan::meta::is_tuple_v<int>);
+    static_assert(meta::tuple_like<std::tuple<>>);
+    static_assert(meta::tuple_like<std::tuple<int, double>>);
+    static_assert(meta::tuple_like<std::pair<bool, bool>>);
+    static_assert(!meta::tuple_like<int>);
+
     std::cout << "Test Successfully\n";
 
 }
