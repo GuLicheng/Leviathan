@@ -102,13 +102,13 @@ int main()
 }
 
 
-template<typename _Tp, size_t Num>
-concept tuple_element_getable1 = requires(_Tp __t)
-{ { std::get<Num>(__t) } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; };
+// template<typename _Tp, size_t Num>
+// concept tuple_element_getable1 = requires(_Tp __t)
+// { { std::get<Num>(__t) } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; };
 
-template<typename _Tp, size_t Num>
-concept tuple_element_getable2 = requires(_Tp __t)
-{ { __t.template get<Num>() } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; };
+// template<typename _Tp, size_t Num>
+// concept tuple_element_getable2 = requires(_Tp __t)
+// { { __t.template get<Num>() } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; };
 
 template<typename _Tp, size_t Num>
 concept has_tuple_element = requires(_Tp __t)
@@ -117,8 +117,10 @@ concept has_tuple_element = requires(_Tp __t)
     requires (Num < std::tuple_size_v<_Tp>);
     typename std::tuple_element_t<Num, _Tp>;
     requires (
-        tuple_element_getable1<_Tp, Num> || 
-        tuple_element_getable2<_Tp, Num>
+        // tuple_element_getable1<_Tp, Num> || 
+        // tuple_element_getable2<_Tp, Num>
+		(requires {{ std::get<Num>(__t) } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; }) || 
+		(requires {{ __t.template get<Num>() } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; }) 
     );
 };
 
@@ -138,5 +140,11 @@ struct is_tuple : is_tuple_impl<Tuple, decltype(std::make_index_sequence<std::tu
 template <typename Tuple>
 constexpr bool is_tuple_v = is_tuple<Tuple>::value;
 
+static_assert(is_tuple_v<std::tuple<>>);
+static_assert(is_tuple_v<std::tuple<int>>);
+static_assert(is_tuple_v<std::pair<int, int>>);
+static_assert(!is_tuple_v<int>);
 */
+
+
 #endif
