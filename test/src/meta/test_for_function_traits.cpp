@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include <lv_cpp/type_list.hpp>
-#include <lv_cpp/tools/template_info.hpp>
+#include <lv_cpp/meta/type_list.hpp>
+#include <lv_cpp/meta/template_info.hpp>
 
 using namespace leviathan::meta;
 

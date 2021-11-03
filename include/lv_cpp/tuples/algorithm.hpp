@@ -21,7 +21,7 @@ namespace leviathan::tuple
     template <template <typename...> typename Tuple1, typename... Ts1, 
               template <typename...> typename Tuple2, typename... Ts2,
               typename BinaryOp>
-    constexpr ssize_t tuple_mismatch(const Tuple1<Ts1...>& t1, const Tuple2<Ts2...>& t2, BinaryOp op)
+    constexpr std::ssize_t tuple_mismatch(const Tuple1<Ts1...>& t1, const Tuple2<Ts2...>& t2, BinaryOp op)
     {
         constexpr auto size1 = sizeof...(Ts1);
         constexpr auto size2 = sizeof...(Ts2);

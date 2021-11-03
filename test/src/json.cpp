@@ -5,7 +5,7 @@ int main()
 {
     try
     {
-        const char* json_path = R"(D:\SOD\Tiamat\test.json)";
+        const char* json_path = R"(D:\Library\Leviathan\include\lv_cpp\config_parser\json\test.json)";
         std::fstream file{ json_path };
         std::string buf{ std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>() };
         json_reader j{ std::move(buf) };
