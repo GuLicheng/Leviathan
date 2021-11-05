@@ -56,27 +56,6 @@ namespace leviathan::tuple
             }
         }
 
-        template <typename Tuple1, typename Tuple2, typename BinaryOp>
-        constexpr static ssize_t mismatch(const Tuple1& t1, const Tuple2& t2, BinaryOp op)
-        {
-            if constexpr(comparator(Left, Right))
-            {
-                if (op(std::get<Left>(t1), std::get<Left>(t2)))
-                {
-                    return static_looper<Left + Step, Right, Step, Comparetor>::mismatch(t1, t2, std::move(op));
-                }
-                else 
-                {
-                    return static_cast<ssize_t>(Left);
-                }
-            }
-            else
-            {
-                return static_cast<ssize_t>(Left);
-            }
-        }
-
-
         template <template <typename...> typename Tuple, typename... Ts, typename Operation>
         constexpr static void dynamic_set(Tuple<Ts...>& t, Operation op, int idx)
         {
@@ -103,7 +82,6 @@ namespace leviathan::tuple
             }
         }
 
-    
     };
 
 } // namespace tuple

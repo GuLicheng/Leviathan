@@ -5,8 +5,17 @@
 #include <utility>
 #include <type_traits>
 
-namespace leviathan::meta
+namespace leviathan::tuple
 {
+
+    using std::get;
+    using std::tuple_size;
+    using std::tuple_size_v;
+    using std::tuple_element;
+    using std::tuple_element_t;
+    using std::remove_cvref;
+    using std::remove_cvref_t;
+
     template<typename _Tp, size_t Num>
     concept has_tuple_element = requires(_Tp __t)
     {
@@ -14,7 +23,7 @@ namespace leviathan::meta
         requires (Num < std::tuple_size_v<_Tp>);
         typename std::tuple_element_t<Num, _Tp>;
         requires (
-            (requires { { std::get<Num>(__t) } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; }) ||
+            (requires { { std::get<Num>(__t) } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; }) ||  // this just adapt structure-binding
             (requires { { __t.template get<Num>() } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; })
         );
     };
@@ -32,6 +41,9 @@ namespace leviathan::meta
     };
 
 
-
+    static_assert(tuple_like<std::tuple<>>);
+    static_assert(tuple_like<std::tuple<int, double>>);
+    static_assert(tuple_like<std::pair<bool, bool>>);
+    static_assert(!tuple_like<int>);
 }
 #endif

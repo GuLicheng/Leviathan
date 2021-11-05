@@ -1,3 +1,5 @@
+#if 0
+
 /*
     This file will adaptor for tuple-like structure if you have
     overloaded std::get for your class
@@ -107,3 +109,6 @@ namespace leviathan::tuple
 } // namespace tuple
 
 #endif
+
+
+#endif // if 0

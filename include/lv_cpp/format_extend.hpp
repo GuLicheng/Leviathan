@@ -25,7 +25,7 @@ concept ContainerChecker = requires (const Container &c)
 };
 // tuple - like
 template <typename Tuple>
-concept TupleChecker = !ContainerChecker<Tuple> && leviathan::meta::tuple_like<Tuple>;
+concept TupleChecker = !ContainerChecker<Tuple> && leviathan::tuple::tuple_like<Tuple>;
 
 template <ContainerChecker Ranges, typename CharT>
 struct std::formatter<Ranges, CharT>
