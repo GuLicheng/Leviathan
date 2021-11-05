@@ -112,7 +112,7 @@ struct std::formatter<Tuple, CharT>
 			return iter;
 		}
 		m_fmts[0][m_buffers_len[m_len]++] = ':';
-		for (; iter != context.end() && *iter != '}'; ++iter)
+		for (; iter != end && *iter != '}'; ++iter)
 		{
 			if (*iter == '|')
 			{
