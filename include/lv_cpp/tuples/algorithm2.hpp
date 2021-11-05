@@ -42,7 +42,7 @@ namespace leviathan::tuple
 
 	template <tuple_or_reference Tuple1, tuple_or_reference Tuple2, 
 		typename BinaryOp1, typename BinaryOp2, typename Init>
-	constexpr auto tuple_inner_preduct(const Tuple1&& t1, const Tuple2& t2, BinaryOp1 op1, BinaryOp2 op2, Init init)
+	constexpr auto tuple_inner_preduct(const Tuple1& t1, const Tuple2& t2, BinaryOp1 op1, BinaryOp2 op2, Init init)
 	{
 		constexpr auto size1 = tuple_size_v<remove_cvref_t<Tuple1>>;
 		constexpr auto size2 = tuple_size_v<remove_cvref_t<Tuple1>>;
