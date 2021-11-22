@@ -467,7 +467,10 @@ struct call : std::enable_if<true, typename Func<Args...>::type> { };
 // for some utilities
 namespace leviathan::meta
 {
-template <template <typename...> typename TemplateClass, typename... Args>
+//template <template <typename...> typename TemplateClass, typename... Args>
+//struct is_instance : std::false_type { };
+
+template <template <typename...> typename TemplateClass, typename T>
 struct is_instance : std::false_type { };
 
 template <template <typename...> typename TemplateClass, typename... Args>

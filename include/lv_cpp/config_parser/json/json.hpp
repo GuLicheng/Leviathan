@@ -1,6 +1,8 @@
 #ifndef __JSON_HPP__
 #define __JSON_HPP__
 
+#include "../encode.hpp"
+
 #include <iterator>
 #include <fstream>
 #include <variant>
@@ -31,7 +33,9 @@ namespace leviathan::json
     enum class json_error_code
     {
         // TODO: replace exception with error code
+        ok,
         eof_error,
+        uninitialized,
         illegal_string,
         illegal_array,
         illegal_object,
@@ -110,17 +114,20 @@ namespace leviathan::json
 
     };
 
-    // see leviathan::meta::should_be
-    template <typename T, typename... Ts>
-    struct contains : std::disjunction<std::is_same<std::remove_cvref_t<T>, Ts>...> { };
+    namespace detail
+    {
+        // see leviathan::meta::should_be
+        template <typename T, typename... Ts>
+        struct contains : std::disjunction<std::is_same<std::remove_cvref_t<T>, Ts>...> { };
 
-    template <typename T, typename... Ts>
-    constexpr bool contains_v = contains<T, Ts...>::value;
+        template <typename T, typename... Ts>
+        constexpr bool contains_v = contains<T, Ts...>::value;
 
-    static_assert(contains_v<int&, int, double>);
-    static_assert(contains_v<int const&, int, double>);
-    static_assert(contains_v<int&&, int, double>);
-    static_assert(!contains_v<int, char, double>);
+        static_assert(contains_v<int&, int, double>);
+        static_assert(contains_v<int const&, int, double>);
+        static_assert(contains_v<int&&, int, double>);
+        static_assert(!contains_v<int, char, double>);
+    }
 
     struct json_value
     {
@@ -133,11 +140,11 @@ namespace leviathan::json
             json_string> m_val;
 
         template <typename T> 
-        requires (contains_v<T, json_null, json_boolean, json_array, json_number, json_object, json_string>)
+        requires (detail::contains_v<T, json_null, json_boolean, json_array, json_number, json_object, json_string>)
         json_value(T&& t) : m_val{ std::forward<T>(t) } { }
 
         template <typename T> 
-        requires (contains_v<T, json_null, json_boolean, json_array, json_number, json_object, json_string>)
+        requires (detail::contains_v<T, json_null, json_boolean, json_array, json_number, json_object, json_string>)
         json_value& operator=(T&& t)
         {
             m_val = std::forward<T>(t);
@@ -333,16 +340,30 @@ namespace leviathan::json
 
         void parse()
         {
+            m_err = json_error_code::ok;
             m_cur = m_buf.data();
             m_sentinel = m_cur + m_buf.size();
             m_val = parse_value();
         }
         
+        explicit operator bool() const
+        {
+            return m_err == json_error_code::ok;
+        }
+
     private:
         std::string m_buf;
+        json_error_code m_err = json_error_code::uninitialized;
         char* m_cur;
         char* m_sentinel;
         json_value m_val; // root
+
+
+        bool peak(char ch, int offset = 1) const
+        {
+            auto dest = m_cur + offset;
+            return dest < m_sentinel && *dest == ch;
+        }
 
         void skip_blank()
         {
@@ -359,7 +380,11 @@ namespace leviathan::json
         {
             skip_blank();
             if (m_cur == m_sentinel)
-                throw json_error{ "Expected parse value but end..." };
+            {
+                //throw json_error{ "Expected parse value but end..." };
+                m_err = json_error_code::eof_error;
+                return {};
+            }
             json_value value;
             switch (*m_cur)
             {
@@ -387,14 +412,16 @@ namespace leviathan::json
             return value;
         }
 
-        json_number parse_number()
+        // lazy parser, just get number string
+        json_string parse_number()
         {
-            json_number value;
             auto begin = m_cur;
-            while (m_cur != m_sentinel && (::isdigit(*m_cur) || *m_cur == '.' || *m_cur == 'e'))
+            while (m_cur != m_sentinel && (::isdigit(*m_cur) || *m_cur == '.' || *m_cur == 'e') || *m_cur == '+' || *m_cur == '-')
                 m_cur++;
-            value.m_val = std::stod(std::string{ begin, m_cur });
-            return value;
+            // value.m_val = std::stod(std::string{ begin, m_cur });
+            return {
+                .m_val = std::string{ begin, m_cur }
+            };
         }
 
         json_array parse_array()
@@ -452,7 +479,7 @@ namespace leviathan::json
                 switch (*m_cur)
                 {
                 case '"': obj.m_val.emplace_back(parse_entry()); break; // OK
-                case ',': ++m_cur; 
+                case ',': ++m_cur; break;
                 case '}':
                 default: break;
                 }
@@ -466,10 +493,38 @@ namespace leviathan::json
             // "KeyString2"  "Stirng\"\"" -> String""
             m_cur++;  // eat first '"'
             auto old = m_cur;
+            std::string context;
             while (m_cur != m_sentinel && *m_cur != '"')
-                m_cur++;
+            {
+                if (*m_cur == '\\')
+                {
+                    m_cur++;
+                    if (m_cur == m_sentinel) throw json_error{ "Expected 'turbfvu' but got another charactor" };
+                    switch (*m_cur)
+                    {
+                        case 'n': context += '\n'; break;
+                        case 't': context += '\t'; break;
+                        case 'r': context += '\r'; break;
+                        case 'b': context += '\b'; break;
+                        case 'f': context += '\f'; break;
+                        case 'v': context += '\v'; break;
+                        case 'u': {
+                            m_cur++;
+                            unsigned unicode = decode_unicode_from_char(m_cur);
+                            encode_unicode_to_utf8(std::back_inserter(context), unicode);
+                            m_cur += 4;
+                            break;
+                            }// ...
+                        // case '\\': context += '\\'; break;
+                        // case '"': context += '"'; break;
+                        default: context += *m_cur; break;
+                    }
+                }
+                else
+                    context += *m_cur++;
+            }
             m_cur++; // eat last '"'
-            return json_string{ .m_val = std::string{ old, m_cur - 1 } };
+            return json_string{ .m_val = std::move(context) };
         }
 
         json_entry parse_entry()

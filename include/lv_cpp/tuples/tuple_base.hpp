@@ -32,10 +32,8 @@ namespace leviathan::tuple
     concept tuple_like = !std::is_reference_v<T> && requires (T t)
     {
         typename std::tuple_size<T>::type;
-        requires std::derived_from< 
-            std::tuple_size<T>, 
-            std::integral_constant<std::size_t, std::tuple_size_v<T>>
-        > && []<std::size_t... Idx>(std::index_sequence<Idx...>) {
+        std::same_as<size_t, decltype(std::tuple_size_v<T>)>
+            && []<std::size_t... Idx>(std::index_sequence<Idx...>) {
             return (has_tuple_element<T, Idx> && ...);
         }(std::make_index_sequence<std::tuple_size_v<T>>());
     };

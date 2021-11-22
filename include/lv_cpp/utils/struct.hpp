@@ -4,9 +4,12 @@
 #include <functional>
 #include <compare>
 
-struct foo
+
+#define PrintLn(x) (std::cout << x << '\n')
+
+struct Int32
 {
-private:
+public:
     inline static int default_constructor = 0;
     inline static int copy_constructor = 0;
     inline static int copy_assignment = 0;
@@ -16,52 +19,84 @@ private:
     inline static int int_constructor = 0;
 public:
 
+    int static total_construct() 
+    {
+        return default_constructor + copy_constructor + move_constructor + int_constructor;
+    }
+
+    int static total_destruct()
+    { 
+        return destructor; 
+    }
+
     int val;
 
-    foo() : val{ 0 } 
-    { std::cout << "default_constructor :" << ++default_constructor << std::endl;}
+    Int32() : val{ 0 } 
+    { 
+        ++default_constructor; 
+    }
     
-    foo(int x) : val{ x }
-    { std::cout << "int_constructor : " << ++int_constructor << std::endl; }
+    explicit Int32(int x) : val{ x }
+    {
+        ++int_constructor; 
+        PrintLn(int_constructor); 
+    }
 
-    foo(const foo& rhs) : val{rhs.val}
-    { std::cout << "copy_constructor :" << ++copy_constructor << std::endl;}
+    Int32(const Int32& rhs) : val{ rhs.val }
+    { ++copy_constructor; }
 
-    foo(foo&& rhs) noexcept : val{ std::exchange(rhs.val, 0) }
-    { std::cout << "move_constructor :" << ++move_constructor << std::endl;}
+    Int32(Int32&& rhs) noexcept : val{ std::exchange(rhs.val, 0) }
+    { ++move_constructor; }
 
-    foo& operator=(const foo& rhs) 
+    Int32& operator=(const Int32& rhs) 
     {
         this->val = rhs.val; 
-        std::cout << "copy_assignment :" << ++copy_assignment << std::endl;
+        // std::cout << "copy_assignment :" << ++copy_assignment << std::endl;
         return *this;
     }
 
-    foo& operator=(foo&& rhs) noexcept
+    Int32& operator=(Int32&& rhs) noexcept
     { 
         this->val = std::exchange(rhs.val, 0);
-        std::cout << "move_assignment :" << ++move_assignment << std::endl;
+        // std::cout << "move_assignment :" << ++move_assignment << std::endl;
         return *this;
     }
 
-    ~foo() 
-    { std::cout << "value is: " << val << " and destructor :" << ++destructor << std::endl;}
+    operator int() const noexcept
+    { return this->val; }
 
-    friend std::ostream& operator<<(std::ostream& os, const foo& f)
+    Int32 operator+(Int32 rhs) const noexcept
+    { return Int32{ this->val + rhs.val }; }
+
+    ~Int32() 
+    { ++destructor; }
+
+    friend std::ostream& operator<<(std::ostream& os, const Int32& f)
     {
         return os << f.val;
     }
 
-    auto operator<=>(const foo&) const noexcept = default;
+    auto operator<=>(const Int32&) const noexcept = default;
 
+    // [[nodiscard]] void* operator new(std::size_t count)
+    // { return ::malloc(sizeof(Int32) * count); }
+
+    // [[nodiscard]] void* operator new[](std::size_t count)
+    // { return ::malloc(sizeof(Int32) * count); }
+    
+    // void operator delete( void* ptr ) noexcept
+    // { ::operator delete(ptr); }
+
+    // void operator delete[]( void* ptr ) noexcept
+    // { ::operator delete[](ptr); }
 };
 
 namespace std 
 {
     template <>
-    struct hash<foo>
+    struct hash<Int32>
     {
-        auto operator()(const foo& f) const noexcept
+        auto operator()(const Int32& f) const noexcept
         { return std::hash<int>()(f.val); }
     };
 }

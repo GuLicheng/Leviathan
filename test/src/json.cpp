@@ -3,6 +3,7 @@ using namespace leviathan::json;
 
 int main()
 {
+    system("chcp 65001");
     try
     {
         const char* json_path = R"(D:\Library\Leviathan\include\lv_cpp\config_parser\json\test.json)";
