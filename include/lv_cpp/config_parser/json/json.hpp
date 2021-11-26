@@ -33,7 +33,7 @@ namespace leviathan::json
     enum class json_error_code
     {
         // TODO: replace exception with error code
-        ok,
+        ok = 0,
         eof_error,
         uninitialized,
         illegal_string,
@@ -44,22 +44,25 @@ namespace leviathan::json
         illegal_boolean
     };
 
-    // string、number、object、array、(true、false)、null
-    /*
+    constexpr const char* json_error_info[]
     {
-        "firstName": "Duke",
-        "lastName": "Java",
-        "age": 18,
-        "streetAddress": "100 Internet Dr",
-        "city": "JavaTown",
-        "state": "JA",
-        "postalCode": "12345",
-        "phoneNumbers": [
-            { "Mobile": "111-111-1111" },
-            { "Home": "222-222-2222" }
-        ]
+        "OK",
+        "End of file error",
+        "uninitialized",
+        "illegal_string",
+        "illegal_array",
+        "illegal_object",
+        "illegal_number",
+        "illegal_literal",
+        "illegal_boolean"    
+    };
+
+    constexpr const char* report_error(json_error_code ec)
+    {
+        return json_error_info[static_cast<int>(ec)];
     }
-    */
+
+    // string、number、object、array、(true、false)、null
 
     // declearation
     struct json_boolean;
@@ -343,7 +346,7 @@ namespace leviathan::json
             m_err = json_error_code::ok;
             m_cur = m_buf.data();
             m_sentinel = m_cur + m_buf.size();
-            m_val = parse_value();
+            m_val = parse_value();  // root should be json_object or json_array
         }
         
         explicit operator bool() const
@@ -351,29 +354,39 @@ namespace leviathan::json
             return m_err == json_error_code::ok;
         }
 
+        auto error_code() const 
+        {
+            return m_err;
+        }
+
     private:
         std::string m_buf;
         json_error_code m_err = json_error_code::uninitialized;
         char* m_cur;
         char* m_sentinel;
+        int m_line = 0;
         json_value m_val; // root
 
-
-        bool peak(char ch, int offset = 1) const
-        {
-            auto dest = m_cur + offset;
-            return dest < m_sentinel && *dest == ch;
-        }
-
+        /**
+        * Skip blank charactor
+        */
         void skip_blank()
         {
             while (m_cur != m_sentinel && is_blank(*m_cur))
                 ++m_cur;
         }
 
-        static bool is_blank(int c)
+        /**
+        * Check whether char `c` is a blank
+        */
+        bool is_blank(int c)
         {
-            return c == ' ' || c == '\n' || c == '\r' || c == '\t';
+            if (c == '\n')
+            {
+                m_line++;  
+                return true; 
+            }
+            return c == ' ' || c == '\r' || c == '\t';
         }
 
         json_value parse_value()
@@ -382,8 +395,7 @@ namespace leviathan::json
             if (m_cur == m_sentinel)
             {
                 //throw json_error{ "Expected parse value but end..." };
-                m_err = json_error_code::eof_error;
-                return {};
+                return exit_parse(json_error_code::eof_error);
             }
             json_value value;
             switch (*m_cur)
@@ -412,7 +424,9 @@ namespace leviathan::json
             return value;
         }
 
-        // lazy parser, just get number string
+        /**
+        *   lazy parser, just get number string
+        */
         json_string parse_number()
         {
             auto begin = m_cur;
@@ -447,22 +461,64 @@ namespace leviathan::json
         json_value parse_literal()
         {
             auto ch = *m_cur;
-            if (ch == 't')
+            switch (*m_cur)
+            {
+            case 't': return parse_true();
+            case 'f': return parse_false();
+            case 'n': return parse_null();
+            default: return exit_parse(json_error_code::illegal_literal);
+            }
+            // throw json_error{ "Not legal literal " };
+        }
+
+        json_value parse_true()
+        {
+            if (m_sentinel - m_cur < 4)
+            {
+                return exit_parse(json_error_code::illegal_literal);
+            }
+            if (m_cur[1] == 'r' && m_cur[2] == 'u' && m_cur[3] == 'e')
             {
                 m_cur += 4;
                 return json_boolean{ .m_val = true };
             }
-            else if (ch == 'f')
+            return exit_parse(json_error_code::illegal_literal);
+        }
+
+        template <typename Return = json_value>
+        Return exit_parse(json_error_code ec)
+        {
+            m_err = ec;
+            m_cur = m_sentinel;
+            return { };
+        }
+
+        json_value parse_null()
+        {
+            if (m_sentinel - m_cur < 4)
             {
-                m_cur += 5;
-                return json_boolean{ .m_val = false };
+                return exit_parse(json_error_code::illegal_literal);
             }
-            else if (ch == 'n')
+            if (m_cur[1] == 'u' && m_cur[2] == 'l' && m_cur[3] == 'l')
             {
                 m_cur += 4;
                 return json_null{ };
             }
-            throw json_error{ "Not legal literal " };
+            return exit_parse(json_error_code::illegal_literal);
+        }
+
+        json_value parse_false()
+        {
+            if (m_sentinel - m_cur < 5)
+            {
+                return exit_parse(json_error_code::illegal_literal);
+            }
+            if (m_cur[1] == 'a' && m_cur[2] == 'l' && m_cur[3] == 's' && m_cur[4] == 'e')
+            {
+                m_cur += 5;
+                return json_boolean{ .m_val = false };
+            }
+            return exit_parse(json_error_code::illegal_literal);
         }
 
         json_object parse_object()
@@ -479,9 +535,9 @@ namespace leviathan::json
                 switch (*m_cur)
                 {
                 case '"': obj.m_val.emplace_back(parse_entry()); break; // OK
-                case ',': ++m_cur; break;
-                case '}':
-                default: break;
+                case ',': ++m_cur; // [[fallthrough]];
+                case '}': break;
+                default: return exit_parse<json_object>(json_error_code::illegal_object);
                 }
             }
             ++m_cur; // eat '}'
@@ -494,12 +550,16 @@ namespace leviathan::json
             m_cur++;  // eat first '"'
             auto old = m_cur;
             std::string context;
-            while (m_cur != m_sentinel && *m_cur != '"')
+            for (;m_cur != m_sentinel && *m_cur != '"'; m_cur++)
             {
                 if (*m_cur == '\\')
                 {
                     m_cur++;
-                    if (m_cur == m_sentinel) throw json_error{ "Expected 'turbfvu' but got another charactor" };
+                    if (m_cur == m_sentinel)
+                    {
+                        return exit_parse<json_string>(json_error_code::illegal_string);
+                        //throw json_error{ "Expected 'turbfvu' but got another charactor" };
+                    }
                     switch (*m_cur)
                     {
                         case 'n': context += '\n'; break;
@@ -508,20 +568,20 @@ namespace leviathan::json
                         case 'b': context += '\b'; break;
                         case 'f': context += '\f'; break;
                         case 'v': context += '\v'; break;
+                        case '"': context += '"'; break;
+                        case '\\': context += '\\'; break;
                         case 'u': {
                             m_cur++;
                             unsigned unicode = decode_unicode_from_char(m_cur);
                             encode_unicode_to_utf8(std::back_inserter(context), unicode);
-                            m_cur += 4;
+                            m_cur += 3;
                             break;
-                            }// ...
-                        // case '\\': context += '\\'; break;
-                        // case '"': context += '"'; break;
+                        } // ...
                         default: context += *m_cur; break;
                     }
                 }
                 else
-                    context += *m_cur++;
+                    context += *m_cur;
             }
             m_cur++; // eat last '"'
             return json_string{ .m_val = std::move(context) };
@@ -534,8 +594,9 @@ namespace leviathan::json
             skip_blank();
             if (*m_cur != ':')
             {
-                std::cout << (int)*m_cur << ' ';
-                throw json_error{ "Expected ':' but got another charactor" }; // match ':'
+                // std::cout << (int)*m_cur << ' ';
+                // throw json_error{ "Expected ':' but got another charactor" }; // match ':'
+                return exit_parse<json_entry>(json_error_code::illegal_object);
             }
             ++m_cur;
             skip_blank();
@@ -543,8 +604,33 @@ namespace leviathan::json
             return json_entry{ .m_key = std::move(key.m_val), .m_val = std::move(val) };
         }
 
-
     };
+
+
+    struct json_entry_recursive_iterator
+    {
+
+        bool operator==(std::default_sentinel_t) const
+        {
+            return is_over();
+        }
+
+        bool operator!=(std::default_sentinel_t) const
+        {
+            return !this->operator==(std::default_sentinel);
+        }
+
+        bool is_over() const
+        {
+            struct NotImpl { };
+            throw NotImpl{ };
+        }
+
+        json_value* m_root;
+        std::vector<json_entry*> m_rest;
+    };
+
+
 
 } // end of leviathan
 
