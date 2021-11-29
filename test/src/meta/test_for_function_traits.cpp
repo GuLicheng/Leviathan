@@ -16,10 +16,12 @@ void test_for_function()
     using Arg1 = function_traits<decltype(func)>::args; 
     using Arg2 = function_traits<decltype(func)>::return_type; 
     using Arg4 = function_traits<decltype(func)>::template nth_arg<0>; 
-    PrintTypeInfo(Arg1);  // (int, int)
-    PrintTypeInfo(Arg2);  // int
-    PrintTypeInfo(Arg4);  // int
-
+    // PrintTypeInfo(Arg1);  // (int, int)
+    // PrintTypeInfo(Arg2);  // int
+    // PrintTypeInfo(Arg4);  // int
+    static_assert(std::is_same_v<Arg1, std::tuple<int, double, char>>);
+    static_assert(std::is_same_v<Arg2, int>);
+    static_assert(std::is_same_v<Arg4, int>);
     const auto& p1 = func;
     auto& p2 = func;
     auto&& p3 = func;
@@ -29,10 +31,14 @@ void test_for_function()
     using Arg7 = function_traits<decltype(p3)>::return_type;    
     using Arg8 = function_traits<decltype(p4)>::return_type;    
     
-    PrintTypeInfo(Arg5);  // int
-    PrintTypeInfo(Arg6);  // int
-    PrintTypeInfo(Arg7);  // int
-    PrintTypeInfo(Arg8);  // int
+    // PrintTypeInfo(Arg5);  // int
+    // PrintTypeInfo(Arg6);  // int
+    // PrintTypeInfo(Arg7);  // int
+    // PrintTypeInfo(Arg8);  // int
+    static_assert(std::is_same_v<Arg5, std::tuple<int, double, char>>);
+    static_assert(std::is_same_v<Arg6, std::tuple<int, double, char>>);
+    static_assert(std::is_same_v<Arg7, int>);
+    static_assert(std::is_same_v<Arg8, int>);
 }
 
 void test_for_lambda()
@@ -41,15 +47,17 @@ void test_for_lambda()
     const auto b = [](double y) { return y; };
     using Arg1 = function_traits<decltype(a)>::args;
     using Arg2 = function_traits<decltype(b)>::args;
-    PrintTypeInfo(Arg1);  // (int)
-    PrintTypeInfo(Arg2);  // (double)
-
+    // PrintTypeInfo(Arg1);  // (int)
+    // PrintTypeInfo(Arg2);  // (double)
+    static_assert(std::is_same_v<Arg1, std::tuple<int>>);
+    static_assert(std::is_same_v<Arg2, std::tuple<double>>);
     struct lambda1
     {
         int operator()(int, double) const { return {}; }
     };
     using Arg3 = function_traits<lambda1>::args;
-    PrintTypeInfo(Arg3);  // (int, double)
+    // PrintTypeInfo(Arg3);  // (int, double)
+    static_assert(std::is_same_v<Arg3, std::tuple<int, double>>);
 }
 
 void test_for_class_member_function()
@@ -102,9 +110,11 @@ void test_for_class_member_function()
     PrintTypeInfo(T10);
     PrintTypeInfo(T11);
     PrintTypeInfo(T12);
-
     static_assert(function_traits<decltype(&foo::none)>::is_noexcept == true);
     static_assert(function_traits<decltype(&foo::ref)>::is_noexcept == false);
+    static_assert(function_traits<decltype(&foo::ref)>::attribute == 0x0100);
+    static_assert(function_traits<decltype(&foo::const_ref)>::attribute == 0x0101);
+    static_assert(function_traits<decltype(&foo::const_volatile_r_ref)>::attribute == 0x1011);
 
 }
 
