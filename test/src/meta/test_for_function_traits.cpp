@@ -115,6 +115,8 @@ void test_for_class_member_function()
     static_assert(function_traits<decltype(&foo::ref)>::attribute == 0x0100);
     static_assert(function_traits<decltype(&foo::const_ref)>::attribute == 0x0101);
     static_assert(function_traits<decltype(&foo::const_volatile_r_ref)>::attribute == 0x1011);
+    static_assert(function_traits<decltype(&foo::const_)>::attribute == 0x0001);
+    static_assert(function_traits<decltype(&foo::none)>::attribute == 0x0000);
 
 }
 
