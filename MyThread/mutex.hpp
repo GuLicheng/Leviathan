@@ -6,7 +6,6 @@
 #include <system_error>  // for std::system_error
 #include <chrono>  // for time component
 
-
 // Some macros
 #define NOCOPYABLE(classname)  \
     classname(const classname&) = delete; \

@@ -627,7 +627,6 @@ namespace leviathan::json
         }
 
         json_value* m_root;
-        std::vector<json_entry*> m_rest;
     };
 
 

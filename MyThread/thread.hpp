@@ -4,6 +4,8 @@
 #include <functional>   // for std::invoke
 #include <memory>       // std::unique_ptr
 #include <pthread.h>
+#include "mutex.hpp"
+#include <chrono>
 
 class Thread
 {
@@ -15,14 +17,14 @@ public:
     {
         auto arg = new auto([f=std::forward<Callable>(f), ...args=std::forward<Args>(args)]() mutable
         {
-            return std::invoke(std::forward<Callable>(f), std::forward<Args>(args)...);
+            return std::invoke(std::move(f), std::move(args)...); // STL call && instead
         });
         using handle_type = std::remove_reference_t<decltype(*arg)>;
-        void *(*c_func) (void *) = [](void* args) -> void*
+        void *(*c_func) (void *) = [](void* args)
         {
             std::unique_ptr<handle_type> ptr { static_cast<handle_type*>(args) };
-            （void)(*ptr)();
-            return nullptr;
+            (void)(*ptr)();
+            return (void*)nullptr;
         };
         pthread_create(&this->id, nullptr, c_func, arg);
     }
@@ -33,3 +35,4 @@ public:
     }
 
 };
+
