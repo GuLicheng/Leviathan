@@ -51,14 +51,14 @@ public:
     Int32& operator=(const Int32& rhs) 
     {
         this->val = rhs.val; 
-        // std::cout << "copy_assignment :" << ++copy_assignment << std::endl;
+        std::cout << "copy_assignment :" << ++copy_assignment << std::endl;
         return *this;
     }
 
     Int32& operator=(Int32&& rhs) noexcept
     { 
         this->val = std::exchange(rhs.val, 0);
-        // std::cout << "move_assignment :" << ++move_assignment << std::endl;
+        std::cout << "move_assignment :" << ++move_assignment << std::endl;
         return *this;
     }
 

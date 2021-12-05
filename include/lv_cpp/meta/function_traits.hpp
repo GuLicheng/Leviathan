@@ -1,6 +1,8 @@
 #ifndef __FUNCTION_TRAITS_HPP__
 #define __FUNCTION_TRAITS_HPP__
 
+#include <tuple>
+
 // for function_traits
 namespace leviathan::meta
 {
