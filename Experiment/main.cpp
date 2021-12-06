@@ -1,99 +1,134 @@
-#include <iostream>
-#include <string>
-#include <concepts>
 #include "base.hpp"
-#include <lv_cpp/utils/struct.hpp>
 
-class Sum
+#include <string>
+#include <string_view>
+
+struct string_hash
 {
-public:
-    int operator()(int a, int b) const { return a + b; }
-    int X = 0;
+    using hash_type = std::hash<std::string_view>;
+    using is_transparent = void;
+ 
+    // size_t operator()(const char* str) const        { return hash_type{}(str); }
+    // size_t operator()(std::string_view str) const   { return hash_type{}(str); }
+    // size_t operator()(std::string const& str) const { return hash_type{}(str); }
+    template <typename T>
+    size_t operator()(T const& str) const 
+    { 
+        PrintTypeInfo(T);
+        return hash_type{}(str); 
+    }
+
+};
+ 
+struct string_key_equal
+{
+    using is_transparent = void;
+    template <typename Lhs, typename Rhs>
+    bool operator()(const Lhs& l, const Rhs& r) const 
+    {
+        return std::ranges::lexicographical_compare(l, r, std::equal_to<>());
+    }
 };
 
 
-void report(int a) { std::cout << (a); }
+#include <lv_cpp/collections/hash_table.hpp>
+#include <algorithm>
+#include <lv_cpp/utils/struct.hpp>
+#include <vector>
+#include <random>
+#include <unordered_set>
+#include <lv_cpp/utils/timer.hpp>
+#include <ranges>
+#include <lv_cpp/ranges/action.hpp>
 
-#include <assert.h>
+leviathan::collections::hash_set<int> hash;
+std::unordered_set<int> stl_hash;
+std::vector<int> inserted_set;
+std::vector<int> searched_set;
+std::vector<int> erased_set;
+
+void init()
+{
+    std::generate_n(std::back_inserter(inserted_set), 100'00'00, std::random_device());
+    std::generate_n(std::back_inserter(searched_set), 100'00'00, std::random_device());
+    std::generate_n(std::back_inserter(erased_set), 100'00'00, std::random_device());
+}
+
+void unordered_set_test()
+{
+    leviathan::timer _;
+    for (auto val : inserted_set)
+        stl_hash.insert(val);
+}
+
+void hash_set_test()
+{
+    leviathan::timer _;
+    for (auto val : inserted_set)
+        hash.insert(val);
+}
+
+int count_stl()
+{
+    leviathan::timer _;
+    int c{};
+    auto end = stl_hash.end();
+    for (auto val : inserted_set)
+        c += stl_hash.find(val) != end;
+    return c;
+}
+
+int count_hash()
+{
+    leviathan::timer _;
+    int c{};
+    for (auto val : inserted_set)
+        c += hash.find(val) != hash.end();
+    return c;
+}
+
+void operation_test()
+{
+    unordered_set_test();
+    hash_set_test();
+    // assert(stl_count() == hash_count());
+    std::cout << (count_stl() == count_hash()) << '\n';
+}
+
+void iterator_test()
+{
+    leviathan::collections::hash_set<int> s;
+    int cnt{};
+    for (int i = 0; i < 10; ++i)
+        s.insert(inserted_set[i] % 150);
+    for (auto& i : s) std::cout << i << ' ';
+    std::cout << '\n';
+    s.show();
+    // for (auto& i : s) std::cout << '(' << cnt++ << ", " << i << ") ";
+    // std::cout << "size is: " << s.size() << '\n';
+    std::endl(std::cout);
+    for (auto iter = s.rcbegin(); iter != s.rcend(); ++iter)
+        std::cout << (*iter) << ' ';
+    std::endl(std::cout);
+    auto res = s 
+      | std::views::take(5) 
+      | std::views::reverse
+      | leviathan::action::bind_back(std::ranges::for_each, [](int x) { std::cout << x << ' ';});
+      ;
+}
+
 
 int main()
 {
+    leviathan::collections::hash_map<std::string, int, string_hash, string_key_equal> map;
+    map.insert(std::make_pair("Hello", 1));
+    map.erase("Hello");
+    auto iter = map.find("Hello");
+    std::cout << (iter == map.end()) << '\n';
+        init();
+    iterator_test();
 
-    const Sum s;
-    Sum s2;
-    int a = 1;
-    callable_container callables;
-    {
-        // lambda 
-        callables.register_handler("lambda", [](int a, int b) { return a + b; });
-        auto p = callables.call_by_name<int>("lambda", a, 2);
-        assert(*p == 3);
-    }
-
-    {
-        // C style function
-        callables.register_handler("c_function", report);
-        callables.call_by_name<void>("c_function", 100);
-    }
-
-    {
-        // member function
-        callables.register_handler(".operator()", &Sum::operator());
-        auto p = callables.call_by_name<int>(".operator()", &s, 1, 2);
-        assert(*p == 3);
-    }
-
-    {
-        // member function
-        callables.register_handler("overload operator()", s2);
-        auto p = callables.call_by_name<int>("overload operator()", 1, 2);
-        assert(*p == 3);
-    }
+    operation_test();
+}
 
 
-    {
-        // pass by value 
-        auto consume_string = [](std::string s) { s.clear(); };
-        std::string res = "hello world";
-        callables.register_handler("consume_string", consume_string);
-        callables.call_by_name<void>("consume_string", res);
-        assert(res == "hello world");
-    }
-
-    {
-        // pass by reference
-        auto consume_string = [](std::string& s) { s = "!"; };
-        std::string res = "hello world";
-        callables.register_handler("consume_string1", consume_string);
-        callables.call_by_name<void>("consume_string1", std::ref(res));
-        assert(res == "!");
-    }
-
-    {
-        // capture 
-        std::string value = "Hello";
-        std::string ref = "Hello";
-        auto capture_string = [value, &ref]() mutable { value.clear(), ref.clear(); };
-        callables.register_handler("capture_string", capture_string);
-        callables.call_by_name<void>("capture_string");
-        callables.call_by_name<void>("capture_string");
-        assert(value == "Hello" and ref == "");
-    }
-
-    {
-        Int32 i{ 0 };
-        callables.register_handler("capture_int", [i]() { });
-        callables.call_by_name<void>("capture_int");
-        callables.call_by_name<void>("capture_int");
-        callables.call_by_name<void>("capture_int");
-        std::cout << "\n Copy = " << Int32::copy_constructor << " Move = " << Int32::move_constructor << '\n';
-    }
-
-    {
-        auto tuple = [](std::tuple<int> t) { return std::get<0>(t); };
-        callables.register_handler("tuple", tuple);
-        auto p = callables.call_by_name<int>("tuple", std::make_tuple(1));
-        assert(*p == 1);
-    }   
-    std::cout << "OK\n";
-}   

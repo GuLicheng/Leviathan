@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <type_traits>
 #include <assert.h>
+#include <lv_cpp/meta/template_info.hpp>
 
 namespace leviathan::collections
 {
@@ -26,11 +27,13 @@ namespace leviathan::collections
         using allocator_type = Allocator;
         using key_equal = KeyEqual;
 
-        // Lhs is value_type, and rhs is key_type
+        // Lhs is value_type, and rhs is key_type/
         template <typename Compare, typename Lhs, typename Rhs>
         constexpr static bool compare(const Compare& cmp, const Lhs& lhs, const Rhs& rhs) 
         noexcept(noexcept(cmp(lhs.first, rhs)))
         {
+            PrintTypeCategory(lhs);
+            PrintTypeCategory(rhs);
             return cmp(lhs.first, rhs);
         }
 
@@ -175,19 +178,22 @@ namespace leviathan::collections
             return { iterator(cur, this), exist };
         }
 
-        iterator find(const key_type& x) 
+        template <typename T>
+        iterator find(const T& x) 
         {
             auto entry = find_entry(x);
             auto cur = std::distance(this->m_table.data(), entry);
             return { cur, this };
         }
 
-        const_iterator find(const key_type& x) const
+        template <typename T>
+        const_iterator find(const T& x) const
         {
             return const_cast<hash_table*>(this)->find(x);
         }
 
-        iterator erase(const key_type& x)
+        template <typename T>
+        iterator erase(const T& x)
         {
             auto entry = erase_entry(x);
             auto cur = std::distance(this->m_table.data(), entry);
@@ -269,7 +275,8 @@ namespace leviathan::collections
             this->m_state.resize(prime_table[0]); // 0 for state::empty
         }
 
-        std::size_t get_index(const key_type& x) const noexcept // assert hasher and key_compare is exception-safe
+        template <typename T>
+        std::size_t get_index(const T& x) const noexcept // assert hasher and key_compare is exception-safe
         // noexcept(this->m_key_equal(std::declval<const key_type&>(), std::declval<const key_type&>()))
         // noexcept(this->m_hash(std::declval<const key_type&>()))
         {
@@ -326,22 +333,25 @@ namespace leviathan::collections
         }
 
 private:
-        const entry_type* find_entry(const key_type& x) const 
+
+        template <typename T>
+        const entry_type* find_entry(const T& x) const 
         {
             return const_cast<hash_table*>(this)->find_entry(x);
         }
 
-        entry_type* find_entry(const key_type& x) 
+        template <typename T>
+        entry_type* find_entry(const T& x) 
         {
             const auto index = get_index(x);
             // not active
             if (!is_active(index))
                 return this->m_table.data() + this->m_table.capacity();
             return &(this->m_table[index]);
-            // return nullptr;
         }
 
-        entry_type* erase_entry(const key_type& x)
+        template <typename T>
+        entry_type* erase_entry(const T& x)
         {
             const auto index = get_index(x);
             // remove item
@@ -516,7 +526,6 @@ private:
 
     template <typename Key, typename Value, typename HashFunction = std::hash<Key>, typename KeyEqual = std::equal_to<>, typename Allocator = std::allocator<Key>>
     class hash_map : public hash_table<hash_map_config<Key, Value, HashFunction, KeyEqual, Allocator>> { };
-
 
 }
 

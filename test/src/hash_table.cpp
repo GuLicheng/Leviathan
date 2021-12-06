@@ -1,3 +1,6 @@
+
+#include <string>
+#include <string_view>
 #include <lv_cpp/collections/hash_table.hpp>
 #include <algorithm>
 #include <lv_cpp/utils/struct.hpp>
@@ -7,6 +10,35 @@
 #include <lv_cpp/utils/timer.hpp>
 #include <ranges>
 #include <lv_cpp/ranges/action.hpp>
+struct string_hash
+{
+    using hash_type = std::hash<std::string_view>;
+    using is_transparent = void;
+ 
+    // size_t operator()(const char* str) const        { return hash_type{}(str); }
+    // size_t operator()(std::string_view str) const   { return hash_type{}(str); }
+    // size_t operator()(std::string const& str) const { return hash_type{}(str); }
+    template <typename T>
+    size_t operator()(T const& str) const 
+    { 
+        PrintTypeInfo(T);
+        return hash_type{}(str); 
+    }
+
+};
+ 
+struct string_key_equal
+{
+    using is_transparent = void;
+    template <typename Lhs, typename Rhs>
+    bool operator()(const Lhs& l, const Rhs& r) const 
+    {
+        return std::ranges::lexicographical_compare(l, r, std::equal_to<>());
+    }
+};
+
+
+
 
 leviathan::collections::hash_set<int> hash;
 std::unordered_set<int> stl_hash;
@@ -84,11 +116,22 @@ void iterator_test()
       ;
 }
 
+void TTTTT()
+{
+    leviathan::collections::hash_map<std::string, int, string_hash, string_key_equal> map;
+    map.insert(std::make_pair("Hello", 1));
+    map.erase("Hello");
+    auto iter = map.find("Hello");
+    std::cout << (iter == map.end()) << '\n';
+}
+
 int main()
 {
+    TTTTT();
     init();
     iterator_test();
 
     operation_test();
-
 }
+
+
