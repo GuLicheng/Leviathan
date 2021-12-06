@@ -99,7 +99,7 @@ struct invoker
         using R = typename leviathan::meta::function_traits<F>::return_type;
         using any_type = typename leviathan::meta::push_back<arg_type, unique_wrapper<R>&>::type;
         // PrintTypeInfo(any_type);
-        auto tp = std::any_cast<any_type>(arg);
+        auto& tp = std::any_cast<any_type&>(arg);
         apply_without_last_element(std::move(f), tp);
     }
 };
