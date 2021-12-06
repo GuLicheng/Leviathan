@@ -522,7 +522,7 @@ private:
 
 #include <ranges>
 
-static_assert(std::ranges::bidirectional_range<leviathan::hash_set<int>>);
-static_assert(std::ranges::bidirectional_range<const leviathan::hash_set<int>>);
+static_assert(std::ranges::bidirectional_range<leviathan::collections::hash_set<int>>);
+static_assert(std::ranges::bidirectional_range<const leviathan::collections::hash_set<int>>);
 
 #endif

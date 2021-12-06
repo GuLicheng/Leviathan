@@ -8,7 +8,7 @@
 #include <ranges>
 #include <lv_cpp/ranges/action.hpp>
 
-leviathan::hash_set<int> hash;
+leviathan::collections::hash_set<int> hash;
 std::unordered_set<int> stl_hash;
 std::vector<int> inserted_set;
 std::vector<int> searched_set;
@@ -50,7 +50,7 @@ int count_hash()
     leviathan::timer _;
     int c{};
     for (auto val : inserted_set)
-        c += hash.find_entry(val) == nullptr;
+        c += hash.find(val) != hash.end();
     return c;
 }
 
@@ -64,7 +64,7 @@ void operation_test()
 
 void iterator_test()
 {
-    leviathan::hash_set<int> s;
+    leviathan::collections::hash_set<int> s;
     int cnt{};
     for (int i = 0; i < 10; ++i)
         s.insert(inserted_set[i] % 150);
@@ -89,6 +89,6 @@ int main()
     init();
     iterator_test();
 
-
+    operation_test();
 
 }
