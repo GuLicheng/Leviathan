@@ -41,9 +41,9 @@ constexpr std::string_view type_to_str() noexcept
 
 #define STR(info) #info
 
-#define GetTypeCategory(type_instance) type_to_str<decltype(type_instance)>()
-#define GetValueCategory(type_instance) type_to_str<decltype((type_instance))>()
-
+#define GetTypeCategory(type_instance) (type_to_str<decltype(type_instance)>())
+#define GetValueCategory(type_instance) (type_to_str<decltype((type_instance))>())
+#define TypeInfo(type) (type_to_str<type>())
 
 #define TEMPLATE_INFORMATION() (std::cout << __PRETTY_FUNCTION__ << std::endl)
 
