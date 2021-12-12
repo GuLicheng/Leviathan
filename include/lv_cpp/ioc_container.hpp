@@ -1,6 +1,6 @@
 #pragma once
 
-#include <lv_cpp/meta/template_info.hpp>
+#include <lv_cpp/meta/template_info.hpp> // convert type T to string_view in compilier-time
 
 #include <map>
 #include <memory>
