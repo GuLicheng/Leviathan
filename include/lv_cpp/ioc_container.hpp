@@ -88,7 +88,7 @@ public:
         constexpr std::string_view base_name = TypeInfo(RealClassType);
         constexpr std::string_view derived_name = TypeInfo(InstanceType);
 
-        // Just add last
+        // Just add last, simply ignore formmer
         m_container.emplace_back(info {
             .m_base_name = base_name,
             .m_derived_name = derived_name,
