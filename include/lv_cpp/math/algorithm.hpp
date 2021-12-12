@@ -4,69 +4,48 @@
 #include <algorithm>
 #include <vector>
 
-#define __USELESS__ 0
 
 namespace leviathan
 {
-#if __USELESS__
-template <typename RandomAccessIter, typename Sentinel, typename BinaryOp>
-/* constexpr */ inline size_t 
-longest_sub_sequence(RandomAccessIter first, Sentinel last, BinaryOp cmp)
-{
-    if (first == last)
-        return 0;
-    if (first + 1 == last)
-        return 1;
-    std::vector<size_t> res(last - first, 1);
 
-    for (auto right = first; right != last; ++right)
+    struct insertion_sort_fn
     {
-        for (auto left = first; left != right; ++left)
+        // for simplifier, use random_access_iterator 
+        template <std::random_access_iterator I, std::sentinel_for<I> S, 
+                    typename Comp = std::ranges::less, typename Proj = std::identity>
+        requires std::sortable<I, Comp, Proj>
+        constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) const
         {
-            if (cmp(*right, *left))
+            if (first == last)
+                return first;
+
+            auto i = first + 1;
+            for (; i != last; ++i)
             {
-                const auto index_r = right - first;
-                const auto index_l = left - first;
-                res[index_r] = max(res[index_r], res[index_l] + 1);
+                auto j = i - 1;
+                // if arr[j] <= arr[i] continue
+                if (!std::invoke(comp, std::invoke(proj, *i), std::invoke(proj, *j))) continue;
+                else
+                {
+                    auto pos = std::ranges::upper_bound(first, i, *i, comp, proj);
+                    auto tmp = std::move(*i);
+                    std::ranges::move(pos, i, pos + 1);
+                    *pos = std::move(tmp);
+                } 
             }
+            return i;
         }
-    }
-    return *max_element(res.begin(), res.end());
-}
-#endif
 
-/*
-    https://leetcode-cn.com/problems/longest-increasing-subsequence/submissions/
-    https://www.acwing.com/problem/content/484/
-    longset_sub_sequence ascend -> cmp = less
-    longset_sub_sequence not_ascend -> cmp = less_equal
-    longset_sub_sequence descend -> cmp = greater
-    longset_sub_sequence not_descend -> cmp = greater_equal
-*/
-template <typename RandomAccessIter, typename Sentinel, typename BinaryOp>
-/* constexpr */ inline size_t 
-longest_sub_sequence(RandomAccessIter first, Sentinel last, BinaryOp cmp)
-{
-    if (first == last)
-        return 0;
-    if (first + 1 == last)
-        return 1;
-    
-    std::vector<typename std::iterator_traits<RandomAccessIter>::value_type> _stack{*first};
-    _stack.reserve((last - first) >> 1);
-    for (auto iter = first + 1; iter != last; ++iter)
-    {
-        if (cmp(_stack.back(), *iter))
+        template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity>
+        requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj>
+        constexpr std::ranges::borrowed_iterator_t<Range>
+        operator()(Range&& r, Comp comp = {}, Proj proj = {}) const
         {
-            _stack.emplace_back(*iter);
+            return (*this)(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj));
         }
-        else
-        {
-            *std::lower_bound(_stack.begin(), _stack.end(), *iter, cmp) = *iter;
-        }        
-    }
-    return _stack.size();
-}
+    };
+
+    inline constexpr insertion_sort_fn insert_sort{ };
 
 
 template <typename InIt, typename OutIt, typename T, typename F>
@@ -84,35 +63,6 @@ InIt split(InIt it, InIt end_it, OutIt out_it, T split_val, F bin_func)
 		it = next(slice_end);
 	}
 	return it;
-}
-
-
-template <typename BidirectionalIterator>
-constexpr auto find_most_frequently(BidirectionalIterator first, BidirectionalIterator last)
-{
-    // assert(std::is_sorted(first, last))
-    if (first == last)
-        throw std::runtime_error("Empty range is illegal");
-    BidirectionalIterator left = first;
-    BidirectionalIterator right = left;
-    auto value = *left;
-    typename std::iterator_traits<BidirectionalIterator>::difference_type max_dist = 0;
-    typename std::iterator_traits<BidirectionalIterator>::difference_type d;
-    while (left != last)
-    {
-        auto val = *left;
-        std::cout << val << '\n';
-        auto iter = left + 1;
-        for (d = 0; iter != last && *iter == val; ++iter, ++d);
-        // update
-        if (d > max_dist)
-        {
-            max_dist = d;
-            value = val;
-        }
-        left = iter;
-    }
-    return value;
 }
 
 
@@ -158,18 +108,6 @@ bool end_with_b(const std::string& s) {
 auto a_XXX_b = combine(std::logical_and<>{}, begin_with_a, end_with_b);
 std::cout << a_XXX_b("aaabbb") << std::endl;
 */
-
-template <typename... Ts>
-auto multicall(Ts... functions)
-{
-	return [=](auto x)
-	{
-		(void)std::initializer_list<int>
-		{
-			((void)functions(x), 0)...;
-		};
-	};
-}
 
 /*
 
