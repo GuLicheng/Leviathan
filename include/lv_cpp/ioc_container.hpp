@@ -71,25 +71,13 @@ public:
         
         std::function<BaseClass*(Args...)> fn = [](Args... args) { return new DerivedClass(args...); };
 
-        auto iter = std::ranges::find_if(m_container, [](const info& i)
-        {
-            return i.m_base_name == base_name && i.m_derived_name == derived_name;
-        });
-        if (iter == m_container.end()) 
-        {
-            m_container.emplace_back(info {
-                .m_base_name = base_name,
-                .m_derived_name = derived_name,
-                .m_ctor_or_instance = std::move(fn),
-                .m_id = info::type::Ctor
-            });    
-        }
-        else
-        {
-            // cover 
-            iter->m_ctor_or_instance = std::move(fn),
-            iter->m_id = info::type::Ctor;
-        }
+        m_container.emplace_back(info {
+            .m_base_name = base_name,
+            .m_derived_name = derived_name,
+            .m_ctor_or_instance = std::move(fn),
+            .m_id = info::type::Ctor
+        });    
+
     }
 
     template <typename ClassType = void, typename InstanceType, typename RealClassType = std::conditional_t<std::is_void_v<ClassType>, InstanceType, ClassType>>
@@ -100,21 +88,13 @@ public:
         constexpr std::string_view base_name = TypeInfo(RealClassType);
         constexpr std::string_view derived_name = TypeInfo(InstanceType);
 
-        auto iter = std::ranges::find_if(m_container, [](const info& i)
-        {
-            return i.m_base_name == base_name && i.m_derived_name == derived_name;
-        });
-        if (iter == m_container.end())
-            m_container.emplace_back(info {
-                .m_base_name = base_name,
-                .m_derived_name = derived_name,
-                .m_ctor_or_instance = static_cast<RealClassType*>(instance),
-                .m_id = info::type::Instance
-            }); 
-        else
-            // cover 
-            iter->m_ctor_or_instance = static_cast<RealClassType*>(instance); 
-            iter->m_id = info::type::Instance;
+        // Just add last
+        m_container.emplace_back(info {
+            .m_base_name = base_name,
+            .m_derived_name = derived_name,
+            .m_ctor_or_instance = static_cast<RealClassType*>(instance),
+            .m_id = info::type::Instance
+        }); 
     }
 
 
