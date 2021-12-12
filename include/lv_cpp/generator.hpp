@@ -247,8 +247,8 @@ namespace cppcoro
 		}
 	}
 
-	template<typename FUNC, typename T>
-	generator<std::invoke_result_t<FUNC&, typename generator<T>::iterator::reference>> fmap(FUNC func, generator<T> source)
+	template<typename F, typename T>
+	generator<std::invoke_result_t<F&, typename generator<T>::iterator::reference>> fmap(F func, generator<T> source)
 	{
 		for (auto&& value : source)
 		{
