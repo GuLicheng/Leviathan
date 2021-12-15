@@ -114,7 +114,7 @@ namespace leviathan
         }
 
         template <typename T>
-        constexpr static size_t min_run_length(T n) 
+        constexpr static T min_run_length(T n) 
         {
             T r = 0;      
             while (n >= MinSize) 
@@ -201,13 +201,13 @@ namespace leviathan
 
             // min length
             auto remaining = std::ranges::distance(iter, last);
-            const ssize_t min_run = min_run_length(remaining);
+            const auto min_run = min_run_length(remaining);
             do 
             {
                 auto next_iter = count_run_and_make_ascending(iter, last, std::ref(comp), std::ref(proj));
                 if (next_iter - iter < min_run)
                 {
-                    const ssize_t dist = last - iter;
+                    const auto dist = last - iter;
                     auto force = std::min(dist, min_run);
                     next_iter = insertion_sort(iter, iter + force, comp, proj);
                 }
