@@ -42,9 +42,11 @@ namespace leviathan::meta
     template <typename T>
     struct function_traits;
     /*
-        function x 3
+        function x 3 
         member_function x 12
+        total: (3 + 12)  x2(if necessary) 
         not support overload function
+        if you want support variadic paramsters such as `int printf(const char*, ...)` please add it's specialization
     */
 
     // int(*)(int, int)
@@ -62,6 +64,10 @@ namespace leviathan::meta
     struct function_traits<R(Args... ) noexcept(IsNoThrow)> 
         : detail::function_traits_impl<0, IsNoThrow, void, R, Args...> { };
 
+    // int printf(const char*, ...)
+    template <typename R, bool IsNoThrow, typename... Args>
+    struct function_traits<R(Args......) noexcept(IsNoThrow)> 
+        : detail::function_traits_impl<0, IsNoThrow, void, R, Args...> { };
 
     // no any cv_ref
     template <typename ClassType, typename R, bool IsNoThrow, typename... Args>
