@@ -176,11 +176,11 @@ namespace leviathan
         template <typename T>
         constexpr static void merge_force_collapse(std::vector<T>& runs)
         {
-            while (runs.size() > 2)
+            const int sz = static_cast<int>(runs.size());
+            if (sz > 2)
             {
-                const auto last = runs.size();
-                std::inplace_merge(runs[last - 3], runs[last - 2], runs[last - 1]);
-                runs.erase(runs.end() - 2);
+                for (int i = 1; i + 1 < sz; ++i)
+                    std::inplace_merge(runs[0], runs[i], runs[i + 1]);
             }
         }
     
