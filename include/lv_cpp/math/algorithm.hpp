@@ -176,11 +176,9 @@ namespace leviathan
         template <typename T>
         constexpr static void merge_force_collapse(std::vector<T>& runs)
         {
-            if (runs.size() == 2)
-                return;
             while (runs.size() > 2)
             {
-                int last = runs.size();
+                const auto last = runs.size();
                 std::inplace_merge(runs[last - 3], runs[last - 2], runs[last - 1]);
                 runs.erase(runs.end() - 2);
             }
@@ -198,9 +196,10 @@ namespace leviathan
 
             auto iter = first; // 
             std::vector stack{ iter };
+            stack.reserve(64);
 
             // min length
-            auto remaining = std::ranges::distance(iter, last);
+            const auto remaining = std::ranges::distance(iter, last);
             const auto min_run = min_run_length(remaining);
             do 
             {

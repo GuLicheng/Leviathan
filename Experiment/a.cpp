@@ -7,21 +7,29 @@
 #include <random>
 #include <lv_cpp/math/algorithm.hpp>
 #include <lv_cpp/meta/function_traits.hpp>
+#include <lv_cpp/utils/timer.hpp>
 #include <assert.h>
 
 
 auto rand_number = []() {
     static std::random_device rd;
-    return rd() % 100;
+    return rd();
 };
 
 int main()
 {
-    std::vector<int> vec{ 5, 4, 3, 2, 1, 6, 5, 3, 2, 1, 4, 6, 78, 3, 3, 123, 4, 2, 534 };
-    std::generate_n(std::back_inserter(vec), 100'000, rand_number);
-    // tim_sort_fn::count_run_and_make_ascending(vec.begin(), vec.end(), std::ranges::less(), std::identity());
-    leviathan::tim_sort(vec.begin(), vec.end());
-    assert(std::ranges::is_sorted(vec));
-    //std::ranges::copy(vec, std::ostream_iterator<int>{std::cout, " "});
+    std::vector<int> vec1;
+    std::generate_n(std::back_inserter(vec1), 100'00'00, rand_number);
+    std::vector<int> vec2 = vec1;
+    {
+        leviathan::timer _{"TimSort"};
+        leviathan::tim_sort(vec1);
+    }
+
+    {
+        leviathan::timer _{"STL Sort"};
+        std::ranges::sort(vec2);
+    }
+    assert(vec1 == vec2);
     std::cout << "OK\n";
 }

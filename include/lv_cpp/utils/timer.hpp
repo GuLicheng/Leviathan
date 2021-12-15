@@ -19,21 +19,22 @@ class timer {
     timer(timer &&) = delete;
 
 public:
-    timer() 
-    {
-        begin = std::chrono::high_resolution_clock::now();
-    }
+
+    timer(const char* msg) : msg{msg} { }
+
+    timer() = default;
+    
     ~timer() 
     {
-        end = std::chrono::high_resolution_clock::now();
-        duration = end - begin;
-        std::cout << duration.count() * 1000 << "ms" << std::endl;
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> duration = end - tp;
+        std::cout << msg << " :" << duration.count() * 1000 << "ms" << std::endl;
     }
 
 private:
-    std::chrono::duration<double> duration;
-    std::chrono::time_point<std::chrono::high_resolution_clock> begin, end;
-
+    const char* msg = "";
+    std::chrono::time_point<std::chrono::high_resolution_clock> tp 
+        = std::chrono::high_resolution_clock::now();
 };
 
 
