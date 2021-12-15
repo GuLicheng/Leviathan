@@ -116,7 +116,7 @@ namespace leviathan
         template <typename T>
         constexpr static size_t min_run_length(T n) 
         {
-            T r = 0;      // 如果n的低位有任何一位为1，r就会置1
+            T r = 0;      
             while (n >= MinSize) 
             {
                 r |= (n & 1);
