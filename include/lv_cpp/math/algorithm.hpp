@@ -251,8 +251,6 @@ namespace leviathan
     }
 
 
-
-
 /*
 
 template <typename T>
