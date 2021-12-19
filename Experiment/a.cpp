@@ -1,72 +1,66 @@
+#include <lv_cpp/meta/type_list.hpp>
 #include <iostream>
 #include <concepts>
-#include <type_traits>
 #include <string>
-#include <variant>
 #include <vector>
 #include <functional>
 #include <unordered_set>
-#include <lv_cpp/meta/type_list.hpp>
 #include <string_view>
 
-// name or flags (short or long name)
-// nargs 
-// const
-// default
-// type
-// choices
-// required
-// help
-
-/*
-
-*/
 
 //////////////////////////////////////////////////////
 // Some Helper
 //////////////////////////////////////////////////////
 template <typename Target>
-struct argument_cast_t;
+struct argument_cast_t;  // declration
 
-template <typename T>
-struct argument_choice_t
-{
-    argument_choice_t() = default;
-
-    template <typename Proj, typename... Ts>
-    void add_choices(Proj proj, Ts... ts)
-    {
-        (m_choices.emplace_back(static_cast<T>(std::invoke(proj, ts))), ...);
-    }
-
-    std::vector<T> m_choices;
-};
-
-template <>
-struct argument_cast_t<std::string>
+template <typename CharT, typename Traits, typename Alloc>
+struct argument_cast_t<std::basic_string<CharT, Traits, Alloc>>
 {
     template <typename I>
-    std::string operator()(I first, I last) const
+    std::basic_string<CharT, Traits, Alloc> operator()(I first, I last) const
     {
-        return std::string{first, last};
+        return std::basic_string<CharT, Traits, Alloc>{first, last};
     }
 
     template <typename R>
-    std::string operator()(R&& rg) const
+    std::basic_string<CharT, Traits, Alloc> operator()(R&& rg) const
     {
         return (*this)(std::begin(rg), std::end(rg));
     }
 };
 
-template <>
-struct argument_cast_t<int>
+template <std::signed_integral SignedInteger>
+struct argument_cast_t<SignedInteger>
 {
     template <typename R>
-    int operator()(R&& rg) const
+    SignedInteger operator()(R&& rg) const
     {
-        return std::stoi(rg);
+        return static_cast<SignedInteger>(std::stoll(rg));
     }
 };
+
+template <std::unsigned_integral UnsignedInteger>
+struct argument_cast_t<UnsignedInteger>
+{
+    template <typename R>
+    UnsignedInteger operator()(R&& rg) const
+    {
+        return static_cast<UnsignedInteger>(std::stoull(rg));
+    }
+};
+
+template <std::floating_point FloatingPoint>
+struct argument_cast_t<FloatingPoint>
+{
+    template <typename R>
+    FloatingPoint operator()(R&& rg) const
+    {
+        // return static_cast<FloatingPoint>(std::stold(rg)); long double ?
+        return static_cast<FloatingPoint>(std::stod(rg));
+    }
+};
+
 
 template <typename T, typename U>
 T argument_cast(U&& u)
@@ -86,13 +80,18 @@ struct parameter
     TParams Value;
 };
 
-struct longname : public parameter<std::string> { };
-struct shortname : public parameter<std::string> { };
-struct default_value : public parameter<std::string> { };
-struct help : public parameter<std::string> { };
-struct argc : public parameter<int> { };
-struct is_const : public parameter<bool> { };
-struct required : public parameter<bool> { };
+struct longname : parameter<std::string> { };  // --version 
+struct shortname : parameter<std::string> { };  // -v
+struct default_value : parameter<std::string> { };  // ...
+struct help : parameter<std::string> { };  // -v : version of...
+struct argc : parameter<int> { };  // -l pthread libstdc++ ...
+struct is_const : parameter<bool> { };  // for -v, it's unchangeable and must have default value
+struct required : parameter<bool> { };   // optional params
+struct choices : parameter<std::vector<std::string_view>> 
+{
+    using base = parameter<std::vector<std::string_view>>;
+    choices(std::vector<std::string_view> c) : base{ std::move(c) } { }
+};
 
 class argument_parser
 {
@@ -163,6 +162,7 @@ public:
         AssignArgToInfo(argc)
         AssignArgToInfo(is_const)
         AssignArgToInfo(required)
+        AssignArgToInfo(choices)
 
 #undef AssignArgToInfo
 
@@ -170,7 +170,6 @@ public:
         if (i.m_is_const && i.m_default_value.empty())
             throw std::invalid_argument("const attribute must have default value");
 
-        std::cout << i << '\n';
         m_args.emplace_back(std::move(i));
     }
 
@@ -200,6 +199,12 @@ public:
         return argument_cast<T>(iter->m_default_value);
     }
 
+    void display() const 
+    {
+        for (auto& i : m_args)
+            std::cout << i << '\n';
+    }
+
 private:
     std::vector<info> m_args;
     std::string m_prop_name;
@@ -210,10 +215,13 @@ int main(int argc, char const *argv[])
 {
     argument_parser parser;
     parser.add_argument(shortname("-v"), longname("--version"), is_const(true), default_value("0.0.0"));
-    parser.add_argument(longname("--epoch"), default_value("15"));
+    parser.add_argument(longname("--epoch"), default_value("15"), choices({"15", "30", "45"}));
     parser.add_argument(longname("--lr"), default_value("1e-5"));
     parser.parse_args(argc, argv);
     std::cout << parser.get<int>("--epoch") << '\n';
+    std::cout << parser.get<float>("--lr") << '\n';
+    std::cout << parser.get<std::string>("-v") << '\n';
+    parser.display();
     std::cout << "OK\n";
     return 0;
 }
