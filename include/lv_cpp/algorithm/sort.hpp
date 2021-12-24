@@ -80,8 +80,6 @@ namespace leviathan
 
     struct tim_sort_fn
     {
-    private:
-
         constexpr static int MinSize = 32;
 
         template <typename I, typename S, typename Comp, typename Proj>
@@ -110,6 +108,7 @@ namespace leviathan
                 do { ++left; ++right; } 
                 while (right != last && !std::invoke(comp, std::invoke(proj, *right), std::invoke(proj, *left)));
             }
+
             return right;
         }
 
@@ -125,8 +124,8 @@ namespace leviathan
             return n + r;
         }
 
-        template <typename T>
-        constexpr static void merge_collapse(std::vector<T>& runs)
+        template <typename T, typename Comp, typename Proj>
+        constexpr static void merge_collapse(std::vector<T>& runs, Comp comp, Proj proj)
         {
             while (runs.size() > 2)
             {
@@ -138,7 +137,7 @@ namespace leviathan
                     auto right = runs[2];
                     if (middle - left <= right - middle)
                     {
-                        std::inplace_merge(left, middle, right);
+                        std::ranges::inplace_merge(left, middle, right, comp, proj);
                         runs.erase(runs.begin() + 1); // remove middle
                     }
                     else 
@@ -160,12 +159,12 @@ namespace leviathan
                     {
                         if (Z < X) // merge first 2
                         {
-                            std::inplace_merge(iter1, iter2, iter3);
+                            std::ranges::inplace_merge(iter1, iter2, iter3, comp, proj);
                             runs.erase(last_pos - 3);
                         }
                         else // merge last 2
                         {
-                            std::inplace_merge(iter2, iter3, iter4);
+                            std::ranges::inplace_merge(iter2, iter3, iter4, comp, proj);
                             runs.erase(last_pos - 2);
                         }
                     }
@@ -173,14 +172,14 @@ namespace leviathan
             }
         }
 
-        template <typename T>
-        constexpr static void merge_force_collapse(std::vector<T>& runs)
+        template <typename T, typename Comp, typename Proj>
+        constexpr static void merge_force_collapse(std::vector<T>& runs, Comp comp, Proj proj)
         {
             const int sz = static_cast<int>(runs.size());
             if (sz > 2)
             {
                 for (int i = 1; i + 1 < sz; ++i)
-                    std::inplace_merge(runs[0], runs[i], runs[i + 1]);
+                    std::ranges::inplace_merge(runs[0], runs[i], runs[i + 1], comp, proj);
             }
         }
     
@@ -211,12 +210,12 @@ namespace leviathan
                     next_iter = insertion_sort(iter, iter + force, comp, proj);
                 }
                 stack.emplace_back(next_iter);
-                merge_collapse(stack);
+                merge_collapse(stack, comp, proj);
                 iter = next_iter;
 
             } while (iter != last);
 
-            merge_force_collapse(stack);
+            merge_force_collapse(stack, comp, proj);
 
             return iter;
         }

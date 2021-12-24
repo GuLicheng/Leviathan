@@ -26,7 +26,7 @@ int main(int argc, char const *argv[])
     assert(std::ranges::is_sorted(vec2));
 
     vec2 = vec1;
-    leviathan::tim_sort(vec2);
+    leviathan::tim_sort(vec2, std::ranges::greater());
     assert(std::ranges::is_sorted(vec2));
 
     std::cout << "OK\n";
