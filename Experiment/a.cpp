@@ -1,12 +1,13 @@
 #include <lv_cpp/meta/type_list.hpp>
+#include <lv_cpp/meta/template_info.hpp>
+#include <optional>
 #include <iostream>
-#include <concepts>
 #include <string>
 #include <vector>
 #include <functional>
 #include <unordered_set>
 #include <string_view>
-
+#include <regex>
 
 //////////////////////////////////////////////////////
 // Some Helper
@@ -63,14 +64,23 @@ struct argument_cast_t<FloatingPoint>
 
 
 template <typename T, typename U>
-T argument_cast(U&& u)
+std::optional<T> argument_cast(U&& u)
 {
-    return argument_cast_t<T>()((U&&) u);
+    try
+    {
+        return argument_cast_t<T>()((U&&) u);
+    }
+    catch(...)
+    {
+        return { };
+    }
 }
 
 template <typename TParams>
 struct parameter
 {
+    using base = parameter<TParams>;
+
     template <typename T>
     parameter(T&& t) : Value{(T&&)t} { }
 
@@ -80,18 +90,21 @@ struct parameter
     TParams Value;
 };
 
-struct longname : parameter<std::string> { };  // --version 
-struct shortname : parameter<std::string> { };  // -v
-struct default_value : parameter<std::string> { };  // ...
-struct help : parameter<std::string> { };  // -v : version of...
-struct argc : parameter<int> { };  // -l pthread libstdc++ ...
-struct is_const : parameter<bool> { };  // for -v, it's unchangeable and must have default value
-struct required : parameter<bool> { };   // optional params
-struct choices : parameter<std::vector<std::string_view>> 
+struct longname : parameter<std::string> 
 {
-    using base = parameter<std::vector<std::string_view>>;
-    choices(std::vector<std::string_view> c) : base{ std::move(c) } { }
-};
+    longname(std::string_view t) : base{t.substr(2, t.size() - 2)} { }
+};  // --version 
+
+struct shortname : parameter<std::string> 
+{
+    shortname(std::string_view t) : base{t.substr(1, t.size() -1)} { }
+};  // -v
+
+struct default_value : parameter<std::string> { using base::base; };  // ...
+struct help : parameter<std::string> { using base::base; };  // -v : version of...
+struct argc : parameter<int> { using base::base; };  // -l pthread libstdc++ ...
+struct is_const : parameter<bool> { using base::base; };  // for -v, it's unchangeable and must have default value
+struct required : parameter<bool> { using base::base; };   // optional params
 
 class argument_parser
 {
@@ -106,12 +119,11 @@ public:
         int m_argc = 1;
         bool m_is_const = false;
         bool m_required = false;
-        std::vector<std::string_view> m_choices;
 
         friend std::ostream& operator<<(std::ostream& os, const info& i)
         {
-            os << "m_longname = " << i.m_longname << " m_shortname = " << i.m_shortname 
-                << " help = " << i.m_help << " nargc = " << i.m_argc << " const ?: " << i.m_is_const
+            os << "LongName = [" << i.m_longname << "] ShortName =[" << i.m_shortname 
+                << "] help = " << i.m_help << " nargc = " << i.m_argc << " const ?: " << i.m_is_const
                 << " required ?: " << i.m_required << " value = " << i.m_default_value;
             return os;
         }
@@ -162,7 +174,6 @@ public:
         AssignArgToInfo(argc)
         AssignArgToInfo(is_const)
         AssignArgToInfo(required)
-        AssignArgToInfo(choices)
 
 #undef AssignArgToInfo
 
@@ -183,7 +194,7 @@ public:
     }
 
     template <typename T>
-    T get(const std::string& name) 
+    std::optional<T> get(const std::string& name)
     {
         auto iter = std::find_if(m_args.begin(), m_args.end(), [&](const info& i)
         {
@@ -191,12 +202,26 @@ public:
         });
         if (iter == m_args.end())
         {
-            std::string msg = "This is no key: ";
-            msg += name;
-            msg += " in Namespace";
-            throw std::invalid_argument(std::move(msg));
+            return { };
         }
         return argument_cast<T>(iter->m_default_value);
+    }
+
+    template <typename T, typename F>
+    std::optional<T> get(const std::string& name, F f)
+    {
+        auto iter = std::find_if(m_args.begin(), m_args.end(), [&](const info& i)
+        {
+            return i.m_longname == name || i.m_shortname == name;
+        });
+        if (iter == m_args.end())
+        {
+            return { };
+        }
+        auto ret = argument_cast<T>(iter->m_default_value);
+        if (ret && f(*ret))
+            return ret;
+        return { };
     }
 
     void display() const 
@@ -206,6 +231,9 @@ public:
     }
 
 private:
+
+    inline static const std::regex Pattern{ "-*(.*)=(.*)" };
+
     std::vector<info> m_args;
     std::string m_prop_name;
     std::unordered_set<std::string> m_names;
@@ -215,13 +243,13 @@ int main(int argc, char const *argv[])
 {
     argument_parser parser;
     parser.add_argument(shortname("-v"), longname("--version"), is_const(true), default_value("0.0.0"));
-    parser.add_argument(longname("--epoch"), default_value("15"), choices({"15", "30", "45"}));
-    parser.add_argument(longname("--lr"), default_value("1e-5"));
+    parser.add_argument(longname("--epoch"), default_value("15"), help("epoch num of your training"));
+    parser.add_argument(longname(std::string("--lr")), default_value("2e-5"));
     parser.parse_args(argc, argv);
-    std::cout << parser.get<int>("--epoch") << '\n';
-    std::cout << parser.get<float>("--lr") << '\n';
-    std::cout << parser.get<std::string>("-v") << '\n';
     parser.display();
+    std::cout << *parser.get<int>("epoch", [](int x) { return x < 100; }) << '\n';
+    std::cout << *parser.get<float>("lr") << '\n';
+    std::cout << *parser.get<std::string>("v") << '\n';
     std::cout << "OK\n";
     return 0;
 }

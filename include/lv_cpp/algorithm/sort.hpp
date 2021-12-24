@@ -9,7 +9,6 @@ namespace leviathan
 {
 
     // Proj and pass by value, std::move will make algorithm very slowly
-
     struct insertion_sort_fn
     {
         // for simplifier, use random_access_iterator 
@@ -29,7 +28,8 @@ namespace leviathan
                 if (!std::invoke(comp, std::invoke(proj, *i), std::invoke(proj, *j))) continue;
                 else
                 {
-                    auto pos = std::ranges::upper_bound(first, i, *i, std::ref(comp), std::ref(proj));
+                    // auto pos = std::ranges::upper_bound(first, i, *i, std::ref(comp), std::ref(proj));
+                    auto pos = std::ranges::upper_bound(first, i, *i, comp, proj);
                     auto tmp = std::move(*i);
                     std::ranges::move(pos, i, pos + 1);
                     *pos = std::move(tmp);
@@ -60,9 +60,9 @@ namespace leviathan
             if (last - first > 1)
             {
                 auto middle = first + (last - first) / 2;
-                (*this)(first, middle, std::ref(comp), std::ref(proj));
-                (*this)(middle, last, std::ref(comp), std::ref(proj));
-                std::ranges::inplace_merge(first, middle, last, std::ref(comp), std::ref(proj));
+                (*this)(first, middle, comp, proj);
+                (*this)(middle, last, comp, proj);
+                std::ranges::inplace_merge(first, middle, last, comp, proj);
             }
             return first;
         }
@@ -203,7 +203,7 @@ namespace leviathan
             const auto min_run = min_run_length(remaining);
             do 
             {
-                auto next_iter = count_run_and_make_ascending(iter, last, std::ref(comp), std::ref(proj));
+                auto next_iter = count_run_and_make_ascending(iter, last, comp, proj);
                 if (next_iter - iter < min_run)
                 {
                     const auto dist = last - iter;
@@ -232,24 +232,6 @@ namespace leviathan
     };
 
     inline constexpr tim_sort_fn tim_sort{ };
-
-    template <typename InIt, typename OutIt, typename T, typename F>
-    InIt split(InIt it, InIt end_it, OutIt out_it, T split_val, F bin_func) 
-    {
-        using namespace std;
-        while (it != end_it) 
-        {
-            auto slice_end(find(it, end_it, split_val));
-            *out_it++ = bin_func(it, slice_end);
-            if (slice_end == end_it) 
-            {
-                return end_it;
-            }
-            it = next(slice_end);
-        }
-        return it;
-    }
-
 
 /*
 
