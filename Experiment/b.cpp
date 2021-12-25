@@ -12,6 +12,7 @@ auto random = []() {
     return rd() % 1000'0000;
 };
 
+
 int main(int argc, char const *argv[])
 {
     std::vector<int> vec1, vec2;
