@@ -60,6 +60,15 @@ namespace leviathan::sort
         return first;
     }
 
+    template <typename I, typename S, typename Comp = std::less<>>
+    constexpr I heap_sort(I first, S last, Comp comp = {})
+    {
+        std::make_heap(first, last, comp);
+        while (first != last)
+            std::pop_heap(first, last--, comp);
+        return first;
+    }
+
     // for TimSort
     namespace detail
     {
@@ -134,7 +143,7 @@ namespace leviathan::sort
                     auto iter1 = *(last_pos - 4);
                     const auto Z = std::distance(iter1, iter2);
                     const auto Y = std::distance(iter2, iter3);
-                    const auto X = std::distance(iter3, iter4);
+                    const auto X = std::distance(iter3, iter4); // stack top
                     if (X + Y < Z && X < Y)
                         break;
                     else
@@ -157,12 +166,9 @@ namespace leviathan::sort
         template <typename T, typename Comp>
         constexpr void merge_force_collapse(std::vector<T>& runs, Comp comp)
         {
-            const int sz = static_cast<int>(runs.size()) - 1;
-            if (sz > 2)
-            {
-                for (int i = 1; i < sz; ++i)
-                    std::inplace_merge(runs[0], runs[i], runs[i + 1], comp);
-            }
+            const int sz = static_cast<int>(runs.size());
+            for (int i = sz - 2; i >= 1; --i)
+                std::inplace_merge(runs[i - 1], runs[i], runs[sz - 1], comp);
         }
 
     }
@@ -206,70 +212,36 @@ namespace leviathan::sort
 namespace leviathan
 {
 
-    struct insertion_sort_fn
-    {
-        // for simplifier, use random_access_iterator
-        template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity>
-        requires std::sortable<I, Comp, Proj>
-        constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) const
-        {
-            return sort::insertion_sort(std::move(first), std::move(last), sort::make_comp_proj(comp, proj));
-        }
+#define RegisterSortAlgorithm(name) \
+    struct name##_fn {  \
+        template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity> \
+        requires std::sortable<I, Comp, Proj> \
+        constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) const \
+        { return sort:: name (std::move(first), std::move(last), sort::make_comp_proj(comp, proj)); }            \
+        template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity> \
+        requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj> \
+        constexpr std::ranges::borrowed_iterator_t<Range> \
+        operator()(Range &&r, Comp comp = {}, Proj proj = {}) const \
+        { return (*this)(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj)); } \
+    } ; \  
+    inline constexpr name##_fn name{}
 
-        template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity>
-        requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj>
-        constexpr std::ranges::borrowed_iterator_t<Range>
-        operator()(Range &&r, Comp comp = {}, Proj proj = {}) const
-        {
-            return (*this)(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj));
-        }
-    };
 
-    inline constexpr insertion_sort_fn insertion_sort{};
+    RegisterSortAlgorithm(insertion_sort);
 
-    struct merge_sort_fn
-    {
-        template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity>
-        requires std::sortable<I, Comp, Proj>
-        constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) const
-        {
-            return sort::merge_sort(std::move(first), std::move(last), sort::make_comp_proj(comp, proj));
-        }
-
-        template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity>
-        requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj>
-        constexpr std::ranges::borrowed_iterator_t<Range> operator()(Range &&r, Comp comp = {}, Proj proj = {}) const
-        {
-            return (*this)(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj));
-        }
-    };
-
-    inline constexpr merge_sort_fn merge_sort{};
+    RegisterSortAlgorithm(merge_sort);
 
     // http://cr.openjdk.java.net/~martin/webrevs/jdk7/timsort/raw_files/new/src/share/classes/java/util/TimSort.java
-    struct tim_sort_fn
-    {
-        
-        template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity>
-        requires std::sortable<I, Comp, Proj>
-        constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) const
-        {
-            return sort::tim_sort(std::move(first), std::move(last), sort::make_comp_proj(comp, proj));
-        }
+    RegisterSortAlgorithm(tim_sort);
 
-        template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity>
-        requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj>
-        constexpr std::ranges::borrowed_iterator_t<Range>
-        operator()(Range &&r, Comp comp = {}, Proj proj = {}) const
-        {
-            return (*this)(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj));
-        }
-    };
+    RegisterSortAlgorithm(heap_sort);
 
-    inline constexpr tim_sort_fn tim_sort{};
+
+#undef RegisterSortAlgorithm
 
     // std::sort -> introsort
     // Musser, D.: Introspective sorting and selection algorithms. Software Practice and Experience 27, 983–993 (1997)
+    // http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.14.5196&rep=rep1&type=pdf
 
     /*
 
