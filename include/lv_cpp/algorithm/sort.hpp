@@ -5,7 +5,7 @@
 #include <vector>       // buffer for some algorithms
 #include <functional>   // std::invoke, std::less<>
 #include <concepts>     // some concepts such as std::sortable and std::random_access_iterator
-
+#include <new>
 
 namespace leviathan::sort
 {
@@ -195,6 +195,36 @@ namespace leviathan::sort
     // for pqdsort
     namespace detail
     {
+
+    #ifdef __cpp_lib_hardware_interference_size
+        using std::hardware_constructive_interference_size;
+        using std::hardware_destructive_interference_size;
+    #else
+        // 64 bytes on x86-64 │ L1_CACHE_BYTES │ L1_CACHE_SHIFT │ __cacheline_aligned │ ...
+        // https://en.cppreference.com/w/cpp/thread/hardware_destructive_interference_size
+        constexpr std::size_t hardware_constructive_interference_size = 64;
+        constexpr std::size_t hardware_destructive_interference_size = 64;
+    #endif
+
+        inline constexpr int CacheLineSize = hardware_constructive_interference_size;
+        inline constexpr int InsertionSortThreshold = 24;
+        inline constexpr int BlockSize = 64;
+
+        template <typename Pointer>
+        constexpr bool is_cache_aligned(Pointer* ptr) 
+        {
+            return static_cast<std::uintptr_t>(ptr) % CacheLineSize;
+        }
+
+        template <typename I, typename Comp>
+        constexpr void median_three(I first, I middle, I last, Comp comp)
+        {
+            // [first, middle, last]
+            // keep first < middle < last
+            if (comp(*middle, *first)) std::iter_swap(first, middle);
+            if (comp(*last, *first)) std::iter_swap(first, last);
+            if (comp(*last, *middle)) std::iter_swap(middle, last);
+        }
     }
 
 
@@ -225,7 +255,7 @@ namespace leviathan
         template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity> \
         requires std::sortable<I, Comp, Proj> \
         constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) const \
-        { return sort:: name (std::move(first), std::move(last), sort::make_comp_proj(comp, proj)); }            \
+        { return sort:: name (std::move(first), std::move(last), make_comp_proj(comp, proj)); }            \
         template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity> \
         requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj> \
         constexpr std::ranges::borrowed_iterator_t<Range> \
