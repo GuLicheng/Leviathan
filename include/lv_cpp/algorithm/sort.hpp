@@ -1,28 +1,14 @@
 #ifndef __ALGORITHM_HPP__
 #define __ALGORITHM_HPP__
 
-#include <algorithm>    // some base algorithm
-#include <vector>       // buffer for some algorithm
-#include <functional>   // std::invoke
-#include <concepts>     // some concepts such as sortable and random_access_iterator
+#include <algorithm>    // some base algorithms
+#include <vector>       // buffer for some algorithms
+#include <functional>   // std::invoke, std::less<>
+#include <concepts>     // some concepts such as std::sortable and std::random_access_iterator
 
 
 namespace leviathan::sort
 {
-    // Copy from stl_algo.h
-    template <typename Comp, typename Proj>
-    constexpr auto make_comp_proj(Comp& comp, Proj& proj)
-    {
-        return [&](auto&& lhs, auto&& rhs) -> bool
-        {
-            using _TL = decltype(lhs);
-            using _TR = decltype(rhs);
-            return std::invoke(comp,
-                                 std::invoke(proj, std::forward<_TL>(lhs)),
-                                 std::invoke(proj, std::forward<_TR>(rhs)));
-        };
-    }
-
 
     template <typename I, typename S,  typename Comp = std::less<>>
     constexpr I insertion_sort(I first, S last, Comp comp = {}) 
@@ -179,9 +165,9 @@ namespace leviathan::sort
         if (last - first < detail::MinSize)
             return insertion_sort(std::move(first), std::move(last), std::move(comp));
 
-        auto iter = first; // 
+        auto iter = first; 
         std::vector stack{ iter };
-        stack.reserve(64);
+        stack.reserve(64);  // dynamic buffer, avoid overflow
 
         // min length
         const auto remaining = std::distance(iter, last);
@@ -206,11 +192,33 @@ namespace leviathan::sort
         return iter;
     }
 
+    // for pqdsort
+    namespace detail
+    {
+    }
+
+
 }
 
 
 namespace leviathan
 {
+
+    // Copy from stl_algo.h
+    template <typename Comp, typename Proj>
+    constexpr auto make_comp_proj(Comp& comp, Proj& proj)
+    {
+        return [&](auto&& lhs, auto&& rhs) -> bool
+        {
+            using _TL = decltype(lhs);
+            using _TR = decltype(rhs);
+            return std::invoke(comp,
+                                 std::invoke(proj, std::forward<_TL>(lhs)),
+                                 std::invoke(proj, std::forward<_TR>(rhs)));
+        };
+    }
+
+
 
 #define RegisterSortAlgorithm(name) \
     struct name##_fn {  \
@@ -243,49 +251,40 @@ namespace leviathan
     // Musser, D.: Introspective sorting and selection algorithms. Software Practice and Experience 27, 983–993 (1997)
     // http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.14.5196&rep=rep1&type=pdf
 
-    /*
-
-    template <typename T>
-    auto map(T fn) {
-        return [=](auto reduce_fn) {
-            return [=] (auto accum, auto input) {
-                return reduce_fn(accum, fn(input));
-            };
-        };
-    }
-
-    template <typename T>
-    auto filter(T predicate) {
-        return [=](auto reduce_fn) {
-            return [=](auto accume, auto input) {
-                if (predicate(input)) {
-                    return reduce_fn(accume, input);
-                } else {
-                    return accume;
-                }
-            };
-        };
-    }
-
-
-        std::istream_iterator<int> it{ std::cin };
-        std::istream_iterator<int> end_it;
-        auto even = [](int x) { return ~x & 1; };
-        auto twice = [](int x) { return x << 1; };
-        auto copy_and_advance = [](auto iter, auto input) {
-            *iter = input;
-            return ++iter;
-        };
-        // very ugly
-        std::accumulate(it, end_it, std::ostream_iterator<int>{ std::cout, ", " },
-            filter(even) (
-                map(twice) (
-                    copy_and_advance
-                )
-            ));
-        std::cout << std::endl;
-    */
-
 } // namespace leviathan
 
 #endif
+
+
+/*
+https://www.acwing.com/problem/content/description/787/
+
+Code Template:
+
+#pragma GCC optimize ("O3")
+
+#include <iostream>
+#include <functional>
+#include <algorithm>
+#include <vector>
+#include <iterator>
+
+type your sort functions here
+
+int main()
+{
+    using namespace leviathan::sort;
+    std::ios::sync_with_stdio(false);
+    std::vector<int> v;
+    int n; std::cin >> n;
+    v.reserve(n);
+    std::copy(std::istream_iterator<int>{std::cin}, std::istream_iterator<int>{}, std::back_inserter(v));
+
+    // your sort algorithm
+    heap_sort(v.begin(), v.end());  
+    
+    std::copy(v.begin(), v.end(), std::ostream_iterator<int>{std::cout, " "});
+    std::endl(std::cout);
+    return 0;
+}
+*/
