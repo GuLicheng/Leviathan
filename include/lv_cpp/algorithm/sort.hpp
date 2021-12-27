@@ -76,19 +76,19 @@ namespace leviathan::sort
             if (comp(*right, *left))
             {
                 // (first > last  <=>  last < first ) ++ and reverse
-                do { ++left; ++right; } 
-                while (right != last && comp(*right, *left));
+                do { ++right; } 
+                while (right != last && comp(*right, *(right - 1)));
                 std::reverse(first, right);
             }
             else
             {
                 // while first <= last ++
-                do { ++left; ++right; } 
-                while (right != last && !comp(*right, *left));
+                do { ++right; } 
+                while (right != last && !comp(*right, *(right - 1)));
             }
             return right;
         }
-
+        
         template <typename T>
         constexpr T min_run_length(T n) 
         {
