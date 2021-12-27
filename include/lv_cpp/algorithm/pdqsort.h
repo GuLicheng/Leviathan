@@ -1,3 +1,4 @@
+#pragma once
 /*
     pdqsort.h - Pattern-defeating quicksort.
     Copyright (c) 2015 Orson Peters
@@ -12,8 +13,6 @@
        being the original software.
     3. This notice may not be removed or altered from any source distribution.
 */
-#ifndef PDQSORT_H
-#define PDQSORT_H
 #include <algorithm>
 #include <cstddef>
 #include <functional>
@@ -449,9 +448,20 @@ inline void pdqsort_branchless(Iter begin, Iter end) {
 }
 
 
+struct pdqsort_fn
+{
+    template<class Iter, class Compare>
+    inline void operator()(Iter begin, Iter end, Compare comp) {
+        return pdqsort(begin, end, comp);
+    }
+};
 
-
-
+struct pdqsort_branchless_fn
+{
+    template<class Iter, class Compare>
+    auto operator()(Iter begin, Iter end, Compare comp) {
+        return pdqsort_branchless(begin, end, std::less<>());
+    }
+};
 
 #undef PDQSORT_PREFER_MOVE
-#endif
