@@ -36,7 +36,7 @@ struct SortInfo
     }
 };
 
-std::ofstream stream;
+std::ostream& stream = std::cout;
 
 struct RandomRange
 {
@@ -154,9 +154,7 @@ struct SortAlgorithmSet
 
 int main(int argc, const char* argv[])
 {
-    if (argc != 2)
-        std::terminate();
-    stream.open(argv[0], std::ios::binary | std::ios::out);
+
     SortAlgorithmSet s{
         std::ranges::sort, 
         std::ranges::stable_sort,
@@ -164,7 +162,8 @@ int main(int argc, const char* argv[])
         gfx::timsort_fn{},
         PDQSort_fn{},
         PDQSortBranchless_fn{},
-        leviathan::quick_sort
+        leviathan::quick_sort,
+        leviathan::intro_sort
     };
     s.TestRandomInt()
     .TestAllEqualZero()

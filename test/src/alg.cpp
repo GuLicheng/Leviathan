@@ -36,7 +36,7 @@ void test(Sort s, const std::vector<int>& vec, std::string_view name)
     {
         return left.first == right.first && left.second > right.second;
     });
-    std::cout << name << " Is stable sort? " << std::boolalpha << (iter == vec3.end()) << '\n';    
+    std::cout << name << " is stable sort? " << std::boolalpha << (iter == vec3.end()) << '\n';    
 }
 
 int main(int argc, char const *argv[])
@@ -44,10 +44,12 @@ int main(int argc, char const *argv[])
     std::vector<int> vec;
     std::generate_n(std::back_inserter(vec), 100'000, random);
 
-    test(leviathan::insertion_sort, vec, "insertion_sort");
-    test(leviathan::merge_sort, vec, "merge_sort");
-    test(leviathan::heap_sort, vec, "heap_sort");
-    test(leviathan::tim_sort, vec, "tim_sort");
+    test(leviathan::insertion_sort, vec, "insertion sort");
+    test(leviathan::merge_sort, vec, "merge sort");
+    test(leviathan::heap_sort, vec, "heap sort");
+    test(leviathan::tim_sort, vec, "tim sort");
+    test(leviathan::quick_sort, vec, "quick sort");
+    test(leviathan::intro_sort, vec, "intro sort");
 
     std::cout << "OK\n";
     return 0;
