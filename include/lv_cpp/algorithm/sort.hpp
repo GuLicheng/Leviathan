@@ -61,11 +61,11 @@ namespace leviathan::sort
 
         auto i = first - 1, j = last;
         const auto offset = (std::distance(first, last) - 1) >> 1;
-        auto x = *(first + offset);
+        const auto x = first + offset;
         while (i < j) 
         {
-            while (comp(*(++i), x));
-            while (comp(x, *(--j)));
+            while (comp(*(++i), *x));
+            while (comp(*x, *(--j)));
             if (i < j) std::swap(*i, *j);
         }
         quick_sort(first, j + 1, comp);
