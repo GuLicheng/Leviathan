@@ -55,6 +55,25 @@ namespace leviathan::sort
         return first;
     }
 
+    template <typename I, typename S, typename Comp = std::less<>>
+    constexpr I quick_sort(I first, S last, Comp comp = {})
+    {
+        if (first == last || first + 1 == last) return first;
+
+        auto i = first - 1, j = last;
+        const auto offset = (std::distance(first, last) - 1) >> 1;
+        auto x = *(first + offset);
+        while (i < j) 
+        {
+            while (comp(*(++i), x));
+            while (comp(x, *(--j)));
+            if (i < j) std::swap(*i, *j);
+        }
+        quick_sort(first, j + 1, comp);
+        quick_sort(j + 1, last, comp);
+        return last;
+    }
+
     // for TimSort
     namespace detail
     {
@@ -264,7 +283,7 @@ namespace leviathan
     } ; \  
     inline constexpr name##_fn name{}
 
-
+    // binary insertion sort
     RegisterSortAlgorithm(insertion_sort);
 
     RegisterSortAlgorithm(merge_sort);
@@ -274,6 +293,7 @@ namespace leviathan
 
     RegisterSortAlgorithm(heap_sort);
 
+    RegisterSortAlgorithm(quick_sort);
 
 #undef RegisterSortAlgorithm
 

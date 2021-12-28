@@ -448,7 +448,7 @@ inline void pdqsort_branchless(Iter begin, Iter end) {
 }
 
 
-struct pdqsort_fn
+struct PDQSort_fn
 {
     template<class Iter, class Compare>
     inline void operator()(Iter begin, Iter end, Compare comp) {
@@ -456,7 +456,7 @@ struct pdqsort_fn
     }
 };
 
-struct pdqsort_branchless_fn
+struct PDQSortBranchless_fn
 {
     template<class Iter, class Compare>
     auto operator()(Iter begin, Iter end, Compare comp) {

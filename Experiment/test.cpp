@@ -7,7 +7,7 @@
 #include <ranges>
 #include <assert.h>
 #include <string>
-
+#include <fstream>
 #include <lv_cpp/meta/template_info.hpp>
 #include <lv_cpp/algorithm/pdqsort.h>
 #include <lv_cpp/algorithm/sort.hpp>
@@ -18,15 +18,25 @@ struct SortInfo
     std::string_view m_sort_name;
     double m_cost_time;
 
+    std::string_view ExtraceSortName() const
+    {
+        auto idx1 = m_sort_name.find_last_of(":");
+        idx1++;
+        auto idx2 = m_sort_name.find_last_of("_fn");
+        return m_sort_name.substr(idx1, idx2 - idx1 - 2);
+    }
+
     friend std::ostream& operator<<(std::ostream& os, const SortInfo& self)
     {
         std::string info;
+        info += self.ExtraceSortName();
+        info += "=";
         info += std::to_string(self.m_cost_time);
-        info += ' ';
-        info += self.m_sort_name;
         return os << info << '\n';
     }
 };
+
+std::ofstream stream;
 
 struct RandomRange
 {
@@ -37,8 +47,8 @@ struct RandomRange
 
     static void PrintVec(const std::vector<int>& v)
     {
-        for (auto i : v) std::cout << i << ' ';
-        std::cout << '\n';
+        for (auto i : v) stream << i << ' ';
+        stream << '\n';
     }
 
     std::vector<int> RandomRangeInt()
@@ -71,14 +81,6 @@ struct RandomRange
         return ret;
     }
 
-    std::vector<int> RandomPipeOrganInt()
-    {
-        auto ret = RandomRangeInt();
-        auto iter = ret.begin() + ret.size() / 2;
-        std::copy(ret.begin(), iter, ret.rbegin());
-        return ret;
-    }
-
 };
 
 struct Recorder
@@ -108,10 +110,10 @@ struct SortAlgorithmSet
     {
         std::vector<SortInfo> vec;
         auto data = rg.RandomRangeInt();
-        std::cout << "=========================Random Int=========================\n";
+        stream << "[Random Int]\n";
         (vec.push_back(Recorder::TestSort(Sorters{}, data, TypeInfo(Sorters))), ...);
-        std::copy(vec.begin(), vec.end(), std::ostream_iterator<SortInfo>{std::cout});
-        std::cout << "=============================================================\n";
+        std::copy(vec.begin(), vec.end(), std::ostream_iterator<SortInfo>{stream});
+        stream << "\n";
         return *this;
     }
 
@@ -119,10 +121,10 @@ struct SortAlgorithmSet
     {
         std::vector<SortInfo> vec;
         auto data = rg.RandomAscending();
-        std::cout << "====================Random Ascending=========================\n";
+        stream << "[Random Ascending]\n";
         (vec.push_back(Recorder::TestSort(Sorters{}, data, TypeInfo(Sorters))), ...);
-        std::copy(vec.begin(), vec.end(), std::ostream_iterator<SortInfo>{std::cout});
-        std::cout << "=============================================================\n";
+        std::copy(vec.begin(), vec.end(), std::ostream_iterator<SortInfo>{stream});
+        stream << "\n";
         return *this;
     }
 
@@ -130,21 +132,10 @@ struct SortAlgorithmSet
     {
         std::vector<SortInfo> vec;
         auto data = rg.RandomDescending();
-        std::cout << "====================Random Descending=========================\n";
+        stream << "[Random Descending]\n";
         (vec.push_back(Recorder::TestSort(Sorters{}, data, TypeInfo(Sorters))), ...);
-        std::copy(vec.begin(), vec.end(), std::ostream_iterator<SortInfo>{std::cout});
-        std::cout << "=============================================================\n";
-        return *this;
-    }
-
-    SortAlgorithmSet& TestRandomPipeOrganInt()
-    {
-        std::vector<SortInfo> vec;
-        auto data = rg.RandomPipeOrganInt();
-        std::cout << "====================RandomPipeOrganInt=========================\n";
-        (vec.push_back(Recorder::TestSort(Sorters{}, data, TypeInfo(Sorters))), ...);
-        std::copy(vec.begin(), vec.end(), std::ostream_iterator<SortInfo>{std::cout});
-        std::cout << "=============================================================\n";
+        std::copy(vec.begin(), vec.end(), std::ostream_iterator<SortInfo>{stream});
+        stream << "\n";
         return *this;
     }
 
@@ -152,28 +143,31 @@ struct SortAlgorithmSet
     {
         std::vector<SortInfo> vec;
         auto data = rg.AllEqualZero();
-        std::cout << "====================AllEqualZero=========================\n";
+        stream << "[AllEqualZero]\n";
         (vec.push_back(Recorder::TestSort(Sorters{}, data, TypeInfo(Sorters))), ...);
-        std::copy(vec.begin(), vec.end(), std::ostream_iterator<SortInfo>{std::cout});
-        std::cout << "=============================================================\n";
+        std::copy(vec.begin(), vec.end(), std::ostream_iterator<SortInfo>{stream});
+        stream << "\n";
         return *this;
     }
 
 };
 
-int main()
+int main(int argc, const char* argv[])
 {
+    if (argc != 2)
+        std::terminate();
+    stream.open(argv[0], std::ios::binary | std::ios::out);
     SortAlgorithmSet s{
         std::ranges::sort, 
         std::ranges::stable_sort,
         leviathan::tim_sort_fn{},
         gfx::timsort_fn{},
-        pdqsort_fn{},
-        pdqsort_branchless_fn{}
+        PDQSort_fn{},
+        PDQSortBranchless_fn{},
+        leviathan::quick_sort
     };
     s.TestRandomInt()
     .TestAllEqualZero()
-    .TestRandomPipeOrganInt()
     .TestRandomDescending()
     .TestRandomAscending();
     return 0;
