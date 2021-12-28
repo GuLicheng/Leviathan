@@ -102,7 +102,7 @@ struct Recorder
 template <typename... Sorters>
 struct SortAlgorithmSet
 {
-    SortAlgorithmSet(Sorters...) { } // just for deduce type
+    SortAlgorithmSet(Sorters...) { } // just for deducing type
 
     inline static RandomRange rg{ .m_num = (int)1e6, .m_max = 100 };
 
