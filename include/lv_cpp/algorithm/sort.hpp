@@ -387,11 +387,12 @@ namespace leviathan
 
     RegisterSortAlgorithm(quick_sort);
 
+    // https://en.wikipedia.org/wiki/Introsort
     RegisterSortAlgorithm(intro_sort);
 
 #undef RegisterSortAlgorithm
 
-    // std::sort -> introsort
+    // std::sort -> not strict introsort
     // Musser, D.: Introspective sorting and selection algorithms. Software Practice and Experience 27, 983–993 (1997)
     // http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.14.5196&rep=rep1&type=pdf
 
