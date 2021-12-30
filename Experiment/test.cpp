@@ -92,6 +92,7 @@ struct Recorder
         sort_fn(v.data(), v.data() + v.size(), std::less<>{});
         auto tp2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> cost = tp2 - tp1;
+        assert(std::is_sorted(v.begin(), v.end()));
         return SortInfo{
             .m_sort_name = sort_name,
             .m_cost_time = cost.count() * 1000 // ms
@@ -104,7 +105,7 @@ struct SortAlgorithmSet
 {
     SortAlgorithmSet(Sorters...) { } // just for deducing type
 
-    inline static RandomRange rg{ .m_num = (int)1e6, .m_max = 100 };
+    inline static RandomRange rg{ .m_num = (int)2e6, .m_max = 100 };
 
     SortAlgorithmSet& TestRandomInt()
     {
@@ -152,22 +153,24 @@ struct SortAlgorithmSet
 
 };
 
+
 int main(int argc, const char* argv[])
 {
 
     SortAlgorithmSet s{
         std::ranges::sort, 
         std::ranges::stable_sort,
-        leviathan::tim_sort_fn{},
-        gfx::timsort_fn{},
-        PDQSort_fn{},
-        PDQSortBranchless_fn{},
+        // leviathan::tim_sort_fn{},
+        // gfx::timsort_fn{},
+        // PDQSort_fn{},
+        // PDQSortBranchless_fn{},
         leviathan::quick_sort,
         leviathan::intro_sort
     };
     s.TestRandomInt()
-    .TestAllEqualZero()
-    .TestRandomDescending()
-    .TestRandomAscending();
+    // .TestAllEqualZero()
+    // .TestRandomDescending()
+    // .TestRandomAscending()
+    ;
     return 0;
 }

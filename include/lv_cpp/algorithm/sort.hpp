@@ -12,8 +12,10 @@
 namespace leviathan::sort
 {
 
-    template <typename I, typename S,  typename Comp = std::less<>>
-    constexpr void insertion_sort(I first, S last, Comp comp = {}) 
+    /*----------------------------Some basic sort algorithms------------------------------------*/
+
+    template <typename I, typename Comp = std::less<>>
+    constexpr void insertion_sort(I first, I last, Comp comp = {}) 
     {
         if (first == last)
             return;
@@ -34,8 +36,8 @@ namespace leviathan::sort
         }
     }
 
-    template <typename I, typename S,  typename Comp = std::less<>>
-    constexpr void merge_sort(I first, S last, Comp comp = {})
+    template <typename I, typename Comp = std::less<>>
+    constexpr void merge_sort(I first, I last, Comp comp = {})
     {
         if (last - first > 1)
         {
@@ -46,39 +48,47 @@ namespace leviathan::sort
         }
     }
 
-    template <typename I, typename S, typename Comp = std::less<>>
-    constexpr void heap_sort(I first, S last, Comp comp = {})
+    template <typename I, typename Comp = std::less<>>
+    constexpr void heap_sort(I first, I last, Comp comp = {})
     {
         std::make_heap(first, last, comp);
         while (first != last)
             std::pop_heap(first, last--, comp);
     }
 
-    template <typename I, typename S, typename Comp = std::less<>>
-    constexpr void quick_sort(I first, S last, Comp comp = {})
+    template <typename I, typename Comp = std::less<>>
+    constexpr void quick_sort(I first, I last, Comp comp = {})
     {
         if (first == last || first + 1 == last) return;
 
         auto i = first - 1, j = last;
         const auto offset = (std::distance(first, last) - 1) >> 1;
-        const auto x = first + offset;
+        const auto x = *(first + offset);
         while (i < j) 
         {
-            while (comp(*(++i), *x));
-            while (comp(*x, *(--j)));
+            while (comp(*(++i), x));
+            while (comp(x, *(--j)));
             if (i < j) std::swap(*i, *j);
         }
         quick_sort(first, j + 1, comp);
         quick_sort(j + 1, last, comp);
     }
 
+
+    /*----------------------------hybrid sort algorithms------------------------------------*/
+
+    enum struct constant : int
+    {
+        TimSortThreshold = 32,
+        IntroSortThreshold = 16
+    };
+
     // for TimSort
     namespace detail
     {
-        inline constexpr int TimSortThreshold = 32; 
 
-        template <typename I, typename S, typename Comp>
-        constexpr I count_run_and_make_ascending(I first, S last, Comp comp) 
+        template <typename I, typename Comp>
+        constexpr I count_run_and_make_ascending(I first, I last, Comp comp) 
         {
             // comp is less relationship
             if (first == last)
@@ -110,7 +120,7 @@ namespace leviathan::sort
         constexpr T min_run_length(T n) 
         {
             T r = 0;      
-            while (n >= detail::TimSortThreshold) 
+            while (n >= (int)constant::TimSortThreshold) 
             {
                 r |= (n & 1);
                 n >>= 1;
@@ -176,10 +186,10 @@ namespace leviathan::sort
 
     }
 
-    template <typename I, typename S, typename Comp = std::less<>>
-    constexpr void tim_sort(I first, S last, Comp comp = {})
+    template <typename I, typename Comp = std::less<>>
+    constexpr void tim_sort(I first, I last, Comp comp = {})
     {
-        if (last - first < detail::TimSortThreshold)
+        if (last - first < (int)constant::TimSortThreshold)
             return insertion_sort(std::move(first), std::move(last), std::move(comp));
 
         auto iter = first; 
@@ -224,7 +234,6 @@ namespace leviathan::sort
         inline constexpr int CacheLineSize = hardware_constructive_interference_size;
         inline constexpr int InsertionSortThreshold = 24;
         inline constexpr int BlockSize = 64;
-        inline constexpr int IntroSortLimit = 16;
 
         template <typename Pointer>
         constexpr bool is_cache_aligned(Pointer* ptr) 
@@ -239,19 +248,27 @@ namespace leviathan::sort
             // [first, middle, last]
             // keep first < middle < last
             auto middle = first + ((last - first) >> 1);
-            if (comp(*middle, *first)) std::iter_swap(first, middle);
-            if (comp(*last, *first)) std::iter_swap(first, last);
-            if (comp(*last, *middle)) std::iter_swap(middle, last);
+            // if (comp(*middle, *first)) std::iter_swap(first, middle);
+            // if (comp(*last, *first)) std::iter_swap(first, last);
+            // if (comp(*last, *middle)) std::iter_swap(middle, last);
 
-            std::iter_swap(middle, last - 1);
-            return last - 1;
+            if (comp(*middle, *first)) std::iter_swap(middle, first);
+            if (comp(*last, *middle)) 
+            {
+                std::iter_swap(last, middle);
+                if (comp(*middle, *first))
+                    std::iter_swap(middle, first);
+            }
+            --last;
+            std::iter_swap(middle, last);
+            return last;
         }
 
-        template <typename I, typename S, typename Comp>
-        constexpr void intro_sort_loop(I first, S last, Comp comp, int depth)
+        template <typename I, typename Comp>
+        constexpr void intro_sort_loop(I first, I last, Comp comp, int depth)
         {
             const auto dist = last - first; 
-            if (dist <= IntroSortLimit)
+            if (dist <= (int)constant::IntroSortThreshold)
                 return sort::insertion_sort(first, last, comp);
             if (depth == 0)
                 return sort::heap_sort(first, last, comp);
@@ -272,6 +289,31 @@ namespace leviathan::sort
             intro_sort_loop(i + 1, last + 1, comp, depth);
         }
 
+        template <typename I, typename Comp>
+        constexpr void intro_sort_iteration(I first, I last, Comp comp, int depth)
+        {
+            const auto dist = last - first; 
+            if (dist <= (int)constant::IntroSortThreshold)
+                return;
+            if (depth == 0)
+                return sort::heap_sort(first, last, comp);
+
+            const auto pivot = median_three(first, --last, comp);
+            auto i = first, j = last - 1;
+
+            while (1) 
+            {
+                while (comp(*(++i), *pivot));
+                while (comp(*pivot, *(--j)));
+                if (i < j) std::iter_swap(i, j);
+                else break;
+            }
+            depth--;
+            std::iter_swap(i, last - 1);
+            intro_sort_loop2(first, i, comp, depth);
+            intro_sort_loop2(i + 1, last + 1, comp, depth);
+        }
+
         int count_left_zero(unsigned long long x)
         {
             int r = 0;
@@ -286,8 +328,8 @@ namespace leviathan::sort
 
     }
 
-    template <typename I, typename S, typename Comp = std::less<>>
-    constexpr void intro_sort(I first, S last, Comp comp = {})
+    template <typename I, typename Comp = std::less<>>
+    constexpr void intro_sort(I first, I last, Comp comp = {})
     {
         #ifdef __cpp_lib_bitops
         const auto max_depth = std::countl_zero(static_cast<std::size_t>(last - first));
@@ -337,6 +379,7 @@ namespace leviathan
 
     RegisterSortAlgorithm(merge_sort);
 
+    // https://www.freesion.com/article/2246255399/
     // http://cr.openjdk.java.net/~martin/webrevs/jdk7/timsort/raw_files/new/src/share/classes/java/util/TimSort.java
     RegisterSortAlgorithm(tim_sort);
 
