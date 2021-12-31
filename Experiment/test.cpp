@@ -13,6 +13,12 @@
 #include <lv_cpp/algorithm/sort.hpp>
 #include <lv_cpp/algorithm/TimSort.h>
 
+template <typename T>
+void PrintVector(const std::vector<T>& v)
+{
+    std::copy(v.begin(), v.end(), std::ostream_iterator<T>{std::cout, "\n"});
+}
+
 struct SortInfo
 {
     std::string_view m_sort_name;
@@ -42,7 +48,7 @@ struct RandomRange
 {
     inline static std::random_device rd;
 
-    int m_num = 1000'000;
+    int m_num = 1e8;
     int m_max = 100;
 
     static void PrintVec(const std::vector<int>& v)
@@ -51,14 +57,21 @@ struct RandomRange
         stream << '\n';
     }
 
+    std::vector<std::string> ReadContext(const char* file = "a.txt")
+    {
+        std::fstream fs{file};
+        std::vector<std::string> ret;
+        std::copy(std::istream_iterator<std::string>{fs}, std::istream_iterator<std::string>{}, std::back_inserter(ret));
+        return ret;
+    }
+
     std::vector<int> RandomRangeInt()
     {
         auto random_generator = [&]() {
-            return rd() % m_max;
+            return rd();
         };
-        std::mt19937_64 e{ rd() };
         std::vector<int> ret;
-        std::generate_n(std::back_inserter(ret), m_num, e);
+        std::generate_n(std::back_inserter(ret), m_num, random_generator);
         return ret;
     }
 
@@ -85,11 +98,11 @@ struct RandomRange
 
 struct Recorder
 {
-    template <typename Sorter>
-    static auto TestSort(Sorter sort_fn, std::vector<int> v, std::string_view sort_name)
+    template <typename Sorter, typename T>
+    static auto TestSort(Sorter sort_fn, std::vector<T> v, std::string_view sort_name)
     {
         auto tp1 = std::chrono::high_resolution_clock::now();
-        sort_fn(v.data(), v.data() + v.size(), std::less<>{});
+        sort_fn(v.begin(), v.end(), std::less<>{});
         auto tp2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> cost = tp2 - tp1;
         assert(std::is_sorted(v.begin(), v.end()));
@@ -105,13 +118,24 @@ struct SortAlgorithmSet
 {
     SortAlgorithmSet(Sorters...) { } // just for deducing type
 
-    inline static RandomRange rg{ .m_num = (int)2e6, .m_max = 100 };
+    inline static RandomRange rg{ .m_num = (int)1e7, .m_max = 100 };
 
     SortAlgorithmSet& TestRandomInt()
     {
         std::vector<SortInfo> vec;
         auto data = rg.RandomRangeInt();
         stream << "[Random Int]\n";
+        (vec.push_back(Recorder::TestSort(Sorters{}, data, TypeInfo(Sorters))), ...);
+        std::copy(vec.begin(), vec.end(), std::ostream_iterator<SortInfo>{stream});
+        stream << "\n";
+        return *this;
+    }
+
+    SortAlgorithmSet& TestString()
+    {
+        std::vector<SortInfo> vec;
+        auto data = rg.ReadContext();
+        stream << "[Context]\n";
         (vec.push_back(Recorder::TestSort(Sorters{}, data, TypeInfo(Sorters))), ...);
         std::copy(vec.begin(), vec.end(), std::ostream_iterator<SortInfo>{stream});
         stream << "\n";
@@ -153,24 +177,17 @@ struct SortAlgorithmSet
 
 };
 
-
 int main(int argc, const char* argv[])
 {
 
     SortAlgorithmSet s{
-        std::ranges::sort, 
-        std::ranges::stable_sort,
-        // leviathan::tim_sort_fn{},
-        // gfx::timsort_fn{},
-        // PDQSort_fn{},
-        // PDQSortBranchless_fn{},
+        leviathan::intro_sort,
         leviathan::quick_sort,
-        leviathan::intro_sort
+        std::ranges::sort,
     };
-    s.TestRandomInt()
-    // .TestAllEqualZero()
-    // .TestRandomDescending()
-    // .TestRandomAscending()
+    s
+    .TestRandomInt()
     ;
+    std::cout << "OK\n";
     return 0;
 }

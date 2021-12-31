@@ -30,7 +30,7 @@ namespace leviathan::sort
             {
                 auto pos = std::upper_bound(first, i, *i, comp);
                 auto tmp = std::move(*i);
-                std::move(pos, i, pos + 1);
+                std::move_backward(pos, i, i + 1);
                 *pos = std::move(tmp);
             } 
         }
@@ -221,25 +221,11 @@ namespace leviathan::sort
     namespace detail
     {
 
-    #ifdef __cpp_lib_hardware_interference_size
-        using std::hardware_constructive_interference_size;
-        using std::hardware_destructive_interference_size;
-    #else
-        // 64 bytes on x86-64 │ L1_CACHE_BYTES │ L1_CACHE_SHIFT │ __cacheline_aligned │ ...
-        // https://en.cppreference.com/w/cpp/thread/hardware_destructive_interference_size
-        constexpr std::size_t hardware_constructive_interference_size = 64;
-        constexpr std::size_t hardware_destructive_interference_size = 64;
-    #endif
-
-        inline constexpr int CacheLineSize = hardware_constructive_interference_size;
-        inline constexpr int InsertionSortThreshold = 24;
-        inline constexpr int BlockSize = 64;
-
-        template <typename Pointer>
-        constexpr bool is_cache_aligned(Pointer* ptr) 
-        {
-            return static_cast<std::uintptr_t>(ptr) % CacheLineSize;
-        }
+        // template <typename Pointer>
+        // constexpr bool is_cache_aligned(Pointer* ptr) 
+        // {
+        //     return static_cast<std::uintptr_t>(ptr) % CacheLineSize;
+        // }
 
         // [first, last] and last - first + 1 >= 3
         template <typename I, typename Comp>
@@ -273,8 +259,8 @@ namespace leviathan::sort
             if (depth == 0)
                 return sort::heap_sort(first, last, comp);
 
-            const auto pivot = median_three(first, --last, comp);
-            auto i = first, j = last - 1;
+            const auto pivot = median_three(first, last - 1, comp);
+            auto i = first, j = pivot;
 
             while (1) 
             {
@@ -284,34 +270,9 @@ namespace leviathan::sort
                 else break;
             }
             depth--;
-            std::iter_swap(i, last - 1);
+            std::iter_swap(i, pivot);
             intro_sort_loop(first, i, comp, depth);
-            intro_sort_loop(i + 1, last + 1, comp, depth);
-        }
-
-        template <typename I, typename Comp>
-        constexpr void intro_sort_iteration(I first, I last, Comp comp, int depth)
-        {
-            const auto dist = last - first; 
-            if (dist <= (int)constant::IntroSortThreshold)
-                return;
-            if (depth == 0)
-                return sort::heap_sort(first, last, comp);
-
-            const auto pivot = median_three(first, --last, comp);
-            auto i = first, j = last - 1;
-
-            while (1) 
-            {
-                while (comp(*(++i), *pivot));
-                while (comp(*pivot, *(--j)));
-                if (i < j) std::iter_swap(i, j);
-                else break;
-            }
-            depth--;
-            std::iter_swap(i, last - 1);
-            intro_sort_loop2(first, i, comp, depth);
-            intro_sort_loop2(i + 1, last + 1, comp, depth);
+            intro_sort_loop(i + 1, last, comp, depth);
         }
 
         int count_left_zero(unsigned long long x)
@@ -326,19 +287,65 @@ namespace leviathan::sort
             return r;
         }
 
-    }
+        template <typename I, typename Comp = std::less<>>
+        constexpr void intro_sort_iteration(I first, I last, Comp comp = {})
+        {
+            if (first == last)
+                return;
+            
+            std::vector stack { first, last };
+            // for ascending sequence, f(x) = 2x + 2
+            // for descending sequence, f(x) = 2x
+            // for random seq, f(x) = 1.5x approximately
+            const auto max_depth = count_left_zero(static_cast<std::size_t>(last - first)) * 4;
+            stack.reserve(max_depth);
 
+            while (stack.size())
+            {
+                auto plast = stack.back(); stack.pop_back();
+                auto pfirst = stack.back(); stack.pop_back();
+                if (plast - pfirst <= (int)constant::IntroSortThreshold) 
+                {
+                    insertion_sort(pfirst, plast);
+                    continue;
+                }
+                if (stack.size() == max_depth)
+                {
+                    heap_sort(pfirst, plast, comp);
+                    continue;
+                }
+
+                const auto pivot = detail::median_three(pfirst, plast - 1, comp);
+                // [first, ..., pivot(middle), last-1, last) first < middle < last - 1
+                auto i = pfirst, j = pivot;
+
+                while (1) 
+                {
+                    while (comp(*(++i), *pivot));
+                    while (comp(*pivot, *(--j)));
+                    if (i < j) std::iter_swap(i, j);
+                    else break;
+                }
+                std::iter_swap(i, pivot);
+
+                // [pfirst, i)
+                stack.push_back(pfirst);
+                stack.push_back(i);
+
+                // [i + 1, plast)
+                stack.push_back(i + 1);
+                stack.push_back(plast);
+            }
+        }
+
+    }
+        
     template <typename I, typename Comp = std::less<>>
     constexpr void intro_sort(I first, I last, Comp comp = {})
     {
-        #ifdef __cpp_lib_bitops
-        const auto max_depth = std::countl_zero(static_cast<std::size_t>(last - first));
-        #else
-        const auto max_depth = detail::count_left_zero(static_cast<unsigned long long>(last - first));
-        #endif
-        detail::intro_sort_loop(first, last, comp, max_depth * 2);
+        const auto max_depth = detail::count_left_zero(static_cast<std::size_t>(last - first)) * 2;
+        detail::intro_sort_loop(first, last, comp, max_depth);
     }
-
 }
 
 
@@ -389,6 +396,7 @@ namespace leviathan
 
     // https://en.wikipedia.org/wiki/Introsort
     RegisterSortAlgorithm(intro_sort);
+
 
 #undef RegisterSortAlgorithm
 
