@@ -5,6 +5,7 @@
 #include <vector>       // buffer for some algorithms
 #include <functional>   // std::invoke, std::less<>
 #include <concepts>     // some concepts such as std::sortable and std::random_access_iterator
+#include <array>        // table
 #include <new>
 #include <bit>
 #include <type_traits>
@@ -23,9 +24,8 @@ namespace leviathan::sort
         auto i = first + 1;
         for (; i != last; ++i)
         {
-            auto j = i - 1;
-            // if arr[j] <= arr[i] continue
-            if (!comp(*i, *j)) continue;
+            // if arr[j - 1] <= arr[i] continue
+            if (!comp(*i, *(i - 1))) continue;
             else
             {
                 auto pos = std::upper_bound(first, i, *i, comp);
@@ -52,8 +52,7 @@ namespace leviathan::sort
     constexpr void heap_sort(I first, I last, Comp comp = {})
     {
         std::make_heap(first, last, comp);
-        while (first != last)
-            std::pop_heap(first, last--, comp);
+        std::sort_heap(first, last, comp);
     }
 
     template <typename I, typename Comp = std::less<>>
@@ -190,7 +189,7 @@ namespace leviathan::sort
     constexpr void tim_sort(I first, I last, Comp comp = {})
     {
         if (last - first < (int)constant::TimSortThreshold)
-            return insertion_sort(std::move(first), std::move(last), std::move(comp));
+            return insertion_sort(first, last, comp);
 
         auto iter = first; 
         std::vector stack{ iter };
@@ -218,14 +217,9 @@ namespace leviathan::sort
         detail::merge_force_collapse(stack, comp);
     }
 
+    // for IntroSort
     namespace detail
     {
-
-        // template <typename Pointer>
-        // constexpr bool is_cache_aligned(Pointer* ptr) 
-        // {
-        //     return static_cast<std::uintptr_t>(ptr) % CacheLineSize;
-        // }
 
         // [first, last] and last - first + 1 >= 3
         template <typename I, typename Comp>
@@ -250,12 +244,39 @@ namespace leviathan::sort
             return last;
         }
 
+        /*
+            Sorts [begin, end) using insertion sort with the given comparison function. Assumes
+            *(begin - 1) is an element smaller than or equal to any element in [begin, end).
+        */
         template <typename I, typename Comp>
-        constexpr void intro_sort_loop(I first, I last, Comp comp, int depth)
+        constexpr void unguarded_insertion_sort(I first, I last, Comp comp)
+        {
+            if (first == last)
+                return;
+
+            for (auto i = first + 1; i != last; ++i)
+            {
+                auto j = i - 1;
+                // 0 [2, 1]
+                // ^  ^
+                // j  i
+                if (comp(*i, *j))
+                {
+                    auto tmp = std::move(*i);
+                    do { *i-- = std::move(*j--); }
+                    while (comp(tmp, *j)); // this loop will stop since *(begin-1) is less than any element in [begin, end)
+                    *i = std::move(tmp);
+                }
+            }
+        } 
+
+        template <typename I, typename Comp>
+        constexpr void intro_sort_recursive(I first, I last, Comp comp, int depth)
         {
             const auto dist = last - first; 
-            if (dist <= (int)constant::IntroSortThreshold)
+            if (dist < (int)constant::IntroSortThreshold)
                 return sort::insertion_sort(first, last, comp);
+
             if (depth == 0)
                 return sort::heap_sort(first, last, comp);
 
@@ -271,8 +292,8 @@ namespace leviathan::sort
             }
             depth--;
             std::iter_swap(i, pivot);
-            intro_sort_loop(first, i, comp, depth);
-            intro_sort_loop(i + 1, last, comp, depth);
+            intro_sort_recursive(first, i, comp, depth);
+            intro_sort_recursive(i + 1, last, comp, depth);
         }
 
         int count_left_zero(unsigned long long x)
@@ -300,13 +321,18 @@ namespace leviathan::sort
             const auto max_depth = count_left_zero(static_cast<std::size_t>(last - first)) * 4;
             stack.reserve(max_depth);
 
+            I split;
+
             while (stack.size())
             {
                 auto plast = stack.back(); stack.pop_back();
                 auto pfirst = stack.back(); stack.pop_back();
+
+                split = plast;
+
                 if (plast - pfirst <= (int)constant::IntroSortThreshold) 
                 {
-                    insertion_sort(pfirst, plast);
+                    // insertion_sort(pfirst, plast);
                     continue;
                 }
                 if (stack.size() == max_depth)
@@ -336,18 +362,27 @@ namespace leviathan::sort
                 stack.push_back(i + 1);
                 stack.push_back(plast);
             }
+        
+            insertion_sort(first, split, comp);
+            detail::unguarded_insertion_sort(split, last, comp);
         }
 
     }
-        
+
     template <typename I, typename Comp = std::less<>>
-    constexpr void intro_sort(I first, I last, Comp comp = {})
+    constexpr void intro_sort_iteration(I first, I last, Comp comp = {})
+    {
+        detail::intro_sort_iteration(first, last, comp);
+    }
+
+    template <typename I, typename Comp = std::less<>>
+    constexpr void intro_sort_recursive(I first, I last, Comp comp = {})
     {
         const auto max_depth = detail::count_left_zero(static_cast<std::size_t>(last - first)) * 2;
-        detail::intro_sort_loop(first, last, comp, max_depth);
+        detail::intro_sort_recursive(first, last, comp, max_depth);
     }
-}
 
+}
 
 namespace leviathan
 {
@@ -395,14 +430,14 @@ namespace leviathan
     RegisterSortAlgorithm(quick_sort);
 
     // https://en.wikipedia.org/wiki/Introsort
-    RegisterSortAlgorithm(intro_sort);
+    // Musser, D.: Introspective sorting and selection algorithms. Software Practice and Experience 27, 983–993 (1997)
+    // http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.14.5196&rep=rep1&type=pdf
+    RegisterSortAlgorithm(intro_sort_recursive);
+    RegisterSortAlgorithm(intro_sort_iteration);
 
 
 #undef RegisterSortAlgorithm
 
-    // std::sort -> not strict introsort
-    // Musser, D.: Introspective sorting and selection algorithms. Software Practice and Experience 27, 983–993 (1997)
-    // http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.14.5196&rep=rep1&type=pdf
 
 } // namespace leviathan
 

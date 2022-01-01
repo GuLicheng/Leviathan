@@ -118,7 +118,7 @@ struct SortAlgorithmSet
 {
     SortAlgorithmSet(Sorters...) { } // just for deducing type
 
-    inline static RandomRange rg{ .m_num = (int)1e7, .m_max = 100 };
+    inline static RandomRange rg{ .m_num = (int)1e7, .m_max = -1 };
 
     SortAlgorithmSet& TestRandomInt()
     {
@@ -181,12 +181,14 @@ int main(int argc, const char* argv[])
 {
 
     SortAlgorithmSet s{
-        leviathan::intro_sort,
-        leviathan::quick_sort,
+        leviathan::intro_sort_iteration,
+        leviathan::intro_sort_recursive,
+        leviathan::heap_sort,
         std::ranges::sort,
     };
     s
     .TestRandomInt()
+    .TestString()
     ;
     std::cout << "OK\n";
     return 0;
