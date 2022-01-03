@@ -77,9 +77,9 @@ struct RandomRange
 
     std::vector<int> RandomAscending()
     {
-        auto ret = RandomRangeInt();
-        std::sort(ret.begin(), ret.end());
-        return ret;
+        std::vector<int> v; v.reserve(m_num);
+        for (int i = 0; i < m_num; ++i) v.push_back(i);
+        return v;
     }
 
     std::vector<int> AllEqualZero()
@@ -89,9 +89,35 @@ struct RandomRange
 
     std::vector<int> RandomDescending()
     {
-        auto ret = RandomRangeInt();
-        std::sort(ret.begin(), ret.end(), std::greater<>{});
-        return ret;
+        std::vector<int> v; v.reserve(m_num);
+        for (int i = 0; i < m_num; ++i) v.push_back(-i);
+        return v;
+    }
+
+    std::vector<int> PipeOrgan() 
+    {
+        std::vector<int> v; v.reserve(m_num);
+        for (int i = 0; i < m_num/2; ++i) v.push_back(i);
+        for (int i = m_num/2; i < m_num; ++i) v.push_back(m_num - i);
+        return v;
+    }
+
+    std::vector<int> PushFrontInt() 
+    {
+        std::vector<int> v; v.reserve(m_num);
+        for (int i = 1; i < m_num; ++i) v.push_back(i);
+        v.push_back(0);
+        return v;
+    }
+
+    std::vector<int> push_middle_int() 
+    {
+        std::vector<int> v; v.reserve(m_num);
+        for (int i = 0; i < m_num; ++i) {
+            if (i != m_num/2) v.push_back(i);
+        }
+        v.push_back(m_num/2);
+        return v;
     }
 
 };
@@ -183,12 +209,14 @@ int main(int argc, const char* argv[])
     SortAlgorithmSet s{
         leviathan::intro_sort_iteration,
         leviathan::intro_sort_recursive,
-        leviathan::heap_sort,
         std::ranges::sort,
     };
     s
-    .TestRandomInt()
     .TestString()
+    .TestRandomInt()
+    .TestAllEqualZero()
+    .TestRandomAscending()
+    .TestRandomDescending()
     ;
     std::cout << "OK\n";
     return 0;

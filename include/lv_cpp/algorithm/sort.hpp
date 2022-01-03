@@ -1,5 +1,5 @@
-#ifndef __ALGORITHM_HPP__
-#define __ALGORITHM_HPP__
+#ifndef aLGORITHM_HPP__
+#define aLGORITHM_HPP__
 
 #include <algorithm>    // some base algorithms
 #include <vector>       // buffer for some algorithms
@@ -79,7 +79,8 @@ namespace leviathan::sort
     enum struct constant : int
     {
         TimSortThreshold = 32,
-        IntroSortThreshold = 16
+        IntroSortThreshold = 16,
+        MedianNineThreshold = 128
     };
 
     // for TimSort
@@ -221,7 +222,21 @@ namespace leviathan::sort
     namespace detail
     {
 
-        // [first, last] and last - first + 1 >= 3
+        template <typename I, typename Comp>
+        constexpr void sort_three(I first, I middle, I last, Comp comp)
+        {
+            if (comp(*middle, *first)) std::iter_swap(middle, first);
+            if (comp(*last, *middle)) 
+            {
+                std::iter_swap(last, middle);
+                if (comp(*middle, *first))
+                    std::iter_swap(middle, first);
+            }
+        }
+
+        // [first, last] and last - first + 1 >= InsertionSortThreadhold
+        // we put middle element into prev of last and return it as pivot
+        // the three elements will be sorted
         template <typename I, typename Comp>
         constexpr I median_three(I first, I last, Comp comp)
         {
@@ -232,17 +247,58 @@ namespace leviathan::sort
             // if (comp(*last, *first)) std::iter_swap(first, last);
             // if (comp(*last, *middle)) std::iter_swap(middle, last);
 
-            if (comp(*middle, *first)) std::iter_swap(middle, first);
-            if (comp(*last, *middle)) 
-            {
-                std::iter_swap(last, middle);
-                if (comp(*middle, *first))
-                    std::iter_swap(middle, first);
-            }
+            sort_three(first, middle, last, comp);
             --last;
             std::iter_swap(middle, last);
             return last;
         }
+
+        // [first, last] and last - first + 1 >= InsertionSortThreadhold
+        // we put middle element into first position and return it as pivot
+        // the three elements will not be sorted
+        template <typename I, typename Comp>
+        constexpr I median_three_v2(I first, I last, Comp comp)
+        {
+            auto result = first;
+            ++first;
+            auto middle = first + ((last - first) >> 1);
+
+            if (comp(first, middle))
+            {
+                if (comp(middle, last)) 
+                    std::iter_swap(result, middle);
+                else if (comp(first, last))
+                    std::iter_swap(result, last);
+                else
+                    std::iter_swap(result, first);
+            }
+            else if (comp(first, last))
+                std::iter_swap(result, first);
+            else if (comp(middle, last))
+                std::iter_swap(result, last);
+            else
+                std::iter_swap(result, middle);
+
+            return result;
+        }
+
+
+        // [first, last] and last - first + 1 >= 9
+        template <typename I, typename Comp>
+        constexpr I median_nine(I first, I last, Comp comp)
+        {
+            // [first, middle, last]
+            // keep first < middle < last
+            auto middle = first + ((last - first) >> 1);
+
+            sort_three(first + 1, middle - 1, last - 1, comp);
+            sort_three(first + 2, middle + 1, last - 2, comp);
+            sort_three(first,     middle,     last,     comp);
+            sort_three(middle - 1, middle, middle + 1, comp);
+            --last;
+            std::iter_swap(middle, last);
+            return last;
+        } 
 
         /*
             Sorts [begin, end) using insertion sort with the given comparison function. Assumes
@@ -281,6 +337,7 @@ namespace leviathan::sort
                 return sort::heap_sort(first, last, comp);
 
             const auto pivot = median_three(first, last - 1, comp);
+
             auto i = first, j = pivot;
 
             while (1) 
@@ -320,17 +377,16 @@ namespace leviathan::sort
             // for random seq, f(x) = 1.5x approximately
             const auto max_depth = count_left_zero(static_cast<std::size_t>(last - first)) * 4;
             stack.reserve(max_depth);
-
             I split;
 
             while (stack.size())
             {
                 auto plast = stack.back(); stack.pop_back();
                 auto pfirst = stack.back(); stack.pop_back();
-
+                const auto dist = plast - pfirst;
                 split = plast;
 
-                if (plast - pfirst <= (int)constant::IntroSortThreshold) 
+                if (dist < (int)constant::IntroSortThreshold) 
                 {
                     // insertion_sort(pfirst, plast);
                     continue;
@@ -341,7 +397,7 @@ namespace leviathan::sort
                     continue;
                 }
 
-                const auto pivot = detail::median_three(pfirst, plast - 1, comp);
+                const auto pivot = median_three(pfirst, plast - 1, comp);
                 // [first, ..., pivot(middle), last-1, last) first < middle < last - 1
                 auto i = pfirst, j = pivot;
 
@@ -413,7 +469,7 @@ namespace leviathan
         constexpr std::ranges::borrowed_iterator_t<Range> \
         operator()(Range &&r, Comp comp = {}, Proj proj = {}) const \
         { return (*this)(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj)); } \
-    } ; \  
+    } ; \
     inline constexpr name##_fn name{}
 
     // binary insertion sort
@@ -437,6 +493,24 @@ namespace leviathan
 
 
 #undef RegisterSortAlgorithm
+
+
+#define RegisterSTLSortAlgorithm(name) \
+    struct name##_fn {  \
+        template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity> \
+        requires std::sortable<I, Comp, Proj> \
+        constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) const \
+        { std:: name (std::move(first), std::move(last), make_comp_proj(comp, proj)); return first + (last - first); }            \
+        template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity> \
+        requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj> \
+        constexpr std::ranges::borrowed_iterator_t<Range> \
+        operator()(Range &&r, Comp comp = {}, Proj proj = {}) const \
+        { return (*this)(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj)); } \
+    } ; 
+
+    RegisterSTLSortAlgorithm(sort);
+
+#undef RegisterSTLSortAlgorithm
 
 
 } // namespace leviathan
