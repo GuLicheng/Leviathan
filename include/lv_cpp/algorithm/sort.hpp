@@ -337,6 +337,7 @@ namespace leviathan::sort
                 return sort::heap_sort(first, last, comp);
 
             const auto pivot = median_three(first, last - 1, comp);
+            // const auto pivot = median_three_v2(first, last - 1, comp);
 
             auto i = first, j = pivot;
 
