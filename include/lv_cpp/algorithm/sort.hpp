@@ -369,8 +369,8 @@ namespace leviathan::sort
         template <typename I, typename Comp = std::less<>>
         constexpr void intro_sort_iteration(I first, I last, Comp comp = {})
         {
-            if (first == last)
-                return;
+            if (last - first < (int)constant::IntroSortThreshold)
+                return insertion_sort(first, last, comp);
             
             std::vector stack { first, last };
             // for ascending sequence, f(x) = 2x + 2
@@ -387,11 +387,11 @@ namespace leviathan::sort
                 const auto dist = plast - pfirst;
                 split = plast;
 
-                if (dist < (int)constant::IntroSortThreshold) 
-                {
-                    // insertion_sort(pfirst, plast);
-                    continue;
-                }
+                // if (dist < (int)constant::IntroSortThreshold) 
+                // {
+                //     // insertion_sort(pfirst, plast);
+                //     continue;
+                // }
                 if (stack.size() == max_depth)
                 {
                     heap_sort(pfirst, plast, comp);
@@ -412,12 +412,19 @@ namespace leviathan::sort
                 std::iter_swap(i, pivot);
 
                 // [pfirst, i)
-                stack.push_back(pfirst);
-                stack.push_back(i);
+                if (i - pfirst >= (int)constant::IntroSortThreshold) 
+                {
+                    stack.push_back(pfirst);
+                    stack.push_back(i);
+                }
 
                 // [i + 1, plast)
-                stack.push_back(i + 1);
-                stack.push_back(plast);
+
+                if (plast - (i + 1) >= (int)constant::IntroSortThreshold) 
+                {
+                    stack.push_back(i + 1);
+                    stack.push_back(plast);
+                }
             }
         
             insertion_sort(first, split, comp);

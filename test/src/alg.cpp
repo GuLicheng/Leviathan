@@ -203,7 +203,7 @@ struct SortAlgorithmSet
 {
     SortAlgorithmSet(Sorters...) { } // just for deducing type
 
-    inline static RandomRange rg{ .m_num = (int)1e6, .m_max = -1 };
+    inline static RandomRange rg{ .m_num = (int)3e6, .m_max = -1 };
 
     SortAlgorithmSet& TestRandomInt()
     {
