@@ -118,7 +118,7 @@ struct callable_container
     {
         if (m_maps.count(name))
             throw std::invalid_argument("function already existed");
-        m_maps[std::move(name)] = std::bind_front(&invoker<std::remove_cvref_t<F>>::apply, (F&&)f);
+        m_maps[std::move(name)] = std::bind_front(&invoker<std::remove_cvref_t<F>>::apply, std::move(f));
     }
 
     void destory_handler(std::string_view name)
