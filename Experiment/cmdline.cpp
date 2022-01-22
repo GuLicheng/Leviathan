@@ -93,18 +93,62 @@ struct parameter
 struct longname : parameter<std::string> 
 {
     longname(std::string_view t) : base{t.substr(2, t.size() - 2)} { }
-};  // --version 
+};  // add_argument("--rank")
 
 struct shortname : parameter<std::string> 
 {
     shortname(std::string_view t) : base{t.substr(1, t.size() -1)} { }
-};  // -v
+};  // add_argument("-rank")
+
+struct name : parameter<std::string> 
+{
+    name(std::string_view t) : base{t.substr(1, t.size())} { }
+};  // add_argument("rank")
 
 struct default_value : parameter<std::string> { using base::base; };  // ...
 struct help : parameter<std::string> { using base::base; };  // -v : version of...
 struct argc : parameter<int> { using base::base; };  // -l pthread libstdc++ ...
 struct is_const : parameter<bool> { using base::base; };  // for -v, it's unchangeable and must have default value
 struct required : parameter<bool> { using base::base; };   // optional params
+
+class parser_result
+{
+    std::unordered_map<std::string, std::string> m_maps;
+
+public:
+    
+    template <typename T, typename F>
+    std::optional<T> get(const std::string& name, F f)
+    {
+        auto iter = std::find_if(m_args.begin(), m_args.end(), [&](const info& i)
+        {
+            return i.m_longname == name || i.m_shortname == name;
+        });
+        if (iter == m_args.end())
+        {
+            return { };
+        }
+        auto ret = argument_cast<T>(iter->m_default_value);
+        if (ret && f(*ret))
+            return ret;
+        return { };
+    }
+
+    template <typename T>
+    std::optional<T> get(const std::string& name)
+    {
+        auto iter = std::find_if(m_args.begin(), m_args.end(), [&](const info& i)
+        {
+            return i.m_longname == name || i.m_shortname == name;
+        });
+        if (iter == m_args.end())
+        {
+            return { };
+        }
+        return argument_cast<T>(iter->m_default_value);
+    }
+
+};
 
 class argument_parser
 {
@@ -114,6 +158,7 @@ public:
     {
         std::string m_longname;
         std::string m_shortname;
+        std::string m_name;
         std::string m_help;
         std::string m_default_value; // val for type_cast
         int m_argc = 1;
@@ -187,6 +232,8 @@ public:
     void parse_args(int argc, char const *argv[]) 
     {
         m_prop_name = argv[0];
+        int idx = 0;
+        bool has_slash = false;
         for (int i = 1; i < argc; ++i)
         {
 

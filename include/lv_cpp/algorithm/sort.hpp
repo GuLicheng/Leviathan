@@ -1,5 +1,5 @@
-#ifndef aLGORITHM_HPP__
-#define aLGORITHM_HPP__
+#ifndef __ALGORITHM_HPP__
+#define __ALGORITHM_HPP__
 
 #include <algorithm>    // some base algorithms
 #include <vector>       // buffer for some algorithms

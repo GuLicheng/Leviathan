@@ -1,42 +1,16 @@
-#include <fstream>
-#include <iostream>
-#include <vector>
-#include <iomanip>
-#include <bit>
+#include "bmp.hpp"
 
-enum Endian {
-  Big, Little
-};
 
-template <Endian E> struct png;
-
-template <>
-struct png<Endian::Little>
+int main()
 {
-  constexpr static uint64_t prefix_identifier = 0x89504e460d0a1a0a; // 8bytes
-};
-
-
-void read_png_image(const char *path)
-{
-  std::ifstream fs{ path, std::ios::in | std::ios::binary };
-  std::string buffer = {std::istreambuf_iterator<char>(fs), 
-                        std::istreambuf_iterator<char>()};
-  std::cout << "buffer.len = " << buffer.size() << '\n';
-  std::byte bytes[8];
-  for (int i = 0; i < 8; ++i) 
-  {
-    bytes[i] = (std::byte)buffer[i];
-    std::cout << std::hex << (int)bytes[i] << ' ';
-  }
-  return;
-}
-
-
-
-int main(int argc, char const *argv[])
-{
-  const char *path = "D:\\Library\\Leviathan\\Experiment\\demo.png";
-  read_png_image(path);
-  return 0;
+    const char* path1 = R"(D:\Library\Leviathan\Experiment\20140514114029140.bmp)";
+    const char* path2 = R"(D:\Library\Leviathan\Experiment\PC.bmp)";
+    bmp<little_endian> b1, b2;
+    b1.read(path1);
+    b1.info.display();
+    std::cout << "==============================================\n";
+    b2.read(path2);
+    b2.info.display();
+    b2.save("./lena.bmp");
+    std::cout << "==============================================\n";
 }
