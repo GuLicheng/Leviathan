@@ -1,15 +1,12 @@
 import argparse
-
-# parser = argparse.ArgumentParser()
-# parser.add_argument("--lr", type=float)
-# parser.add_argument("epoch", type=str)
-# parser.add_argument("weight", type=str)
-
-# args = parser.parse_args()
-# print(vars(args))
-
+from cv2 import reduce
+import numpy as np
+import os
 from PIL import Image
+import cv2 as cv
 
-png = Image.open("./2007_000039.png")
-png.save("./PC.bmp", format="bmp")
 
+PC = cv.imread("./PC.bmp")
+PC1 = cv.imread("./PC1.bmp")
+
+assert (PC == PC1).sum() == PC.size

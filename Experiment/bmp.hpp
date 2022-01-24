@@ -12,7 +12,8 @@
 #include <iostream>
 #include <vector>
 #include <iomanip>
-#include <lv_cpp/algorithm/sort.hpp>
+#include <compare>
+#include <ranges>
 
 template <typename OStream, typename... Ts>
 void println(OStream& os, const Ts&... ts)
@@ -28,26 +29,6 @@ void println(OStream& os, const Ts&... ts)
 #define BI_PNG            5
 #define BI_ALPHABITFIELDS 6
 
-namespace tag
-{
-    struct BMP { };
-};
-
-struct little_endian
-{
-    static uint32_t read_four_bytes(const uint8_t* p)  
-    {
-       return p[0]     
-           | (p[1] << 8)
-           | (p[2] << 16)
-           | (p[3] << 24);
-    }
-
-    static uint16_t read_two_bytes(const uint8_t* p)
-    {
-        return p[0] | (p[1] << 8);
-    }
-};
 
 
 struct bmp_info
@@ -58,7 +39,8 @@ struct bmp_info
     // FileHeader
     uint8_t bfType[2]; // "BM"
     uint32_t bfSize; // size of bmp file
-    uint8_t bfReserved[4]; // useless
+    uint16_t bfReserved1;
+    uint16_t bfReserved2;
     uint32_t bfOffbits; // offset (fileheader + info + palette)
     
     // InfomationHeader
@@ -77,10 +59,11 @@ struct bmp_info
 
     struct rgbquad
     {
-        uint8_t blue;
-        uint8_t red;
-        uint8_t green;
-        uint8_t reserved = 0;
+        uint8_t rgbBlue;
+        uint8_t rgbGreen;
+        uint8_t rgbRed;
+        uint8_t rgbReserved;
+        auto operator<=>(const rgbquad&) const = default;
     };
 
     std::vector<rgbquad> bmiColors;
@@ -115,7 +98,7 @@ struct bmp_info
 
     }
 
-
+    auto operator<=>(const bmp_info&) const = default;
 };
 
 template <typename Endian> 
@@ -123,6 +106,7 @@ struct bmp
 {
 
     using image_type = tag::BMP;
+    using endian_type = Endian;
 
 private:
     bool check() const 
@@ -143,6 +127,8 @@ public:
 
     bmp_info info;
 
+    auto operator<=>(const bmp&) const = default;
+
     bool read(const char* filename) 
     {
         std::ifstream fs;
@@ -150,26 +136,18 @@ public:
         if (!fs.is_open())  
             return false;
     
-        // bmp_info info;
-
+        // Read header
         uint8_t headerbuffer[bmp_info::FileHeaderSize];
         fs.read(reinterpret_cast<char*>(headerbuffer), bmp_info::FileHeaderSize);
-
-        // for (auto byte : headerbuffer)
-        //     std::cout <<  std::hex << (int)byte << ' ';
-        // std::endl(std::cout);
 
         info.bfType[0] = headerbuffer[0];
         info.bfType[1] = headerbuffer[1];
         info.bfSize = Endian::read_four_bytes(headerbuffer + 2);
         info.bfOffbits = Endian::read_four_bytes(headerbuffer + 10);
 
+        // Read infomation
         uint8_t infomation_buffer[bmp_info::InfomationHeaderSize];
         fs.read(reinterpret_cast<char*>(infomation_buffer), bmp_info::InfomationHeaderSize);
-
-        // for (auto byte : infomation_buffer)
-        //     std::cout <<  std::hex << (int)byte << ' ';
-        // std::endl(std::cout);
 
         info.biSize = Endian::read_four_bytes(infomation_buffer);
 
@@ -199,18 +177,21 @@ public:
         }
 
         // Read pixel
-        const int padding = ((W * info.biBitCount + 31) >> 5) << 2;  
+        const int padding = 4 - ((W * info.biBitCount)>>3) & 3;
+        const int data_line_byte = info.biBitCount * W;
         info.biData.resize(info.biSizeImage);
-        for (int y = 0; y < H; ++y)
+        auto dest = info.biData.data();
+        for (int y = 0; y < H; ++y, dest += data_line_byte)
         {
-            for (int x = 0; x < W; ++x)
-            {
-                uint8_t color[3];
-                fs.read(reinterpret_cast<char*>(color), 3);
-                info.biData[y * W + x + 0] = color[0];
-                info.biData[y * W + x + 1] = color[1];
-                info.biData[y * W + x + 2] = color[2];
-            }
+            // for (int x = 0; x < W; ++x)
+            // {
+            //     uint8_t color[3];
+            //     fs.read(reinterpret_cast<char*>(color), 3);
+            //     *dest ++ = color[0];
+            //     *dest ++ = color[1];
+            //     *dest ++ = color[2];
+            // }
+            fs.read(reinterpret_cast<char*>(dest), data_line_byte);
             fs.ignore(padding);
         }
 
@@ -226,16 +207,15 @@ public:
         if (!fs.is_open())
             std::cerr << "File Error\n";
 
-        std::cout << "Simple Write FileHeader\n";
 
-        // Simple Write FileHeader
+        // Simplely Write FileHeader
         fs.write(reinterpret_cast<char*>(&info.bfType), 2);
         fs.write(reinterpret_cast<char*>(&info.bfSize), 4);
-        fs.write(reinterpret_cast<char*>(&info.bfReserved), 4);
+        fs.write(reinterpret_cast<char*>(&info.bfReserved1), 2);
+        fs.write(reinterpret_cast<char*>(&info.bfReserved2), 2);
         fs.write(reinterpret_cast<char*>(&info.bfOffbits), 4);
 
-        std::cout << "Simple Write InformationHeader\n";
-        // Simple Write InformationHeader
+        // Simplely Write InformationHeader
         fs.write(reinterpret_cast<char*>(&info.biSize), 4);
         fs.write(reinterpret_cast<char*>(&info.biWidth), 4);
         fs.write(reinterpret_cast<char*>(&info.biHeight), 4);
@@ -248,28 +228,38 @@ public:
         fs.write(reinterpret_cast<char*>(&info.biClrUsed), 4);
         fs.write(reinterpret_cast<char*>(&info.biClrImportant), 4);
 
-        std::cout << "Here\n";
-        // Simple Write Palette
+        // Simplely Write Palette
         for (auto byte : info.bmiColors)
             fs.write(reinterpret_cast<char*>(&byte), 4);
         
         // Simple Write Data
         int W = info.biWidth, H = info.biHeight;
-        const int padding = ((W * info.biBitCount + 31) >> 5) << 2;  
-        int padding_val[padding] = { };
-        for (int y = 0; y < H; ++y)
+        const int padding =  4 - ((W * info.biBitCount)>>3) & 3; 
+        const int data_line_byte = info.biBitCount * W;
+        uint8_t padding_val[] = { 0, 0, 0 };
+        const auto* src = info.biData.data();
+        for (int y = 0; y < H; ++y, src += data_line_byte)
         {
-            for (int x = 0; x < W; ++x)
-            {
-                uint8_t color[3];
-                color[0] = info.biData[y * W + x + 0];
-                color[1] = info.biData[y * W + x + 1];
-                color[2] = info.biData[y * W + x + 2];
-                fs.write(reinterpret_cast<char*>(color), 3);
-            }
+            // for (int x = 0; x < W; ++x)
+            // {
+            //     uint8_t color[3];
+            //     color[0] = *src++;
+            //     color[1] = *src++;
+            //     color[2] = *src++;
+            //     fs.write(reinterpret_cast<char*>(color), 3);
+            // }
+            fs.write(reinterpret_cast<const char*>(src), data_line_byte);
             fs.write(reinterpret_cast<char*>(padding_val), padding);
         }
+
         fs.close();
+    }
+
+
+    bmp_info default_header()
+    {
+        bmp_info i;
+
     }
 
 };
