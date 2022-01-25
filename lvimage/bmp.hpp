@@ -89,12 +89,11 @@ struct bmp_info
     auto operator<=>(const bmp_info&) const = default;
 };
 
-template <typename Endian> 
 struct bmp
 {
 
     using image_type = tag::BMP;
-    using endian_type = Endian;
+    constexpr static auto endian = std::endian::native;
 
 private:
 
@@ -142,27 +141,27 @@ public:
 
         info.bfType[0] = headerbuffer[0];
         info.bfType[1] = headerbuffer[1];
-        info.bfSize = Endian::read_four_bytes(headerbuffer + 2);
-        info.bfOffbits = Endian::read_four_bytes(headerbuffer + 10);
+        info.bfSize = read_four_bytes(headerbuffer + 2);
+        info.bfOffbits = read_four_bytes(headerbuffer + 10);
 
         // Read infomation
         uint8_t infomation_buffer[bmp_info::InfomationHeaderSize];
         fs.read(reinterpret_cast<char*>(infomation_buffer), bmp_info::InfomationHeaderSize);
 
-        info.biSize = Endian::read_four_bytes(infomation_buffer);
+        info.biSize = read_four_bytes(infomation_buffer);
 
-        auto W = (int32_t)Endian::read_four_bytes(infomation_buffer + 4);
-        auto H = (int32_t)Endian::read_four_bytes(infomation_buffer + 8);
+        auto W = (int32_t)read_four_bytes(infomation_buffer + 4);
+        auto H = (int32_t)read_four_bytes(infomation_buffer + 8);
         info.biWidth = W, info.biHeight = H;
 
-        info.biPlanes = Endian::read_two_bytes(infomation_buffer + 12);
-        info.biBitCount = Endian::read_two_bytes(infomation_buffer + 14);
-        info.biCompression = Endian::read_four_bytes(infomation_buffer + 16);
-        info.biSizeImage = Endian::read_four_bytes(infomation_buffer + 20);
-        info.biXPelsPerMeter = (int32_t)Endian::read_four_bytes(infomation_buffer + 24);
-        info.biYPelsPerMeter = (int32_t)Endian::read_four_bytes(infomation_buffer + 28);
-        info.biClrUsed = Endian::read_four_bytes(infomation_buffer + 32);
-        info.biClrImportant = Endian::read_four_bytes(infomation_buffer + 36);
+        info.biPlanes = read_two_bytes(infomation_buffer + 12);
+        info.biBitCount = read_two_bytes(infomation_buffer + 14);
+        info.biCompression = read_four_bytes(infomation_buffer + 16);
+        info.biSizeImage = read_four_bytes(infomation_buffer + 20);
+        info.biXPelsPerMeter = (int32_t)read_four_bytes(infomation_buffer + 24);
+        info.biYPelsPerMeter = (int32_t)read_four_bytes(infomation_buffer + 28);
+        info.biClrUsed = read_four_bytes(infomation_buffer + 32);
+        info.biClrImportant = read_four_bytes(infomation_buffer + 36);
 
         // info.display();
         check_header();

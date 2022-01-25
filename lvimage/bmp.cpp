@@ -12,7 +12,7 @@ int main(int argc, char const *argv[])
     assert(argc == 3);
     const char* src = argv[1];
     const char* dest = argv[2];
-    bmp<little_endian> b;
+    bmp b;
     std::cout << "==============================================\n";
     b.read(src);
     b.info.display();

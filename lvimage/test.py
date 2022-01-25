@@ -46,16 +46,6 @@ def generate_images(path = r"D:\VOCtrainval_11-May-2012\VOCdevkit\VOC2012\JPEGIm
         cnt += 1
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--root1", type=str, default=r"./voc1")
-    parser.add_argument("--root2", type=str, default=r"./voc2")
-    args = parser.parse_args()
-    check_bmp(args)
-
-
-
-if __name__ == "__main__":
-    # convert_bmp(r"D:\Library\Leviathan\lvimage\images\d0a085b6d50b03bc56f82621bea06d26.jpeg")
     paths = [
         # r"D:\VOCtrainval_11-May-2012\VOCdevkit\VOC2012\SegmentationObject",
         # r"D:\VOCtrainval_11-May-2012\VOCdevkit\VOC2012\JPEGImages",
@@ -67,3 +57,9 @@ if __name__ == "__main__":
             convert_image(file, "a.bmp")
             compare_bmp("a.bmp", "a.bmp")
     print("OK")
+
+
+
+if __name__ == "__main__":
+    convert_image("./images/depth.bmp", "./a.ppm")
+

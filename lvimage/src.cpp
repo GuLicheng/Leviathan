@@ -11,7 +11,7 @@ namespace lv = leviathan::image;
 
 std::vector<uint8_t> to_list(const char* path)
 {
-    using BMP = lv::bmp<lv::little_endian>;
+    using BMP = lv::bmp;
     BMP b;
     b.read(path);
     auto buf_info = b.buffer();

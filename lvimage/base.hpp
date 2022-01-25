@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <compare>
 #include <algorithm>
+#include <bit>
 
 #include <assert.h>
 #include <stdint.h>
@@ -27,21 +28,20 @@ namespace tag
     struct BMP { };
 };
 
-struct little_endian
-{
-    static uint32_t read_four_bytes(const uint8_t* p)  
-    {
-       return p[0]     
-           | (p[1] << 8)
-           | (p[2] << 16)
-           | (p[3] << 24);
-    }
 
-    static uint16_t read_two_bytes(const uint8_t* p)
-    {
-        return p[0] | (p[1] << 8);
-    }
-};
+constexpr uint32_t read_four_bytes(const uint8_t* p)  
+{
+    return p[0]     
+        | (p[1] << 8)
+        | (p[2] << 16)
+        | (p[3] << 24);
+}
+
+constexpr uint16_t read_two_bytes(const uint8_t* p)
+{
+    return p[0] | (p[1] << 8);
+}
+
 
 template <typename OStream, typename... Ts>
 void println(OStream& os, const Ts&... ts)
