@@ -12,6 +12,10 @@ __pycache__
 # *.py
 *.xml
 *.json
+# *.exp
+# *.lib
+# *.obj
+
 
 # root
 # /*.cpp
