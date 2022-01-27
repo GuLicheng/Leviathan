@@ -1,5 +1,6 @@
 #include <lv_cpp/meta/type_list.hpp>
 #include <lv_cpp/meta/template_info.hpp>
+#include <lv_cpp/string/opt.hpp>
 #include <optional>
 #include <iostream>
 #include <string>
@@ -8,6 +9,15 @@
 #include <unordered_set>
 #include <string_view>
 #include <regex>
+
+#include <ctype.h>
+
+template <typename... Ts>
+void println(Ts... x)
+{
+    (std::cout << ... << x) << '\n';
+}
+
 
 //////////////////////////////////////////////////////
 // Some Helper
@@ -90,62 +100,53 @@ struct parameter
     TParams Value;
 };
 
-struct longname : parameter<std::string> 
-{
-    longname(std::string_view t) : base{t.substr(2, t.size() - 2)} { }
-};  // add_argument("--rank")
-
-struct shortname : parameter<std::string> 
-{
-    shortname(std::string_view t) : base{t.substr(1, t.size() -1)} { }
-};  // add_argument("-rank")
-
-struct name : parameter<std::string> 
-{
-    name(std::string_view t) : base{t.substr(1, t.size())} { }
-};  // add_argument("rank")
-
-struct default_value : parameter<std::string> { using base::base; };  // ...
-struct help : parameter<std::string> { using base::base; };  // -v : version of...
-struct argc : parameter<int> { using base::base; };  // -l pthread libstdc++ ...
+struct arg_names : parameter<std::vector<std::string_view>> 
+{ 
+    arg_names(std::initializer_list<std::string_view> ls) : base { ls } { }
+    arg_names(std::string_view sv) : base { sv } { }
+};
+struct default_value : parameter<std::string_view> { using base::base; };  // ...
+struct help : parameter<std::string_view> { using base::base; };  // -v : version of...
+struct nargs : parameter<int> { using base::base; };  // -l pthread libstdc++ ...
 struct is_const : parameter<bool> { using base::base; };  // for -v, it's unchangeable and must have default value
 struct required : parameter<bool> { using base::base; };   // optional params
 
-class parser_result
+struct check
 {
-    std::unordered_map<std::string, std::string> m_maps;
 
-public:
+    static bool check_optional(std::string_view sv)
+    { return sv.starts_with('-'); }
     
-    template <typename T, typename F>
-    std::optional<T> get(const std::string& name, F f)
+    static bool check_name(const std::vector<std::string_view>& names)
     {
-        auto iter = std::find_if(m_args.begin(), m_args.end(), [&](const info& i)
-        {
-            return i.m_longname == name || i.m_shortname == name;
-        });
-        if (iter == m_args.end())
-        {
-            return { };
-        }
-        auto ret = argument_cast<T>(iter->m_default_value);
-        if (ret && f(*ret))
-            return ret;
-        return { };
+        if (names.size() > 1)
+            return std::ranges::all_of(names, &check::check_optional);
+        return true;
+    }
+};
+
+
+struct parser_result
+{
+    // std::unordered_map<std::string, size_t, leviathan::string_hash, leviathan::string_key_equal> m_maps;
+    leviathan::string_hashmap<std::unordered_map, size_t> m_maps;
+    std::vector<std::string> m_values; // store value
+
+    void display() const
+    {
+        for (auto& [k, v] : m_maps)
+            println("k = ", k, " and v = ", m_values[v]);
     }
 
     template <typename T>
-    std::optional<T> get(const std::string& name)
+    std::optional<T> get(std::string_view name)
     {
-        auto iter = std::find_if(m_args.begin(), m_args.end(), [&](const info& i)
-        {
-            return i.m_longname == name || i.m_shortname == name;
-        });
-        if (iter == m_args.end())
+        auto iter = m_maps.find(name);
+        if (iter == m_maps.end())
         {
             return { };
         }
-        return argument_cast<T>(iter->m_default_value);
+        return argument_cast<T>(m_values[iter->second]);
     }
 
 };
@@ -156,20 +157,26 @@ public:
 
     struct info
     {
-        std::string m_longname;
-        std::string m_shortname;
-        std::string m_name;
-        std::string m_help;
-        std::string m_default_value; // val for type_cast
-        int m_argc = 1;
+        std::vector<std::string_view> m_arg_names;
+        std::string_view m_help;
+        std::string_view m_default_value; // val for type_cast
+        int m_nargs = 1;
         bool m_is_const = false;
         bool m_required = false;
 
         friend std::ostream& operator<<(std::ostream& os, const info& i)
         {
-            os << "LongName = [" << i.m_longname << "] ShortName =[" << i.m_shortname 
-                << "] help = " << i.m_help << " nargc = " << i.m_argc << " const ?: " << i.m_is_const
+            os.setf(std::ios_base::boolalpha);
+            os << "Names = [";
+            for (int k = 0; k < i.m_arg_names.size(); ++k)
+            {
+                if (k != 0) os << ", ";
+                os << i.m_arg_names[k];
+            }
+            os 
+                << "] help = " << i.m_help << " nargc = " << i.m_nargs << " const ?: " << i.m_is_const
                 << " required ?: " << i.m_required << " value = " << i.m_default_value;
+            os.unsetf(std::ios_base::boolalpha);
             return os;
         }
     };
@@ -185,21 +192,19 @@ public:
         using TypeList = std::tuple<Args...>;
 
         constexpr auto npos = static_cast<size_t>(-1);
-        constexpr auto longname_idx = find_first_index_of<TypeList, longname>::value;
-        constexpr auto shortname_idx = find_first_index_of<TypeList, shortname>::value;
-
-        static_assert(longname_idx < npos || shortname_idx < npos, "There at least one name");
 
         info i;
         auto params = std::forward_as_tuple(std::move(args)...);
 
-        auto register_name = [this]<typename T>(const T& name)
+        auto register_name = [this]<typename T>(const T& arg)
         {
-            if constexpr (std::is_same_v<T, longname> || std::is_same_v<T, shortname>)
+            // check
+            if constexpr (std::is_same_v<T, arg_names>)
             {
-                if (this->m_names.count(name.Value))
-                    throw std::invalid_argument("name already existed");
-                this->m_names.emplace(name.Value);
+                for (auto name : arg.Value)
+                    if (this->m_names.count(name))
+                        throw std::invalid_argument("name already existed");
+                    else this->m_names.emplace(name);
             }
         };
 
@@ -212,32 +217,87 @@ public:
             i.m_##name = std::move(std::get<idx>(params).Value);                          \
     }
 
-        AssignArgToInfo(longname)
-        AssignArgToInfo(shortname)
+        AssignArgToInfo(arg_names)
         AssignArgToInfo(default_value)
         AssignArgToInfo(help)
-        AssignArgToInfo(argc)
+        AssignArgToInfo(nargs)
         AssignArgToInfo(is_const)
         AssignArgToInfo(required)
 
 #undef AssignArgToInfo
 
-        // check
+        // check const
         if (i.m_is_const && i.m_default_value.empty())
             throw std::invalid_argument("const attribute must have default value");
+
+        // check name, if short name supported, the long name must started with `--`, such as --version, -v
+        // if short name not supported, longname could be `version` or `--version`
+        if (!check::check_name(i.m_arg_names))
+            throw std::invalid_argument("Error names");
 
         m_args.emplace_back(std::move(i));
     }
 
-    void parse_args(int argc, char const *argv[]) 
+    parser_result parse_args(int argc, char const *argv[]) 
     {
         m_prop_name = argv[0];
-        int idx = 0;
-        bool has_slash = false;
+
+        std::vector<size_t> indices;
+
+        for (size_t i = 0; i < m_args.size(); ++i)
+        {
+            if (std::ranges::none_of(m_args[i].m_arg_names, &check::check_optional))
+            {
+                indices.emplace_back(i);
+            }
+        }
+
+        size_t idx = 0;
+
         for (int i = 1; i < argc; ++i)
         {
+            std::string_view arg = argv[i];
+            // println("argv = (", arg, ") with Length:", arg.size());
+            std::match_results<std::string_view::iterator> base_match;
+            if (std::regex_match(arg.begin(), arg.end(), base_match, Pattern))
+            {
+                if (base_match.size() != 3)
+                    throw std::invalid_argument("Error argv");
+                std::string_view value1 = { base_match[1].first, base_match[1].second };
+                std::string_view value2 = { base_match[2].first, base_match[2].second };
+                auto iter = std::ranges::find_if(m_args, [=](const info& i) {
+                    return std::ranges::find(i.m_arg_names, value1) != i.m_arg_names.end();
+                });
+                if (iter == m_args.end())
+                    throw std::invalid_argument(std::string("Unknown Argument ") + std::string(value1)); 
+                iter->m_default_value = value2;
+                // println("key = ", key, " value1 = ", value1, " value2 = ", value2);
+            }
+            else
+            {
+                if (idx >= indices.size())
+                    throw std::invalid_argument("Too much arguments");
+                m_args[indices[idx]].m_default_value = arg;
+            }
 
         }
+    
+        parser_result ret;
+
+        auto lretrive = [](std::string_view sv) {
+            auto idx = sv.find_first_not_of('-');
+            return sv.substr(idx);
+        };
+
+        for (auto& info : m_args)
+        {
+            if (info.m_required && info.m_default_value.empty())
+                throw std::invalid_argument("Required Argument is Null");
+            ret.m_values.emplace_back(info.m_default_value);
+            for (auto sv : info.m_arg_names)
+                ret.m_maps[std::string(lretrive(sv))] = ret.m_values.size() - 1;
+        }
+        return ret;
     }
 
     template <typename T>
@@ -245,7 +305,7 @@ public:
     {
         auto iter = std::find_if(m_args.begin(), m_args.end(), [&](const info& i)
         {
-            return i.m_longname == name || i.m_shortname == name;
+            return std::ranges::find(i.m_arg_names, name) != i.m_arg_names.end();
         });
         if (iter == m_args.end())
         {
@@ -254,49 +314,29 @@ public:
         return argument_cast<T>(iter->m_default_value);
     }
 
-    template <typename T, typename F>
-    std::optional<T> get(const std::string& name, F f)
-    {
-        auto iter = std::find_if(m_args.begin(), m_args.end(), [&](const info& i)
-        {
-            return i.m_longname == name || i.m_shortname == name;
-        });
-        if (iter == m_args.end())
-        {
-            return { };
-        }
-        auto ret = argument_cast<T>(iter->m_default_value);
-        if (ret && f(*ret))
-            return ret;
-        return { };
-    }
-
-    void display() const 
-    {
-        for (auto& i : m_args)
-            std::cout << i << '\n';
-    }
-
 private:
 
-    inline static const std::regex Pattern{ "-*(.*)=(.*)" };
+    inline static const std::regex Pattern{ "(.*)=(.*)" };
 
     std::vector<info> m_args;
     std::string m_prop_name;
-    std::unordered_set<std::string> m_names;
+    // std::unordered_set<std::string, leviathan::string_hash, leviathan::string_key_equal> m_names;
+    leviathan::string_hashset<std::unordered_set> m_names;
 };
 
 int main(int argc, char const *argv[])
 {
     argument_parser parser;
-    parser.add_argument(shortname("-v"), longname("--version"), is_const(true), default_value("0.0.0"));
-    parser.add_argument(longname("--epoch"), default_value("15"), help("epoch num of your training"));
-    parser.add_argument(longname(std::string("--lr")), default_value("2e-5"));
-    parser.parse_args(argc, argv);
-    parser.display();
-    std::cout << *parser.get<int>("epoch", [](int x) { return x < 100; }) << '\n';
-    std::cout << *parser.get<float>("lr") << '\n';
-    std::cout << *parser.get<std::string>("v") << '\n';
+    parser.add_argument(arg_names{ "--version", "-v" }, is_const(true), default_value("0.0.0"));
+    parser.add_argument(arg_names("--epoch"), default_value("15"), help("epoch num of your training"));
+    parser.add_argument(arg_names("--lr"), default_value("2e-5"));
+    parser.add_argument(arg_names("nooptional"));
+    auto res = parser.parse_args(argc, argv);
+    res.display();
+    std::cout << *res.get<int>("epoch") << '\n';
+    std::cout << *res.get<float>("lr") << '\n';
+    std::cout << *res.get<std::string>("v") << '\n';
+    std::cout << *res.get<std::string>("nooptional") << '\n';
     std::cout << "OK\n";
     return 0;
 }

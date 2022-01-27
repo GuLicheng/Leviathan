@@ -47,10 +47,10 @@ def generate_images(path = r"D:\VOCtrainval_11-May-2012\VOCdevkit\VOC2012\JPEGIm
 
 def main():
     paths = [
-        # r"D:\VOCtrainval_11-May-2012\VOCdevkit\VOC2012\SegmentationObject",
-        # r"D:\VOCtrainval_11-May-2012\VOCdevkit\VOC2012\JPEGImages",
+        r"D:\VOCtrainval_11-May-2012\VOCdevkit\VOC2012\SegmentationObject",
+        r"D:\VOCtrainval_11-May-2012\VOCdevkit\VOC2012\JPEGImages",
         "./images",
-        r"D:\TrainDataset\TrainDataset\DUTS-TR\GT",
+        # r"D:\TrainDataset\TrainDataset\DUTS-TR\GT",
     ]
     for path in paths:
         for file in tqdm(concat_file(path)):
@@ -61,5 +61,6 @@ def main():
 
 
 if __name__ == "__main__":
-    convert_image("./images/depth.bmp", "./a.ppm")
+    # convert_image("./images/depth.bmp", "./a.ppm")
+    main()
 

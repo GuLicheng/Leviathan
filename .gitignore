@@ -9,12 +9,11 @@ __pycache__
 *.o
 *.txt
 *.ini
-# *.py
 *.xml
 *.json
-# *.exp
-# *.lib
-# *.obj
+*.exp
+*.lib
+*.obj
 
 
 # root

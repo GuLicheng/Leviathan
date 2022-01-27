@@ -41,4 +41,11 @@ namespace leviathan
     {
     };
 
+
+    template <template <typename...> typename HashSet>
+    using string_hashset = HashSet<std::string, string_hash,  string_key_equal>;
+
+    template <template <typename...> typename HashSet, typename Value>
+    using string_hashmap = HashSet<std::string, Value, string_hash, string_key_equal>;
+
 }

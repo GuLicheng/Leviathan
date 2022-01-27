@@ -1,27 +1,26 @@
 #include <iostream>
 #include <string>
 #include <regex>
+#include <lv_cpp/meta/template_info.hpp>
 
-int main() {
-    std::string fnames[] = {"foo.txt", "bar.txt", "test", "a0.txt", "AAA.txt"};
-    // 在 C++ 中 \ 会被作为字符串内的转义符，为使 \. 作为正则表达式传递进去生效，需要对 \ 进行二次转义，从而有 \\.
-    std::regex txt_regex("[a-z]+\\.txt");
-    for (const auto &fname: fnames)
-        std::cout << fname << ": " << std::regex_match(fname, txt_regex) << std::endl;
+inline static const std::regex Pattern{ "-*(.*)=(.*)" };
 
-    std::cout << "==================================================\n";
-    std::regex base_regex("([a-z]+)\\.txt");
-    std::smatch base_match;
-    for(const auto &fname: fnames) {
-        if (std::regex_match(fname, base_match, base_regex)) {
-            // std::smatch 的第一个元素匹配整个字符串
-            // std::smatch 的第二个元素匹配了第一个括号表达式
-            if (base_match.size() == 2) {
-                std::string base = base_match[1].str();
-                std::cout << "sub-match[0]: " << base_match[0].str() << std::endl;
-                std::cout << fname << " sub-match[1]: " << base << std::endl;
-            }
+int main() 
+{
+    std::string_view strings[] = {
+        "-std=c++",
+        "--v=1.4.4",
+        "create",
+        "-err="
+    };
+
+    for (auto& string : strings) {
+        std::match_results<std::string_view::iterator> ss;
+        std::cout << "Length = " << string.size() << "\n";
+        if (std::regex_match(string.begin(), string.end(), ss, Pattern)) {
+            for (auto res : ss)
+                std::cout << '(' << res << ')' << '\n';
+            std::cout << "====================================\n";
         }
     }
-
 }
