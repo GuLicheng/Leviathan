@@ -92,18 +92,18 @@ struct parameter
     using base = parameter<TParams>;
 
     template <typename T>
-    parameter(T&& t) : Value{(T&&)t} { }
+    constexpr parameter(T&& t) : Value{(T&&)t} { }
 
-    parameter(const parameter&) = delete;
-    parameter& operator=(const parameter&) = delete;
+    constexpr parameter(const parameter&) = delete;
+    constexpr parameter& operator=(const parameter&) = delete;
 
     TParams Value;
 };
 
 struct arg_names : parameter<std::vector<std::string_view>> 
 { 
-    arg_names(std::initializer_list<std::string_view> ls) : base { ls } { }
-    arg_names(std::string_view sv) : base { sv } { }
+    constexpr arg_names(std::initializer_list<std::string_view> ls) : base { ls } { }
+    constexpr arg_names(std::string_view sv) : base { sv } { }
 };
 struct default_value : parameter<std::string_view> { using base::base; };  // ...
 struct help : parameter<std::string_view> { using base::base; };  // -v : version of...
@@ -123,6 +123,7 @@ struct check
             return std::ranges::all_of(names, &check::check_optional);
         return true;
     }
+
 };
 
 
@@ -198,12 +199,13 @@ public:
 
         auto register_name = [this]<typename T>(const T& arg)
         {
+            using str = std::string;
             // check
             if constexpr (std::is_same_v<T, arg_names>)
             {
                 for (auto name : arg.Value)
                     if (this->m_names.count(name))
-                        throw std::invalid_argument("name already existed");
+                        this->m_errlog.emplace_back(str("Name") + str(name) + "Already Existed");
                     else this->m_names.emplace(name);
             }
         };
@@ -226,19 +228,24 @@ public:
 
 #undef AssignArgToInfo
 
+        using str = std::string;
+
         // check const
         if (i.m_is_const && i.m_default_value.empty())
-            throw std::invalid_argument("const attribute must have default value");
+            this->m_errlog.emplace_back(str("Const Attribute") + str(i.m_arg_names[0]) + "Must Have Default Value");
 
         // check name, if short name supported, the long name must started with `--`, such as --version, -v
         // if short name not supported, longname could be `version` or `--version`
         if (!check::check_name(i.m_arg_names))
-            throw std::invalid_argument("Error names");
+            this->m_errlog.emplace_back("Error names");
+
+
+        // check_require
 
         m_args.emplace_back(std::move(i));
     }
 
-    parser_result parse_args(int argc, char const *argv[]) 
+    std::pair<parser_result, bool> parse_args(int argc, char const *argv[]) 
     {
         m_prop_name = argv[0];
 
@@ -262,21 +269,24 @@ public:
             if (std::regex_match(arg.begin(), arg.end(), base_match, Pattern))
             {
                 if (base_match.size() != 3)
-                    throw std::invalid_argument("Error argv");
+                    this->m_errlog.emplace_back("Error argv");
                 std::string_view value1 = { base_match[1].first, base_match[1].second };
                 std::string_view value2 = { base_match[2].first, base_match[2].second };
                 auto iter = std::ranges::find_if(m_args, [=](const info& i) {
                     return std::ranges::find(i.m_arg_names, value1) != i.m_arg_names.end();
                 });
+                using str = std::string;
                 if (iter == m_args.end())
-                    throw std::invalid_argument(std::string("Unknown Argument ") + std::string(value1)); 
+                    this->m_errlog.emplace_back(str("Unknown Argument ") + str(value1)); 
+                if (iter->m_is_const)
+                    this->m_errlog.emplace_back(str("Const Argument") + str(iter->m_arg_names[0]) + "Cannot be Modified");
                 iter->m_default_value = value2;
                 // println("key = ", key, " value1 = ", value1, " value2 = ", value2);
             }
             else
             {
                 if (idx >= indices.size())
-                    throw std::invalid_argument("Too much arguments");
+                    this->m_errlog.emplace_back("Too much arguments");
                 m_args[indices[idx]].m_default_value = arg;
             }
 
@@ -291,13 +301,16 @@ public:
 
         for (auto& info : m_args)
         {
+            using str = std::string;
             if (info.m_required && info.m_default_value.empty())
-                throw std::invalid_argument("Required Argument is Null");
+                this->m_errlog.emplace_back(str("Required Argument") + str(info.m_arg_names[0]) + "is Null");
             ret.m_values.emplace_back(info.m_default_value);
             for (auto sv : info.m_arg_names)
                 ret.m_maps[std::string(lretrive(sv))] = ret.m_values.size() - 1;
         }
-        return ret;
+
+
+        return { ret, m_errlog.empty() };
     }
 
     template <typename T>
@@ -314,14 +327,20 @@ public:
         return argument_cast<T>(iter->m_default_value);
     }
 
+    void report_error() const 
+    {
+        for (auto& msg : m_errlog)
+            std::cout << msg << '\n';
+    }
+
 private:
 
     inline static const std::regex Pattern{ "(.*)=(.*)" };
 
     std::vector<info> m_args;
     std::string m_prop_name;
-    // std::unordered_set<std::string, leviathan::string_hash, leviathan::string_key_equal> m_names;
     leviathan::string_hashset<std::unordered_set> m_names;
+    std::vector<std::string> m_errlog; 
 };
 
 int main(int argc, char const *argv[])
@@ -331,12 +350,20 @@ int main(int argc, char const *argv[])
     parser.add_argument(arg_names("--epoch"), default_value("15"), help("epoch num of your training"));
     parser.add_argument(arg_names("--lr"), default_value("2e-5"));
     parser.add_argument(arg_names("nooptional"));
-    auto res = parser.parse_args(argc, argv);
-    res.display();
-    std::cout << *res.get<int>("epoch") << '\n';
-    std::cout << *res.get<float>("lr") << '\n';
-    std::cout << *res.get<std::string>("v") << '\n';
-    std::cout << *res.get<std::string>("nooptional") << '\n';
+    auto [res, ok] = parser.parse_args(argc, argv);
+    if (ok)
+    {
+        res.display();
+        std::cout << *res.get<int>("epoch") << '\n';
+        std::cout << *res.get<float>("lr") << '\n';
+        std::cout << *res.get<std::string>("v") << '\n';
+        std::cout << *res.get<std::string>("nooptional") << '\n';
+    }
+    else
+    {
+        parser.report_error();
+    }
+    std::cout << leviathan::cat_string("Hello", " World", 1, true, std::string_view{ "XXX\n" });
     std::cout << "OK\n";
     return 0;
 }

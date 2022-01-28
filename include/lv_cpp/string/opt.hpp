@@ -4,6 +4,7 @@
 #include <string>
 #include <string_view>
 #include <algorithm>
+#include <concepts>
 
 namespace leviathan
 {
@@ -41,11 +42,40 @@ namespace leviathan
     {
     };
 
-
     template <template <typename...> typename HashSet>
     using string_hashset = HashSet<std::string, string_hash,  string_key_equal>;
 
     template <template <typename...> typename HashSet, typename Value>
     using string_hashmap = HashSet<std::string, Value, string_hash, string_key_equal>;
+
+    template <typename Target, typename Source>
+    struct lexical_cast_t;
+
+    template <typename Source>
+    struct lexical_cast_t<std::string, Source>
+    {
+        static std::string cast(const Source& source)
+        {
+            if constexpr (std::is_arithmetic_v<Source>)
+                return std::to_string(source);
+            else if constexpr (std::is_constructible_v<std::string, Source>)
+                return std::string(source);
+            else
+                throw std::bad_cast{ };
+        }
+    };
+
+    template <typename Target, typename Source>
+    Target lexical_cast(const Source& source)
+    {
+        return lexical_cast_t<Target, Source>::cast(source);
+    }
+
+    // use for construct some exception infomation
+    template <typename T, typename... Ts>
+    std::string cat_string(const T& t, const Ts&... ts)
+    {
+        return (lexical_cast<std::string>(t) + ... + lexical_cast<std::string>(ts));
+    }
 
 }
