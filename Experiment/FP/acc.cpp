@@ -1,4 +1,4 @@
-// use std::accumelate implement some algorithm
+// use std::accumelate implement some algorithms
 
 #include "base.hpp"
 

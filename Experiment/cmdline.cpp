@@ -5,6 +5,8 @@
 #include <lv_cpp/meta/type_list.hpp>
 #include <lv_cpp/meta/template_info.hpp>
 #include <lv_cpp/string/opt.hpp>
+#include <lv_cpp/tuples/core.hpp>
+
 #include <optional>
 #include <iostream>
 #include <string>

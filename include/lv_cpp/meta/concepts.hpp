@@ -2,8 +2,9 @@
 
 #include <concepts>
 #include <type_traits>
+#include <tuple> 
 
-namespace leviathan
+namespace leviathan::meta
 {
     template<typename _Tp, size_t Num>
     concept has_tuple_element = requires(_Tp __t)
@@ -32,7 +33,11 @@ namespace leviathan
     {
         static_assert(Flag);
     };
-
+    
+    static_assert(tuple_like<std::tuple<>>);
+    static_assert(tuple_like<std::tuple<int, double>>);
+    static_assert(tuple_like<std::pair<bool, bool>>);
+    static_assert(!tuple_like<int>);
 
 #define LV_STATIC_ASSERT(s) ([]<bool Flag>() { static_assert(Flag, s); }())
 

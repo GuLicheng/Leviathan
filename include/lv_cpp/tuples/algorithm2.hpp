@@ -2,7 +2,7 @@
 #define __TUPLE_ALGORITHM_HPP__
 
 #include "tuple_base.hpp"
-#include "static_looer.hpp"
+#include "static_looper.hpp"
 #include <functional>
 
 namespace leviathan::tuple
