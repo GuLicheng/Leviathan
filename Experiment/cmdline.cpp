@@ -1,3 +1,7 @@
+/*
+    TODO: 
+        nargs
+*/
 #include <lv_cpp/meta/type_list.hpp>
 #include <lv_cpp/meta/template_info.hpp>
 #include <lv_cpp/string/opt.hpp>
@@ -18,6 +22,7 @@ void println(Ts... x)
     (std::cout << ... << x) << '\n';
 }
 
+using leviathan::cat_string;
 
 //////////////////////////////////////////////////////
 // Some Helper
@@ -107,7 +112,7 @@ struct arg_names : parameter<std::vector<std::string_view>>
 };
 struct default_value : parameter<std::string_view> { using base::base; };  // ...
 struct help : parameter<std::string_view> { using base::base; };  // -v : version of...
-struct nargs : parameter<int> { using base::base; };  // -l pthread libstdc++ ...
+struct nargs : parameter<int> { using base::base; };  // -l pthread libstdc++ ... 
 struct is_const : parameter<bool> { using base::base; };  // for -v, it's unchangeable and must have default value
 struct required : parameter<bool> { using base::base; };   // optional params
 
@@ -129,7 +134,6 @@ struct check
 
 struct parser_result
 {
-    // std::unordered_map<std::string, size_t, leviathan::string_hash, leviathan::string_key_equal> m_maps;
     leviathan::string_hashmap<std::unordered_map, size_t> m_maps;
     std::vector<std::string> m_values; // store value
 
@@ -169,7 +173,7 @@ public:
         {
             os.setf(std::ios_base::boolalpha);
             os << "Names = [";
-            for (int k = 0; k < i.m_arg_names.size(); ++k)
+            for (size_t k = 0; k < i.m_arg_names.size(); ++k)
             {
                 if (k != 0) os << ", ";
                 os << i.m_arg_names[k];
@@ -199,13 +203,13 @@ public:
 
         auto register_name = [this]<typename T>(const T& arg)
         {
-            using str = std::string;
             // check
             if constexpr (std::is_same_v<T, arg_names>)
             {
                 for (auto name : arg.Value)
                     if (this->m_names.count(name))
-                        this->m_errlog.emplace_back(str("Name") + str(name) + "Already Existed");
+                        // this->m_errlog.emplace_back(str("Name") + str(name) + "Already Existed");
+                        this->m_errlog.emplace_back(cat_string("Name ", name, " Already Existed"));
                     else this->m_names.emplace(name);
             }
         };
@@ -228,11 +232,12 @@ public:
 
 #undef AssignArgToInfo
 
-        using str = std::string;
+        
 
         // check const
         if (i.m_is_const && i.m_default_value.empty())
-            this->m_errlog.emplace_back(str("Const Attribute") + str(i.m_arg_names[0]) + "Must Have Default Value");
+            // this->m_errlog.emplace_back(str("Const Attribute") + str(i.m_arg_names[0]) + "Must Have Default Value");
+            this->m_errlog.emplace_back(cat_string("Const Attribute ", i.m_arg_names[0], " Must Have Default Value"));
 
         // check name, if short name supported, the long name must started with `--`, such as --version, -v
         // if short name not supported, longname could be `version` or `--version`
@@ -275,11 +280,11 @@ public:
                 auto iter = std::ranges::find_if(m_args, [=](const info& i) {
                     return std::ranges::find(i.m_arg_names, value1) != i.m_arg_names.end();
                 });
-                using str = std::string;
+                
                 if (iter == m_args.end())
-                    this->m_errlog.emplace_back(str("Unknown Argument ") + str(value1)); 
+                    this->m_errlog.emplace_back(cat_string("Unknown Argument ", argv[i])); 
                 if (iter->m_is_const)
-                    this->m_errlog.emplace_back(str("Const Argument") + str(iter->m_arg_names[0]) + "Cannot be Modified");
+                    this->m_errlog.emplace_back(cat_string("Const Argument ", iter->m_arg_names[0], " Cannot be Modified"));
                 iter->m_default_value = value2;
                 // println("key = ", key, " value1 = ", value1, " value2 = ", value2);
             }
@@ -301,9 +306,9 @@ public:
 
         for (auto& info : m_args)
         {
-            using str = std::string;
+            
             if (info.m_required && info.m_default_value.empty())
-                this->m_errlog.emplace_back(str("Required Argument") + str(info.m_arg_names[0]) + "is Null");
+                this->m_errlog.emplace_back(cat_string("Required Argument ", info.m_arg_names[0], " is Null"));
             ret.m_values.emplace_back(info.m_default_value);
             for (auto sv : info.m_arg_names)
                 ret.m_maps[std::string(lretrive(sv))] = ret.m_values.size() - 1;
@@ -349,7 +354,8 @@ int main(int argc, char const *argv[])
     parser.add_argument(arg_names{ "--version", "-v" }, is_const(true), default_value("0.0.0"));
     parser.add_argument(arg_names("--epoch"), default_value("15"), help("epoch num of your training"));
     parser.add_argument(arg_names("--lr"), default_value("2e-5"));
-    parser.add_argument(arg_names("nooptional"));
+    parser.add_argument(arg_names("nooptional"), required(true));
+    parser.add_argument(arg_names("--lr"));
     auto [res, ok] = parser.parse_args(argc, argv);
     if (ok)
     {

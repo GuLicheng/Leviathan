@@ -1,5 +1,7 @@
 #pragma once
 
+#include <lv_cpp/concepts_extend.hpp>
+
 #include <type_traits>
 #include <string>
 #include <string_view>
@@ -61,7 +63,7 @@ namespace leviathan
             else if constexpr (std::is_constructible_v<std::string, Source>)
                 return std::string(source);
             else
-                throw std::bad_cast{ };
+                LV_STATIC_ASSERT("no match");
         }
     };
 
