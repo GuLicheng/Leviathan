@@ -75,10 +75,21 @@ void test()
     (void)(Foo)foo;
 }
 
+union Bar 
+{
+    int x;
+    Foo f;
+
+    Bar() : x{} { }
+    ~Bar() { }
+};
+
 int main(int argc, char const *argv[])
 {
 
-    test();
+    // test();
+
+    Bar b;
 
     return 0;
 }
