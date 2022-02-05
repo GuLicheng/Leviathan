@@ -1,9 +1,12 @@
 #ifndef __TYPE_LIST_HPP__
 #define __TYPE_LIST_HPP__
 
+#include "meta.hpp"
+
 #include <type_traits>
 #include <tuple>  //  for tuple
 #include <cstddef>  // for size_t
+
 
 // Here are some options for type list
 namespace leviathan::meta
@@ -467,14 +470,7 @@ struct call : std::enable_if<true, typename Func<Args...>::type> { };
 // for some utilities
 namespace leviathan::meta
 {
-//template <template <typename...> typename TemplateClass, typename... Args>
-//struct is_instance : std::false_type { };
 
-template <template <typename...> typename TemplateClass, typename T>
-struct is_instance : std::false_type { };
-
-template <template <typename...> typename TemplateClass, typename... Args>
-struct is_instance<TemplateClass, TemplateClass<Args...>> : std::true_type { };
 
 namespace detail
 {

@@ -243,5 +243,18 @@ namespace leviathan
     lazy_string_concat_helper(Strings&&...) -> 
         lazy_string_concat_helper<typename detail::lazy_string_map<Strings>::type...>;
 
+    constexpr std::string_view trim(std::string_view sv)
+    {
+        auto left = sv.find_first_not_of(' ');
+        auto right = sv.find_last_not_of(' ');
+        return { sv.begin() + left, sv.begin() + right };
+    }
+
+    std::string_view trim(const std::string& s)
+    {
+        std::string_view sv = s;
+        return trim(sv);        
+    }
+
 
 }

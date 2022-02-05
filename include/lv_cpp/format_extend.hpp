@@ -31,7 +31,7 @@ template <ContainerChecker Ranges, typename CharT>
 struct std::formatter<Ranges, CharT>
 {
 	// accept a context and return it's iterator
-	// std::basic_format_context<BackInsertIteartor, CharType>
+	// std::basic_format_context<BackInsertIterator, CharType>
 	constexpr auto format(const Ranges& rg, auto& format_context)
 	{
 		auto iter = std::format_to(format_context.out(), "{}", '[');
@@ -49,7 +49,7 @@ struct std::formatter<Ranges, CharT>
 		iter = ']';
 		return iter;
 	}
-	// Accept a context and return it's iteartor
+	// Accept a context and return it's iterator
 	// std::basic_format_parse_context<OutIter, CharT>
 	constexpr auto parse(auto& context)
 	{

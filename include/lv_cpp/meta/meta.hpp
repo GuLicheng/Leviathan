@@ -30,6 +30,12 @@ namespace leviathan::meta
     template <typename T>
     struct referece_traits<std::reference_wrapper<T>> : std::type_identity<T&> { };
 
+    template <template <typename...> typename TemplateClass, typename T>
+    struct is_instance : std::false_type { };
+
+    template <template <typename...> typename TemplateClass, typename... Args>
+    struct is_instance<TemplateClass, TemplateClass<Args...>> : std::true_type { };
+
 }
 
 #endif
