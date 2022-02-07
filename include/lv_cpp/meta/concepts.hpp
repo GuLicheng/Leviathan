@@ -14,7 +14,7 @@ namespace leviathan::meta
         typename std::tuple_element_t<Num, _Tp>;
         requires (
             (requires { { std::get<Num>(__t) } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; })   // this just adapt structure-binding
-            || (requires { { __t.template get<Num>() } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; })
+            // || (requires { { __t.template get<Num>() } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; })
         );
     };
 
