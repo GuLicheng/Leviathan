@@ -490,7 +490,70 @@ template <size_t N, typename T>
 struct repeat : detail::repeat_impl<N, std::tuple<>, T> { };
 
 
+/////////////////////////////////////////////////////////
+//                   FP
+/////////////////////////////////////////////////////////
+namespace detail 
+{
 
+template <int N, template <typename...> typename F, typename List>
+struct iterate 
+{
+    using last_type = typename iterate<N - 1, F, List>::type;
+    using type = typename F<last_type>::type;
+};
+
+template <template <typename...> typename F, typename List>
+struct iterate<0, F, List> 
+{
+    using type = typename F<List>::type;
+};
+
+} // namespace detail
+
+
+
+template <typename List, size_t N>
+struct drop
+{
+    using type = typename detail::iterate<N - 1, leviathan::meta::pop_front, List>::type;
+};
+
+template <typename List, size_t N>
+struct take
+{
+private:
+    constexpr static auto size = leviathan::meta::size<List>::value;
+public:
+    using type = typename detail::iterate<size - N - 1, leviathan::meta::pop_back, List>::type;
+};
+
+template <typename List, size_t From, size_t To, size_t Stride = 1>
+struct slice;
+
+template <typename List, size_t From, size_t To>
+struct slice<List, From, To, 1>
+{
+    // drop + take
+public:
+    using type = take<typename drop<List, From>::type, To - From>::type;
+};
+
+template <typename List, size_t N>
+struct take_last
+{
+private:
+    constexpr static auto size = leviathan::meta::size<List>::value;
+public:
+    using type = typename detail::iterate<size - N - 1, leviathan::meta::pop_front, List>::type;
+};
+
+template <typename List, size_t N>
+struct drop_last
+{
+public:
+    using type = typename detail::iterate<N - 1, leviathan::meta::pop_back, List>::type;
+};
 
 
 }  // namespace leviathan meta
