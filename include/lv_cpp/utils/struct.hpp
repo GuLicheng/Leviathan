@@ -39,7 +39,7 @@ public:
     explicit Int32(int x) : val{ x }
     {
         ++int_constructor; 
-        PrintLn(int_constructor); 
+        // PrintLn(int_constructor); 
     }
 
     Int32(const Int32& rhs) : val{ rhs.val }
