@@ -93,20 +93,12 @@ int main()
     static_assert(meta::tuple_like<std::pair<bool, bool>>);
     static_assert(!meta::tuple_like<int>);
 
-//     using U = typename drop<Tuple, 2>::type;
-//     PrintTypeInfo(U);
-//     using V = typename meta::take<Tuple, 1>::type;
-//     PrintTypeInfo(V);
-//     using W = typename meta::take_last<Tuple, 3>::type;
-//     PrintTypeInfo(W);
-//     using X = typename meta::drop_last<Tuple, 3>::type;
-//     PrintTypeInfo(X);
+
     using Tuple = std::tuple<int, double, bool, const char*>;
     static_assert(std::is_same_v<typename meta::drop<Tuple, 2>::type, std::tuple<bool, const char*>>);    
     static_assert(std::is_same_v<typename meta::take<Tuple, 1>::type, std::tuple<int>>);    
     static_assert(std::is_same_v<typename meta::take_last<Tuple, 3>::type, std::tuple<double,bool, const char*>>);    
     static_assert(std::is_same_v<typename meta::drop_last<Tuple, 3>::type, std::tuple<int>>);    
-
 
     std::cout << "Test Successfully\n";
 
