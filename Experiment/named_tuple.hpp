@@ -31,9 +31,12 @@ struct tag_value
     constexpr tag_value(tag_value<Tag, U>&& u) : value{std::move(u.value)} { }
 
     constexpr tag_value(const T& t) : value{t} { }
-    constexpr tag_value(T&& t) noexcept : value{std::move(t)} { }
+    // constexpr tag_value(T&& t) noexcept : value{std::move(t)} { }
     constexpr tag_value(const tag_value&) = default;
     constexpr tag_value(tag_value&&) noexcept = default;
+
+    template <typename U>
+    constexpr tag_value(tag_value<Tag, std::reference_wrapper<U>> u) : value{u.value.get()} { }
 
     template <typename U> requires (std::is_constructible_v<T, U>)
     constexpr tag_value(U&& u) : value{(U&&)u} { }
@@ -79,8 +82,12 @@ struct field
     
     using value_type = T;
 
-    template <typename U>
+    // When T is int&, T cannot initialized by rvalue reference
+    template <typename U> requires (!std::is_reference_v<T>)
     constexpr explicit field(tag_value<Tag, U> tv) : value(std::move(tv.value)) { }
+
+    template <typename U> 
+    constexpr explicit field(tag_value<Tag, U> tv) : value(tv.value) { }
 
     constexpr field() : value(Initer()) { }
 

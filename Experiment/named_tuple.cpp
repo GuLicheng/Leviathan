@@ -50,12 +50,17 @@ void test1()
 
 void test2()
 {
-    using T = named_tuple<field<"int", Int32>, field<"name", double>>;
-    T t{ arg<"int"> = 1 };
+    double pi = 3.14;
+    using T = named_tuple<field<"int", Int32>, field<"name", const double&>>;
+    T t{ arg<"int"> = 1, arg<"name"> = std::ref(pi) };
     std::cout << Int32::move_constructor << '\n';
     std::cout << Int32::copy_constructor << '\n';
     std::cout << Int32::total_construct() << '\n';
     std::cout << t << '\n';
+    // auto params = create_parameters<field<"name", double&>>(
+    //     arg<"name"> = std::ref(pi)
+    // );
+    // T t { params };
 }
 
 int main()

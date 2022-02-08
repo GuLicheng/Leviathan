@@ -27,6 +27,7 @@ struct fixed_string
     static constexpr auto npos = view::npos;
 
     constexpr static auto size() { return N + 1; }
+
     constexpr fixed_string(const CharT (&foo)[N + 1]) 
     {
         std::copy_n(foo, N + 1, data);
@@ -87,5 +88,16 @@ struct index_of_impl<Cur, TargetFixedString, FixedString1, FixedStrings...>
 
 template <auto TargetFixedString, auto... FixedStrings>
 struct find_first_fixed_string : index_of_impl<0, TargetFixedString, FixedStrings...> { };
+
+// Another way implement this meta helper 
+// template <auto FixedString, auto... FixedStrings>
+// struct ContainsVariable
+// {
+//     constexpr static size_t value = [](){
+//         std::array strings = { FixedStrings.sv()... };
+//         auto dist = std::ranges::find(strings, FixedString.sv());
+//         return std::distance(strings.begin(), dist);
+//     }();
+// };
 
 

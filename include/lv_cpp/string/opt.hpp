@@ -78,6 +78,7 @@ namespace leviathan
 
     // use for construct some exception infomation
     template <typename T, typename... Ts>
+    [[deprecated("using lazy_string_concat_helper instead")]]
     std::string cat_string(const T& t, const Ts&... ts)
     {
         return (lexical_cast<std::string>(t) + ... + lexical_cast<std::string>(ts));
