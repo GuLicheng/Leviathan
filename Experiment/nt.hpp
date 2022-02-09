@@ -99,14 +99,9 @@ struct named_tuple
 
     template <typename CharT>
     friend std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const named_tuple& rhs)
-    {
-        int count = 0;
-        os << '{';
-        // std::apply([](auto& ...x) { (((std::cout << x << ' '), ...));}, rhs.val);
-        auto print_one_element = [&]<size_t I>(std::ostream& os) -> auto&
-        {
-
-        };
+    {   
+        os << "{\n";
+        ((std::cout << '\t' << Fields::tag_value << ": " << rhs.get_with<Fields::tag_value>() << '\n'), ...);
         return os << '}';
     }
 

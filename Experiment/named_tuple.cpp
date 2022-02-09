@@ -32,22 +32,9 @@ void test1()
     std::cout << p2 << '\n';
 }
 
-void test2()
-{
-    double pi = 3.14;
-    using T = named_tuple<field<"int", Int32>, field<"name", double&>>;
-    T t{ arg<"int"> = 1, arg<"name"> = std::ref(pi) };
-    std::cout << Int32::move_constructor << '\n';
-    std::cout << Int32::copy_constructor << '\n';
-    std::cout << Int32::total_construct() << '\n';
-    t.get_with<"name">() = 2.17;
-    std::cout << t << '\n';
-}
-
 int main()
 {
     test1();
-    test2();
 }
 
 
