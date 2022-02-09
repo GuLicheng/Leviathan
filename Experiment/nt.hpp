@@ -26,18 +26,6 @@ struct tag_value
 {
     constexpr static auto tag() { return Tag; }
     using value_type = T;
-
-    constexpr tag_value(const T& t) : value{t} { }
-    // constexpr tag_value(T&& t) noexcept : value{std::move(t)} { }
-    constexpr tag_value(const tag_value&) = default;
-    constexpr tag_value(tag_value&&) noexcept = default;
-
-    template <typename U>
-    constexpr tag_value(tag_value<Tag, std::reference_wrapper<U>> u) : value{u.value.get()} { }
-
-    template <typename U> requires (std::is_constructible_v<T, U>)
-    constexpr tag_value(U&& u) : value{(U&&)u} { }
-
     T value; 
 };
 
@@ -54,6 +42,9 @@ struct arg_t
 
 template <basic_fixed_string Tag>
 inline constexpr auto arg = arg_t<Tag>{ };
+
+template <basic_fixed_string S> 
+constexpr arg_t<S> operator ""_arg() { return {}; }
 
 ///////////////////////////////////////
 //   named_tuple member 
@@ -139,12 +130,6 @@ struct named_tuple
 private:
     tuple_type val; // store values
 };
-
-namespace {
-    template <basic_fixed_string S> 
-    constexpr arg_t<S> operator ""_arg() { return {}; }
-}
-
 
 namespace std
 {

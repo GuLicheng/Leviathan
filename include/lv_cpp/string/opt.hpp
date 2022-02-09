@@ -66,7 +66,7 @@ namespace leviathan
             else if constexpr (std::is_constructible_v<std::string, Source>)
                 return std::string(source);
             else
-                LV_STATIC_ASSERT("no match");
+                LV_STATIC_ASSERT_FALSE("no match");
         }
     };
 

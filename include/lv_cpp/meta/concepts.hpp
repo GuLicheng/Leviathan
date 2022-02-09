@@ -39,7 +39,7 @@ namespace leviathan::meta
     static_assert(tuple_like<std::pair<bool, bool>>);
     static_assert(!tuple_like<int>);
 
-#define LV_STATIC_ASSERT(s) ([]<bool Flag>() { static_assert(Flag, s); }())
+#define LV_STATIC_ASSERT_FALSE(s) ([]<bool Flag>() { static_assert(Flag, s); }())
 
 }
 
