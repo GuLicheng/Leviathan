@@ -27,12 +27,6 @@ struct tag_value
     constexpr static auto tag() { return Tag; }
     using value_type = T;
 
-    template <typename U>
-    constexpr tag_value(const tag_value<Tag, U>& u) : value{u.value} { }
-
-    template <typename U>
-    constexpr tag_value(tag_value<Tag, U>&& u) : value{std::move(u.value)} { }
-
     constexpr tag_value(const T& t) : value{t} { }
     // constexpr tag_value(T&& t) noexcept : value{std::move(t)} { }
     constexpr tag_value(const tag_value&) = default;
