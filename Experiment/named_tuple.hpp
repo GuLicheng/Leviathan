@@ -7,6 +7,9 @@
 #include <type_traits>
 #include <algorithm>
 
+using leviathan::basic_fixed_string;
+using leviathan::fixed_string_list;
+
 ///////////////////////////////////////
 //           Initializer
 ///////////////////////////////////////
@@ -83,7 +86,10 @@ public:
 
     template <typename... TagValues>
     constexpr named_tuple(TagValues... tvs)
-        : val(adjust_parameters<tuple_type, Fields...>(std::move(tvs)...)) { }
+        : val(adjust_parameters<tuple_type, Fields...>(std::move(tvs)...)) 
+    {
+        static_assert((tag_list.template contains<TagValues::tag()> && ...), "Unknown Tag");
+    }
 
     template <typename CharT>
     friend std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const named_tuple& rhs)

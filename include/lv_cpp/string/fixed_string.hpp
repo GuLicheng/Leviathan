@@ -7,6 +7,11 @@
 #include <iterator>
 #include <type_traits>
 
+
+namespace leviathan 
+{
+
+
 // ignore Traits since it's useless
 template <size_t N, typename CharT>
 struct basic_fixed_string
@@ -59,15 +64,13 @@ struct basic_fixed_string
 
     friend std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const basic_fixed_string& rhs) 
     {
-        os.write(rhs.data, N + 1);
-        return os;
+        return os.write(rhs.data, N + 1);
     }
 };
 
 template <size_t N, typename CharT>
 basic_fixed_string(const CharT (&str)[N]) -> basic_fixed_string<N - 1, CharT>; 
 // char[N] is different from const char* with n charactors
-
 
 // helper meta
 template <basic_fixed_string... FixedStrings>
@@ -79,6 +82,11 @@ struct fixed_string_list
         auto dist = std::ranges::find(strings, FixedString.sv());
         return std::distance(strings.begin(), dist);
     }();
+
+    template <basic_fixed_string FixedString>
+    constexpr static bool contains = [](){
+        return index_of<FixedString> != sizeof...(FixedStrings);
+    }();
 };
 
-
+} // namespace leviathan

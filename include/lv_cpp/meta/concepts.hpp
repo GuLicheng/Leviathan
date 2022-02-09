@@ -6,27 +6,21 @@
 
 namespace leviathan::meta
 {
-    template<typename _Tp, std::size_t Num>
-    concept has_tuple_element = requires(_Tp __t)
-    {
-        typename std::tuple_size<_Tp>::type;
-        requires (Num < std::tuple_size_v<_Tp>);
-        typename std::tuple_element_t<Num, _Tp>;
-        requires (
-            (requires { { std::get<Num>(__t) } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; })   // this just adapt structure-binding
-            // || (requires { { __t.template get<Num>() } -> std::convertible_to<const std::tuple_element_t<Num, _Tp>&>; })
-        );
+    // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p2165r2.pdf
+    template <typename T, std::size_t N>
+    concept is_tuple_element = requires(T t)
+    { // exposition only
+        typename std::tuple_element_t<N, std::remove_const_t<T>>;
+        { std::get<N>(t) } -> std::convertible_to<std::tuple_element_t<N, T> &>;
     };
 
     template <typename T>
-    concept tuple_like = !std::is_reference_v<T> && requires (T t)
+    concept tuple_like = !std::is_reference_v<T> && requires
     {
         typename std::tuple_size<T>::type;
-        std::same_as<std::size_t, decltype(std::tuple_size_v<T>)>
-            && []<std::size_t... Idx>(std::index_sequence<Idx...>) {
-            return (has_tuple_element<T, Idx> && ...);
-        }(std::make_index_sequence<std::tuple_size_v<T>>());
-    };
+        std::same_as<decltype(std::tuple_size_v<T>), std::size_t>;
+    } && []<std::size_t... I>(std::index_sequence<I...>)
+    { return (is_tuple_element<T, I> &&...); } (std::make_index_sequence<std::tuple_size_v<T>>{});
 
     template <bool Flag>
     struct lv_static_assert
