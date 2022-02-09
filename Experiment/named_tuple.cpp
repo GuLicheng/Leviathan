@@ -9,25 +9,22 @@
 #include <algorithm>
 #include <optional>
 #include <lv_cpp/utils/struct.hpp>
-#include "nt.hpp"
-
-
-using Id_field = field<"id", int>;
-using Sex_field = field<"sex", bool>;
-using Name_field = field<"name", std::string, []{ return "John"; }>;
+#include "named_tuple.hpp"
 
 using person = named_tuple<
         field<"id", int, required_initializer>,
         field<"sex", bool>,
-        field<"name", std::string, []{ return "John"; }>
+        field<"name", std::string, []{ return "John"; }>,
+        field<"ref", double&, required_initializer>
     >;
 
 static_assert(leviathan::meta::tuple_like<person>); 
-
+static double pi = 3.14;
 void test1()
 {
-    person p1 { arg<"id"> = 0, arg<"name"> = "Alice", arg<"sex"> = std::optional<bool>(true) };
-    person p2 { "id"_arg = 1 };
+    person p1 { arg<"id"> = 0, arg<"ref"> = std::ref(pi), arg<"name"> = "Alice", arg<"sex"> = std::optional<bool>(true) };
+    person p2 { "id"_arg = 1, "ref"_arg = std::ref(pi) };
+    p1.get_with<"id">() = 5;
     std::cout << p1 << '\n';
     std::cout << p2 << '\n';
 }

@@ -11,41 +11,29 @@
 //           Initializer
 ///////////////////////////////////////
 template <typename T>
-struct default_init
+struct default_initializer
 {
     constexpr auto operator()() const { return T{}; }
 };
 
-inline constexpr auto required = []{};
+inline constexpr auto required_initializer = []{};
 
+///////////////////////////////////////////////////////
+//   Return type of arg_t for init named_tuple element
+///////////////////////////////////////////////////////
 template <basic_fixed_string Tag, typename T>
 struct tag_value 
 {
     constexpr static auto tag() { return Tag; }
     using value_type = T;
-
-    template <typename U>
-    constexpr tag_value(const tag_value<Tag, U>& u) : value{u.value} { }
-
-    template <typename U>
-    constexpr tag_value(tag_value<Tag, U>&& u) : value{std::move(u.value)} { }
-
-    constexpr tag_value(const T& t) : value{t} { }
-    // constexpr tag_value(T&& t) noexcept : value{std::move(t)} { }
-    constexpr tag_value(const tag_value&) = default;
-    constexpr tag_value(tag_value&&) noexcept = default;
-
-    template <typename U>
-    constexpr tag_value(tag_value<Tag, std::reference_wrapper<U>> u) : value{u.value.get()} { }
-
-    template <typename U> requires (std::is_constructible_v<T, U>)
-    constexpr tag_value(U&& u) : value{(U&&)u} { }
-
     T value; 
 };
 
+///////////////////////////////////////
+//   Helper class for named argument
+///////////////////////////////////////
 template <basic_fixed_string Tag>
-struct arg_type
+struct arg_t
 {
     template <typename T>
     constexpr auto operator=(T t) const 
@@ -53,148 +41,80 @@ struct arg_type
 };
 
 template <basic_fixed_string Tag>
-inline constexpr auto arg = arg_type<Tag>{ };
+inline constexpr auto arg = arg_t<Tag>{ };
 
-template <typename... TagValues>
-struct parameters : TagValues... 
-{
-    parameters(TagValues... vs) : TagValues(std::move(vs))... { } // clang need explicit declearation
-    // parameters(parameters&&) = default;
-    // parameters(const parameters&) = default;
-};
+template <basic_fixed_string S> 
+constexpr arg_t<S> operator ""_arg() { return {}; }
 
-template <typename... Ts> parameters(Ts...) -> parameters<Ts...>;
-
-template <typename... Fields>
-struct named_tuple_impl : Fields...
-{
-    template <typename Parameters>
-    constexpr named_tuple_impl(Parameters&& param)
-        : Fields(std::move(param))... { }
-
-};
-
-template <basic_fixed_string Tag, typename T, auto Initer = default_init<T>()>
+///////////////////////////////////////
+//   named_tuple member 
+///////////////////////////////////////
+template <basic_fixed_string Tag, typename T, auto Initializer = default_initializer<T>()>
 struct field
 {
-    constexpr static auto tag() { return Tag; }
-    constexpr static auto init() { return Initer; }
-    
     using value_type = T;
-
-    // When T is int&, T cannot initialized by rvalue reference
-    template <typename U> requires (!std::is_reference_v<T>)
-    constexpr explicit field(tag_value<Tag, U> tv) : value(std::move(tv.value)) { }
-
-    template <typename U> 
-    constexpr explicit field(tag_value<Tag, U> tv) : value(tv.value) { }
-
-    constexpr field() : value(Initer()) { }
-
-    template <typename CharT>
-    friend std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const field& rhs)
-    {
-        os << Tag << ": " << rhs.value;
-        return os;
-    }
-
-    T value;
+    constexpr static auto tag_value = Tag;
+    constexpr static auto initializer_value() { return Initializer(); }
 };
 
-
-template <typename... Fields, typename... TagValues>
-constexpr auto create_parameters(TagValues... tvs)
+// auto is OK, but offer R may faster 
+template <typename R, typename... Fields, typename... TagValues>
+constexpr auto adjust_parameters(TagValues... tvs)
 {
-    auto params = std::forward_as_tuple(tvs...);
-    // std::cout << "Tags is :"; 
-    // (std::cout << ... << tvs.tag().sv());
-    // std::cout << '\n';
-    // std::cout << "Size is :" << size << '\n'; 
+    constexpr auto size = sizeof...(TagValues);  
+    auto params = std::forward_as_tuple(tvs...); // save params
 
-   // Find One Field
-    auto do_search = [&]<typename Field>() -> decltype(auto) {
-        constexpr auto FieldString = Field::tag();
-        constexpr auto index = find_first_basic_fixed_string<FieldString, tvs.tag() ...>::value;
-        
-        // std::cout << "Field is " << FieldString.sv() << " and index = " << index << '\n';
-        
-        if constexpr (index == size_t(-1)) 
-        {
-            // not exist
-            return tag_value<FieldString, typename Field::value_type>(Field::init()());
-        }
+    auto do_search = [&]<typename Field>() {
+        constexpr auto index = fixed_string_list<tvs.tag()...>::template index_of<Field::tag_value>;
+        if constexpr (index == size) 
+            return Field::initializer_value(); // not exist
         else 
-        {
-            return std::move(std::get<index>(params));
-        }
+            return std::move(std::get<index>(params).value);
     };
-    // (do_search.template operator()<Fields>(), ...);
-    // ((std::cout << Fields::tag().sv()), ...);
-    return parameters<tag_value<Fields::tag(), typename Fields::value_type>...>
-        (do_search.template operator()<Fields>()...);
-}
-
-template <basic_fixed_string Tag, typename T, auto Init>
-decltype(auto) get_impl(field<Tag, T, Init>& v)
-{
-    return (v.value);
-}
-
-template <basic_fixed_string Tag, typename T, auto Init>
-decltype(auto) get_impl(const field<Tag, T, Init>& v)
-{
-    return (v.value);
+    return R{ do_search.template operator()<Fields>()... };
 }
 
 template <typename... Fields>
-struct named_tuple : named_tuple_impl<Fields...>
+class named_tuple
 {
-    using base = named_tuple_impl<Fields...>;
+    constexpr static fixed_string_list<Fields::tag_value...> tag_list { };
+public:
+    using tuple_type = std::tuple<typename Fields::value_type...>;
+
     template <typename... TagValues>
     constexpr named_tuple(TagValues... tvs)
-        // : base(parameters(std::move(tvs)...)) { }
-        : base(create_parameters<Fields...>(std::move(tvs)...)) { }
-
-    constexpr named_tuple(parameters<tag_value<Fields::tag(), typename Fields::value_type>...> params)
-        : base{std::move(params)} { }
-
-    template <size_t N>
-    auto& get_field() const
-    {
-        using convert_type = std::tuple_element_t<N, std::tuple<Fields...>>;
-        return static_cast<const convert_type&>(*this).value;
-    }
-
-    template <size_t N>
-    auto& get_field() 
-    {
-        using convert_type = std::tuple_element_t<N, std::tuple<Fields...>>;
-        return static_cast<convert_type&>(*this).value;
-    }
-
-    template <basic_fixed_string Tag>
-    decltype(auto) get_field() 
-    {
-        return get_impl<Tag>(*this);
-    }
-
-    template <basic_fixed_string Tag>
-    decltype(auto) get_field() const
-    {
-        return get_impl<Tag>(*this);
-    }
+        : val(adjust_parameters<tuple_type, Fields...>(std::move(tvs)...)) { }
 
     template <typename CharT>
     friend std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const named_tuple& rhs)
-    {
-        int count = 0;
-        os << '(';
-        ((count++ == 0 ?
-             os << static_cast<const Fields&>(rhs) : 
-             os << ' ' << static_cast<const Fields&>(rhs)) , ...);
-        return os << ')';
+    {   
+        os << "{\n";
+        ((std::cout << '\t' << Fields::tag_value << ": " << rhs.get_with<Fields::tag_value>() << '\n'), ...);
+        return os << '}';
     }
 
+    template <basic_fixed_string Tag>
+    auto& get_with() 
+    {
+        constexpr auto index = tag_list.template index_of<Tag>;
+        return std::get<index>(val);
+    }
+
+    template <basic_fixed_string Tag>
+    auto& get_with() const
+    {
+        constexpr auto index = tag_list.template index_of<Tag>;
+        return std::get<index>(val);
+    }
+
+    template <size_t N>
+    auto& get_with() { return std::get<N>(val); }
+
+    template <size_t N>
+    auto& get_with() const { return std::get<N>(val); }
+
+private:
+    tuple_type val; // store values
 };
 
 namespace std
@@ -207,43 +127,33 @@ namespace std
 
     template <size_t N, typename... Ts>
     struct tuple_element<N, named_tuple<Ts...>> 
-        : tuple_element<N, tuple<typename Ts::value_type...>> { };
+        : tuple_element<N, typename named_tuple<Ts...>::tuple_type> { };
 
     template<size_t I, class... Types>
     constexpr tuple_element_t<I, named_tuple<Types...>>&
     get(named_tuple<Types...>& t) noexcept
     {
-        return t.template get_field<I>();
+        return t.template get_with<I>();
     }
 
     template<size_t I, class... Types>
     constexpr tuple_element_t<I, named_tuple<Types...>>&&
     get(named_tuple<Types...>&& t) noexcept
     {
-        return std::move(t.template get_field<I>());
+        return std::move(t.template get_with<I>());
     }
 
     template<size_t I, class... Types>
     constexpr const tuple_element_t<I, named_tuple<Types...>>&
     get(const named_tuple<Types...>& t) noexcept
     {
-        return t.template get_field<I>();
+        return t.template get_with<I>();
     }
 
     template<size_t I, class... Types>
     constexpr const tuple_element_t<I, named_tuple<Types...>>&& 
     get(const named_tuple<Types...>&& t) noexcept
     {
-        return std::move(t.template get_field<I>());
+        return std::move(t.template get_with<I>());
     }
 }
-
-
-
-
-
-
-
-
-
-

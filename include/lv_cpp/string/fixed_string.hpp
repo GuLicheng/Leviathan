@@ -70,32 +70,11 @@ basic_fixed_string(const CharT (&str)[N]) -> basic_fixed_string<N - 1, CharT>;
 
 
 // helper meta
-template <size_t Cur, auto TargetFixedString, auto... FixedStrings>
-struct index_of_impl;
-
-template <size_t Cur, auto TargetFixedString>
-struct index_of_impl<Cur, TargetFixedString> 
+template <basic_fixed_string... FixedStrings>
+struct fixed_string_list
 {
-    constexpr static auto value = static_cast<size_t>(-1);
-};
-
-template <size_t Cur, auto TargetFixedString, auto FixedString1, auto... FixedStrings>
-struct index_of_impl<Cur, TargetFixedString, FixedString1, FixedStrings...> 
-{
-    constexpr static auto value = 
-        TargetFixedString == FixedString1 ? 
-            Cur :
-            index_of_impl<Cur + 1, TargetFixedString, FixedStrings...>::value;
-};
-
-template <auto TargetFixedString, auto... FixedStrings>
-struct find_first_basic_fixed_string : index_of_impl<0, TargetFixedString, FixedStrings...> { };
-
-// Another way to implement this meta helper 
-template <auto FixedString, auto... FixedStrings>
-struct basic_fixed_string_searcher
-{
-    constexpr static size_t value = [](){
+    template <basic_fixed_string FixedString>
+    constexpr static size_t index_of = [](){
         std::array strings = { FixedStrings.sv()... };
         auto dist = std::ranges::find(strings, FixedString.sv());
         return std::distance(strings.begin(), dist);
