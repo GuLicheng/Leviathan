@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <optional>
 #include <lv_cpp/utils/struct.hpp>
-#include "named_tuple.hpp"
+#include "nt.hpp"
 
 
 using Id_field = field<"id", int>;
@@ -17,28 +17,12 @@ using Sex_field = field<"sex", bool>;
 using Name_field = field<"name", std::string, []{ return "John"; }>;
 
 using person = named_tuple<
-        field<"id", int, required>,
+        field<"id", int, required_initializer>,
         field<"sex", bool>,
         field<"name", std::string, []{ return "John"; }>
     >;
 
-namespace {
-    template <fixed_string S> 
-    constexpr arg_type<S> operator ""_arg() { return {}; }
-}
-
-void test3()
-{
-    constexpr fixed_string s1 = "Hello";
-    constexpr fixed_string s2 = "World";
-    static_assert(s1 != s2);
-    static_assert(s1 < s2);
-    static_assert(find_first_fixed_string<s1, s1, s2>::value == 0);
-    static_assert(find_first_fixed_string<s1, s2, s1>::value == 1);
-    static_assert(find_first_fixed_string<s1, s2>::value == -1);
-    static_assert(find_first_fixed_string<s1>::value == -1);
-    std::cout << '(' << s1 << ")\n";
-}
+static_assert(leviathan::meta::tuple_like<person>); 
 
 void test1()
 {
@@ -51,23 +35,19 @@ void test1()
 void test2()
 {
     double pi = 3.14;
-    using T = named_tuple<field<"int", Int32>, field<"name", const double&>>;
+    using T = named_tuple<field<"int", Int32>, field<"name", double&>>;
     T t{ arg<"int"> = 1, arg<"name"> = std::ref(pi) };
     std::cout << Int32::move_constructor << '\n';
     std::cout << Int32::copy_constructor << '\n';
     std::cout << Int32::total_construct() << '\n';
+    t.get_with<"name">() = 2.17;
     std::cout << t << '\n';
-    // auto params = create_parameters<field<"name", double&>>(
-    //     arg<"name"> = std::ref(pi)
-    // );
-    // T t { params };
 }
 
 int main()
 {
     test1();
     test2();
-    test3();
 }
 
 

@@ -18,7 +18,7 @@ struct default_init
 
 inline constexpr auto required = []{};
 
-template <fixed_string Tag, typename T>
+template <basic_fixed_string Tag, typename T>
 struct tag_value 
 {
     constexpr static auto tag() { return Tag; }
@@ -44,7 +44,7 @@ struct tag_value
     T value; 
 };
 
-template <fixed_string Tag>
+template <basic_fixed_string Tag>
 struct arg_type
 {
     template <typename T>
@@ -52,7 +52,7 @@ struct arg_type
     { return tag_value<Tag, T>{std::move(t)}; }
 };
 
-template <fixed_string Tag>
+template <basic_fixed_string Tag>
 inline constexpr auto arg = arg_type<Tag>{ };
 
 template <typename... TagValues>
@@ -74,7 +74,7 @@ struct named_tuple_impl : Fields...
 
 };
 
-template <fixed_string Tag, typename T, auto Initer = default_init<T>()>
+template <basic_fixed_string Tag, typename T, auto Initer = default_init<T>()>
 struct field
 {
     constexpr static auto tag() { return Tag; }
@@ -114,7 +114,7 @@ constexpr auto create_parameters(TagValues... tvs)
    // Find One Field
     auto do_search = [&]<typename Field>() -> decltype(auto) {
         constexpr auto FieldString = Field::tag();
-        constexpr auto index = find_first_fixed_string<FieldString, tvs.tag() ...>::value;
+        constexpr auto index = find_first_basic_fixed_string<FieldString, tvs.tag() ...>::value;
         
         // std::cout << "Field is " << FieldString.sv() << " and index = " << index << '\n';
         
@@ -134,13 +134,13 @@ constexpr auto create_parameters(TagValues... tvs)
         (do_search.template operator()<Fields>()...);
 }
 
-template <fixed_string Tag, typename T, auto Init>
+template <basic_fixed_string Tag, typename T, auto Init>
 decltype(auto) get_impl(field<Tag, T, Init>& v)
 {
     return (v.value);
 }
 
-template <fixed_string Tag, typename T, auto Init>
+template <basic_fixed_string Tag, typename T, auto Init>
 decltype(auto) get_impl(const field<Tag, T, Init>& v)
 {
     return (v.value);
@@ -172,13 +172,13 @@ struct named_tuple : named_tuple_impl<Fields...>
         return static_cast<convert_type&>(*this).value;
     }
 
-    template <fixed_string Tag>
+    template <basic_fixed_string Tag>
     decltype(auto) get_field() 
     {
         return get_impl<Tag>(*this);
     }
 
-    template <fixed_string Tag>
+    template <basic_fixed_string Tag>
     decltype(auto) get_field() const
     {
         return get_impl<Tag>(*this);

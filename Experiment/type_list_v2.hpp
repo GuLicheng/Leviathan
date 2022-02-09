@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <tuple>
 #include <algorithm>  // process strings
+#include <numeric>  // process index
 #include <array>
 
 // decleration
@@ -26,12 +27,17 @@ namespace leviathan::metaV2
 
     template <typename List, typename Target> struct contains;
 
-    template <typename Lits, size_t Idx> struct at;
+    template <typename List, size_t Idx> struct at;
 
-    template <typename Lits, template <typename> typename Proj = size_of> struct max;
+    template <typename List, template <typename> typename Proj = size_of> struct max;
 
-    template <typename Lits, template <typename> typename Proj = size_of> struct min;
+    template <typename List, template <typename> typename Proj = size_of> struct min;
+
+    template <typename List> struct reverse;
+
+    template <typename List, template <typename> typename Proj = size_of> struct sort;
 }
+
 
 // implement
 namespace leviathan::metaV2
@@ -90,9 +96,95 @@ namespace leviathan::metaV2
         constexpr static auto value = Proj<type>::value;
     };
 
+} // namespace leviathan::metaV2
 
-}
+namespace leviathan::metaV2::detail
+{
+
+template <typename... Ts>
+struct from
+{
+private:
+    template <auto Tuple, size_t...Idx>
+    constexpr static auto to_impl(std::index_sequence<Idx...>)
+    {
+        return std::index_sequence<Tuple[Idx]...>();
+    }
+
+    template <auto Tuple>
+    constexpr static auto to_()
+    {
+        return to_impl<Tuple>(std::make_index_sequence<Tuple.size()>());
+    }
+
+    template <auto Tuple, size_t...Idx>
+    constexpr static auto select_impl(std::index_sequence<Idx...>)
+    {
+        using List = type_list<Ts...>;
+        return type_list<typename at<List, Tuple[Idx]>::type...>();
+    }
+
+    template <auto Tuple>
+    constexpr static auto select_()
+    {
+        return select_impl<Tuple>(std::make_index_sequence<Tuple.size()>());
+    }
+
+public:
+
+    template <auto Array>
+    struct to
+    {
+        constexpr static auto array2index = to_<Array>();
+        using index_type = decltype(array2index);
+    };
+
+    template <auto Array>
+    struct select
+    {
+        constexpr static auto array2index = select_<Array>();
+        using index_type = decltype(array2index);
+    };
+};
+
+}  // namespace detail
 
 
+namespace leviathan::metaV2 
+{
+
+template <template <typename...> typename List, typename... Ts> 
+struct reverse<List<Ts...>> 
+{
+private:
+    constexpr static auto indices = [](){
+        std::array<size_t, sizeof...(Ts)> idx;
+        std::iota(idx.begin(), idx.end(), 0);
+        std::ranges::reverse(idx);
+        return idx;
+    }();
+
+    using type1 = typename detail::from<Ts...>::template select<indices>::index_type;
+public:
+    using type = typename extract<List, std::remove_cvref_t<type1>>::type;
+};
 
 
+// template <template <typename...> typename List, typename... Ts, template <typename> typename Proj> 
+// struct sort<List<Ts...>, Proj>
+// {
+//     static_assert(sizeof...(Ts) > 0);
+// private:
+//     constexpr static auto indices = [](){
+//         // struct tow_tuple {  };
+//         int i = 0;
+//         std::array names { std::make_pair(Proj<Ts>::value..., i++) };
+//         std::ranges::stable_sort(names, {}, [](const auto& x) { return x.first; }); // keep ordered
+//         return names;
+//     }();
+//     using type1 = typename detail::from<Ts...>::template select<indices>::index_type;
+// public:
+//     using type = typename extract<List, std::remove_cvref_t<type1>>::type;
+// };
+
+} // namespace leviathan::metaV2 

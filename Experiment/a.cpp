@@ -94,10 +94,10 @@ int main()
     static_assert(std::is_same_v<typename meta::max<List>::type, double>);
     static_assert(std::is_same_v<typename meta::min<List>::type, bool>);
 
-    constexpr std::array indices = { 2, 0, 1 };
-    auto i = From<int, double, bool>::To<indices>::array2index;
-    using U = From<int, double, bool>::To<indices>::index_type;
-    using T = typename Reverse<List>::type;
-    PrintTypeInfo(T);
+    using T0 = typename meta::reverse<List>::type;
+    static_assert(std::is_same_v<T0, std::tuple<const char*, bool, double, int>>);
+
+    // using T1 = typename clss_same_v<T1, std::tuple<bool, int, double, const char*>>);
+
 }
 
