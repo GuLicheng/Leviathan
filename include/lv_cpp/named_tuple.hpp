@@ -94,8 +94,8 @@ public:
     template <typename CharT>
     friend std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const named_tuple& rhs)
     {   
-        os << '{';
-        ((std::cout << Fields::tag_value << ": " << rhs.get_with<Fields::tag_value>() << ' '), ...);
+        os << '{' << ' ';
+        ((std::cout << Fields::tag_value << ": " << rhs.get_with<Fields::tag_value>() << ", "), ...);
         return os << '}';
     }
 

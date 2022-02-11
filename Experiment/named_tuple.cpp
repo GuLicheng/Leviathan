@@ -5,7 +5,7 @@ template <typename T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec)
 {
     os << '[';
-    for (int i = 0; i < vec.size(); ++i)
+    for (size_t i = 0; i < vec.size(); ++i)
     {
         if (i != 0) os << ", ";
         os << vec[i];
@@ -14,7 +14,7 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec)
 }
 
 
-#include "named_tuple.hpp"
+#include <lv_cpp/named_tuple.hpp>
 #include <tuple>
 #include <string_view>
 #include <lv_cpp/meta/concepts.hpp>
