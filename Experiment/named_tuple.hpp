@@ -40,7 +40,7 @@ struct arg_t
 {
     template <typename T>
     constexpr auto operator=(T t) const 
-    { return tag_value<Tag, T>{std::move(t)}; }
+    { return tag_value<Tag, T>{ .value = std::move(t)}; }
 };
 
 template <basic_fixed_string Tag>
@@ -94,8 +94,8 @@ public:
     template <typename CharT>
     friend std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const named_tuple& rhs)
     {   
-        os << "{\n";
-        ((std::cout << '\t' << Fields::tag_value << ": " << rhs.get_with<Fields::tag_value>() << '\n'), ...);
+        os << '{';
+        ((std::cout << Fields::tag_value << ": " << rhs.get_with<Fields::tag_value>() << ' '), ...);
         return os << '}';
     }
 

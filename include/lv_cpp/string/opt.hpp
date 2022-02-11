@@ -246,9 +246,11 @@ namespace leviathan
 
     constexpr std::string_view trim(std::string_view sv)
     {
-        auto left = sv.find_first_not_of(' ');
-        auto right = sv.find_last_not_of(' ');
-        return { sv.begin() + left, sv.begin() + right };
+        auto left = sv.find_first_not_of(" \r\n\t");
+        if (left == sv.npos) // all space
+            return { sv.end(), sv.end() };
+        auto right = sv.find_last_not_of(" \r\n\t");
+        return { sv.begin() + left, sv.begin() + right + 1 };
     }
 
     std::string_view trim(const std::string& s)

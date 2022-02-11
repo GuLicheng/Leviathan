@@ -1,4 +1,19 @@
 #include <iostream>
+#include <vector>
+
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec)
+{
+    os << '[';
+    for (int i = 0; i < vec.size(); ++i)
+    {
+        if (i != 0) os << ", ";
+        os << vec[i];
+    }
+    return os << ']';
+}
+
+
 #include "named_tuple.hpp"
 #include <tuple>
 #include <string_view>
@@ -30,12 +45,14 @@ using KeyField = field<"id", int, required_initializer>;
 using OptionalField = field<"sex", Gender, []{ return Gender::Unknown; }>;
 using NameFiled = field<"name", std::string, []{ return "Ada"; }>;
 using RefFiled = field<"ref", double&>;
+using OtherInfoFiled = field<"infos", std::vector<std::string_view>>;
 
 using person = named_tuple<
         KeyField,
         OptionalField,
         NameFiled,
-        RefFiled
+        RefFiled,
+        OtherInfoFiled
     >;
 
 static_assert(leviathan::meta::tuple_like<person>); 
@@ -47,14 +64,14 @@ void test1()
     std::cout << p1 << '\n';
     std::cout << p2 << '\n';
 
-    // std::apply([](auto...) { }, p1); https://stackoverflow.com/questions/69216934/unable-to-use-stdapply-on-user-defined-types
+    // std::apply([](auto...) { }, p1); 
+    // https://stackoverflow.com/questions/69216934/unable-to-use-stdapply-on-user-defined-types
 
 }
 
 
 int main()
 {
-
     test1();
 }
 

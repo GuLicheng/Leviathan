@@ -17,9 +17,8 @@ namespace leviathan::tuple
     using std::remove_cvref;
     using std::remove_cvref_t;
 
-    using leviathan::meta::has_tuple_element;
+    using leviathan::meta::is_tuple_element;
     using leviathan::meta::tuple_like;
-
 
 
 }

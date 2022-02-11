@@ -7,6 +7,7 @@
 
 #define PrintLn(x) (std::cout << x << '\n')
 
+template <bool Report = false>
 struct Int32
 {
 public:
@@ -34,31 +35,38 @@ public:
     Int32() : val{ 0 } 
     { 
         ++default_constructor; 
+        if constexpr (Report) std::cout << "default init: " << default_constructor << '\n';
     }
     
     explicit Int32(int x) : val{ x }
     {
         ++int_constructor; 
-        // PrintLn(int_constructor); 
+        if constexpr (Report) std::cout << "int init: " << int_constructor << '\n';
     }
 
     Int32(const Int32& rhs) : val{ rhs.val }
-    { ++copy_constructor; }
+    { 
+        ++copy_constructor; 
+        if constexpr (Report) std::cout << "copy_constructor" << int_constructor << '\n';
+    }
 
     Int32(Int32&& rhs) noexcept : val{ std::exchange(rhs.val, 0) }
-    { ++move_constructor; }
+    { 
+        ++move_constructor; 
+        if constexpr (Report) std::cout << "copy_constructor" << int_constructor << '\n';    
+    }
 
     Int32& operator=(const Int32& rhs) 
     {
         this->val = rhs.val; 
-        std::cout << "copy_assignment :" << ++copy_assignment << std::endl;
+        if constexpr (Report) std::cout << "copy_assignment :" << ++copy_assignment << std::endl;
         return *this;
     }
 
     Int32& operator=(Int32&& rhs) noexcept
     { 
         this->val = std::exchange(rhs.val, 0);
-        std::cout << "move_assignment :" << ++move_assignment << std::endl;
+        if constexpr (Report) std::cout << "move_assignment :" << ++move_assignment << std::endl;
         return *this;
     }
 
@@ -71,54 +79,39 @@ public:
     ~Int32() 
     { ++destructor; }
 
-    friend std::ostream& operator<<(std::ostream& os, const Int32& f)
+    friend std::ostream& operator<<(std::ostream& os, Int32 f)
     {
         return os << f.val;
     }
 
-    auto operator<=>(const Int32&) const noexcept = default;
+    constexpr auto operator<=>(const Int32&) const noexcept = default;
 
-    // [[nodiscard]] void* operator new(std::size_t count)
-    // { return ::malloc(sizeof(Int32) * count); }
-
-    // [[nodiscard]] void* operator new[](std::size_t count)
-    // { return ::malloc(sizeof(Int32) * count); }
-    
-    // void operator delete( void* ptr ) noexcept
-    // { ::operator delete(ptr); }
-
-    // void operator delete[]( void* ptr ) noexcept
-    // { ::operator delete[](ptr); }
 };
 
 namespace std 
 {
-    template <>
-    struct hash<Int32>
+    template <bool B>
+    struct hash<Int32<B>>
     {
-        auto operator()(const Int32& f) const noexcept
+        auto operator()(Int32<B> f) const noexcept
         { return std::hash<int>()(f.val); }
     };
 }
 
-struct empty_class { };
 
-
-template <typename... Args>
-class Base
+template <bool Report = false>
+struct MoveCounter
 {
+    inline static int count = 0;
+    MoveCounter() = default;
+    MoveCounter(MoveCounter&&) 
+    {
+        ++count;
+        if constexpr (Report) PrintLn(count);
+    }
+
+    MoveCounter(const MoveCounter&) = delete;
 };
 
-template <typename T>
-class Derived1 : public Base<T>
-{
-};
 
-template <typename T>
-struct Derived2 : public Base<Derived2<T>>
-{
-};
 
-struct Derived3 final : Base<int>, Base<double>
-{
-};

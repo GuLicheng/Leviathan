@@ -5,13 +5,8 @@
 #include <lv_cpp/tuples/tuple_base.hpp>
 
 #include <iostream>
+#include <ranges>
 #include <tuple>
-#include <vector>
-#include <list>
-#include <set>
-#include <array>
-#include <variant>
-#include <format>
 
 
 #define TINY_BUFFER_SIZE 16
@@ -26,6 +21,9 @@ concept ContainerChecker = requires (const Container &c)
 // tuple - like
 template <typename Tuple>
 concept TupleChecker = !ContainerChecker<Tuple> && leviathan::tuple::tuple_like<Tuple>;
+
+#ifdef __lib_format
+#include <format>
 
 template <ContainerChecker Ranges, typename CharT>
 struct std::formatter<Ranges, CharT>
@@ -137,5 +135,10 @@ struct std::formatter<Tuple, CharT>
 };
 
 #undef TINY_BUFFER_SIZE
+
+#else
+
+#endif
+
 
 #endif
