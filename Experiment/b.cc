@@ -1,28 +1,75 @@
-#include <lv_cpp/enum.hpp>
-#include <ranges>
+#include <iostream>
+#include <variant>
+#include <vector>
+#include <map>
+#include <string>
 
+template <typename T, typename... BaseTypes>
+using Variable = std::variant<std::vector<T>, std::map<std::variant<BaseTypes...>,  T>, BaseTypes...>;
 
-Enum(Color, Red , Green = -5, Blue = -100);
+template <typename T>
+using Val = Variable<T, int, bool, double, std::string>;
 
-ScopeEnumWithUnderlying(Sex, int, 
-    Male = 0x000000, Female = 0x1111, Unknown = 0x0001);
-
-using T = leviathan::enum_list<Sex>;
-static_assert(std::ranges::random_access_range<T>);
-
-int main(int c, char**v)
+template <template <typename> typename F>
+struct FixPoint : F<FixPoint<F>> 
 {
-    std::cout << Blue << '\n';
-    std::cout << Green << '\n';
-    std::cout << Red << '\n';
+    using F<FixPoint<F>>::F;
+};
 
-    std::cout << Sex::Female << '\n';
-    std::cout << Sex::Male << '\n';
-    std::cout << Sex::Unknown << '\n';
+using Json = FixPoint<Val>;
+using JsonList = std::vector<Json>;
+using JsonDict = std::map<std::variant<int, bool, double, std::string>, Json>;
+using Class = std::map<std::string, Json>;
 
-    constexpr auto female = leviathan::enum_list<Sex>::search_name(Sex::Female);
-    static_assert(female == "Female");
 
-    return 0;
+template <typename... Ts>
+std::ostream& operator<<(std::ostream& os, const std::variant<Ts...>& v)
+{
+    return std::visit([&](const auto& x) -> auto& { return os << x; }, v);
 }
- 
+
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
+{
+    os << '[';
+    auto first = v.begin(), last = v.end();
+    for (auto iter = first; iter != last; ++iter)
+    {
+        if (iter != first) os << ", ";
+        os << *iter;
+    }
+    return os << ']';
+}
+
+template <typename K, typename V>
+std::ostream& operator<<(std::ostream& os, const std::map<K, V>& v)
+{
+    os << '{';
+    auto first = v.begin(), last = v.end();
+    for (auto iter = first; iter != last; ++iter)
+    {
+        if (iter != first) os << ", ";
+        os << *iter;
+    }
+    return os << '}';
+}
+
+template <typename F, typename S>
+std::ostream& operator<<(std::ostream& os, const std::pair<F, S>& v)
+{
+    return os << '(' << v.first << ": " << v.second << ')';
+}
+
+
+int main()
+{
+    Json config1 {
+        JsonList { 1, true, "Hello", JsonDict { {"42", 42}, {42, "42"} } }
+    };
+    Json config2 { true };
+    Json config3 { 1 };
+    Json config4 { "Hello World" };
+    Json config5 = { JsonDict { { "name", "Alice"}, { "age", 18 } } };
+    std::cout << config1 << '\n';
+    std::cout << config5 << '\n';
+}

@@ -313,7 +313,6 @@ private:
         using iterator_category = std::random_access_iterator_tag;
         using difference_type = std::ptrdiff_t;
 
-
         constexpr iterator_impl() = default;
         constexpr iterator_impl(size_t i) : idx{i} { }
 
@@ -332,8 +331,6 @@ private:
         constexpr auto operator-(difference_type n) const { auto old = *this; old -= n; return old; }
         constexpr difference_type operator-(iterator_impl rhs) const { return idx - rhs.idx; }
         friend constexpr auto operator+(difference_type n, iterator_impl rhs) { return rhs + n; }
-
-
     };
 public:
     using iterator = iterator_impl;
