@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <lv_cpp/meta/template_info.hpp>
 
 template <typename T, typename... BaseTypes>
 using Variable = std::variant<std::vector<T>, std::map<std::variant<BaseTypes...>,  T>, BaseTypes...>;

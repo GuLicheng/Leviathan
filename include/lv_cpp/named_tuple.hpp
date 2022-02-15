@@ -41,6 +41,7 @@ struct arg_t
     template <typename T>
     constexpr auto operator=(T t) const 
     { return tag_value<Tag, T>{ .value = std::move(t)}; }
+
 };
 
 template <basic_fixed_string Tag>
