@@ -62,6 +62,7 @@ struct basic_fixed_string
 
     CharT data[N + 1];
 
+    // ignore Traits since basic_fixed_string have no char traits
     friend std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const basic_fixed_string& rhs) 
     {
         return os.write(rhs.data, N + 1);
