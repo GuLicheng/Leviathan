@@ -38,6 +38,8 @@ struct tag_value
 template <basic_fixed_string Tag>
 struct arg_t
 {
+    constexpr static auto tag() { return Tag; }
+
     template <typename T>
     constexpr auto operator=(T t) const 
     { return tag_value<Tag, T>{ .value = std::move(t)}; }
@@ -89,8 +91,14 @@ public:
     constexpr named_tuple(TagValues... tvs)
         : val(adjust_parameters<tuple_type, Fields...>(std::move(tvs)...)) 
     {
+        // avoid error name
         static_assert((tag_list.template contains<TagValues::tag()> && ...), "Unknown Tag");
     }
+
+    constexpr named_tuple(const named_tuple&) = default; // FIX ME
+    constexpr named_tuple(named_tuple&&) noexcept(true) = default; // FIX ME
+    constexpr named_tuple& operator=(const named_tuple&) = default; // FIX ME
+    constexpr named_tuple& operator=(named_tuple&&) noexcept(true) = default; // FIX ME
 
     template <typename CharT>
     friend std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const named_tuple& rhs)
@@ -119,6 +127,20 @@ public:
 
     template <size_t N>
     auto& get_with() const { return std::get<N>(val); }
+
+    template <typename T>
+    constexpr decltype(auto) operator[](T) const
+    {
+        constexpr auto tag = T::tag();
+        return get_with<tag>();
+    }
+
+    template <typename T>
+    constexpr decltype(auto) operator[](T) 
+    {
+        constexpr auto tag = T::tag();
+        return get_with<tag>();
+    }
 
 private:
     tuple_type val; // store values
