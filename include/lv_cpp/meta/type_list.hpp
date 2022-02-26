@@ -536,7 +536,7 @@ struct slice<List, From, To, 1>
 {
     // drop + take
 public:
-    using type = take<typename drop<List, From>::type, To - From>::type;
+    using type = typename take<typename drop<List, From>::type, To - From>::type;
 };
 
 template <typename List, size_t N>

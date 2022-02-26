@@ -259,5 +259,20 @@ namespace leviathan
         return trim(sv);        
     }
 
+    template <typename Pred>
+    constexpr std::string_view drop_while(std::string_view sv, Pred pred)
+    {
+        auto iter = sv.begin(), sentinel = sv.end();
+        for (; iter != sentinel && pred(*iter); ++iter);
+        return { iter, sentinel };
+    }
+
+    template <typename Pred>
+    constexpr std::string_view take_while(std::string_view sv, Pred pred)
+    {
+        auto iter = sv.begin(), sentinel = sv.end();
+        for (; iter != sentinel && pred(*iter); ++iter);
+        return { sv.begin(), iter };
+    }
 
 }

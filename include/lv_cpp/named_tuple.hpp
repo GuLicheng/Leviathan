@@ -32,6 +32,13 @@ struct tag_value
     T value; 
 };
 
+template <typename T>
+struct is_tag_value : std::false_type { };
+
+template <basic_fixed_string Tag, typename T>
+struct is_tag_value<tag_value<Tag, T>> : std::true_type { };
+
+
 ///////////////////////////////////////
 //   Helper class for named argument
 ///////////////////////////////////////
@@ -94,7 +101,7 @@ public:
         // avoid error name
         static_assert((tag_list.template contains<TagValues::tag()> && ...), "Unknown Tag");
     }
-
+    constexpr named_tuple() = default;
     constexpr named_tuple(const named_tuple&) = default; // FIX ME
     constexpr named_tuple(named_tuple&&) noexcept(true) = default; // FIX ME
     constexpr named_tuple& operator=(const named_tuple&) = default; // FIX ME
@@ -141,6 +148,7 @@ public:
         constexpr auto tag = T::tag();
         return get_with<tag>();
     }
+
 
 private:
     tuple_type val; // store values
