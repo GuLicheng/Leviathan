@@ -1,16 +1,13 @@
-import os
+import lvimage.cpp as cpp
 import cv2 as cv
-from tqdm import tqdm
+import mypy_extensions
 
-PATH = r"F:\DataSet\ade20k\ADEChallengeData2016\images\validation"
+def print_all(module_):
+    modulelist = dir(module_)
+    length = len(modulelist)
+    for i in range(0,length,1):
+        print(getattr(module_,modulelist[i]))
 
-images = [f"{PATH}/{file}" for file in os.listdir(PATH)]
-
-h, w = 0, 0
-
-for img in tqdm(images):
-    shape = cv.imread(img).shape
-    h, w = max(h, shape[0]), max(w, shape[1])
-
-print(h, w)
-
+if __name__ == "__main__":
+    print_all(cpp)
+    cv.imreadmulti()
