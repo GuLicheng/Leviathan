@@ -1,10 +1,17 @@
 import cpp
 
 
-ls = [1, 2, 3, 4, 5]
 
-def plus_one(x):
-    x = x + 1
 
-cpp.for_each(ls, plus_one)
-print(ls)
+if __name__ == "__main__":
+
+    ls = cpp.py_sorted_list()
+
+    ls.insert(1)
+    ls.insert(2)
+    ls.insert(3)
+
+    print(ls.size())
+    res = ls.find(5)
+
+    print(res)

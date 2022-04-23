@@ -8,6 +8,7 @@ cpp_args = ['/std:c++latest', '/O2']
 # your pybind11 path
 includes = [
     "E:\\Anaconda3\\anaconda3\\envs\\segmentation\\Lib\\site-packages\\pybind11\\include",
+    "D:\\Library\\Leviathan\\include",
 ]
 
 sources_root = "cppextend"
