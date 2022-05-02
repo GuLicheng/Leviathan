@@ -4,6 +4,8 @@
 
 #include <lv_cpp/collections/sorted_list.hpp>
 
+#include <memory>
+
 namespace py = pybind11;
 
 using py_sorted_list = sorted_list<py::object, std::less<py::object>, true>;
