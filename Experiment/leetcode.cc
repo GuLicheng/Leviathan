@@ -158,9 +158,28 @@ struct CBTInserterIterator
 
 };
 
+/*
+    list: [1, 0, 1, 1, 1, 0, 0]
 
-template <typename Iterator, typename Comp = std::less<>>
-bool combination(Iterator first1, Iterator middle, Iterator last2, Comp comp = {})
+    1. rfind last `1`:
+
+    list: [1, 0, 1, 1, 1, 0, 0]
+                 ^
+                 pos1
+                      
+    2. swap (pos1 - 1) and (pos1)
+
+    list: [1, 1, 0, 1, 1, 0, 0]
+              ^  ^
+
+    3: right shift rest 1 to end
+
+    list: [1, 1, 0, 0, 0, 1, 1]
+                             ^
+
+*/
+template <typename I, typename Comp = std::less<>>
+constexpr bool combination(I first1, I middle, I last2, Comp comp = {})
 {
 
     auto last1 = middle, first2 = middle;
@@ -168,10 +187,11 @@ bool combination(Iterator first1, Iterator middle, Iterator last2, Comp comp = {
     if (first1 == last1 || first2 == last2)
           return false;
 
-    Iterator m1 = last1;
-    Iterator m2 = last2;
+    I m1 = last1;
+    I m2 = last2;
     --m2;
 
+    // find first element less than last element
     while (--m1 != first1 && !comp(*m1, *m2));
 
     bool result = m1 == first1 && !comp(*first1, *m2);
@@ -205,35 +225,35 @@ bool combination(Iterator first1, Iterator middle, Iterator last2, Comp comp = {
     return !result;
 }
 
-template <typename Iterator>
-bool next_combination(Iterator first, Iterator middle, Iterator last)
+template <typename I>
+constexpr bool next_combination(I first, I middle, I last)
 {
     return combination(first, middle, last);
 }
 
-template <typename Iterator>
-bool prev_combination(Iterator first, Iterator middle, Iterator last)
+template <typename I>
+constexpr bool prev_combination(I first, I middle, I last)
 {
     return combination(first, middle, last, std::greater<>());
 }
 
 #include <iostream>
 #include <ranges>
+#include <list>
 
 static_assert(std::input_iterator<TreeNodeIterator>);
 
 int main()
 {
 
-    std::vector vec{ 1, 2, 3 };
-    std::reverse(vec.begin(), vec.end());
+    std::list vec{ 1, 2, 2, 3 };
 
     int n = 2;
 
     do {
         std::copy_n(vec.begin(), n, std::ostream_iterator<int>{ std::cout, " " });
         std::cout << "\n======================================\n";
-    } while (prev_combination(vec.begin(), vec.begin() + n, vec.end()));
+    } while (next_combination(vec.begin(), std::next(vec.begin(), n), vec.end()));
 
     std::cout << "======================================\n";
 

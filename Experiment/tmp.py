@@ -1,19 +1,8 @@
-import re
-
-class Solution:
-
-    def isValid(self, code: str) -> bool:
-        code = re.sub(r'<!\[CDATA\[.*?\]\]>', '-', code)
-        prev = None
-        while code != prev:
-            print(code)
-            prev = code
-            code = re.sub(r'<([A-Z]{1,9})>[^<]*</\1>', 't', code)
-        return code == 't'
+import itertools
 
 
-Solution().isValid("<DIV>This is the first line <![CDATA[<div>]]></DIV>")
+if __name__ == "__main__":
+    ls = [1, 2, 2, 3]
 
-
-
-        
+    for val in itertools.combinations(ls, 2):
+        print(val)
