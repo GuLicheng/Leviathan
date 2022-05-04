@@ -1,7 +1,12 @@
+#include <string_view>
 #include <vector>
 #include <memory>
 #include <algorithm>
 #include <iterator>
+#include <deque>
+
+#include <assert.h>
+#include <ctype.h>
 
 struct TreeNode {
     int val;
@@ -15,6 +20,7 @@ struct TreeNode {
 using ValueType = int;
 using NodeType = TreeNode;
 
+// In-order iterator
 struct TreeNodeIterator 
 {
     using value_type = ValueType;
@@ -26,10 +32,6 @@ struct TreeNodeIterator
     std::shared_ptr<std::vector<NodeType*>> m_stack = nullptr;
 
     TreeNodeIterator() = default;
-    TreeNodeIterator(const TreeNodeIterator&) = default;
-    TreeNodeIterator& operator=(const TreeNodeIterator&) = default;
-    TreeNodeIterator(TreeNodeIterator&&) noexcept = default;
-    TreeNodeIterator& operator=(TreeNodeIterator&&) noexcept = default;
 
     TreeNodeIterator(TreeNode* node) : m_stack{ std::make_shared<std::vector<NodeType*>>() } 
     {
@@ -54,11 +56,9 @@ struct TreeNodeIterator
         return *this;
     }
 
-    TreeNodeIterator operator++(int)
+    void operator++(int)
     {
-        auto old = *this;
-        ++ *this;
-        return old;
+        (void)++ *this;
     }
     
     bool operator==(const TreeNodeIterator& rhs) const 
@@ -79,32 +79,143 @@ struct TreeNodeIterator
 
 };
 
-#include <iostream>
-#include <lv_cpp/generator.hpp>
-
-cppcoro::generator<int> make_binary_iterator(TreeNode* root)
+struct CBTInserterIterator
 {
-    if (root->left) co_yield root->left->val;
-    co_yield root->val;
-    if (root->right) co_yield root->right->val;
-}
+    using value_type = void;
+    using reference = void;
+    using difference_type = std::ptrdiff_t;
+    using pointer = void;
+    using iterator_category = std::output_iterator_tag;
 
 
-class Solution {
-public:
-    std::vector<int> getAllElements(TreeNode* root1, TreeNode* root2) {
-        std::vector<int> res;
-    
-        auto iter1 = TreeNodeIterator(root1);
-        auto iter2 = TreeNodeIterator(root2);
+    NodeType* m_root = nullptr; // for return root
+    std::shared_ptr<std::deque<NodeType*>> m_queue = nullptr;
 
-        auto sentinel = TreeNodeIterator();
+    CBTInserterIterator() = default;
 
-        std::merge(iter1, sentinel, iter2, sentinel, std::back_inserter(res));
-        return res;
+    CBTInserterIterator(NodeType* root) 
+        : m_root{ root }, m_queue { std::make_shared<std::deque<NodeType*>>() }
+    {
+        assert(root != nullptr);
+        // BFS 
+
+        std::deque<NodeType*> queue;
+        queue.emplace_back(root);
+        while (queue.size())
+        {
+            auto node = queue.front();
+            queue.pop_front();
+            if (node->left && node->right) 
+            {
+                queue.emplace_back(node->left);
+                queue.emplace_back(node->right);
+            }
+            else if (node->left)
+            {   
+                // only has left child
+                queue.emplace_back(node->left);
+                m_queue->emplace_back(node); // this node can be father
+            }
+            else
+            {
+                // left and right is null
+                m_queue->emplace_back(node);
+            }
+        }
     }
+
+    CBTInserterIterator& operator*() { return *this; }
+
+    CBTInserterIterator& operator++() { return *this; }
+
+    CBTInserterIterator operator++(int) { return *this; }
+
+    CBTInserterIterator& operator=(ValueType value)
+    {
+        
+        if (!m_root) 
+        {
+            m_queue = std::make_shared<std::deque<NodeType*>>();
+            m_queue->emplace_back(new NodeType(value));
+            m_root = m_queue->front();
+            return *this;
+        }
+
+
+        auto new_node = new NodeType(value);
+        m_queue->emplace_back(new_node);
+
+
+        auto node = m_queue->front();
+        if (!node->left) node->left = new_node;
+        else 
+        {
+            node->right = new_node;
+            m_queue->pop_front();
+        }
+        return *this;
+    }
+
 };
 
+
+template <typename Iterator, typename Comp = std::less<>>
+bool combination(Iterator first1, Iterator middle, Iterator last2, Comp comp = {})
+{
+
+    auto last1 = middle, first2 = middle;
+
+    if (first1 == last1 || first2 == last2)
+          return false;
+
+    Iterator m1 = last1;
+    Iterator m2 = last2;
+    --m2;
+
+    while (--m1 != first1 && !comp(*m1, *m2));
+
+    bool result = m1 == first1 && !comp(*first1, *m2);
+    if (!result)
+    {
+        while (first2 != m2 && !comp(*m1, *first2))
+               ++first2;
+
+        first1 = m1;
+        std::iter_swap(first1, first2);
+        ++first1;
+        ++first2;
+    }
+
+    if (first1 != last1 && first2 != last2)
+    {
+        m1 = last1; 
+        m2 = first2;
+
+        while (m1 != first1 && m2 != last2)
+        {
+               std::iter_swap(--m1 , m2);
+               ++m2;
+        }
+
+       std::reverse(first1, m1);
+       std::reverse(first1, last1);
+       std::reverse(m2, last2);
+       std::reverse(first2, last2);
+    }
+    return !result;
+}
+
+template <typename Iterator>
+bool next_combination(Iterator first, Iterator middle, Iterator last)
+{
+    return combination(first, middle, last);
+}
+
+template <typename Iterator>
+bool prev_combination(Iterator first, Iterator middle, Iterator last)
+{
+    return combination(first, middle, last, std::greater<>());
+}
 
 #include <iostream>
 #include <ranges>
@@ -114,14 +225,15 @@ static_assert(std::input_iterator<TreeNodeIterator>);
 int main()
 {
 
-    TreeNode* left = new TreeNode(0);
+    std::vector vec{ 1, 2, 3 };
+    std::reverse(vec.begin(), vec.end());
 
-    TreeNode* root = new TreeNode(1, left, nullptr);
+    int n = 2;
 
-    auto gen = make_binary_iterator(root);
-
-    for (auto val : gen)
-        std::cout << val << '\n';
+    do {
+        std::copy_n(vec.begin(), n, std::ostream_iterator<int>{ std::cout, " " });
+        std::cout << "\n======================================\n";
+    } while (prev_combination(vec.begin(), vec.begin() + n, vec.end()));
 
     std::cout << "======================================\n";
 
