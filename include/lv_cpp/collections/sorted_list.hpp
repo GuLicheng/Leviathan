@@ -130,11 +130,11 @@ struct map_config : select1st<K, V, Allocator>
 	Compare:
 		bool binary(arg1, arg2): arg1: K, arg2: key_type
 */
-template <typename T, typename Compare, bool Duplicate, typename Config>
+template <typename T, typename Compare, bool Duplicate, typename Config, size_t TrunkSize = 1000>
 class sorted_list_impl : public Config
 {
 	// trunk
-	constexpr static size_t trunk_size = 1000;
+	constexpr static size_t trunk_size = TrunkSize;
 
 	static_assert(Duplicate, "MultiSet and MultiMap is not support now");
 

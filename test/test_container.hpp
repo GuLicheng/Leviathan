@@ -126,6 +126,14 @@ void simple_unique_set_iterator_test()
         REQUIRE(is_equal);
     }
 
+    SECTION("remove elements by iterators2")
+    {
+        c.clear();
+        for (auto val : values) c.insert(val);
+        REQUIRE(c.erase(c.find(5)) == c.end());
+        REQUIRE(c.erase(c.find(1)) != c.end());
+    }
+
 }
 
 template <typename SetContainer>
