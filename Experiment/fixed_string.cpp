@@ -6,9 +6,6 @@
 #include <functional> // std::hash
 #include <iostream>
 
-namespace leviathan 
-{
-
 template <size_t N, typename CharT, typename Traits = std::char_traits<CharT>>
 class basic_fixed_string
 {
@@ -30,7 +27,6 @@ public:
     static constexpr auto npos = string_view_type::npos;
 
     constexpr auto size() const noexcept { return N; }
-    constexpr auto length() const noexcept { return N; }
     constexpr bool empty() const noexcept { return size() == 0; }
 
     constexpr basic_fixed_string(const CharT (&str)[N + 1]) noexcept
@@ -98,8 +94,6 @@ public:
 
     constexpr std::size_t hash_code() const noexcept { return std::hash<string_view_type>()(sv()); }
 
-    constexpr const value_type* c_str() const noexcept { return m_data; }
-
 private:
     CharT m_data[N + 1];
 };
@@ -109,45 +103,33 @@ basic_fixed_string(const CharT (&str)[N]) -> basic_fixed_string<N - 1, CharT>;
 // char[N] is different from const char* with n characters
 
 
-// Early GCC versions that support cNTTP were not able to deduce size_t parameter
-// of basic_fixed_string when fixed_string and other typedef were just type aliases.
-template <size_t N> using fixed_string = basic_fixed_string<N, char>;
-template <size_t N> using fixed_wstring = basic_fixed_string<N, wchar_t>;
-
-
-basic_fixed_string fs = "H";
-
-// helper meta
-template <basic_fixed_string... FixedStrings>
-struct fixed_string_list
+template <size_t N, typename CharT, typename Traits>
+struct std::hash<basic_fixed_string<N, CharT, Traits>>
 {
-    template <basic_fixed_string FixedString>
-    constexpr static size_t index_of = [](){
-        std::array strings = { FixedStrings.sv()... };
-        auto dist = std::ranges::find(strings, FixedString.sv());
-        return std::distance(strings.begin(), dist);
-    }();
-
-    template <basic_fixed_string FixedString>
-    constexpr static bool contains = [](){
-        return index_of<FixedString> != sizeof...(FixedStrings);
-    }();
+    size_t operator()(const basic_fixed_string<N, CharT, Traits>& x) const noexcept 
+    { return x.hash_code(); }
 };
 
-} // namespace leviathan
+// Early GCC versions that support cNTTP were not able to deduce size_t parameter
+// of basic_fixed_string when fixed_string and other typedef were just type aliases.
+// template <size_t N> using fixed_string = basic_fixed_string<N, char>;
+// template <size_t N> using fixed_wstring = basic_fixed_string<N, wchar_t>;
 
 
-namespace std
+#include <string>
+#include <array>
+
+int main()
 {
-    template <size_t N, typename CharT, typename Traits>
-    struct hash<::leviathan::basic_fixed_string<N, CharT, Traits>>
-    {
-        size_t operator()(const ::leviathan::basic_fixed_string<N, CharT, Traits>& x) const noexcept 
-        { return x.hash_code(); }
-    };
+    std::string s;
+    constexpr char literal[] = "Hello, world!!!";
+    basic_fixed_string ss{ "[Hello World !]" };
+    std::cout << ss.size() << '\n';
+    std::copy(ss.begin(), ss.end(), std::ostream_iterator<char>{std::cout});
+    std::cout << "|\n";
+    std::cout << ss.sv().size();
+    std::cout << "|\n";
 }
-
-
 
 
 

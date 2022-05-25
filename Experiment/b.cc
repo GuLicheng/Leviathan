@@ -1,76 +1,44 @@
+#include <lv_cpp/collections/sorted_list.hpp>
+#include <random>
+#include <ranges>
 #include <iostream>
-#include <variant>
+#include <iterator>
 #include <vector>
 #include <map>
 #include <string>
-#include <lv_cpp/meta/template_info.hpp>
+#include <unordered_map>
+#include <assert.h>
+// A meta helper for select map/set
 
-template <typename T, typename... BaseTypes>
-using Variable = std::variant<std::vector<T>, std::map<std::variant<BaseTypes...>,  T>, BaseTypes...>;
-
-template <typename T>
-using Val = Variable<T, int, bool, double, std::string>;
-
-template <template <typename> typename F>
-struct FixPoint : F<FixPoint<F>> 
-{
-    using F<FixPoint<F>>::F;
-};
-
-using Json = FixPoint<Val>;
-using JsonList = std::vector<Json>;
-using JsonDict = std::map<std::variant<int, bool, double, std::string>, Json>;
-using Class = std::map<std::string, Json>;
-
-
-template <typename... Ts>
-std::ostream& operator<<(std::ostream& os, const std::variant<Ts...>& v)
-{
-    return std::visit([&](const auto& x) -> auto& { return os << x; }, v);
-}
-
-template <typename T>
-std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
-{
-    os << '[';
-    auto first = v.begin(), last = v.end();
-    for (auto iter = first; iter != last; ++iter)
-    {
-        if (iter != first) os << ", ";
-        os << *iter;
-    }
-    return os << ']';
-}
-
-template <typename K, typename V>
-std::ostream& operator<<(std::ostream& os, const std::map<K, V>& v)
-{
-    os << '{';
-    auto first = v.begin(), last = v.end();
-    for (auto iter = first; iter != last; ++iter)
-    {
-        if (iter != first) os << ", ";
-        os << *iter;
-    }
-    return os << '}';
-}
-
-template <typename F, typename S>
-std::ostream& operator<<(std::ostream& os, const std::pair<F, S>& v)
-{
-    return os << '(' << v.first << ": " << v.second << ')';
-}
-
+constexpr auto N = 30'00;
+static std::random_device rd;
 
 int main()
 {
-    Json config1 {
-        JsonList { 1, true, "Hello", JsonDict { {"42", 42}, {42, "42"} } }
-    };
-    Json config2 { true };
-    Json config3 { 1 };
-    Json config4 { "Hello World" };
-    Json config5 = { JsonDict { { "name", "Alice"}, { "age", 18 } } };
-    std::cout << config1 << '\n';
-    std::cout << config5 << '\n';
+    sorted_list<int> ls;
+    ls.insert(1);
+    ls.insert(2);
+    ls.insert(3);
+    ls.insert(4);
+
+
+    // ls.erase(ls.begin());
+    // ls.erase(ls.begin());
+    // ls.erase(ls.begin());
+    // auto i = ls.erase(ls.begin());
+    // std::cout << std::boolalpha << (i == ls.end()) << '\n'; 
+    
+    int cnt = 0;
+    auto iter = ls.begin();
+    while (iter != ls.end())
+    {
+        std::cout << "cnt = " << cnt++ << ", value = " << iter.m_in_idx << ',' << iter.m_out_idx << '\n';
+        iter = ls.erase(iter);
+    }
+
+    for (auto val : ls) std::cout << val << ' ';
+
+    std::cout << "\nOver\n";
 }
+
+
