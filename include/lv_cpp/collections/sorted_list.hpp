@@ -13,122 +13,17 @@
 
 #include <assert.h>
 
-// for vector/list/deque/set/unordered_set
-enum class config_type { set, map };
+#include "config.hpp"
 
-template <typename K, typename Allocator>
-struct identity
+namespace leviathan::collections
 {
-    using key_type = K;
-    using value_type = K;
-    using size_type = std::size_t;
-    using difference_type = std::ptrdiff_t;
-
-    using allocator_type = Allocator;
-    
-    using reference = value_type&;
-    using const_reference = const value_type&;
-    using pointer = typename std::allocator_traits<allocator_type>::pointer;
-    using const_pointer = typename std::allocator_traits<allocator_type>::const_pointer;
-
-	template <typename P1, typename P2>
-	constexpr static bool compare_keys(const P1& p1, const P2& p2) noexcept
-	{
-		return p1 == p2;
-	}
-
-	template <typename U>
-	constexpr static const auto& get_key(const U& x) noexcept
-	{
-		return x;
-	}
-
-};
-
-// for map/unordered_map
-template <typename K, typename V, typename Allocator>
-struct select1st
-{
-    using key_type = K;
-    using mapped_type = V;
-    using value_type = std::pair<const key_type, mapped_type>;
-    using size_type = std::size_t;
-    using difference_type = std::ptrdiff_t;
-
-    using allocator_type = Allocator;
-    
-    using reference = value_type&;
-    using const_reference = const value_type&;
-    using pointer = typename std::allocator_traits<allocator_type>::pointer;
-    using const_pointer = typename std::allocator_traits<allocator_type>::const_pointer;
-
-	template <typename P1, typename P2>
-	constexpr static bool compare_keys(const P1& p1, const P2& p2) noexcept
-	{
-		return p1.first == p2.first;
-	}
-
-	template <typename U>
-	constexpr static const auto& get_key(const U& x) noexcept
-	{
-		return x.first;
-	}
-
-};
-
-template <typename K, typename Compare, typename Allocator>
-struct set_config : identity<K, Allocator>
-{
-    using key_compare = Compare;
-	using typename identity<K, Allocator>::key_type;
-	
-	constexpr static auto config = config_type::set; 
-
-	// we don't simply use Compare for value_compare since it may bring some extra cost.
-	struct value_compare
-	{
-
-        constexpr value_compare(key_compare c) : comp{c} { }
-
-		[[no_unique_address]] Compare comp;
-
-		constexpr auto operator()(const key_type& lhs, const key_type& rhs) const
-		noexcept(noexcept(comp(lhs, rhs)))
-		{
-			return comp(lhs, rhs);
-		}
-
-	};
-
-};
-
-template <typename K, typename V, typename Compare, typename Allocator>
-struct map_config : select1st<K, V, Allocator>
-{
-    using key_compare = Compare;
-	using typename select1st<K, V, Allocator>::value_type;
-	using typename select1st<K, V, Allocator>::key_type;
-
-	constexpr static auto config = config_type::map;
-
-    struct value_compare
-    {
-        constexpr value_compare(key_compare c) : comp{c} { }
-
-        constexpr auto operator()(const value_type& lhs, const value_type& rhs) const 
-        noexcept(noexcept(comp(lhs.first, rhs.first)))
-        {
-            return comp(lhs.first, rhs.first);
-        }
-
-        [[no_unique_address]] key_compare comp;
-    };
-
-};
-
 /*
 	Compare:
-		bool binary(arg1, arg2): arg1: K, arg2: key_type
+		bool binary(arg1, arg2): arg1: key of item, arg2: value
+
+
+	A container which is faster than std::set/std::map
+
 */
 template <typename T, typename Compare, bool Duplicate, typename Config, size_t TrunkSize = 1000>
 class sorted_list_impl : public Config
@@ -154,7 +49,7 @@ class sorted_list_impl : public Config
 		using value_type = std::conditional_t<Const,
 			const typename std::iterator_traits<in_iter>::value_type,
 			typename std::iterator_traits<in_iter>::value_type>;
-
+		
 		using reference = value_type&;
 
 		using difference_type = typename std::iterator_traits<in_iter>::difference_type;
@@ -179,7 +74,7 @@ class sorted_list_impl : public Config
 		constexpr reference operator*() const noexcept { return m_c->m_lists[m_out_idx][m_in_idx]; }
 		constexpr auto operator->() const noexcept { return &(this->operator*()); }
 
-		sorted_list_iterator& operator++() 
+		sorted_list_iterator& operator++() noexcept
 		{
 			m_in_idx++;
 			if (m_in_idx == m_c->m_lists[m_out_idx].size())
@@ -187,14 +82,14 @@ class sorted_list_impl : public Config
 			return *this;
 		}
 
-		sorted_list_iterator operator++(int)
+		sorted_list_iterator operator++(int) noexcept
 		{
 			auto old = *this;
 			++ *this;
 			return old;
 		}
 
-		sorted_list_iterator& operator--() 
+		sorted_list_iterator& operator--() noexcept
 		{
 			if (m_in_idx == 0) 
 				m_in_idx = m_c->m_lists[--m_out_idx].size();
@@ -202,7 +97,7 @@ class sorted_list_impl : public Config
 			return *this;
 		}
 
-		sorted_list_iterator operator--(int)
+		sorted_list_iterator operator--(int) noexcept
 		{
 			auto old = *this;
 			-- *this;
@@ -213,13 +108,11 @@ class sorted_list_impl : public Config
 
 public:
 
-	using iterator = sorted_list_iterator<false>;
-	using const_iterator = sorted_list_iterator<true>;
-	using reversed_iterator = std::reverse_iterator<iterator>;
-	using const_reversed_iterator = std::reverse_iterator<const_iterator>;
-
-	// using key_compare = typename Config::key_compare;
-	// using value_compare = typename Config::value_compare;
+	// In fact, it's unnecessary
+	using iterator = sorted_list_iterator<false>; // -> decltype(rg.begin()) 
+	using const_iterator = sorted_list_iterator<true>; // decltype(rg.as_const().begin())
+	using reverse_iterator = std::reverse_iterator<iterator>; // std::reverse_iterator<1>
+	using const_reverse_iterator = std::reverse_iterator<const_iterator>; // std::reverse_iterator<2>
 
 	using typename Config::key_compare;
 	using typename Config::value_compare;
@@ -231,8 +124,7 @@ public:
 
 	using Config::config;
 
-	sorted_list_impl() = default;
-
+	sorted_list_impl() noexcept(std::is_nothrow_default_constructible_v<key_compare>) = default;
 
 	size_type size() const noexcept 
 	{ return m_size; }
@@ -259,22 +151,22 @@ public:
 	const_iterator cend() const noexcept 
 	{ return end(); }
 
-	reversed_iterator rbegin() noexcept 
+	reverse_iterator rbegin() noexcept 
 	{ return std::make_reverse_iterator(end()); } 
 
-	reversed_iterator rend() noexcept 
+	reverse_iterator rend() noexcept 
 	{ return std::make_reverse_iterator(begin()); } 
 
-	const_reversed_iterator rbegin() const noexcept 
+	const_reverse_iterator rbegin() const noexcept 
 	{ return std::make_reverse_iterator(end()); } 
 
-	const_reversed_iterator rend() const noexcept 
+	const_reverse_iterator rend() const noexcept 
 	{ return std::make_reverse_iterator(begin()); } 
 	
-	const_reversed_iterator rcbegin() const noexcept 
+	const_reverse_iterator rcbegin() const noexcept 
 	{ return rbegin(); } 
 
-	const_reversed_iterator rcend() const noexcept 
+	const_reverse_iterator rcend() const noexcept 
 	{ return rend(); } 
 
 	std::pair<iterator, bool> insert(const value_type& x) 
@@ -290,14 +182,22 @@ public:
 	iterator insert(const_iterator, value_type&& x) 
 	{ return insert_impl(std::move(x)).first; }
 	
-	// template <typename... Args> 
-	// std::pair<iterator, bool> emplace(Args&&... x);
+	template <typename... Args> 
+	std::pair<iterator, bool> emplace(Args&&... x)
+	{
+		value_type e { x... };
+		return insert_impl(std::move(e));
+	}
 	
 	iterator erase(const_iterator pos) 
 	{ return remove_impl(pos); }
+
+	iterator erase(iterator pos) 
+	{ return remove_impl(pos); }
+
 	// iterator erase(const_iterator first, const_iterator last);
 
-	size_t erase(const key_type& x) 
+	template <typename K> size_type erase(const K& x) 
 	{ return remove_impl(x); }
 	// template <typename K> size_type erase(K&& x);
 
@@ -344,6 +244,13 @@ public:
 	auto& operator[](K&& k) requires (config == config_type::map)
 	{ return insert(std::make_pair((K&&) k, typename Config::mapped_type())).first->second; }	
 
+	void swap(sorted_list_impl& rhs) 
+	noexcept(std::is_nothrow_swappable_v<outer_container> && std::is_nothrow_swappable_v<key_compare>)
+	{
+		m_lists.swap(rhs.m_lists);
+		std::swap(m_size, rhs.m_size);
+		std::swap(m_cmp, rhs.m_cmp);
+	}
 
 private:
 	outer_container m_lists;
@@ -463,7 +370,6 @@ private:
 		return { lower, upper };
 	}
 
-	// FIXME: while (iter != end) iter = erase(iter);
 	iterator remove_impl(const_iterator pos) requires (Duplicate)
 	{
 		auto i = pos.m_out_idx, j = pos.m_in_idx;
@@ -555,5 +461,5 @@ using sorted_map = sorted_list_impl<
 					map_config<K, V, Compare, std::allocator<std::pair<K, V>>>
 				>;
 
-
+}
 #endif

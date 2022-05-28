@@ -1,15 +1,19 @@
-#pragma once
 
 #include <lv_cpp/collections/config.hpp>
+
+// #include <lv_cpp/collections/skip_list.hpp>
 
 #include <assert.h>
 #include <algorithm>
 #include <iostream>
+#include <vector>
+#include <random>
 #include <array>
 #include <iterator>
 #include <memory_resource>
 #include <type_traits>
 
+#if 1
 namespace leviathan::collections
 {
 
@@ -83,9 +87,7 @@ namespace leviathan::collections
 
 			using link_type = std::conditional_t<Const, const skip_node*, skip_node*>;
 
-			using value_type = std::conditional_t<Const, 
-				const typename Config::value_type, 
-				typename Config::value_type>;
+			using value_type = std::conditional_t<Const, const T, T>;
 
 			using reference = value_type&;
 
@@ -348,50 +350,11 @@ namespace leviathan::collections
 		bool empty() const noexcept
 		{ return size() == 0; }
 
-		template <typename K> iterator find(const K& x) noexcept 
-		{
-			auto lower = lower_bound(x);
-			if (lower != end() && Config::get_key(*lower) == x)
-				return lower;
-			return end(); 
-		}
-
-		template <typename K> const_iterator find(const K& x) const noexcept 
-		{ return const_cast<self_type&>(*this).find(x); }
-
 		template <typename K> iterator lower_bound(const K& x) noexcept 
 		{ return lower_bound_impl(x); }
 
 		template <typename K> const_iterator lower_bound(const K& x) const noexcept 
 		{ return const_cast<self_type&>(*this).lower_bound_impl(x); }
-
-		template <typename K> iterator upper_bound(const K& x) noexcept 
-		{
-			auto lower = lower_bound(x);
-			return std::find_if(lower, end(), [&](const auto& item){
-				return Config::get_key(item) != x;
-			});
-		}
-
-		template <typename K> const_iterator upper_bound(const K& x) const noexcept 
-		{ return const_cast<self_type&>(*this).upper_bound(x); }
-
-		template <typename K>
-		std::pair<iterator, iterator> equal_range(const K& x) noexcept
-		{
-			auto lower = lower_bound(x);
-			auto upper = std::find_if(lower, end(), [&](const auto& item){
-				return Config::get_key(item) != x;
-			});
-			return { lower, upper };
-		}
-
-		template <typename K> 
-		std::pair<const_iterator, const_iterator> equal_range(const K& x) const noexcept
-		{ return const_cast<self_type&>(*this).equal_range(x); }
-
-		template <typename K> bool contains(const K& x) const noexcept 
-		{ return find(x) != end(); } 
 
 		std::pair<iterator, bool> insert(const value_type& x) 
 		{ return insert_unique(x); }
@@ -399,34 +362,18 @@ namespace leviathan::collections
 		std::pair<iterator, bool> insert(value_type&& x) 
 		{ return insert_unique(std::move(x)); }
 
-		template <typename K>
-		iterator insert(const_iterator, K&& x) 
-		{ return insert_unique((K&&)x).first; }
-
-		template <typename K>
-		iterator insert(iterator, K&& x) 
-		{ return insert_unique((K&&)x).first; }
-
-		template <typename K> 
-		auto& operator[](K&& k) requires (config == config_type::map)
-		{ return insert(std::make_pair((K&&) k, typename Config::mapped_type())).first->second; }	
-
-		iterator erase(const_iterator pos) 
-		{ return erase_node(Config::get_key(*pos)); }
-
-		iterator erase(iterator pos) 
-		{ return erase_node(Config::get_key(*pos)); }
-
-		template <typename K> size_type erase(const K& x) 
+		void show() const 
 		{
-			auto old_size = size();
-			erase_node(x);
-			return old_size - size();
+			auto cur = m_header.m_next[0];
+			while (!is_sentinel(cur))
+			{
+				auto next = cur->m_next[0];
+				// destroy_one_node(cur);
+				std::cout << cur->m_data << '-';
+				cur = next;
+			}
+			std::cout << '\n';
 		}
-
-		template <typename... Args>
-		std::pair<iterator, bool> emplace(Args&&... args)
-		{ return emplace_unique((Args&&) args...); }
 
 	private:
 		[[no_unique_address]] Compare m_cmp;
@@ -473,7 +420,7 @@ namespace leviathan::collections
 			bool exist = false;
 			for (int i = m_level - 1; i >= 0; --i)
 			{
-				for (; !is_sentinel(cur->m_next[i]) && m_cmp(Config::get_key(cur->m_next[i]->m_data), val); cur = cur->m_next[i]);
+				for (; !is_sentinel(cur->m_next[i]) && m_cmp(cur->m_next[i]->m_data, val); cur = cur->m_next[i]);
 				auto next_node = cur->m_next[i];
 				if (!is_sentinel(next_node) && Config::get_key(next_node->m_data) == val)
 				{
@@ -487,6 +434,8 @@ namespace leviathan::collections
 			// cur is prev of node
 			return { cur, exist };
 		}
+
+
 
 		void insert_after(skip_node* pos, skip_node* new_node, const std::array<skip_node*, MAXLEVEL>& prev) noexcept
 		{
@@ -528,13 +477,13 @@ namespace leviathan::collections
 		}
 
 		// find node without prev
-		template <typename K>
-		std::pair<skip_node*, bool> find_node(const K& val) 
+		std::pair<skip_node*, bool> find_node(const key_type& val) 
 		{
 			skip_node* cur = m_header.derived_ptr();
 			for (int i = m_level; i >= 0; --i)
 			{
-				for (; !is_sentinel(cur->m_next[i]) && m_cmp(Config::get_key(cur->m_next[i]->m_data), val); cur = cur->m_next[i]);
+				// for (; cur->m_next[i] && KeyTraits::compare(m_cmp, cur->m_next[i]->m_data, val); cur = cur->m_next[i]);
+				for (; !is_sentinel(cur->m_next[i]) && m_cmp(cur->m_next[i]->m_data, val); cur = cur->m_next[i]);
 				auto next_node = cur->m_next[i];
 				// if (next_node && KeyTraits::compare(std::equal_to<>(), next_node->m_data, val))
 				if (!is_sentinel(next_node) && Config::get_key(next_node->m_data) == val)
@@ -566,10 +515,10 @@ namespace leviathan::collections
 		std::pair<skip_node*, bool> emplace_unique(Args&&... args)
 		{
 			auto level = get_level();
-			auto new_node = create_one_node(level, (Args&&)args..., sentinel_node());
+			auto new_node = create_one_node(level, (Args&&)args...);
 			std::array<skip_node*, MAXLEVEL> prev;
 			prev.fill(sentinel_node());
-			auto [cur, exist] = find_node_with_prev<false>(Config::get_key(new_node->m_data), prev);
+			auto [cur, exist] = find_node_with_prev<false>(Config::get_key(new_node.m_data), prev);
 			if (exist)
 			{
 				destroy_one_node(new_node);
@@ -587,7 +536,7 @@ namespace leviathan::collections
 			++m_size;
 		}
 
-		skip_node* erase_node(const key_type& val)
+		skip_node* erase_node(skip_node* pos, const key_type& val)
 		{
 			std::array<skip_node*, MAXLEVEL> prev;
 			prev.fill(sentinel_node());
@@ -614,10 +563,9 @@ namespace leviathan::collections
 			return prev[0]->m_next[0];
 		}
 
-		template <typename K>
-		skip_node* lower_bound_impl(const K& val) 
+		skip_node* lower_bound_impl(skip_node* pos, const key_type& val) const
 		{
-			auto [cur, exist] = find_node(val);
+			auto [cur, exist] = find_node(pos, val);
 			return exist ? cur : cur->m_next[0];
 		}
 
@@ -654,10 +602,23 @@ namespace leviathan::collections
 	template <typename T, typename Compare = std::less<T>, typename Allocator = std::allocator<T>>
 	using skip_list = skip_list_impl<T, Compare, Allocator, set_config<T, Compare, Allocator>, true>;
 
-	template <typename K, typename V, typename Compare = std::less<K>, typename Allocator = std::allocator<std::pair<K, V>>>
-	using skip_map = skip_list_impl<std::pair<K, V>, Compare, Allocator, map_config<K, V, Compare, Allocator>, true>;
-
 
 } // namespace 
 
+#endif
 
+
+
+int main()
+{
+	leviathan::collections::skip_list<int> sl;
+	sl.insert(1);
+	sl.insert(2);
+	sl.insert(3);
+	sl.insert(3);
+	sl.insert(6);
+	// std::ranges::copy(sl, std::ostream_iterator<int>{std::cout, " "});
+	// std::copy(sl.begin(), sl.end(), std::ostream_iterator<int>{std::cout, " "});
+	sl.show();
+	std::cout << "Ok\n";
+}

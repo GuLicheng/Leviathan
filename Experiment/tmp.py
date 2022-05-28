@@ -1,22 +1,60 @@
-from sklearn.cluster import SpectralClustering
-import torch
-import torch.nn.functional as F
+import os
+import cv2 as cv
 import numpy as np
+from os.path import join
 
-@torch.no_grad()
-def spectral_clustering(feats: torch.Tensor, n_clusters = 2, tau: float = 0, eps: float = 1e-5):
-    assert feats.ndim == 3, feats.shape
+def imread(path: str):
 
-    feats = F.normalize(feats, p=2, dim=1)
+    img = cv.imread(path)
+    if path.endswith(".jpg"):
+        return cv.resize(img, dsize=(224, 224), interpolation=cv.INTER_LINEAR)
+    else:
+        return cv.resize(img, dsize=(224, 224), interpolation=cv.INTER_NEAREST)
 
-    A = feats.transpose(1, 2) @ feats
 
-    A[A < tau] = eps
+if __name__ == "__main__":
 
-    labels = np.stack([
-        SpectralClustering(n_clusters=n_clusters, affinity="precomputed").fit_predict(Ai) for Ai in A
-    ])
+    imagenet = r"F:\Paper\imagenet_pred"
+    dino = r"F:\Paper\dino_pred"
+    images = r"D:\VOCtrainval_11-May-2012\VOCdevkit\VOC2012\JPEGImages"
+    gts = r"D:\VOCtrainval_11-May-2012\VOCdevkit\VOC2012\SegmentationClass"
 
-    return labels
+    # cv.namedWindow("Window", 0)
+    # cv.resizeWindow("Window", 300, 300)
 
-    
+    for name in os.listdir(dino):
+
+        img = imread(join(images, name.replace(".png", ".jpg")))
+        gt = imread(join(gts, name))
+        image_net_pred = imread(join(imagenet, name))
+        dino_pred = imread(join(dino, name))
+
+
+
+        h_images1 = np.hstack([img, gt])
+        h_images2 = np.hstack([image_net_pred, dino_pred])
+
+        v_image = np.vstack([h_images1, h_images2])
+
+        print(name)
+        cv.imshow("Window   ", v_image)
+
+        cv.waitKey(0)
+
+    cv.destroyAllWindows()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
