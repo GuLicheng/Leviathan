@@ -17,7 +17,7 @@ LV_TEST_BEGIN
 template <typename StringType>
 void test_string()
 {
-    static_assert(std::ranges::contiguous_range<StringType>);
+    STATIC_REQUIRE(std::ranges::contiguous_range<StringType>);
 
     constexpr char chars[] = "[Hello World !]";
     constexpr auto chars_len = ::strlen(chars);  // remove '\0'
@@ -53,7 +53,7 @@ void test_string()
         REQUIRE(str.at(1) == 'H');
     }
 
-    SECTION("hash code")
+    SECTION("Hash code")
     {
         StringType str = chars;
         std::hash<std::string_view> hasher;

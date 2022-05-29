@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <chrono>
+#include <string>
 
 namespace leviathan {
 
@@ -20,7 +21,8 @@ class timer {
 
 public:
 
-    timer(const char* msg) : msg{msg} { }
+    timer(const char* str) : msg{ str } { }
+    timer(std::string str) : msg{ std::move(str) } { }
 
     timer() = default;
     
@@ -32,7 +34,7 @@ public:
     }
 
 private:
-    const char* msg = "";
+    std::string msg;
     std::chrono::time_point<std::chrono::high_resolution_clock> tp 
         = std::chrono::high_resolution_clock::now();
 };

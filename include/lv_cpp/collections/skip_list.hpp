@@ -630,9 +630,7 @@ namespace leviathan::collections
 		template <typename... Args>
 		skip_node* create_one_node(int level, Args&&... args)
 		{
-			// return new skip_node(std::forward<Args>(args)..., level);
-			// default allocator is must slower than new, I don't know why
-			auto addr = m_alloc.allocate(sizeof(skip_node));
+			auto addr = m_alloc.allocate(1);
 			assert(addr != nullptr); // if (!addr) throw std::bad_alloc { }
 			std::construct_at(addr, (Args&&)args..., level);
 			return addr;
