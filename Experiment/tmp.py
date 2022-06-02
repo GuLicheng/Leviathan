@@ -11,14 +11,12 @@ def imread(path: str):
     else:
         return cv.resize(img, dsize=(224, 224), interpolation=cv.INTER_NEAREST)
 
+imagenet = r"F:\Paper\imagenet_pred"
+dino = r"F:\Paper\dino_pred"
+images = r"D:\VOCtrainval_11-May-2012\VOCdevkit\VOC2012\JPEGImages"
+gts = r"D:\VOCtrainval_11-May-2012\VOCdevkit\VOC2012\SegmentationClass"
 
-if __name__ == "__main__":
-
-    imagenet = r"F:\Paper\imagenet_pred"
-    dino = r"F:\Paper\dino_pred"
-    images = r"D:\VOCtrainval_11-May-2012\VOCdevkit\VOC2012\JPEGImages"
-    gts = r"D:\VOCtrainval_11-May-2012\VOCdevkit\VOC2012\SegmentationClass"
-
+def visual():
     # cv.namedWindow("Window", 0)
     # cv.resizeWindow("Window", 300, 300)
 
@@ -43,9 +41,52 @@ if __name__ == "__main__":
 
     cv.destroyAllWindows()
 
+selected = [
+    "2007_000464",
+    "2007_000636",
+    "2007_001289",
+    "2007_001761",
+    "2007_002094",
+    "2007_003051",
+    "2007_003194",
+    "2007_004969",
+    "2007_005294",
+    "2007_009897",
+    "2008_000107",
+    "2008_003110",
+    "2007_001774",
+]
+
+def copy_selected_sample():
+
+    for name in selected:
+
+        os.system(f"cp {os.path.join(images, name)}.jpg ./images/{name}_img.jpg")
+        os.system(f"cp {os.path.join(dino, name)}.png ./images/{name}_dino.png")
+        os.system(f"cp {os.path.join(imagenet, name)}.png ./images/{name}_imagenet.png")
+        os.system(f"cp {os.path.join(gts, name)}.png ./images/{name}_GT.png")
+
+if __name__ == "__main__":
+
+    copy_selected_sample()
+    # visual()
 
 
 
+"""
+2007_000464.png
+2007_000636.png
+2007_001289.png
+2007_001761.png
+2007_002094.png
+2007_003051.png
+2007_003194.png
+2007_004969.png
+2007_005294.png
+2007_009897.png
+2008_000107.png
+2008_003110.png
+"""
 
 
 

@@ -40,19 +40,4 @@ TEST_CASE("sorted_map_duplicate")
     simple_unique_map_container_test<MAP>();
 }
 
-TEST_CASE("constructor")
-{
 
-    std::vector default_values = { 1, 2, 3, 4, 5 };
-
-    // copy constructor
-    using namespace leviathan::collections;
-
-    using set_type = sorted_list<int>;
-
-    set_type sl;
-
-    for (auto val : default_values) sl.insert(val);
-    
-
-}

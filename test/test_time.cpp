@@ -1,31 +1,172 @@
+#define CATCH_CONFIG_MAIN
+
+
 #include "test_time.hpp"
 
 #include <set>
+#include <unordered_set>
 #include <lv_cpp/collections/sorted_list.hpp>
 #include <lv_cpp/collections/skip_list.hpp>
+#include <lv_cpp/collections/py_dict.hpp>
 
-#include <list>
 
+using SET1 = std::set<int>;
+using SET2 = leviathan::collections::sorted_list<int>;
+using SET3 = leviathan::collections::skip_list<int>;
 
-int main()
+using UNORDERED_SET1 = std::unordered_set<int>;
+using UNORDERED_SET2 = leviathan::collections::hash_table<int>;
+
+TEST_CASE("duplicate_ordered_collections_random_insert")
 {
-    using STL_SET = std::set<int>;
-    leviathan::test::all_test<STL_SET>("std::set");
+    using namespace leviathan::test;
 
-    using SORTED_LIST = leviathan::collections::sorted_list<int>;
-    leviathan::test::all_test<SORTED_LIST>("sorted_list");
+    BENCHMARK("std::set")
+    {
+        return random_insert_test<SET1>();
+    };
 
-    using SKIP_LIST = leviathan::collections::skip_list<int>;
-    leviathan::test::all_test<SKIP_LIST>("skip_list");
+    BENCHMARK("sorted_list")
+    {
+        return random_insert_test<SET2>();
+    };
+
+    BENCHMARK("skip_list")
+    {
+        return random_insert_test<SET3>();
+    };
+}
+
+TEST_CASE("duplicate_ordered_collections_ascending_insert")
+{
+    using namespace leviathan::test;
+
+    BENCHMARK("std::set")
+    {
+        return ascending_insert_test<SET1>();
+    };
+
+    BENCHMARK("sorted_list")
+    {
+        return ascending_insert_test<SET2>();
+    };
+
+    BENCHMARK("skip_list")
+    {
+        return ascending_insert_test<SET3>();
+    };
+}
+
+TEST_CASE("duplicate_ordered_collections_descending_insert")
+{
+    using namespace leviathan::test;
+
+    BENCHMARK("std::set")
+    {
+        return descending_insert_test<SET1>();
+    };
+
+    BENCHMARK("sorted_list")
+    {
+        return descending_insert_test<SET2>();
+    };
+
+    BENCHMARK("skip_list")
+    {
+        return descending_insert_test<SET3>();
+    };
+}
+
+TEST_CASE("duplicate_unordered_collections_random_insert")
+{
+    using namespace leviathan::test;
+
+    BENCHMARK("std::unordered_set")
+    {
+        return random_insert_test<UNORDERED_SET1>();
+    };
+
+    BENCHMARK("hash_table")
+    {
+        return random_insert_test<UNORDERED_SET2>();
+    };
 
 }
 
+TEST_CASE("duplicate_set_search")
+{
+    using namespace leviathan::test;
+    SET1 s1;
+    SET2 s2;
+    SET3 s3;
+    UNORDERED_SET1 s4;
+    UNORDERED_SET2 s5;
 
+    random_insert(s1, s2, s3, s4, s5);
+    
+    BENCHMARK("std::set")
+    {
+        return search_test(s1);
+    };
 
+    BENCHMARK("sorted_list")
+    {
+        return search_test(s2);
+    };
 
+    BENCHMARK("skip_list")
+    {
+        return search_test(s3);
+    };
 
+    BENCHMARK("std::unordered_set")
+    {
+        return search_test(s4);
+    };
 
+    BENCHMARK("hash_table")
+    {
+        return search_test(s5);
+    };
 
+}
+
+TEST_CASE("duplicate_set_remove")
+{
+    using namespace leviathan::test;
+    SET1 s1;
+    SET2 s2;
+    SET3 s3;
+    UNORDERED_SET1 s4;
+    UNORDERED_SET2 s5;
+
+    random_insert(s1, s2, s3, s4, s5);
+    
+    BENCHMARK("std::set")
+    {
+        return remove_test(s1);
+    };
+
+    BENCHMARK("sorted_list")
+    {
+        return remove_test(s2);
+    };
+
+    BENCHMARK("skip_list")
+    {
+        return remove_test(s3);
+    };
+
+    BENCHMARK("std::unordered_set")
+    {
+        return remove_test(s4);
+    };
+
+    BENCHMARK("hash_table")
+    {
+        return remove_test(s5);
+    };
+}
 
 
 

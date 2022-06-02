@@ -1,5 +1,6 @@
 #pragma once
 
+#define CATCH_CONFIG_ENABLE_BENCHMARKING
 
 #include <map>
 #include <set>
@@ -101,6 +102,7 @@ void unique_set_insert_method()
         REQUIRE(c.size() == 2);
     }
 
+
     SECTION("emplace and it's return result")
     {
         REQUIRE(*c.emplace(1).first == 1);
@@ -122,8 +124,6 @@ void simple_unique_set_iterator_test()
     std::vector values = { 1, 2, 3, 4, 5 };
 
     std::ranges::copy(values, std::inserter(c, c.end()));
-
-    REQUIRE(std::ranges::is_sorted(c));
 
     SECTION("remove elements by iterators")
     {
@@ -157,7 +157,7 @@ void simple_unique_set_iterator_test()
 }
 
 template <typename SetContainer>
-void simple_unique_set_container_random_test()
+void simple_unique_set_container_random_test(bool is_sorted = true)
 {
     std::set<int> comparison;
     SetContainer c;
@@ -172,7 +172,7 @@ void simple_unique_set_container_random_test()
         return vec;
     };
 
-    
+
     auto inserted_elements = rand_seq(N);
     auto found_elements = rand_seq(N);
     auto erased_elements = rand_seq(N);
@@ -189,8 +189,11 @@ void simple_unique_set_container_random_test()
 
     CHECK(op(comparison) == op(c));
 
-    auto is_equal = std::ranges::equal(comparison, c);
-    REQUIRE(is_equal);
+    if (is_sorted)
+    {
+        auto is_equal = std::ranges::equal(comparison, c);
+        REQUIRE(is_equal);
+    } 
 }
 
 

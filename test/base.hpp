@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <lv_cpp/catch.hpp>
+#include <thirdpart/catch.hpp>
 
 #define LV_TEST_BEGIN namespace leviathan::test {
 #define LV_TEST_END                             }

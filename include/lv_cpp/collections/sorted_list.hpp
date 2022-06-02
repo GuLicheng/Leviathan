@@ -71,10 +71,13 @@ class sorted_list_impl : public Config
 
 		constexpr bool operator==(const sorted_list_iterator& rhs) const noexcept = default;
 
-		constexpr reference operator*() const noexcept { return m_c->m_lists[m_out_idx][m_in_idx]; }
-		constexpr auto operator->() const noexcept { return &(this->operator*()); }
+		constexpr reference operator*() const noexcept 
+		{ return m_c->m_lists[m_out_idx][m_in_idx]; }
 
-		sorted_list_iterator& operator++() noexcept
+		constexpr auto operator->() const noexcept 
+		{ return &(this->operator*()); }
+
+		constexpr sorted_list_iterator& operator++() noexcept
 		{
 			m_in_idx++;
 			if (m_in_idx == m_c->m_lists[m_out_idx].size())
@@ -82,14 +85,14 @@ class sorted_list_impl : public Config
 			return *this;
 		}
 
-		sorted_list_iterator operator++(int) noexcept
+		constexpr sorted_list_iterator operator++(int) noexcept
 		{
 			auto old = *this;
 			++ *this;
 			return old;
 		}
 
-		sorted_list_iterator& operator--() noexcept
+		constexpr sorted_list_iterator& operator--() noexcept
 		{
 			if (m_in_idx == 0) 
 				m_in_idx = m_c->m_lists[--m_out_idx].size();
@@ -97,7 +100,7 @@ class sorted_list_impl : public Config
 			return *this;
 		}
 
-		sorted_list_iterator operator--(int) noexcept
+		constexpr sorted_list_iterator operator--(int) noexcept
 		{
 			auto old = *this;
 			-- *this;
@@ -125,6 +128,7 @@ public:
 	using Config::config;
 
 	sorted_list_impl() noexcept(std::is_nothrow_default_constructible_v<key_compare>) = default;
+	sorted_list_impl(Compare cmp) : m_cmp { cmp }, m_size { 0 } { }
 
 	size_type size() const noexcept 
 	{ return m_size; }
@@ -450,15 +454,15 @@ private:
 };
 
 
-template <typename T, typename Compare = std::less<T>>
+template <typename T, typename Compare = std::less<void>>
 using sorted_list = sorted_list_impl<T, Compare, true, set_config<T, Compare, std::allocator<T>>>;
 
-template <typename K, typename V, typename Compare = std::less<K>>
+template <typename K, typename V, typename Compare = std::less<void>>
 using sorted_map = sorted_list_impl<
 					std::pair<K, V>,
 					Compare, 
 					true, 
-					map_config<K, V, Compare, std::allocator<std::pair<K, V>>>
+					map_config<K, V, Compare, std::allocator<std::pair<const K, V>>>
 				>;
 
 }

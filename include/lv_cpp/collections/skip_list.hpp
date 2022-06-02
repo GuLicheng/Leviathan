@@ -649,10 +649,10 @@ namespace leviathan::collections
 	// int Ratio = 4>
 	// class skip_list_impl
 
-	template <typename T, typename Compare = std::less<T>, typename Allocator = std::allocator<T>>
+	template <typename T, typename Compare = std::less<void>, typename Allocator = std::allocator<T>>
 	using skip_list = skip_list_impl<T, Compare, Allocator, set_config<T, Compare, Allocator>, true>;
 
-	template <typename K, typename V, typename Compare = std::less<K>, typename Allocator = std::allocator<std::pair<K, V>>>
+	template <typename K, typename V, typename Compare = std::less<void>, typename Allocator = std::allocator<std::pair<K, V>>>
 	using skip_map = skip_list_impl<std::pair<K, V>, Compare, Allocator, map_config<K, V, Compare, Allocator>, true>;
 
 

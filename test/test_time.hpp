@@ -1,27 +1,33 @@
 #pragma once
 
+#define CATCH_CONFIG_ENABLE_BENCHMARKING
+
 #include <lv_cpp/utils/timer.hpp>
+#include <thirdpart/catch.hpp>
 #include <assert.h>
 #include <random>
 #include <algorithm> 
 #include <vector> // store elements
 #include <ranges>
 
+
 #define SplitLine() (std::cout << "===============================================\n")
 
 namespace leviathan::test
 {
 
+    // We use algorithm + std::ranges to replace Catch2's Generator 
+
     namespace detail
     {
         inline std::random_device rd;
 
-        inline constexpr auto default_num = 1'000'000;
+        inline constexpr auto default_num = 1000'000; // 100'000 x Catch::DataConfig::benchmarkSamples
 
         std::vector<int> random_range_int(int n = default_num)
         {
             auto random_generator = [&]() {
-                return rd();
+                return rd() % (default_num * 10);
             };
             std::vector<int> ret;
             ret.reserve(n);
@@ -77,93 +83,64 @@ namespace leviathan::test
     }
 
     template <typename OrderedSet>
-    void insert_test(std::string info)
+    auto random_insert_test()
     {
-        SplitLine();
-        std::cout << "InsertTesting\n";
-        {
-            OrderedSet s;
-            leviathan::timer _{info + " ascending"};
-            for (auto val : insertion::ascending) s.insert(val);
-            assert(s.size() == detail::default_num);
-        }
-
-        {
-            OrderedSet s;
-            leviathan::timer _{info + " descending"};
-            for (auto val : insertion::descending) s.insert(val);
-            assert(s.size() == detail::default_num);
-        }
-
-        {
-            OrderedSet s;
-            leviathan::timer _{info + " random"};
-            for (auto val : insertion::random_int) s.insert(val);
-            assert(s.size() <= detail::default_num);
-        }
-
+        OrderedSet s;
+        for (auto val : insertion::random_int) s.insert(val);
+        assert(s.size() <= detail::default_num);
+        return s.size();
     }
 
     template <typename OrderedSet>
-    void search_test(std::string info)
+    auto ascending_insert_test()
     {
-        SplitLine();
-
-        std::cout << "SearchingTesting\n";
-        
         OrderedSet s;
+        for (auto val : insertion::ascending) s.insert(val);
+        assert(s.size() <= detail::default_num);
+        return s.size();
+    }
 
-        for (auto val : insertion::random_int) s.insert(val);
+    template <typename OrderedSet>
+    auto descending_insert_test()
+    {
+        OrderedSet s;
+        for (auto val : insertion::descending) s.insert(val);
+        assert(s.size() <= detail::default_num);
+        return s.size();
+    }
+
+    template <typename OrderedSet>
+    auto search_test(OrderedSet& s)
+    {
+
+        REQUIRE(s.size() > 0);
 
         int cnt = 0;
 
-        leviathan::timer _{info + " random search"};
-
         for (auto val : search::searching) cnt += s.contains(val);
 
-        assert(cnt <= detail::default_num);
-
+        return cnt;
     }
 
     template <typename OrderedSet>
-    void remove_test(std::string info)
+    auto remove_test(OrderedSet& s)
     {
-        SplitLine();
+        REQUIRE(s.size() > 0);
 
-        std::cout << "RemovingTesting\n";
+        for (auto val : removing::remove) s.erase(val);
 
-        {
-            OrderedSet s;
-            for (auto val : insertion::random_int) s.insert(val);
-            leviathan::timer _{info + " ascending"};
-            for (auto val : insertion::ascending) s.erase(val);
-            assert(s.size() <= detail::default_num);
-        }
-
-        {
-            OrderedSet s;
-            for (auto val : insertion::random_int) s.insert(val);
-            leviathan::timer _{info + " descending"};
-            for (auto val : insertion::descending) s.erase(val);
-            assert(s.size() <= detail::default_num);
-        }
-
-        {
-            OrderedSet s;
-            for (auto val : insertion::random_int) s.insert(val);
-            leviathan::timer _{info + " random_int"};
-            for (auto val : removing::remove) s.erase(val);
-            assert(s.size() <= detail::default_num);
-        }
+        return s.size();
     }
 
-
-    template <typename OrderedSet>
-    void all_test(std::string info)
+    template <typename... OrderedSets>
+    void random_insert(OrderedSets&... s)
     {
-        insert_test<OrderedSet>(info);
-        search_test<OrderedSet>(info);
-        remove_test<OrderedSet>(std::move(info));
+        bool is_all_empty = (s.empty() && ...); 
+        REQUIRE(is_all_empty);
+        for (auto val : insertion::random_int) 
+        {
+            (s.insert(val), ...);   
+        }
     }
 
 }
