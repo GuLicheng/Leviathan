@@ -1,537 +1,591 @@
-/**
- *  This is a hash table with quadratic
- */
+/* 
+    https://github.com/python/cpython/blob/main/Objects/dictobject.c
+    We simply implement by template
+*/
 
-#ifndef __HASH_TABLE_HPP__
-#define __HASH_TABLE_HPP__
+#pragma once
 
-#include <lv_cpp/meta/meta.hpp>
+/*
+Something defined in dictobject.c
 
-#include <iostream>
-#include <memory>
-#include <functional>
-#include <algorithm>
++---------------------+
+| dk_refcnt           |
+| dk_log2_size        |
+| dk_log2_index_bytes |
+| dk_kind             |
+| dk_usable           |
+| dk_nentries         |
++---------------------+
+| dk_indices[]        |  
+|                     |
++---------------------+
+| dk_entries[]        |
+|                     |
++---------------------+
+*/
+
+#include "config.hpp"
+
 #include <type_traits>
+#include <functional> // std::hash
+#include <variant>
+#include <bit>
 #include <assert.h>
-#include <lv_cpp/meta/template_info.hpp>
+
+
 
 namespace leviathan::collections
 {
 
-    template <typename Key, typename Value, typename HashFunction = std::hash<Key>, typename KeyEqual = std::equal_to<>, typename Allocator = std::allocator<std::pair<Key, Value>>>
-    struct hash_map_config
+    namespace detail
     {
-        using key_type = Key;
-        using value_type = std::pair<const Key, Value>;
-        using hasher = HashFunction;
-        using allocator_type = Allocator;
-        using key_equal = KeyEqual;
-
-        // Lhs is value_type, and rhs is key_type/
-        template <typename Compare, typename Lhs, typename Rhs>
-        constexpr static bool compare(const Compare& cmp, const Lhs& lhs, const Rhs& rhs) 
-        noexcept(noexcept(cmp(lhs.first, rhs)))
+        // j = ((5*j) + 1) mod 2**i 
+        constexpr std::size_t next_hash(std::size_t old, std::size_t mod)
         {
-            PrintTypeCategory(lhs);
-            PrintTypeCategory(rhs);
-            return cmp(lhs.first, rhs);
+            // assert(is_power_of_two(mod));
+            return (((old << 2) + old) + 1) & (mod - 1);
         }
+
+        constexpr std::size_t useable_fraction(std::size_t n)
+        {
+            return (n << 1) / 3;
+        }
+
+        /*
+            hash policy:
+            {
+                ctor: (hash_code, table_size):
+                    hash_code: std::hash(x) which may greater than table_size
+                    table_size(): m_entries.size() - length(sentinel)
+
+                static bool need_expand(double load_factor); -> check whether need to expand, factor = used_size / table_size
+                static std::size_t next_capacity()(std::size_t table_size); -> return next capacity
+            }
+        */
+
+        template <std::size_t Num = 1, std::size_t Den = 2>
+        struct quadratic_policy
+        {
+        
+            constexpr static double factor = (double) Num / Den;
+
+            constexpr static bool need_expand(double load_factor) noexcept
+            { return load_factor >= factor; }
+
+            constexpr static std::size_t next_capacity(std::size_t table_size) noexcept
+            {
+                // FIXME call std::terminate if return sentinel
+                return *std::ranges::find_if(prime_table, [=](const auto& x) {
+                    return x > table_size;
+                });
+            }
+
+            quadratic_policy(std::size_t hash_init, std::size_t mask) noexcept 
+            {
+                // assert(is_prime(mask));
+                m_value = hash_init % mask;
+                m_mask = mask;
+                m_delta = 1;                
+            }
+
+            constexpr std::size_t operator()() noexcept
+            {
+                m_value += m_delta;
+                m_delta += 2;
+                m_value %= m_mask;
+                return m_value;
+            }
+
+            constexpr std::size_t first() const noexcept
+            { return m_value; }
+
+        private:
+
+            static inline std::size_t prime_table[] = {
+                17, 29, 37, 59, 89, 127, 193, 293,
+                433, 653, 977, 1459, 2203, 3307, 4967,
+                7451, 11173, 16759, 25147, 37747, 56629,
+                84947, 127423, 191137, 286711, 430081,
+                645131, 967693, 1451539, 2177321,
+                3265981, 4898981, 7348469, 11022709,
+                16534069, 24801109, 37201663, 55802497, 83703749,
+                125555621, 188333437, 282500161, 423750241, 635625377, 953438137
+            };
+
+            constexpr static bool is_prime(std::size_t x) noexcept
+            {
+                if (x < 2) return false;
+
+                for (std::size_t i = 2; i * i <= x; ++i)
+                    if (x % i == 0)
+                        return false;
+                return true;
+            } 
+
+            std::size_t m_value;
+            std::size_t m_mask;
+            std::size_t m_delta;
+        };
+
+        template <std::size_t Num = 2, std::size_t Den = 3, std::size_t PerturbShift = 5>
+        struct python_dict
+        {
+
+            constexpr static double factor = (double) Num / Den;
+
+            constexpr static bool need_expand(double load_factor) noexcept
+            { return load_factor > factor; }
+
+            constexpr static std::size_t next_capacity(std::size_t table_size) noexcept
+            {
+                assert(is_power_of_two(table_size));
+                std::size_t factor = table_size < 256 ? 4 : 2;
+                return table_size * factor;
+            }
+
+            python_dict(std::size_t hash_init, std::size_t table_size) noexcept 
+            {
+                assert(is_power_of_two(table_size));
+                m_mask = table_size - 1;
+                m_perturb_shift = hash_init;
+                m_value = hash_init & m_mask;
+            }
+
+            constexpr std::size_t operator()() noexcept
+            {
+                m_value = ((5 * m_value) + 1 + m_perturb_shift) & m_mask;
+                m_perturb_shift >>= PerturbShift;
+                return m_value;
+            }
+
+            constexpr std::size_t first() const noexcept
+            { return m_value; }
+
+        private:
+            constexpr static bool is_power_of_two(std::size_t x) noexcept
+            { return std::popcount(x) == 1; }
+        
+            std::size_t m_value;
+            std::size_t m_perturb_shift;
+            std::size_t m_mask;
+
+        };
+
+        template <typename T, bool Cache>
+        struct storage_impl
+        {
+            T m_value;
+
+            constexpr auto& value() noexcept 
+            { return m_value; }
+
+            constexpr auto& value() const noexcept
+            { return m_value; }
+
+            constexpr storage_impl(const T& x) : m_value { x } { }
+            constexpr storage_impl(T&& x) : m_value { std::move(x) } { }
+
+        };
 
         template <typename T>
-        constexpr static auto& key(const T& x) noexcept
+        struct storage_impl<T, true> : storage_impl<T, false>
         {
-            return x.first;
-        }
+            std::size_t m_hash_code;
 
-    };
-
-    template <typename Key, typename HashFunction = std::hash<Key>, typename KeyEqual = std::equal_to<>, typename Allocator = std::allocator<Key>>
-    struct hash_set_config
-    {
-        using key_type = Key;
-        using value_type = Key;
-        using hasher = HashFunction;
-        using allocator_type = Allocator;
-        using key_equal = KeyEqual;
-
-        template <typename Compare, typename Lhs, typename Rhs>
-        constexpr static bool compare(const Compare& cmp, const Lhs& lhs, const Rhs& rhs) 
-        noexcept(noexcept(cmp(lhs, rhs)))
-        {
-            return cmp(lhs, rhs);
-        }
+            template <typename... Args>
+            constexpr storage_impl(std::size_t hash_code, Args&&... args)
+                : storage_impl<T, false>{ args... }, m_hash_code{ hash_code } { }
+        };
 
         template <typename T>
-        constexpr static auto& key(const T& x) noexcept
-        {
-            return x;
-        }
-    };
+        struct cache_hash_code : std::true_type { };
+
+    } // namespace detail
 
 
-    template <typename Configuration>
-    class hash_table
+    template <typename T, 
+        typename HashFunction, 
+        typename KeyEqual, 
+        typename Allocator, 
+        typename Config, 
+        typename HashPolicy = detail::python_dict<>,
+        bool StoreHashCode = detail::cache_hash_code<T>::value,
+        bool Duplicate = true,
+        std::size_t MinSize = 8>
+    class hash_table_impl : public Config
     {
 
-    public:
-        using value_type = typename Configuration::value_type;
-        using key_type = typename Configuration::key_type;
-        using allocator_type = typename Configuration::allocator_type;
-        using hasher = typename Configuration::hasher;
-        using key_equal = typename Configuration::key_equal;
-        enum class state : unsigned char { empty = 0, active, deleted };
+        static_assert(Duplicate, "Don't support multi-key");
 
-    private:
-        using entry_type = value_type;
-        using entry_allocator_type = typename std::allocator_traits<allocator_type>::template rebind_alloc<value_type>;
-        using table_type = std::vector<entry_type, entry_allocator_type>;
+        using storage_type = detail::storage_impl<T, StoreHashCode>;
 
-        template <bool> 
-        struct hash_iterator;
-    
+        // simply use std::default_sentinel_t as our sentinel type
+        // but define another sentinel and monostate may be better
+        using entry_type = std::variant<std::monostate, storage_type, std::default_sentinel_t>;
+        using vector_allocator_type = typename std::allocator_traits<Allocator>::template rebind_alloc<entry_type>;
+        using self_type = hash_table_impl;
+
+        template <bool Const>
+        struct hash_iterator
+        {
+
+            using link_type = std::conditional_t< 
+                Const,
+                typename std::vector<entry_type, vector_allocator_type>::const_iterator,
+                typename std::vector<entry_type, vector_allocator_type>::iterator>;
+
+            using value_type = std::conditional_t<Const, const T, T>;
+            using reference = value_type&;
+            using difference_type = std::ptrdiff_t;
+            using iterator_category = std::forward_iterator_tag;
+
+            link_type m_cur;
+
+            constexpr hash_iterator() noexcept = default;
+            constexpr hash_iterator(const hash_iterator&) noexcept = default;
+            constexpr hash_iterator(const hash_iterator<!Const>& rhs) noexcept requires (Const)
+                : m_cur{ rhs.m_cur } { }
+
+            constexpr hash_iterator(link_type cur) noexcept
+                : m_cur{ cur } { }
+
+            constexpr hash_iterator& operator++() noexcept
+            {
+                do ++m_cur; while (m_cur->index() == 0);  // skip empty and stop in active or sentinel
+                return *this;
+            } 
+
+            constexpr hash_iterator operator++(int) noexcept
+            {
+                auto old = *this;
+                ++ *this;
+                return old;
+            }
+
+            constexpr bool operator==(const hash_iterator& rhs) const noexcept = default;
+
+            constexpr reference operator*() const noexcept 
+            { return std::get<1>(*m_cur).value(); }
+            
+            constexpr auto operator->() const noexcept 
+            { return &(this->operator*()); }
+
+        };
+
+
     public:
-        using const_iterator = hash_iterator<true>;
+
         using iterator = hash_iterator<false>;
-        using reverse_iterator = std::reverse_iterator<iterator>;
-        using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+        using const_iterator = hash_iterator<true>;
+		using reverse_iterator = std::reverse_iterator<iterator>;
+		using const_reverse_iterator = reverse_iterator;
 
-        hash_table() noexcept
-            : m_hash{ }, m_key_equal{ }, m_size{ }
+		using typename Config::allocator_type;
+		using typename Config::value_type;
+		using typename Config::key_type;
+		using typename Config::size_type;
+		using typename Config::hasher;
+		using typename Config::key_equal;
+
+        using Config::config;
+
+        hash_table_impl() noexcept
+            : m_size{ 0 }, m_hash{ }, m_ke{ }  
         {
-            init_table();
-        }
-
-        hash_table(const hash_table& rhs)
-             : m_hash{ rhs.m_hash }, m_key_equal{ rhs.m_key_equal }, m_size{ 0 }
-        {
-            const auto sz = rhs.m_state.size();
-            try
-            {
-                this->m_state.resize(sz); // static_cast<state>(0) -> state::empty
-                this->m_table.reserve(sz);
-                assign_from(rhs.begin(), rhs.end());
-            }
-            catch(...)
-            {
-                clear();
-                throw;
-            }
-        }
-
-
-        hash_table& operator=(const hash_table& rhs) 
-        {
-            if (this != std::addressof(rhs))
-            {
-                clear();
-                const auto sz = rhs.m_state.size();
-                this->m_state.resize(sz); // static_cast<state>(0) -> state::empty
-                this->m_table.reserve(sz);
-                this->m_hash = rhs.m_hash;
-                this->m_key_equal = rhs.m_key_equal;
-                assign_from(rhs.begin(), rhs.end());
-            }
-            return *this;
-        }
-
-        hash_table(hash_table&&) noexcept(noexcept(true)) = default;  // FIXME: 
-        hash_table& operator=(hash_table&&) noexcept(noexcept(true)) = default; // // FIXME:
-
-        ~hash_table() noexcept
-        {
-            clear();
-        }
-
-        void clear() noexcept
-        {
-            // destory 
-            destory_objects();
-            // reset state
-            this->m_size = 0;
-            this->m_state.clear();
-            this->m_table.clear();
-            // keep table size is prime
-            init_table();
+            resize_and_make_sentinel(MinSize + 1);
         }
 
         std::size_t size() const noexcept
+        { return m_size; }
+
+        bool empty() const noexcept
+        { return size() == 0; }
+
+        void clear() noexcept
         {
-            return this->m_size;
+            m_size = 0;
+            m_entries.clear();
+            resize_and_make_sentinel(MinSize + 1);
         }
 
-        std::size_t empty() const noexcept
+        std::pair<iterator, bool> insert(const value_type& x) 
         {
-            return this->m_size == 0;
+            auto [slot, exist] = insert_unique(x);
+            return { iterator(m_entries.begin() + slot), !exist };
         }
 
-        std::pair<iterator, bool> insert(const value_type& x)
+        std::pair<iterator, bool> insert(value_type&& x) 
         {
-            auto [entry, exist] = insert_unique(x);
-            auto cur = std::distance(this->m_table.data(), entry);
-            return { iterator(cur, this), exist };
+            auto [slot, exist] = insert_unique(std::move(x));
+            return { iterator(m_entries.begin() + slot), !exist };
         }
 
-        std::pair<iterator, bool> insert(value_type&& x)
+        template <typename... Args>
+        std::pair<iterator, bool> emplace(Args&&... args) 
         {
-            auto [entry, exist] = insert_unique(x);
-            auto cur = std::distance(this->m_table.data(), entry);
-            return { iterator(cur, this), exist };
+            value_type x { args... };
+            return insert(std::move(x));
         }
 
-        template <typename T>
-        iterator find(const T& x) 
+        iterator insert(const_iterator, const value_type& x) 
+        { return insert(x).first; }
+
+        iterator insert(const_iterator, value_type&& x) 
+        { return insert(std::move(x)).first; }
+
+        template <typename K> iterator find(const K& x) noexcept 
         {
-            auto entry = find_entry(x);
-            auto cur = std::distance(this->m_table.data(), entry);
-            return { cur, this };
+            const auto hash = m_hash(x);
+            auto [slot, exist] = find_entry(x, hash);
+            return exist ? iterator(m_entries.begin() + slot) : end();
         }
 
-        template <typename T>
-        const_iterator find(const T& x) const
+        template <typename K> 
+        auto& operator[](K&& k) requires (config == config_type::map)
+        { return insert(std::make_pair((K&&) k, typename Config::mapped_type())).first->second; }	
+
+        template <typename K> const_iterator find(const K& x) const noexcept 
+        { return const_cast<self_type&>(*this).find(x); }
+
+        template <typename K> bool contains(const K& x) const noexcept 
+        { return find(x) != end(); } 
+
+        iterator erase(const_iterator pos) 
+        { return remove_item_by_iterator(pos); }
+
+        iterator erase(iterator pos) 
+        { return remove_item_by_iterator(pos); }
+
+        template <typename K> size_type erase(const K& x) 
+        { return remove_item(x); }
+
+        iterator begin() noexcept 
         {
-            return const_cast<hash_table*>(this)->find(x);
+            std::size_t idx = 0;
+            for (; idx < m_entries.size() && check_item_is_empty(idx); idx++);
+            return { m_entries.begin() + idx };
         }
+        
+        iterator end() noexcept 
+        { return { m_entries.end() - 1 }; }
 
-        template <typename T>
-        iterator erase(const T& x)
-        {
-            auto entry = erase_entry(x);
-            auto cur = std::distance(this->m_table.data(), entry);
-            return { cur, this };
-        }
+        const_iterator begin() const noexcept 
+        { return const_cast<self_type&>(*this).begin(); }
 
-        void show() const
-        {
-            for (std::size_t i = 0; i < this->m_state.size(); ++i)
-            {
-                if (this->m_state[i] == state::active)
-                    std::cout << this->m_table[i] << ' ';
-            }
-        }
+        const_iterator end() const noexcept 
+        { return const_cast<self_type&>(*this).end(); }
 
-        iterator begin() noexcept
-        {
-            auto cur = std::distance(
-                this->m_state.begin(),
-                std::find(this->m_state.begin(), this->m_state.end(), state::active)
-            );
-            return { cur, this }; 
-        }
+        const_iterator cbegin() const noexcept 
+        { return begin(); }
 
-        iterator end() noexcept
-        { return { static_cast<std::ptrdiff_t>(this->m_state.size()), this }; }
-
-        const_iterator begin() const noexcept
-        { return const_cast<hash_table*>(this)->begin(); }
-
-        const_iterator end() const noexcept
-        { return const_cast<hash_table*>(this)->end(); }
-
-        const_iterator cbegin() const noexcept
-        { return begin(); }       
-
-        const_iterator cend() const noexcept
+        const_iterator cend() const noexcept 
         { return end(); }
 
-        reverse_iterator rbegin() noexcept
-        { return std::make_reverse_iterator(end()); }
+        reverse_iterator rbegin() noexcept 
+        { return std::make_reverse_iterator(end()); } 
 
-        reverse_iterator rend() noexcept
-        { return std::make_reverse_iterator(begin()); }
+        reverse_iterator rend() noexcept 
+        { return std::make_reverse_iterator(begin()); } 
 
-        const_reverse_iterator rbegin() const noexcept
-        { return std::make_reverse_iterator(end()); }
+        const_reverse_iterator rbegin() const noexcept 
+        { return std::make_reverse_iterator(end()); } 
 
-        const_reverse_iterator rend() const noexcept
-        { return std::make_reverse_iterator(begin()); }
+        const_reverse_iterator rend() const noexcept 
+        { return std::make_reverse_iterator(begin()); } 
+        
+        const_reverse_iterator rcbegin() const noexcept 
+        { return rbegin(); } 
 
-        const_reverse_iterator rcbegin() const noexcept
-        { return std::make_reverse_iterator(end()); }
+        const_reverse_iterator rcend() const noexcept 
+        { return rend(); } 
+    
+    	void swap(hash_table_impl& rhs) 
+        noexcept(std::conjunction_v<std::is_nothrow_swappable<hasher>, std::is_nothrow_swappable<key_equal>>)
+        {
+            std::swap(m_size, rhs.m_size);
+            m_entries.swap(rhs.m_entries);
+            std::swap(m_hash, rhs.m_hash);
+            std::swap(m_ke, rhs.m_ke);
+        }
 
-        const_reverse_iterator rcend() const noexcept
-        { return std::make_reverse_iterator(begin()); }
+        // auto global_begin() { return m_entries.begin(); }
+        // auto global_end() { return m_entries.end(); }
+        void show_state() const {
+            for (int i = 0; i < m_entries.size(); ++i)
+                std::cout << "Index " << i << " State: " << m_entries[i].index() << '\n'; 
+        }
 
     private:
+        std::vector<entry_type, vector_allocator_type> m_entries;
+        std::size_t m_size; 
         [[no_unique_address]] hasher m_hash;
-        [[no_unique_address]] key_equal m_key_equal;
-        std::size_t m_size;
-        std::vector<entry_type, entry_allocator_type> m_table;
-        std::vector<state> m_state;  // default allocator is OK
+        [[no_unique_address]] key_equal m_ke;
 
-        static inline std::size_t prime_table[] = {
-            17, 29, 37, 59, 89, 127, 193, 293,
-            433, 653, 977, 1459, 2203, 3307, 4967,
-            7451, 11173, 16759, 25147, 37747, 56629,
-            84947, 127423, 191137, 286711, 430081,
-            645131, 967693, 1451539, 2177321,
-            3265981, 4898981, 7348469, 11022709,
-            16534069, 24801109, 37201663, 55802497, 83703749,
-            125555621, 188333437, 282500161, 423750241, 635625377, 953438137
-        };
-
-        void init_table() noexcept // assert our memory is enough
+        
+        void resize_and_make_sentinel(std::size_t sz)
         {
-            this->m_table.reserve(prime_table[0]);
-            this->m_state.resize(prime_table[0]); // 0 for state::empty
+            m_entries.resize(sz);
+            m_entries.back().template emplace<2>(std::default_sentinel);
         }
 
-        template <typename T>
-        std::size_t get_index(const T& x) const noexcept // assert hasher and key_compare is exception-safe
-        // noexcept(this->m_key_equal(std::declval<const key_type&>(), std::declval<const key_type&>()))
-        // noexcept(this->m_hash(std::declval<const key_type&>()))
+        template <typename U>
+        std::pair<std::size_t, bool> insert_unique(U&& x)
         {
-            std::size_t offset = 1;
-            const auto table_size = this->m_table.capacity();
-            std::size_t index = this->m_hash(x) % table_size;
-            // conclusion
-            while (this->m_state[index] != state::empty
-                && !Configuration::compare(this->m_key_equal, this->m_table[index], x))
+
+            rehash_and_grow_if_necessary();
+
+            std::size_t hash = m_hash(Config::get_key(x));
+            auto [slot, exits] = find_entry(Config::get_key(x), hash);
+
+            if (!exits)
             {
-                index += offset;
-                offset += 2;
-                if (index >= table_size) index -= table_size;
-            }
-            return index;
-        }
-
-        bool is_active(std::size_t index) const noexcept
-        {
-            return this->m_state[index] == state::active;
-        }
-
-        bool is_empty(std::size_t index) const noexcept
-        {
-            return this->m_state[index] == state::empty;
-        }
-
-        bool is_deleted(std::size_t index) const noexcept
-        {
-            return this->m_state[index] == state::deleted;
-        }
-
-        template <typename T>
-        std::pair<entry_type*, bool> insert_unique(T&& x)
-        {
-            auto index = get_index(Configuration::key(x));
-            if (is_active(index))
-                return { &this->m_table[index], false }; // duplicate
-
-            // check capacity
-            if (this->m_size + 1 > (this->m_table.capacity() >> 1))
-                rehash();
-
-            index = get_index(Configuration::key(x));
-            if (is_deleted(index))
-                std::destroy_at(&this->m_table[index]);
-
-            // MSVC debug may not allowed
-            std::construct_at(&this->m_table[index], std::forward<T>(x));
-            this->m_state[index] = state::active;
-            this->m_size++;
-            return { &this->m_table[index], true };
-
-        }
-
-private:
-
-        template <typename T>
-        const entry_type* find_entry(const T& x) const 
-        {
-            return const_cast<hash_table*>(this)->find_entry(x);
-        }
-
-        template <typename T>
-        entry_type* find_entry(const T& x) 
-        {
-            const auto index = get_index(x);
-            // not active
-            if (!is_active(index))
-                return this->m_table.data() + this->m_table.capacity();
-            return &(this->m_table[index]);
-        }
-
-        template <typename T>
-        entry_type* erase_entry(const T& x)
-        {
-            const auto index = get_index(x);
-            // remove item
-            if (is_active(index))
-                this->m_state[index] = state::deleted;
-            // get next item
-            auto iter = std::find(this->m_state.begin() + index, this->m_state.end(), state::active);
-            auto dist = std::distance(this->m_state.begin(), iter);
-            return &(this->m_table[dist]);
-        }
-private:
-
-        template <typename Iter, typename Sent>
-        void assign_from(Iter iter, Sent sent)
-        {
-            for (;iter != sent; ++iter)
-                insert(*iter);
-        }
-
-        void destory_objects()
-        {
-            const auto sz = this->m_state.size();
-            for (std::size_t i = 0; i < sz; ++i)
-            {
-                if (this->m_state[i] != state::empty)
+                // try insert
+                if constexpr (StoreHashCode)
                 {
-                    std::destroy_at(&this->m_table[i]);
-                    this->m_state[i] == state::empty;
+                    m_entries[slot].template emplace<1>(hash, (U&&)x);
+                }
+                else
+                {
+                    m_entries[slot].template emplace<1>((U&&) x);
+                }
+                m_size++;
+            }
+            
+            // x exist 
+            return { slot, exits };
+        }
+
+        bool check_item_is_empty(std::size_t idx) const noexcept
+        { return m_entries[idx].index() == 0; }
+
+        std::size_t table_size() const noexcept
+        { return m_entries.size() - 1; }
+
+        template <typename K> 
+        std::pair<std::size_t, bool> find_entry(const K& x, std::size_t hash) const noexcept // assume hasher is noexcept
+        {
+
+            bool exist;
+
+            HashPolicy hash_generator { hash, table_size() }; // hash_init, mask
+
+            auto slot = hash_generator.first();
+
+            while (1)
+            {
+                if (check_item_is_empty(slot))
+                {
+                    exist = false;
+                    break;
+                }
+
+                if (m_ke(Config::get_key(std::get<1>(m_entries[slot]).value()), x))
+                {
+                    exist = true;
+                    break;
+                }
+                slot = hash_generator();
+            }
+            return { slot, exist };
+        }
+
+
+
+        std::size_t find_entry_only_with_hash_code(std::size_t hash) const noexcept // assume hasher is noexcept
+        {
+            HashPolicy hash_generator { hash, table_size() }; // hash_init, mask
+            auto slot = hash_generator.first();
+            for (; !check_item_is_empty(slot); slot = hash_generator());
+            return slot;
+        }
+
+        void rehash_and_grow_if_necessary()
+        {
+
+            double load_factor = (double)m_size / table_size();
+
+            if (!HashPolicy::need_expand(load_factor))
+            {
+                return; 
+            }
+
+
+            const auto next_capacity = growth_rate() + 1;
+            auto old_entries = std::move(m_entries);
+            resize_and_make_sentinel(next_capacity);
+
+            for (auto& entry : old_entries)
+            {
+                // if there is active
+                if (entry.index() == 1)
+                {
+                    std::size_t hash_code;
+                    if constexpr (StoreHashCode)
+                    {
+                        hash_code = std::get<1>(entry).m_hash_code;
+                    }
+                    else
+                    {
+                        hash_code = m_hash(Config::get_key(std::get<1>(entry).value()));
+                    }
+                    
+                    auto slot = find_entry_only_with_hash_code(hash_code);
+
+                    m_entries[slot] = std::move(entry);
                 }
             }
+            return;
         }
 
-        void rehash()
+        std::size_t growth_rate() const noexcept
+        { return HashPolicy::next_capacity(table_size()); }
+
+        template <typename K>
+        size_type remove_item(const K& x)
         {
-            std::vector<entry_type, entry_allocator_type> old; // entry_allocator_type must have default ctor
-            old.reserve(this->m_size);
-            for (std::size_t i = 0; i < this->m_state.size(); ++i)
+            const auto hash = m_hash(x);
+            auto [slot, exist] = find_entry(x, hash);
+            if (exist)
             {
-                // move active elem and destory deleted elem
-                switch (this->m_state[i])
-                {
-                    // no break since active also must be destoried
-                    case state::active: old.emplace_back(std::move(this->m_table[i])); 
-                    case state::deleted: std::destroy_at(&this->m_table[i]); 
-                    default: break;
-                }
-                this->m_state[i] = state::empty;
+                m_entries[slot].template emplace<0>(std::monostate{});
+                m_size--;
+                return 1;
             }
-            // reset table
-            const auto new_capacity = next_size(this->m_table.capacity());
-            this->m_table.reserve(new_capacity); // realloc memory
-
-            // reset states
-            this->m_state.resize(new_capacity);  // default is static_cast<state>(0)
-
-            // reset size
-            this->m_size = 0;
-
-            // reinsert elem
-            for (auto& val : old)
-                insert(std::move(val));
+            return 0;
         }
 
-        static std::size_t next_size(std::size_t sz) noexcept
+        template <typename I>
+        iterator remove_item_by_iterator(I iter)
         {
-            constexpr auto max_size = sizeof(prime_table) / sizeof(prime_table[0]);
-            auto iter = std::find(prime_table, prime_table + max_size, sz);
-            assert(iter != prime_table + max_size); // increase size if necessary
-            return *(++iter);
+            auto cur = iter.m_cur;
+            cur->template emplace<0>(std::monostate{});
+            m_size--;
+            return ++iter;
         }
-    };
-
-
-    template <typename Configuration>
-    template <bool Const>
-    struct hash_table<Configuration>::hash_iterator
-    {
-        using link_container_type = meta::maybe_const_t<Const, hash_table<Configuration>*>;
-        link_container_type m_container;
-        std::ptrdiff_t m_cur;
-
-        using value_type = typename Configuration::value_type;
-        using reference = meta::maybe_const_t<Const, value_type&>;
-		using iterator_category = std::bidirectional_iterator_tag;
-		using difference_type = std::ptrdiff_t;
-
-		constexpr hash_iterator() noexcept = default;
-		constexpr hash_iterator(std::ptrdiff_t cur, link_container_type c) noexcept
-			: m_cur{ cur }, m_container{ c } { }
-
-        // for const_iter -> const_iter/iter
-        // for iter -> iter
-		template <bool IsConst, typename = std::enable_if_t<((Const == IsConst) || Const)>>
-		constexpr hash_iterator(const hash_iterator<IsConst>& rhs) noexcept
-			: m_cur{ rhs.m_cur }, m_container{ rhs.m_container } { }
-
-		template <bool IsConst, typename = std::enable_if_t<((Const == IsConst) || Const)>>
-		constexpr hash_iterator&
-			operator=(const hash_iterator<IsConst>& rhs) noexcept
-		{
-			this->m_cur = rhs.m_cur;
-			this->m_container = rhs.m_container;
-		}
-
-		template <bool IsConst>
-		constexpr bool operator==(const hash_iterator<IsConst>& rhs) const noexcept
-		{
-			return this->m_container == rhs.m_container 
-                && this->m_cur == rhs.m_cur;
-		}
-
-		template <bool IsConst>
-		constexpr bool operator!=(const hash_iterator<IsConst>& rhs) const noexcept
-		{
-			return !this->operator==(rhs);
-		}
-
-		constexpr auto operator->() const noexcept
-		{
-			return &(this->operator*());
-		}
-
-		constexpr reference operator*() const noexcept
-		{
-            return this->m_container->m_table[this->m_cur];
-		}
-
-		constexpr hash_iterator& operator++()
-		{
-            // find next state::active
-            auto& state = this->m_container->m_state;
-            auto first = state.begin();
-            auto last = state.end();
-            auto now = first + this->m_cur;
-            auto iter = std::find(now + 1, last, state::active);
-            auto dist = std::distance(first, iter);
-            this->m_cur = dist;
-            return *this;
-		}
-
-		constexpr hash_iterator& operator--()
-		{
-            auto& state = this->m_container->m_state;
-            auto first = state.begin();
-            auto last = state.end();
-            auto now = first + this->m_cur;
-
-            auto iter = std::find(std::make_reverse_iterator(now), std::make_reverse_iterator(first), state::active);
-            this->m_cur = std::distance(first, iter.base()) - 1;
-            return *this;
-		}
-
-		constexpr hash_iterator operator++(int)
-		{
-			auto old = *this;
-			++* this;
-			return old;
-		}
-
-		constexpr hash_iterator operator--(int)
-		{
-			auto old = *this;
-			--* this;
-			return old;
-		}
 
     };
 
+    template <typename T, 
+        typename HashFunction = std::hash<T>, 
+        typename KeyEqual = std::equal_to<void>, 
+        typename Allocator = std::allocator<T>>
+    using hash_table = hash_table_impl<
+        T, 
+        HashFunction, 
+        KeyEqual, 
+        Allocator, 
+        hash_set_config<T, HashFunction, KeyEqual, Allocator>>;
 
-    template <typename Key, typename HashFunction = std::hash<Key>, typename KeyEqual = std::equal_to<>, typename Allocator = std::allocator<Key>>
-    class hash_set : public hash_table<hash_set_config<Key, HashFunction, KeyEqual, Allocator>> { };
-
-    template <typename Key, typename Value, typename HashFunction = std::hash<Key>, typename KeyEqual = std::equal_to<>, typename Allocator = std::allocator<Key>>
-    class hash_map : public hash_table<hash_map_config<Key, Value, HashFunction, KeyEqual, Allocator>> { };
+    template <typename K, typename V, 
+        typename HashFunction = std::hash<K>, 
+        typename KeyEqual = std::equal_to<void>, 
+        typename Allocator = std::allocator<std::pair<K, V>>>
+    using hash_map = hash_table_impl<
+        std::pair<K, V>, 
+        HashFunction, 
+        KeyEqual, 
+        Allocator, 
+        hash_map_config<K, V, HashFunction, KeyEqual, Allocator>>;
 
 }
 
-#include <ranges>
-
-static_assert(std::ranges::bidirectional_range<leviathan::collections::hash_set<int>>);
-static_assert(std::ranges::bidirectional_range<const leviathan::collections::hash_set<int>>);
-
-#endif

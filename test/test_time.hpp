@@ -22,7 +22,7 @@ namespace leviathan::test
     {
         inline std::random_device rd;
 
-        inline constexpr auto default_num = 1000'000; // 100'000 x Catch::DataConfig::benchmarkSamples
+        inline constexpr auto default_num = 100'000; // 100'000 x Catch::DataConfig::benchmarkSamples
 
         std::vector<int> random_range_int(int n = default_num)
         {
@@ -110,7 +110,7 @@ namespace leviathan::test
     }
 
     template <typename OrderedSet>
-    auto search_test(OrderedSet& s)
+    auto search_test(const OrderedSet& s)
     {
 
         REQUIRE(s.size() > 0);
@@ -118,6 +118,8 @@ namespace leviathan::test
         int cnt = 0;
 
         for (auto val : search::searching) cnt += s.contains(val);
+
+        REQUIRE(cnt <= detail::default_num);
 
         return cnt;
     }
@@ -142,6 +144,34 @@ namespace leviathan::test
             (s.insert(val), ...);   
         }
     }
+
+    template <typename Map>
+    auto random_insert_test2()
+    {
+        Map s;
+        for (auto val : insertion::random_int) s.insert({val, val});
+        assert(s.size() <= detail::default_num);
+        return s.size();
+    }
+
+    template <typename Map>
+    auto ascending_insert_test2()
+    {
+        Map s;
+        for (auto val : insertion::ascending) s.insert({val, val});
+        assert(s.size() <= detail::default_num);
+        return s.size();
+    }
+
+    template <typename Map>
+    auto descending_insert_test2()
+    {
+        Map s;
+        for (auto val : insertion::descending) s.insert({val, val});
+        assert(s.size() <= detail::default_num);
+        return s.size();
+    }
+
 
 }
 

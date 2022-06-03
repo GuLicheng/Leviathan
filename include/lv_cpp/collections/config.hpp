@@ -68,7 +68,7 @@ namespace leviathan::collections
 		}
 
 		template <typename U>
-		constexpr static const auto &get_key(const U &x) noexcept
+		constexpr static const auto& get_key(const U &x) noexcept
 		{
 			return x.first;
 		}

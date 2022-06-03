@@ -114,14 +114,21 @@ void unique_set_insert_method()
 }
 
 template <typename SetContainer>
-void simple_unique_set_iterator_test()
+void simple_unique_set_iterator_test(bool is_bidirectional = true)
 {
 
-    STATIC_REQUIRE(std::ranges::bidirectional_range<SetContainer>);
+    if (is_bidirectional)
+    {
+        REQUIRE(std::ranges::bidirectional_range<SetContainer>);
+    }
+    else
+    {
+        REQUIRE(std::ranges::forward_range<SetContainer>);
+    }
 
     SetContainer c;
 
-    std::vector values = { 1, 2, 3, 4, 5 };
+    std::vector values = { 1, 2, 3, 4, 5, 6 };
 
     std::ranges::copy(values, std::inserter(c, c.end()));
 
@@ -134,24 +141,22 @@ void simple_unique_set_iterator_test()
         {
             iter = c.erase(iter);
         }
-        REQUIRE(c.empty());
+        REQUIRE(c.size() == 0);
     }
 
-    SECTION("reversed iterator")
+    if (is_bidirectional)
     {
-        REQUIRE(c.size() == values.size());
-        auto reversed1 = c | std::views::reverse;
-        auto reversed2 = values | std::views::reverse;
-        auto is_equal = std::ranges::equal(reversed1, reversed2);
-        REQUIRE(is_equal);
-    }
-
-    SECTION("remove elements by iterators2")
-    {
-        c.clear();
-        for (auto val : values) c.insert(val);
-        REQUIRE(c.erase(c.find(5)) == c.end());
-        REQUIRE(c.erase(c.find(1)) != c.end());
+        if constexpr (std::ranges::bidirectional_range<SetContainer>)
+        {
+            SECTION("reversed iterator")
+            {
+                CHECK(c.size() == values.size());
+                auto reversed1 = c | std::views::reverse;
+                auto reversed2 = values | std::views::reverse;
+                auto is_equal = std::ranges::equal(reversed1, reversed2);
+                CHECK(is_equal);
+            }
+        }
     }
 
 }
@@ -194,6 +199,11 @@ void simple_unique_set_container_random_test(bool is_sorted = true)
         auto is_equal = std::ranges::equal(comparison, c);
         REQUIRE(is_equal);
     } 
+    else
+    {
+        std::set<int> comparison2(c.begin(), c.end());
+        REQUIRE(comparison == comparison2);
+    }
 }
 
 
@@ -205,7 +215,7 @@ void simple_unique_map_container_test()
 
     STATIC_REQUIRE(std::same_as<typename MapContainer::key_type, std::string>);
     STATIC_REQUIRE(std::same_as<typename MapContainer::mapped_type, int>);
-    STATIC_REQUIRE(std::ranges::bidirectional_range<MapContainer>);
+    STATIC_REQUIRE(std::ranges::forward_range<MapContainer>);
 
     c.insert({"Hello", 1});
     c.insert({"World", 2});
@@ -227,7 +237,7 @@ void simple_unique_map_container_test()
 
     SECTION("remove elements")
     {
-        c.erase("!");
+        REQUIRE(c.erase("!") == 1);
         c.erase("XXX");
         REQUIRE(c.size() == 2);
     }
@@ -235,13 +245,30 @@ void simple_unique_map_container_test()
 }
 
 
-
-
-
 // multi-set
 
 
 // multi-map
+
+
+
+template <typename SetContainer>
+void bidirectional_range_test()
+{
+    SetContainer c;
+
+    // insert values
+    
+    std::initializer_list ls = { 1, 2, 3, 4, 5, 6 };
+
+    for (auto val : ls) c.insert(val);
+
+    auto reversed_range = c | std::views::reverse;
+    std::initializer_list reversed_ls = { 6, 5, 4, 3, 2, 1 };
+
+    REQUIRE(std::ranges::equal(reversed_ls, reversed_range));
+
+}
 
 
 
