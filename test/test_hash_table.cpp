@@ -3,6 +3,7 @@
 #include "test_container.hpp"
 
 #include <lv_cpp/collections/hash_table.hpp>
+#include <lv_cpp/collections/hash_table2.hpp>
 
 USING_TEST
 
@@ -66,7 +67,11 @@ TEST_CASE("policy")
 }
 
 
-
+TEST_CASE("hash_table2")
+{
+    using SET = leviathan::collections::hash_table2<int>;
+    simple_unique_set_container_random_test<SET>(false);
+}
 
 
 

@@ -168,12 +168,16 @@ void simple_unique_set_container_random_test(bool is_sorted = true)
     SetContainer c;
     static std::random_device rd;
 
-    constexpr int N = 100'000;
+    constexpr int N = 20;
+    auto random_generator = [&]() {
+        return rd() % 10;
+    };
+
     
-    auto rand_seq = [](int n) {
+    auto rand_seq = [&](int n) {
         std::vector<int> vec;
         vec.reserve(n);
-        std::generate_n(std::back_inserter(vec), n, std::ref(rd));
+        std::generate_n(std::back_inserter(vec), n, random_generator);
         return vec;
     };
 
@@ -192,7 +196,8 @@ void simple_unique_set_container_random_test(bool is_sorted = true)
         });
     };
 
-    CHECK(op(comparison) == op(c));
+    REQUIRE(op(comparison) == op(c));
+    REQUIRE(c.size() == comparison.size());
 
     if (is_sorted)
     {

@@ -76,6 +76,7 @@ namespace leviathan::collections
 
 		using key_allocator_type = typename std::allocator_traits<Allocator>::template rebind_alloc<skip_node>;
 		using self_type = skip_list_impl;
+		using allocator_traits = std::allocator_traits<key_allocator_type>;
 
 		template <bool Const>
 		struct skip_list_iterator
@@ -623,7 +624,7 @@ namespace leviathan::collections
 
 		void destroy_one_node(skip_node* p) noexcept // assume destructor and deallocate is exception-safe
 		{
-			std::destroy_at(p);
+			allocator_traits::destroy(m_alloc, p);
 			m_alloc.deallocate(p, sizeof(skip_node));
 		}
 
@@ -632,7 +633,7 @@ namespace leviathan::collections
 		{
 			auto addr = m_alloc.allocate(1);
 			assert(addr != nullptr); // if (!addr) throw std::bad_alloc { }
-			std::construct_at(addr, (Args&&)args..., level);
+			allocator_traits::construct(m_alloc, addr, (Args&&)args..., level);
 			return addr;
 		}
 

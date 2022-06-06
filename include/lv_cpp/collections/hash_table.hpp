@@ -7,7 +7,6 @@
 
 /*
 Something defined in dictobject.c
-
 +---------------------+
 | dk_refcnt           |
 | dk_log2_size        |
@@ -57,7 +56,6 @@ namespace leviathan::collections
                 ctor: (hash_code, table_size):
                     hash_code: std::hash(x) which may greater than table_size
                     table_size(): m_entries.size() - length(sentinel)
-
                 static bool need_expand(double load_factor); -> check whether need to expand, factor = used_size / table_size
                 static std::size_t next_capacity()(std::size_t table_size); -> return next capacity
             }
@@ -139,8 +137,8 @@ namespace leviathan::collections
             constexpr static std::size_t next_capacity(std::size_t table_size) noexcept
             {
                 assert(is_power_of_two(table_size));
-                std::size_t factor = table_size < 256 ? 4 : 2;
-                return table_size * factor;
+                // std::size_t factor = table_size < 256 ? 4 : 2;
+                return table_size * 2;
             }
 
             python_dict(std::size_t hash_init, std::size_t table_size) noexcept 
@@ -588,6 +586,3 @@ namespace leviathan::collections
         hash_map_config<K, V, HashFunction, KeyEqual, Allocator>>;
 
 }
-
-
-
