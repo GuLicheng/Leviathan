@@ -440,6 +440,8 @@ namespace leviathan::collections
 
             m_entries = std::move(new_entries);
             m_states = std::move(new_states);
+
+            this->show_state();
         }
 
         std::size_t growth_rate() const noexcept
