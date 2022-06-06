@@ -151,8 +151,8 @@ namespace leviathan::collections
 
             constexpr std::size_t operator()() noexcept
             {
-                m_value = ((5 * m_value) + 1 + m_perturb_shift) & m_mask;
                 m_perturb_shift >>= PerturbShift;
+                m_value = (5 * m_value + 1 + m_perturb_shift) & m_mask;
                 return m_value;
             }
 

@@ -235,7 +235,18 @@ namespace leviathan::collections
         // auto global_end() { return m_entries.end(); }
         void show_state() const {
             for (int i = 0; i < m_states.size(); ++i)
-                std::cout << "(" << i << " ," << (int)m_states[i] << ") "; 
+            {
+                std::cout << "(" << i << " ,";
+                if (m_states[i] == detail::state::active)
+                {
+                    std::cout << m_entries[i].value() << ", ";
+                }
+                else    
+                {
+                    std::cout << "!" << ", ";
+                }
+                std::cout << (int)m_states[i] << ") "; 
+            }
             std::endl(std::cout);
         }
 
@@ -357,7 +368,7 @@ namespace leviathan::collections
                 }
 
                 // active state and the key of item is equal to x
-                if (m_ke(Config::get_key(m_entries[slot].value()), x))
+                if (check_item_is_active(slot) && m_ke(Config::get_key(m_entries[slot].value()), x))
                 {
                     exist = detail::state::active;
                     break;
@@ -370,7 +381,7 @@ namespace leviathan::collections
         // this method is used for rehash, the state cannot be deleted in this situation
         static std::size_t find_entry_only_with_hash_code(std::size_t hash, std::vector<detail::state>& new_state) noexcept // assume hasher is noexcept
         {
-            std::cout << hash << '\n';
+            // std::cout << hash << '\n';
             HashPolicy hash_generator { hash, new_state.size() - 1 }; // hash_init, mask
             auto slot = hash_generator.first();
             for (; new_state[slot] != detail::state::empty; slot = hash_generator());
@@ -390,58 +401,25 @@ namespace leviathan::collections
 
             const auto next_capacity = growth_rate() + 1;
             
-            std::vector<entry_type, vector_allocator_type> new_entries;
-            std::vector<detail::state> new_states;
+            std::vector<entry_type, vector_allocator_type> old_entries = std::move(m_entries);
+            std::vector<detail::state> old_states = std::move(m_states);
 
-            new_entries.reserve(next_capacity);
-            new_states.resize(next_capacity);
+            resize_and_make_sentinel(next_capacity);
 
-            for (std::size_t i{}; i < table_size(); ++i)
+            auto old_alloc = old_entries.get_allocator();
+            m_size = 0;
+
+            for (std::size_t i{}; i < old_states.size() - 1; ++i)
             {
-                if (check_item_is_active(i))
+                switch (old_states[i])
                 {
-                    // gain hash_code
-                    std::size_t hash_code;
-                    if constexpr (StoreHashCode)
-                    {
-                        hash_code = m_entries[i].m_hash_code;
-                    }
-                    else
-                    {
-                        hash_code = m_hash(Config::get_key(m_entries[i].value()));
-                    }
-
-                    auto slot = find_entry_only_with_hash_code(hash_code, new_states);
-                    // std::cout << "hash: " << hash_code << " slot = " << slot << "\n";
-                    auto alloc = new_entries.get_allocator();
-
-                    if (check_item_is_deleted(slot))
-                    {
-                        allocator_traits::destroy(alloc, std::addressof(m_entries[i]));
-                    }
-
-                    allocator_traits::construct(
-                        alloc, 
-                        std::addressof(new_entries[i]),
-                        std::move_if_noexcept(m_entries[i]));
-                    new_states[slot] = detail::state::active;
-
+                    case detail::state::active: insert_unique(std::move_if_noexcept(old_entries[i].value())); 
+                    case detail::state::deleted: allocator_traits::destroy(old_alloc, std::addressof(old_entries[i]));
+                    case detail::state::empty: 
+                    default: break;
                 }
-                else if (check_item_is_deleted(i))
-                {
-                    // try destroy
-                    auto alloc = m_entries.get_allocator();
-                    allocator_traits::destroy(alloc, std::addressof(m_entries[i]));
-                }
-                else
-                    ;  // empty and do nothing
-                      
             }
 
-            m_entries = std::move(new_entries);
-            m_states = std::move(new_states);
-
-            this->show_state();
         }
 
         std::size_t growth_rate() const noexcept

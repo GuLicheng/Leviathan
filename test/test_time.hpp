@@ -10,6 +10,9 @@
 #include <vector> // store elements
 #include <ranges>
 
+#ifndef DEFAULT_NUM
+#define DEFAULT_NUM 1'000'000
+#endif
 
 #define SplitLine() (std::cout << "===============================================\n")
 
@@ -22,7 +25,7 @@ namespace leviathan::test
     {
         inline std::random_device rd;
 
-        inline constexpr auto default_num = 100'000; // 100'000 x Catch::DataConfig::benchmarkSamples
+        inline constexpr auto default_num = DEFAULT_NUM; // DEFAULT_NUM x Catch::DataConfig::benchmarkSamples
 
         std::vector<int> random_range_int(int n = default_num)
         {
@@ -142,6 +145,17 @@ namespace leviathan::test
         for (auto val : insertion::random_int) 
         {
             (s.insert(val), ...);   
+        }
+    }
+
+    template <typename... OrderedMaps>
+    void random_insert_map(OrderedMaps&... s)
+    {
+        bool is_all_empty = (s.empty() && ...); 
+        REQUIRE(is_all_empty);
+        for (auto val : insertion::random_int) 
+        {
+            (s.insert({val, std::to_string(val)}), ...);  
         }
     }
 

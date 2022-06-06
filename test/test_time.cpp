@@ -11,6 +11,7 @@
 #include <lv_cpp/collections/sorted_list.hpp>
 #include <lv_cpp/collections/skip_list.hpp>
 #include <lv_cpp/collections/hash_table.hpp>
+#include <lv_cpp/collections/hash_table2.hpp>
 
 // #include <lv_cpp/collections/bilibili.hpp>
 
@@ -30,6 +31,7 @@ using UNORDERED_SET3 = leviathan::collections::hash_table_impl<
         true, 
         true, 
         17>;
+using UNORDERED_SET4 = leviathan::collections::hash_table2<int>;
 
 TEST_CASE("duplicate_ordered_collections_random_insert")
 {
@@ -91,26 +93,6 @@ TEST_CASE("duplicate_ordered_collections_descending_insert")
     };
 }
 
-TEST_CASE("duplicate_unordered_collections_random_insert")
-{
-    using namespace leviathan::test;
-
-    BENCHMARK("std::unordered_set")
-    {
-        return random_insert_test<UNORDERED_SET1>();
-    };
-
-    BENCHMARK("hash_table")
-    {
-        return random_insert_test<UNORDERED_SET2>();
-    };
-
-    BENCHMARK("hash_table2")
-    {
-        return random_insert_test<UNORDERED_SET3>();
-    };
-
-}
 
 TEST_CASE("duplicate_set_search")
 {
@@ -121,8 +103,9 @@ TEST_CASE("duplicate_set_search")
     UNORDERED_SET1 s4;
     UNORDERED_SET2 s5;
     UNORDERED_SET3 s6;
+    UNORDERED_SET4 s7;
 
-    random_insert(s1, s2, s3, s4, s5, s6);
+    random_insert(s1, s2, s3, s4, s5, s6, s7);
     
     BENCHMARK("std::set")
     {
@@ -154,6 +137,11 @@ TEST_CASE("duplicate_set_search")
         return search_test(s6);
     };
 
+    BENCHMARK("hash_table___")
+    {
+        return search_test(s7);
+    };
+
 }
 
 TEST_CASE("duplicate_set_remove")
@@ -164,7 +152,7 @@ TEST_CASE("duplicate_set_remove")
     SET3 s3;
     UNORDERED_SET1 s4;
     UNORDERED_SET2 s5;
-    UNORDERED_SET3 s6;
+    UNORDERED_SET4 s6;
 
     random_insert(s1, s2, s3, s4, s5, s6);
     

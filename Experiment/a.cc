@@ -63,13 +63,12 @@ int main()
 
     leviathan::collections::hash_table2<int> ht;
     // simple_unique_set_container_random_test<decltype(ht)>();
-    std::vector vec = { 3, 12, 3, 10, 4, 15, 9 };
+    std::vector vec = { 3, 12, 3, 10, 4, 15, 9, 9 };
+    // std::vector vec = { 9, 10, 3, 12, 4, 15 };
     std::set s(vec.begin(), vec.end());
 
     for (auto val : vec) ht.insert(val);
-    ht.show_state();
-
-    ht.insert(9);
+    // ht.show_state();
 
 
     std::ranges::copy(s, std::ostream_iterator<int>{std::cout, " "});
