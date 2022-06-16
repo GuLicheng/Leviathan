@@ -13,7 +13,7 @@
 
 #include <assert.h>
 
-#include "config.hpp"
+#include "internal/config.hpp"
 
 namespace leviathan::collections
 {

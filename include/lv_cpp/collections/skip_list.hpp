@@ -1,6 +1,6 @@
 #pragma once
 
-#include <lv_cpp/collections/config.hpp>
+#include <lv_cpp/collections/internal/config.hpp>
 
 #include <assert.h>
 #include <algorithm>

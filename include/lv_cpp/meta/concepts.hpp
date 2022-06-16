@@ -27,11 +27,25 @@ namespace leviathan::meta
     {
         static_assert(Flag);
     };
+
+    template <typename Tuple>
+    struct tuple_traits;
+
+    // C++20 dose not support template auto... Args
+    template <template <typename...> typename Tuple, typename... Args1>
+    struct tuple_traits<Tuple<Args1...>>
+    {
+        static_assert(tuple_like<Tuple<Args1...>>);
+        
+        template <typename... Args2>
+        using rebind_tuple = Tuple<Args2...>;
+    };
+
     
-    static_assert(tuple_like<std::tuple<>>);
-    static_assert(tuple_like<std::tuple<int, double>>);
-    static_assert(tuple_like<std::pair<bool, bool>>);
-    static_assert(!tuple_like<int>);
+    // static_assert(tuple_like<std::tuple<>>);
+    // static_assert(tuple_like<std::tuple<int, double>>);
+    // static_assert(tuple_like<std::pair<bool, bool>>);
+    // static_assert(!tuple_like<int>);
 
 #define LV_STATIC_ASSERT_FALSE(s) ([]<bool Flag>() { static_assert(Flag, s); }())
 

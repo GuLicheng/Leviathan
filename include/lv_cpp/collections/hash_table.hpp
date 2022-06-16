@@ -22,8 +22,9 @@ Something defined in dictobject.c
 |                     |
 +---------------------+
 */
+#if 0
 
-#include "config.hpp"
+#include "internal/config.hpp"
 
 #include <type_traits>
 #include <functional> // std::hash
@@ -586,3 +587,4 @@ namespace leviathan::collections
         hash_map_config<K, V, HashFunction, KeyEqual, Allocator>>;
 
 }
+#endif
