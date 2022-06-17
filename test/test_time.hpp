@@ -11,7 +11,7 @@
 #include <ranges>
 
 #ifndef DEFAULT_NUM
-#define DEFAULT_NUM 1'00'000
+#define DEFAULT_NUM 1'000'000
 #endif
 
 #define SplitLine() (std::cout << "===============================================\n")
@@ -30,7 +30,8 @@ namespace leviathan::test
         std::vector<int> random_range_int(int n = default_num)
         {
             auto random_generator = [&]() {
-                return rd();
+                // return rd() % (default_num * 10);
+                return rd() % (default_num);
             };
             std::vector<int> ret;
             ret.reserve(n);

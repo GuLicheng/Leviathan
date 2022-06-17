@@ -10,8 +10,8 @@
 
 #include <lv_cpp/collections/sorted_list.hpp>
 #include <lv_cpp/collections/skip_list.hpp>
-// #include <lv_cpp/collections/hash_table.hpp>
-#include <lv_cpp/collections/internal/raw_hash_table.hpp>
+#include <lv_cpp/collections/hash_table.hpp>
+// #include <lv_cpp/collections/internal/raw_hash_table.hpp>
 
 
 using SET1 = std::set<int>;
@@ -20,7 +20,7 @@ using SET3 = leviathan::collections::skip_list<int>;
 
 using UNORDERED_SET1 = std::unordered_set<int>;
 using UNORDERED_SET2 = std::unordered_set<int>;
-using UNORDERED_SET3 = ::leviathan::collections::hash_set<int>;
+using UNORDERED_SET3 = ::leviathan::collections::hash_table<int>;
 
 TEST_CASE("duplicate_ordered_collections_random_insert")
 {

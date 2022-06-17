@@ -22,6 +22,8 @@
 #include <type_traits>
 #include <limits>
 
+#define USE_OLD_HASH 1
+
 namespace leviathan::collections
 {
 
@@ -87,6 +89,7 @@ namespace leviathan::collections
         empty = -128,   // 0b10000000
         deleted = -2,   // 0b11111110
         sentinel = -1,  // 0b11111111
+        active = 0
     };
 
     constexpr bool check_ctrl_is_empty(ctrl c) noexcept
@@ -308,7 +311,30 @@ namespace leviathan::collections
             }
         }
 
+        void clear()
+        { reset(); }
+
+        ~raw_hash_table() 
+        { reset(); }
+
     private:
+
+        void reset()
+        {
+            for (std::size_t i = 0; i < m_capacity; ++i)
+            {
+                if (!check_ctrl_is_empty(m_ctrl[i]))
+                {
+                    alloc_traits::destroy(m_alloc, m_slots + i);
+                }
+            }
+            detail::deallocate(m_alloc, m_ctrl, m_capacity);
+            detail::deallocate(m_alloc, m_slots, m_capacity);
+            m_capacity = 0;
+            m_size = 0;
+            m_slots = nullptr;
+            m_ctrl = nullptr;
+        }
 
         template <typename K>
         std::size_t find_slot(const K& x) const noexcept(std::is_nothrow_invocable_v<hasher, decltype(x)>) 
@@ -345,6 +371,7 @@ namespace leviathan::collections
             return insert_with_hash((U&&) x, hash);
         }
 
+#if USE_OLD_HASH
         template <typename U>
         std::pair<std::size_t, bool> insert_with_hash(U&& x, std::size_t hash)
         {
@@ -378,8 +405,42 @@ namespace leviathan::collections
             }
             // std::unreachable()
         }
+#else
+        template <typename U>
+        std::pair<std::size_t, bool> insert_with_hash(U&& x, std::size_t hash)
+        {
+            typename HashPolicy::generator_type g{ hash, m_capacity };
+            auto pos = *g;
+            while (1)
+            {
+                if (m_ctrl[pos] == ctrl::active && m_ke(x, HashPolicy::get(m_slots[pos].value())))
+                    return std::make_pair(pos, true);
+                
+                if (m_ctrl[pos] != ctrl::active)
+                {
+                    if (check_ctrl_is_deleted(m_ctrl[pos]))
+                    {
+                        alloc_traits::destroy(m_alloc, m_slots + pos);
+                    }
+                    if constexpr (CacheHashCode)
+                    {
+                        alloc_traits::construct(m_alloc, m_slots + pos, hash, (U&&) x); 
+                    }
+                    else
+                    {
+                        alloc_traits::construct(m_alloc, m_slots + pos, (U&&) x); 
+                    }
 
+                    m_ctrl[pos] = ctrl::active;
+                    m_size++;
+                    return std::make_pair(pos, false);
+                }
+                pos = g();
+            }
+            // std::unreachable()
+        }
 
+#endif
         template <typename K>
         auto remove_by_value(const K& x)
         {
@@ -417,7 +478,7 @@ namespace leviathan::collections
         {
             if (m_capacity == 0)
             {
-                resize(1);
+                resize(8);
                 return;
             }
 
@@ -428,7 +489,7 @@ namespace leviathan::collections
                 resize(new_capacity);
             }
         }
-
+#if USE_OLD_HASH
         void resize(std::size_t new_capacity)
         {
             auto old_ctrl = m_ctrl;
@@ -473,6 +534,51 @@ namespace leviathan::collections
             }   
         }
 
+#else 
+        void resize(std::size_t new_capacity)
+        {
+            auto old_ctrl = m_ctrl;
+            auto old_slot = m_slots;
+            auto old_capacity = m_capacity;
+
+            initialize(new_capacity); 
+
+            // If we don't cache hash code, we should use m_hash to get hash code again for each active value.
+            // If std::is_nothrow_move_construable_v<T>, the rehash should be noexcept and we can call std::move for
+            // each element otherwise we must copy each element so that if an exception is thrown, the state of 
+            // container is not changed. 
+            m_size = 0;
+            for (std::size_t i = 0; i < old_capacity; ++i)
+            {
+                const auto state = old_ctrl[i];
+                if (state != ctrl::active)
+                {
+                    alloc_traits::destroy(m_alloc, old_slot + i);
+                }
+                else 
+                {
+                    // try insert
+                    std::size_t hash_code;
+                    if constexpr (CacheHashCode)
+                    {
+                        hash_code = old_slot[i].m_hash_code;
+                    }
+                    else
+                    {
+                        hash_code = m_hash(HashPolicy::get(old_slot[i].value()));
+                    }
+                    insert_with_hash(std::move_if_noexcept(old_slot[i].value()), hash_code);
+                }
+            }
+
+            if (old_capacity)
+            {
+                assert(old_ctrl && "this pointer will never be nullptr");
+                detail::deallocate(m_alloc, old_ctrl, old_capacity);
+                detail::deallocate(m_alloc, old_slot, old_capacity);
+            }   
+        }
+#endif
 
         [[no_unique_address]] hasher m_hash;
         [[no_unique_address]] key_equal m_ke;

@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <memory>
 
-namespace leviathan::collections
+namespace leviathan::collections2
 {
 	// for vector/list/deque/set/unordered_set
 	enum class config_type

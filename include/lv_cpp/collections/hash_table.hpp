@@ -22,7 +22,7 @@ Something defined in dictobject.c
 |                     |
 +---------------------+
 */
-#if 0
+#if 1
 
 #include "internal/config.hpp"
 
@@ -30,12 +30,14 @@ Something defined in dictobject.c
 #include <functional> // std::hash
 #include <variant>
 #include <bit>
+#include <algorithm>
 #include <assert.h>
 
 
 
-namespace leviathan::collections
+namespace leviathan::collections2
 {
+
 
     namespace detail
     {
@@ -132,6 +134,8 @@ namespace leviathan::collections
 
             constexpr static double factor = (double) Num / Den;
 
+            inline static int count = 0;
+
             constexpr static bool need_expand(double load_factor) noexcept
             { return load_factor > factor; }
 
@@ -152,6 +156,7 @@ namespace leviathan::collections
 
             constexpr std::size_t operator()() noexcept
             {
+                count++;
                 m_perturb_shift >>= PerturbShift;
                 m_value = (5 * m_value + 1 + m_perturb_shift) & m_mask;
                 return m_value;
@@ -285,6 +290,8 @@ namespace leviathan::collections
 		using typename Config::size_type;
 		using typename Config::hasher;
 		using typename Config::key_equal;
+        using policy_type = HashPolicy;
+
 
         using Config::config;
 
