@@ -31,7 +31,7 @@ namespace leviathan::test
         {
             auto random_generator = [&]() {
                 // return rd() % (default_num * 10);
-                return rd() % (default_num);
+                return rd();
             };
             std::vector<int> ret;
             ret.reserve(n);
@@ -121,7 +121,7 @@ namespace leviathan::test
 
         int cnt = 0;
 
-        for (auto val : search::searching) cnt += s.contains(val);
+        for (auto val : search::searching) cnt += s.contains((uint64_t)val);
 
         REQUIRE(cnt <= detail::default_num);
 

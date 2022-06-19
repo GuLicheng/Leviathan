@@ -14,10 +14,10 @@
 
 // helper meta for deducing type
 template <typename T>
-struct referece_traits : std::type_identity<T> { };
+struct reference_traits : std::type_identity<T> { };
 
 template <typename T>
-struct referece_traits<std::reference_wrapper<T>> : std::type_identity<T&> { };
+struct reference_traits<std::reference_wrapper<T>> : std::type_identity<T&> { };
 
 // the return instance registered by calling `register_instance` should not be deleted
 template <typename T>
@@ -115,7 +115,7 @@ public:
 
         if (iter->m_id == info::type::Ctor)
         {
-            using fn_type = std::function<ClassType*(typename referece_traits<Args>::type...)>;
+            using fn_type = std::function<ClassType*(typename reference_traits<Args>::type...)>;
             auto& fn = std::any_cast<fn_type&>(iter->m_ctor_or_instance);
             auto* p = fn(std::move(args)...);
             return std::unique_ptr<ClassType, conditional_deleter<ClassType>>(p);

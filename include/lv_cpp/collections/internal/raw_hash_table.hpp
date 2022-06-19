@@ -15,17 +15,19 @@
 
 #pragma once
 
-// #include "config.hpp"
 #include "hash_policy.hpp"
-#include <lv_cpp/meta/template_info.hpp>
+// #include <lv_cpp/meta/template_info.hpp>
 #include <memory>
 #include <type_traits>
 #include <limits>
 
-#define USE_OLD_HASH 1
+
+
 
 namespace leviathan::collections
 {
+
+    struct auto_hash { explicit auto_hash() = default; };
 
     namespace detail
     {
@@ -40,7 +42,7 @@ namespace leviathan::collections
         template <typename T> concept is_transparent = requires 
         { typename T::is_transparent; };
 
-        // if IsTransparent is true, return K1, ohther 
+        // if IsTransparent is true, return K1, otherwise K2 
         template <bool IsTransparent>
         struct key_arg_helper 
         {
@@ -58,6 +60,7 @@ namespace leviathan::collections
         template <bool IsTransparent, class K1, class K2>
         using key_arg = typename key_arg_helper<IsTransparent>::template type<K1, K2>;
     
+        // return true if Args is const T& or T&&
         template <typename T, typename... Args>
         struct emplace_helper
         {
@@ -137,10 +140,12 @@ namespace leviathan::collections
         using slot_type = typename HashPolicy::slot_type;
         using rebind_alloc = typename std::allocator_traits<Allocator>::template rebind_alloc<slot_type>;
         using alloc_traits = std::allocator_traits<rebind_alloc>;
-        inline constexpr static bool CacheHashCode = true;
-        
+        constexpr static bool CacheHashCode = HashPolicy::cache_hash_code;
+
+        // we must evaluate IsTransparent first
+        constexpr static bool IsTransparent = detail::is_transparent<hasher> && detail::is_transparent<key_equal>;
         template <typename U>
-        using key_arg_t = detail::key_arg<detail::is_transparent<hasher> && detail::is_transparent<key_equal>, U, key_type>;
+        using key_arg_t = detail::key_arg<IsTransparent, U, key_type>;
 
         template <bool Const>
         struct hash_iterator
@@ -199,6 +204,8 @@ namespace leviathan::collections
         {
         }
 
+        // TODO: constructors and swap 
+
         std::size_t size() const noexcept
         { return m_size; }
 
@@ -221,7 +228,7 @@ namespace leviathan::collections
         { return empty() ? 0.0 : (float)m_size / m_capacity; }
 
         float max_load_factor() const noexcept
-        { return 1.0f; }
+        { return (float)HashPolicy::factor; }
 
         void max_load_factor(float) 
         { /* Does nothing. */ }
@@ -237,11 +244,21 @@ namespace leviathan::collections
         const_iterator find(const key_arg_t<K>& x) const
         { return const_cast<raw_hash_table&>(*this).find(x); }
 
+        template <typename K = key_type>
+        bool contains(const key_arg_t<K>& x) const
+        { return find(x) != end();  }
+
         std::pair<iterator, bool> insert(const key_type& x)
         { return emplace(x); }
 
         std::pair<iterator, bool> insert(key_type&& x)
         { return emplace(std::move(x)); }
+
+        iterator insert(const_iterator, const value_type& x) 
+        { return insert(x).first; }
+
+        iterator insert(const_iterator, value_type&& x) 
+        { return insert(std::move(x)).first; }
 
         template <typename... Args>
         std::pair<iterator, bool> emplace(Args&&... args)
@@ -261,14 +278,10 @@ namespace leviathan::collections
                 slot_type* slot = reinterpret_cast<slot_type*>(&raw);
                 alloc_traits::construct(m_alloc, slot, (Args&&) args...);
                 auto [pos, exits] = insert_impl(std::move(*slot));
-                alloc_traits::destroy(m_alloc, static_cast<slot_type*>(slot));
+                alloc_traits::destroy(m_alloc, slot);
                 return std::make_pair(iterator(this, pos), !exits);
             }
         }
-
-        template <typename K = key_type>
-        bool contains(const key_arg_t<K>& x) const
-        { return find(x) != end(); }
 
         template <typename K = key_type>
         size_type erase(const key_arg_t<K>& x)
@@ -302,14 +315,14 @@ namespace leviathan::collections
         const_iterator cend() const noexcept
         { return const_cast<raw_hash_table&>(*this).end(); }
 
-        void show() const 
-        {
-            for (std::size_t i = 0; i < m_capacity; ++i)
-            {
-                if (check_ctrl_is_active(m_ctrl[i]))
-                    std::cout << "i = " << i << " value = " << m_slots[i].value() << '\n';
-            }
-        }
+        // void show() const 
+        // {
+        //     for (std::size_t i = 0; i < m_capacity; ++i)
+        //     {
+        //         if (check_ctrl_is_active(m_ctrl[i]))
+        //             std::cout << "i = " << i << " value = " << m_slots[i].value() << '\n';
+        //     }
+        // }
 
         void clear()
         { reset(); }
@@ -337,8 +350,27 @@ namespace leviathan::collections
         }
 
         template <typename K>
+        bool check_equal(std::size_t hash, std::size_t pos, const K& x) const noexcept
+        {
+            // for integer with hash(x) = x, compare hash_code is equivalent to x == value
+            // for std::string or other string type, compare hash_code first may faster
+            if constexpr (CacheHashCode)
+            {
+                return H2(hash) == (std::uint8_t)m_ctrl[pos]
+                    && hash == m_slots[pos].m_hash_code 
+                    && m_ke(x, HashPolicy::get(m_slots[pos].value()));
+            }
+            else
+            {
+                return H2(hash) == (std::uint8_t)m_ctrl[pos] 
+                    && m_ke(x, HashPolicy::get(m_slots[pos].value()));
+            }
+        }
+
+        template <typename K>
         std::size_t find_slot(const K& x) const noexcept(std::is_nothrow_invocable_v<hasher, decltype(x)>) 
         {
+            static_assert(detail::is_transparent<hasher> && detail::is_transparent<key_equal>);
             if (m_capacity == 0)
             {
                 return m_capacity;
@@ -351,7 +383,8 @@ namespace leviathan::collections
 
             while (1)
             {
-                if (H2(hash) == (std::uint8_t)m_ctrl[pos] && m_ke(x, HashPolicy::get(m_slots[pos].value())))
+                // if (H2(hash) == (std::uint8_t)m_ctrl[pos] && m_ke(x, HashPolicy::get(m_slots[pos].value())))
+                if (check_equal(hash, pos, x))
                     return pos;
                 if (m_ctrl[pos] == ctrl::empty)
                     return m_capacity;
@@ -371,7 +404,6 @@ namespace leviathan::collections
             return insert_with_hash((U&&) x, hash);
         }
 
-#if USE_OLD_HASH
         template <typename U>
         std::pair<std::size_t, bool> insert_with_hash(U&& x, std::size_t hash)
         {
@@ -379,7 +411,8 @@ namespace leviathan::collections
             auto pos = *g;
             while (1)
             {
-                if (H2(hash) == (std::uint8_t)m_ctrl[pos] && m_ke(x, HashPolicy::get(m_slots[pos].value())))
+                // if (H2(hash) == (std::uint8_t)m_ctrl[pos] && m_ke(x, HashPolicy::get(m_slots[pos].value())))
+                if (check_equal(hash, pos, x))
                     return std::make_pair(pos, true);
                 
                 if (check_ctrl_is_empty_or_deleted(m_ctrl[pos]))
@@ -405,42 +438,7 @@ namespace leviathan::collections
             }
             // std::unreachable()
         }
-#else
-        template <typename U>
-        std::pair<std::size_t, bool> insert_with_hash(U&& x, std::size_t hash)
-        {
-            typename HashPolicy::generator_type g{ hash, m_capacity };
-            auto pos = *g;
-            while (1)
-            {
-                if (m_ctrl[pos] == ctrl::active && m_ke(x, HashPolicy::get(m_slots[pos].value())))
-                    return std::make_pair(pos, true);
-                
-                if (m_ctrl[pos] != ctrl::active)
-                {
-                    if (check_ctrl_is_deleted(m_ctrl[pos]))
-                    {
-                        alloc_traits::destroy(m_alloc, m_slots + pos);
-                    }
-                    if constexpr (CacheHashCode)
-                    {
-                        alloc_traits::construct(m_alloc, m_slots + pos, hash, (U&&) x); 
-                    }
-                    else
-                    {
-                        alloc_traits::construct(m_alloc, m_slots + pos, (U&&) x); 
-                    }
 
-                    m_ctrl[pos] = ctrl::active;
-                    m_size++;
-                    return std::make_pair(pos, false);
-                }
-                pos = g();
-            }
-            // std::unreachable()
-        }
-
-#endif
         template <typename K>
         auto remove_by_value(const K& x)
         {
@@ -489,7 +487,7 @@ namespace leviathan::collections
                 resize(new_capacity);
             }
         }
-#if USE_OLD_HASH
+
         void resize(std::size_t new_capacity)
         {
             auto old_ctrl = m_ctrl;
@@ -528,57 +526,13 @@ namespace leviathan::collections
 
             if (old_capacity)
             {
-                assert(old_ctrl && "this pointer will never be nullptr");
+                assert(old_ctrl && old_slot && "these pointers should never be nullptr");
                 detail::deallocate(m_alloc, old_ctrl, old_capacity);
                 detail::deallocate(m_alloc, old_slot, old_capacity);
             }   
         }
 
-#else 
-        void resize(std::size_t new_capacity)
-        {
-            auto old_ctrl = m_ctrl;
-            auto old_slot = m_slots;
-            auto old_capacity = m_capacity;
 
-            initialize(new_capacity); 
-
-            // If we don't cache hash code, we should use m_hash to get hash code again for each active value.
-            // If std::is_nothrow_move_construable_v<T>, the rehash should be noexcept and we can call std::move for
-            // each element otherwise we must copy each element so that if an exception is thrown, the state of 
-            // container is not changed. 
-            m_size = 0;
-            for (std::size_t i = 0; i < old_capacity; ++i)
-            {
-                const auto state = old_ctrl[i];
-                if (state != ctrl::active)
-                {
-                    alloc_traits::destroy(m_alloc, old_slot + i);
-                }
-                else 
-                {
-                    // try insert
-                    std::size_t hash_code;
-                    if constexpr (CacheHashCode)
-                    {
-                        hash_code = old_slot[i].m_hash_code;
-                    }
-                    else
-                    {
-                        hash_code = m_hash(HashPolicy::get(old_slot[i].value()));
-                    }
-                    insert_with_hash(std::move_if_noexcept(old_slot[i].value()), hash_code);
-                }
-            }
-
-            if (old_capacity)
-            {
-                assert(old_ctrl && "this pointer will never be nullptr");
-                detail::deallocate(m_alloc, old_ctrl, old_capacity);
-                detail::deallocate(m_alloc, old_slot, old_capacity);
-            }   
-        }
-#endif
 
         [[no_unique_address]] hasher m_hash;
         [[no_unique_address]] key_equal m_ke;
@@ -593,20 +547,28 @@ namespace leviathan::collections
 
 
     template <typename T, 
-        typename HashFunction = std::hash<T>, 
+        typename HashFunction = std::hash<auto_hash>, 
         typename KeyEqual = std::equal_to<>, 
         typename Allocator = std::allocator<T>>
     class hash_set : public raw_hash_table<T, HashFunction, KeyEqual, Allocator, default_hash_set_policy<T>> { };
-
-
 
 
 }
 
 
 
+namespace std
+{
+    template <>
+    struct hash<::leviathan::collections::auto_hash>
+    {
+        using is_transparent = void;
 
-
+        template <typename T>
+        constexpr auto operator()(const T& x) const noexcept(std::is_nothrow_invocable_v<std::hash<T>, const T&>)
+        { return std::hash<T>()(x); }
+    };
+}
 
 
 

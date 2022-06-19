@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <bit>
 #include <memory>
-// #include <lv_cpp/meta/concepts.hpp>
 #include <algorithm>
 #include <assert.h>
 
@@ -66,31 +65,28 @@ namespace leviathan::collections
     template <typename T>
     struct cache_hash_code : std::true_type { };
 
-        template <typename T, bool Cache>
-        struct storage_impl
-        {
-            T m_value;
+    template <typename T, bool Cache>
+    struct storage_impl
+    {
+        T m_value;
 
-            constexpr auto& value() noexcept 
-            { return m_value; }
+        constexpr auto& value() noexcept 
+        { return m_value; }
 
-            constexpr auto& value() const noexcept
-            { return m_value; }
+        constexpr auto& value() const noexcept
+        { return m_value; }
 
-            constexpr storage_impl(const T& x) : m_value { x } { }
-            constexpr storage_impl(T&& x) : m_value { std::move(x) } { }
+    };
 
-        };
+    template <typename T>
+    struct storage_impl<T, true> : storage_impl<T, false>
+    {
+        std::size_t m_hash_code;
 
-        template <typename T>
-        struct storage_impl<T, true> : storage_impl<T, false>
-        {
-            std::size_t m_hash_code;
-
-            template <typename... Args>
-            constexpr storage_impl(std::size_t hash_code, Args&&... args)
-                : storage_impl<T, false>{ args... }, m_hash_code{ hash_code } { }
-        };
+        template <typename... Args>
+        constexpr storage_impl(std::size_t hash_code, Args&&... args)
+            : storage_impl<T, false>{ (Args&&) args... }, m_hash_code{ hash_code } { }
+    };
 
 
 
@@ -98,7 +94,7 @@ namespace leviathan::collections
     struct py_hash_generator
     {
 
-        inline static int count = 0;
+        // inline static int count = 0;
 
         constexpr py_hash_generator(std::size_t hash_init, std::size_t table_size) noexcept 
         {
@@ -110,7 +106,7 @@ namespace leviathan::collections
 
         constexpr std::size_t operator()() noexcept
         {
-            count++;
+            // count++;
             m_perturb_shift >>= PerturbShift;
             m_value = (5 * m_value + 1 + m_perturb_shift) & m_mask;
             return m_value;
@@ -130,6 +126,9 @@ namespace leviathan::collections
     template <std::size_t Offset = 1>
     struct linear_hash_generator
     {
+
+        // inline static int count = 0;
+
         constexpr linear_hash_generator(std::size_t hash_init, std::size_t table_size) noexcept 
         {
             m_mask = table_size;
@@ -138,6 +137,7 @@ namespace leviathan::collections
 
         constexpr std::size_t operator()() noexcept
         {
+            // count++;
             m_value = (m_value + Offset) % m_mask;
             return m_value;
         }
@@ -197,11 +197,12 @@ namespace leviathan::collections
         typename HashGenerator,
         typename Mode,
         bool CacheHashCode,
-        std::size_t MinSize, 
         std::size_t Num, 
         std::size_t Den>
-    struct pydict_policy
+    struct hash_policy
     {
+
+        constexpr static auto cache_hash_code = CacheHashCode;
 
         using slot_type = storage_impl<T, CacheHashCode>;
 
@@ -209,13 +210,9 @@ namespace leviathan::collections
         
         using generator_type = HashGenerator;
 
-        // template <typename U>
-        // constexpr static const auto& get(const U& x) noexcept
-        // // { return mode<T, Mode>::get(x); } 
-        // { return x; } 
-
-        constexpr static const auto& get(const key_type& x) noexcept
-        { return x; }
+        template <typename U>
+        constexpr static const auto& get(const U& x) noexcept
+        { return mode<T, Mode>::get(x); } 
 
         constexpr static double factor = (double) Num / Den;
 
@@ -223,31 +220,32 @@ namespace leviathan::collections
         { return load_factor > factor; }
 
         constexpr static std::size_t next_capacity(std::size_t capacity) noexcept
-        {
-            return capacity << 1;
-        }
+        { return capacity << 1; }
 
         constexpr static bool is_power_of_two(std::size_t x) noexcept
         { return std::popcount(x) == 1; }
 
     };
 
+    // Some hash generator
+    using default_pydict_hash_generator = py_hash_generator<>;
+    using default_linear_hash_generator = linear_hash_generator<>; 
 
     template <typename T>
-    using default_hash_set_policy = pydict_policy<
+    using default_hash_set_policy = hash_policy<
         T, 
-        py_hash_generator<>, 
+        default_pydict_hash_generator, 
         identity, 
         cache_hash_code<T>::value, 
-        8, 2, 3>;
+        2, 3>;
 
     template <typename K, typename V>
-    using default_hash_map_policy = pydict_policy<
+    using default_hash_map_policy = hash_policy<
         std::pair<K, V>, 
-        py_hash_generator<>, 
+        default_pydict_hash_generator, 
         select1st, 
         cache_hash_code<std::pair<K, V>>::value, 
-        8, 2, 3>;
+        2, 3>;
 
 }
 
