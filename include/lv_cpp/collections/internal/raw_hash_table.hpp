@@ -134,13 +134,40 @@ namespace leviathan::collections
         using value_type = T;
         using key_type = typename HashPolicy::key_type;
         using policy_type = HashPolicy;
+        using reference = value_type&;
+        using const_reference = const value_type&;
+        using difference_type = std::ptrdiff_t;
 
     private:
 
         using slot_type = typename HashPolicy::slot_type;
-        using rebind_alloc = typename std::allocator_traits<Allocator>::template rebind_alloc<slot_type>;
-        using alloc_traits = std::allocator_traits<rebind_alloc>;
+        using alloc_traits = std::allocator_traits<allocator_type>;
+
+        using slot_alloc = typename std::allocator_traits<Allocator>::template rebind_alloc<slot_type>;
+        using slot_alloc_traits = std::allocator_traits<slot_alloc>;
+
         constexpr static bool CacheHashCode = HashPolicy::cache_hash_code;
+        constexpr static bool IsNoexceptMoveConstruct = 
+                std::is_nothrow_move_constructible_v<hasher>
+             && std::is_nothrow_move_constructible_v<key_equal>
+             && std::is_nothrow_move_constructible_v<value_type> 
+             && std::is_nothrow_move_constructible_v<allocator_type>; 
+
+        constexpr static bool IsNoexceptMoveAssignable = 
+                IsNoexceptMoveConstruct
+            && std::is_nothrow_move_assignable_v<hasher>
+            && std::is_nothrow_move_assignable_v<key_equal>
+            && std::is_nothrow_move_assignable_v<value_type>
+            && std::is_nothrow_move_assignable_v<allocator_type>
+            && []() {
+                if constexpr (typename alloc_traits::propagate_on_container_move_assignment())
+                    return true;
+                else if constexpr (typename alloc_traits::is_always_equal())
+                    return true;
+                else
+                    return false; // in this routine, assign_from may invoked 
+            }();
+     
 
         // we must evaluate IsTransparent first
         constexpr static bool IsTransparent = detail::is_transparent<hasher> && detail::is_transparent<key_equal>;
@@ -198,13 +225,133 @@ namespace leviathan::collections
         using iterator = hash_iterator<false>;
         using const_iterator = hash_iterator<true>;
         using size_type = std::size_t;
+        using pointer = typename alloc_traits::pointer;
+        using const_pointer = typename alloc_traits::const_pointer;
 
-        raw_hash_table() noexcept
+
+        raw_hash_table() 
             : m_hash{ }, m_ke{ }, m_alloc{ }, m_size{ }, m_capacity{ }, m_slots{ }, m_ctrl{ }
         {
         }
 
-        // TODO: constructors and swap 
+        raw_hash_table(hasher hash, key_equal ke, allocator_type alloc)
+            : m_hash{ hash }, m_ke{ ke }, m_alloc{ alloc }, m_size{ }, m_capacity{ }, m_slots{ }, m_ctrl{ }
+        {
+        }
+
+        raw_hash_table(const raw_hash_table& rhs) 
+            : m_hash{ rhs.m_hash }, 
+              m_ke{ rhs.m_ke }, 
+              m_alloc{ alloc_traits::select_on_container_copy_construction(rhs.m_alloc) },
+              m_size{ },
+              m_capacity{ },
+              m_slots{ },
+              m_ctrl{ }
+        {
+            try
+            {
+                assign_from(rhs.begin(), rhs.end());
+            }
+            catch(...)
+            {
+                reset();
+                throw;
+            }
+        }
+
+		raw_hash_table(raw_hash_table&& rhs) 
+		noexcept(IsNoexceptMoveConstruct)
+			: m_hash{ std::move(rhs.m_hash) },
+              m_ke{ std::move(rhs.m_ke) }, 
+              m_alloc{ std::move(rhs.m_alloc) }, 
+              m_size{ std::exchange(rhs.m_size, 0) }, 
+              m_capacity{ std::exchange(rhs.m_capacity, 0) },
+              m_slots{ std::exchange(rhs.m_slots, nullptr) },
+              m_ctrl{ std::exchange(rhs.m_ctrl, nullptr) }
+		{
+        }
+
+		void swap(raw_hash_table& rhs)
+		{
+			if (this != std::addressof(rhs))
+			{
+				if constexpr (typename alloc_traits::propagate_on_container_swap())
+				{
+					// std::swap(impl and alloc)
+					swap_impl(rhs);
+					std::swap(m_alloc, rhs.m_alloc);
+				}
+				else if (typename alloc_traits::is_always_equal()
+					|| m_alloc == rhs.m_alloc)
+				{
+					swap_impl(rhs);
+				}
+				else
+				{
+					// Undefined Behaviour
+					throw std::runtime_error("Undefined Behaviour");
+				}
+			}
+		}
+
+        // TODO: copy/move constructors and swap 
+
+		raw_hash_table& operator=(const raw_hash_table& rhs)
+		{
+			if (std::addressof(rhs) != this)
+			{
+				// std::true_type
+				if constexpr (typename std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment())
+				{
+					if (m_alloc != rhs.m_alloc)
+					{
+						// clear_and_deallocate_memory()
+						reset();
+					}
+					m_alloc = rhs.m_alloc;
+				}
+				// assign_from(rhs.begin(), rhs.end());
+				try
+				{
+					assign_from(rhs.cbegin(), rhs.cend());
+				}
+				catch (...)
+				{
+					reset();
+					throw;
+				}
+			}
+			return *this;
+		}
+
+		raw_hash_table& operator=(raw_hash_table&& rhs) 
+		noexcept(IsNoexceptMoveAssignable)
+		{
+			if (this != std::addressof(rhs))
+			{
+				if constexpr (typename alloc_traits::propagate_on_container_move_assignment())
+				{
+					// clear_and_deallocate_memory
+					// move alloc and impl
+					reset();
+					m_alloc = std::move(rhs.m_alloc);
+					move_impl_and_reset_other(rhs);
+				}
+				else if (typename alloc_traits::is_always_equal() || m_alloc == rhs.m_alloc)
+				{
+					// clear_and_deallocate_memory()
+					// impl = move(rhs.impl)
+                    reset();
+					move_impl_and_reset_other(rhs);
+				}
+				else
+				{
+					// assign(move_iter(rhs.begin()), move_iter(rhs.end()));
+					assign_from(std::make_move_iterator(rhs.begin()), std::make_move_iterator(rhs.end()));
+				}
+			}
+			return *this;
+		}
 
         std::size_t size() const noexcept
         { return m_size; }
@@ -260,6 +407,10 @@ namespace leviathan::collections
         iterator insert(const_iterator, value_type&& x) 
         { return insert(std::move(x)).first; }
 
+        template <class... Args>
+        iterator emplace_hint(const_iterator, Args&&... args)
+        { return emplace((Args&&) args...).first; }
+
         template <typename... Args>
         std::pair<iterator, bool> emplace(Args&&... args)
         {
@@ -274,11 +425,14 @@ namespace leviathan::collections
             {
                 // We first construct value on stack and try to move it.
                 // Whether the value is move successfully, the destructor should be invoked. 
-                alignas(slot_type) unsigned char raw[sizeof(slot_type)];
-                slot_type* slot = reinterpret_cast<slot_type*>(&raw);
-                alloc_traits::construct(m_alloc, slot, (Args&&) args...);
+                alignas(T) unsigned char raw[sizeof(T)];
+                T* slot = reinterpret_cast<T*>(&raw);
+
+                slot_alloc alloc { m_alloc };
+
+                slot_alloc_traits::construct(alloc, slot, (Args&&) args...);
                 auto [pos, exits] = insert_impl(std::move(*slot));
-                alloc_traits::destroy(m_alloc, slot);
+                slot_alloc_traits::destroy(alloc, slot);
                 return std::make_pair(iterator(this, pos), !exits);
             }
         }
@@ -315,15 +469,6 @@ namespace leviathan::collections
         const_iterator cend() const noexcept
         { return const_cast<raw_hash_table&>(*this).end(); }
 
-        // void show() const 
-        // {
-        //     for (std::size_t i = 0; i < m_capacity; ++i)
-        //     {
-        //         if (check_ctrl_is_active(m_ctrl[i]))
-        //             std::cout << "i = " << i << " value = " << m_slots[i].value() << '\n';
-        //     }
-        // }
-
         void clear()
         { reset(); }
 
@@ -334,6 +479,13 @@ namespace leviathan::collections
 
         void reset()
         {
+
+            if (!m_capacity)
+            {
+                assert(!m_ctrl && !m_slots && "ctrl and slots must be nullptr when hash table is empty.");
+                return;
+            }
+
             for (std::size_t i = 0; i < m_capacity; ++i)
             {
                 if (!check_ctrl_is_empty(m_ctrl[i]))
@@ -341,12 +493,40 @@ namespace leviathan::collections
                     alloc_traits::destroy(m_alloc, m_slots + i);
                 }
             }
+            assert(m_ctrl && m_slots);
             detail::deallocate(m_alloc, m_ctrl, m_capacity);
             detail::deallocate(m_alloc, m_slots, m_capacity);
             m_capacity = 0;
             m_size = 0;
             m_slots = nullptr;
             m_ctrl = nullptr;
+        }
+
+        void swap_impl(raw_hash_table& rhs)
+        {
+            std::swap(m_ctrl, rhs.m_ctrl);
+            std::swap(m_slots, rhs.m_slots);
+            std::swap(m_size, rhs.m_size);
+            std::swap(m_capacity, rhs.m_capacity);
+            std::swap(m_hash, rhs.m_hash);
+            std::swap(m_ke, rhs.m_ke);
+        }
+
+        template <typename I, typename S>
+        void assign_from(I first, S last)
+        {
+            for (auto iter = first; iter != last; ++iter)
+                insert(*iter);
+        }
+
+        void move_impl_and_reset_other(raw_hash_table& rhs)
+        {
+            m_hash = std::move(rhs.m_hash);
+            m_ke = std::move(rhs.m_ke);
+            m_ctrl = std::exchange(rhs.m_ctrl, nullptr);
+            m_slots = std::exchange(rhs.m_slots, nullptr);
+            m_size = std::exchange(rhs.m_size, 0);
+            m_capacity = std::exchange(rhs.m_capacity, 0);
         }
 
         template <typename K>
@@ -409,6 +589,9 @@ namespace leviathan::collections
         {
             typename HashPolicy::generator_type g{ H1(hash), m_capacity };
             auto pos = *g;
+
+            slot_alloc alloc { m_alloc };
+
             while (1)
             {
                 // if (H2(hash) == (std::uint8_t)m_ctrl[pos] && m_ke(x, HashPolicy::get(m_slots[pos].value())))
@@ -419,15 +602,15 @@ namespace leviathan::collections
                 {
                     if (check_ctrl_is_deleted(m_ctrl[pos]))
                     {
-                        alloc_traits::destroy(m_alloc, m_slots + pos);
+                        slot_alloc_traits::destroy(alloc, m_slots + pos);
                     }
                     if constexpr (CacheHashCode)
                     {
-                        alloc_traits::construct(m_alloc, m_slots + pos, hash, (U&&) x); 
+                        slot_alloc_traits::construct(alloc, m_slots + pos, hash, (U&&) x); 
                     }
                     else
                     {
-                        alloc_traits::construct(m_alloc, m_slots + pos, (U&&) x); 
+                        slot_alloc_traits::construct(alloc, m_slots + pos, (U&&) x); 
                     }
 
                     m_ctrl[pos] = static_cast<ctrl>(H2(hash));
@@ -501,12 +684,13 @@ namespace leviathan::collections
             // each element otherwise we must copy each element so that if an exception is thrown, the state of 
             // container is not changed. 
             m_size = 0;
+            slot_alloc alloc { m_alloc };
             for (std::size_t i = 0; i < old_capacity; ++i)
             {
                 const auto state = old_ctrl[i];
                 if (check_ctrl_is_deleted(state))
                 {
-                    alloc_traits::destroy(m_alloc, old_slot + i);
+                    slot_alloc_traits::destroy(alloc, old_slot + i); // destroy deleted element
                 }
                 else if (check_ctrl_is_active(state))
                 {
@@ -521,6 +705,7 @@ namespace leviathan::collections
                         hash_code = m_hash(HashPolicy::get(old_slot[i].value()));
                     }
                     insert_with_hash(std::move_if_noexcept(old_slot[i].value()), hash_code);
+                    slot_alloc_traits::destroy(alloc, old_slot + i); // element after moved also should be destroyed 
                 }
             }
 
@@ -536,7 +721,7 @@ namespace leviathan::collections
 
         [[no_unique_address]] hasher m_hash;
         [[no_unique_address]] key_equal m_ke;
-        [[no_unique_address]] rebind_alloc m_alloc;
+        [[no_unique_address]] allocator_type m_alloc;
     
         ctrl* m_ctrl; 
         slot_type* m_slots; // store entries
@@ -546,12 +731,15 @@ namespace leviathan::collections
     };
 
 
+
     template <typename T, 
         typename HashFunction = std::hash<auto_hash>, 
         typename KeyEqual = std::equal_to<>, 
         typename Allocator = std::allocator<T>>
     class hash_set : public raw_hash_table<T, HashFunction, KeyEqual, Allocator, default_hash_set_policy<T>> { };
 
+    template <typename T>
+    hash_set(std::initializer_list<T>) -> hash_set<T>;
 
 }
 
@@ -568,9 +756,20 @@ namespace std
         constexpr auto operator()(const T& x) const noexcept(std::is_nothrow_invocable_v<std::hash<T>, const T&>)
         { return std::hash<T>()(x); }
     };
+
+    template <typename T, 
+        typename HashFunction, 
+        typename KeyEqual, 
+        typename Allocator, 
+        typename HashPolicy,
+        bool Duplicate>
+    void swap(
+        ::leviathan::collections::raw_hash_table<T, HashFunction, KeyEqual, Allocator, HashPolicy, Duplicate>& lhs,
+        ::leviathan::collections::raw_hash_table<T, HashFunction, KeyEqual, Allocator, HashPolicy, Duplicate>& rhs)
+    {
+        lhs.swap(rhs);
+    }
 }
-
-
 
 
 

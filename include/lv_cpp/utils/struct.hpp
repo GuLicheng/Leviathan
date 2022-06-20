@@ -86,15 +86,18 @@ public:
 
     constexpr auto operator<=>(const Int32&) const noexcept = default;
 
+    constexpr std::size_t hash_code() const noexcept
+    { return static_cast<std::size_t>(val); }
+
 };
 
 namespace std 
 {
     template <bool B>
-    struct hash<Int32<B>>
+    struct hash<::Int32<B>>
     {
-        auto operator()(Int32<B> f) const noexcept
-        { return std::hash<int>()(f.val); }
+        constexpr auto operator()(const ::Int32<B>& f) const noexcept
+        { return f.hash_code(); }
     };
 }
 

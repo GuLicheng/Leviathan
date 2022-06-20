@@ -3,7 +3,7 @@
 #include "test_container.hpp"
 
 #include <lv_cpp/collections/hash_table.hpp>
-#include <lv_cpp/collections/hash_table2.hpp>
+// #include <lv_cpp/collections/hash_table2.hpp>
 
 USING_TEST
 

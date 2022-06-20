@@ -5,6 +5,7 @@ using T = ::leviathan::collections::hash_set<int>;
 
 int main()
 {
+    // T hs = { 1, 2, 3, 4, 5 };
     T hs;
     hs.contains(5ll);
 }
