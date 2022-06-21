@@ -16,7 +16,7 @@
 #pragma once
 
 #include "hash_policy.hpp"
-// #include <lv_cpp/meta/template_info.hpp>
+#include <lv_cpp/meta/template_info.hpp>
 #include <memory>
 #include <type_traits>
 #include <limits>
@@ -147,6 +147,9 @@ namespace leviathan::collections
         using slot_alloc_traits = std::allocator_traits<slot_alloc>;
 
         constexpr static bool CacheHashCode = HashPolicy::cache_hash_code;
+
+        constexpr static bool IsMap = HashPolicy::is_map;
+
         constexpr static bool IsNoexceptMoveConstruct = 
                 std::is_nothrow_move_constructible_v<hasher>
              && std::is_nothrow_move_constructible_v<key_equal>
@@ -294,8 +297,6 @@ namespace leviathan::collections
 			}
 		}
 
-        // TODO: copy/move constructors and swap 
-
 		raw_hash_table& operator=(const raw_hash_table& rhs)
 		{
 			if (std::addressof(rhs) != this)
@@ -427,12 +428,16 @@ namespace leviathan::collections
                 // Whether the value is move successfully, the destructor should be invoked. 
                 alignas(T) unsigned char raw[sizeof(T)];
                 T* slot = reinterpret_cast<T*>(&raw);
-
                 slot_alloc alloc { m_alloc };
-
                 slot_alloc_traits::construct(alloc, slot, (Args&&) args...);
+
+                // insert may invoke `rehash` and std::bad_alloc may be thrown
+                // ~unique_ptr will destroy the object constructed above
+                auto deleter = [&](T* p) {
+                    slot_alloc_traits::destroy(alloc, p);
+                };
+                std::unique_ptr<T, decltype(deleter)> _ { slot, deleter };
                 auto [pos, exits] = insert_impl(std::move(*slot));
-                slot_alloc_traits::destroy(alloc, slot);
                 return std::make_pair(iterator(this, pos), !exits);
             }
         }
@@ -474,6 +479,9 @@ namespace leviathan::collections
 
         ~raw_hash_table() 
         { reset(); }
+
+
+
 
     private:
 
@@ -550,7 +558,6 @@ namespace leviathan::collections
         template <typename K>
         std::size_t find_slot(const K& x) const noexcept(std::is_nothrow_invocable_v<hasher, decltype(x)>) 
         {
-            static_assert(detail::is_transparent<hasher> && detail::is_transparent<key_equal>);
             if (m_capacity == 0)
             {
                 return m_capacity;
@@ -595,7 +602,7 @@ namespace leviathan::collections
             while (1)
             {
                 // if (H2(hash) == (std::uint8_t)m_ctrl[pos] && m_ke(x, HashPolicy::get(m_slots[pos].value())))
-                if (check_equal(hash, pos, x))
+                if (check_equal(hash, pos, HashPolicy::get(x)))
                     return std::make_pair(pos, true);
                 
                 if (check_ctrl_is_empty_or_deleted(m_ctrl[pos]))
@@ -645,7 +652,7 @@ namespace leviathan::collections
         // use for resize and constructor
         void initialize(std::size_t new_capacity)
         {
-            // in this routine, std::out_of_memory may thrown
+            // in this routine, std::bad_alloc may thrown
             // we don't need to catch since each member is not changed before.
             auto new_ctrl = detail::allocate<ctrl>(m_alloc, new_capacity);
             auto new_slot = detail::allocate<slot_type>(m_alloc, new_capacity);
@@ -718,7 +725,6 @@ namespace leviathan::collections
         }
 
 
-
         [[no_unique_address]] hasher m_hash;
         [[no_unique_address]] key_equal m_ke;
         [[no_unique_address]] allocator_type m_alloc;
@@ -736,10 +742,26 @@ namespace leviathan::collections
         typename HashFunction = std::hash<auto_hash>, 
         typename KeyEqual = std::equal_to<>, 
         typename Allocator = std::allocator<T>>
-    class hash_set : public raw_hash_table<T, HashFunction, KeyEqual, Allocator, default_hash_set_policy<T>> { };
+    using hash_set = raw_hash_table<T, HashFunction, KeyEqual, Allocator, default_hash_set_policy<T>>;
 
-    template <typename T>
-    hash_set(std::initializer_list<T>) -> hash_set<T>;
+
+    template <typename K, typename V, 
+        typename HashFunction = std::hash<auto_hash>, 
+        typename KeyEqual = std::equal_to<>, 
+        typename Allocator = std::allocator<std::pair<const K, V>>>
+    class hash_map : public raw_hash_table<std::pair<const K, V>, HashFunction, KeyEqual, Allocator, default_hash_map_policy<const K, V>>
+    {
+    public:
+        using mapped_type = V;
+        using key_type = K;
+
+        V& operator[](const K& x)
+        { return this->emplace(x, V()).first->second; }
+
+        V& operator[](K&& x)
+        { return this->emplace(std::move(x), V()).first->second; }
+
+    };
 
 }
 

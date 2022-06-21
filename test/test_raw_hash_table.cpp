@@ -4,6 +4,7 @@
 
 #include <lv_cpp/collections/internal/raw_hash_table.hpp>
 #include <algorithm>
+#include <string>
 
 using HashT = ::leviathan::collections::hash_set<int>;
 
@@ -106,7 +107,7 @@ TEST_CASE("remove elements", "[iterator][remove][clear]")
 
 TEST_CASE("member type", "[concept or type]")
 {
-    // https://en.cppreference.com/w/cpp/container/set
+    // https://en.cppreference.com/w/cpp/container/unordered_set
     using key_type = int;
     using value_type = int;
     using size_type = std::size_t;
@@ -118,7 +119,7 @@ TEST_CASE("member type", "[concept or type]")
     using const_pointer = std::allocator_traits<allocator_type>::const_pointer;
     using hasher = std::hash<::leviathan::collections::auto_hash>;
     using key_equal = std::equal_to<void>;
-    using SetType = ::leviathan::collections::hash_set<int>;
+    using SetType = HashT;
 
 #define CheckTypeIsEqual(type) REQUIRE(std::is_same_v< typename SetType:: type, type >)
 
@@ -202,6 +203,61 @@ TEST_CASE("ctor, assign and swap", "[ctor][swap][assign]")
 
 }
 
+
+using MapT = ::leviathan::collections::hash_map<int, std::string>;
+TEST_CASE("map member type", "[concept or type]")
+{
+    // https://en.cppreference.com/w/cpp/container/unordered_map
+    using key_type = int;
+    using value_type = std::pair<const int, std::string>;
+    using mapped_type = std::string;
+    using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
+    using allocator_type = std::allocator< std::pair<const int, std::string> >;
+    using reference = std::pair<const int, std::string>&;
+    using const_reference = const std::pair<const int, std::string>&;
+    using pointer = std::allocator_traits<allocator_type>::pointer;
+    using const_pointer = std::allocator_traits<allocator_type>::const_pointer;
+    using hasher = std::hash<::leviathan::collections::auto_hash>;
+    using key_equal = std::equal_to<void>;
+    using MapType = MapT;
+
+#define CheckTypeIsEqual(type) REQUIRE(std::is_same_v< typename MapType:: type, type >)
+
+    CheckTypeIsEqual(key_type);
+    CheckTypeIsEqual(value_type);
+    CheckTypeIsEqual(size_type);
+    CheckTypeIsEqual(difference_type);
+    CheckTypeIsEqual(allocator_type);
+    CheckTypeIsEqual(reference);
+    CheckTypeIsEqual(const_reference);
+    CheckTypeIsEqual(pointer);
+    CheckTypeIsEqual(const_pointer);
+    CheckTypeIsEqual(hasher);
+    CheckTypeIsEqual(key_equal);
+
+#undef CheckTypeIsEqual
+
+    REQUIRE(std::ranges::forward_range<MapType>);
+}
+
+TEST_CASE("operator[]", "[operator]")
+{
+    MapT m;
+
+    m[1] = "Hello";
+    m[2] = "World";
+    m[3] = "!";
+
+    REQUIRE(m.find(1) != m.end());
+    REQUIRE(m.size() == 3);
+    REQUIRE(m.contains(3));
+
+    m[3] = "!!";
+
+    REQUIRE(m.find(3)->second == "!!");
+
+}
 
 #include <lv_cpp/utils/struct.hpp>
 

@@ -45,6 +45,8 @@ namespace leviathan::collections
         using key_type = T;
         using value_type = T;
 
+        constexpr static bool is_map = false;
+
         template <typename U>
         constexpr static const auto& get(const U& x) noexcept
         { return x; } 
@@ -53,13 +55,15 @@ namespace leviathan::collections
     template <typename T>
     struct mode<T, select1st>
     {
-        using key_type = std::tuple_element_t<0, T>;
+        using key_type = std::tuple_element_t<0, T>; 
         using mapped_type = std::tuple_element<1, T>;
-        using value_type = std::pair<const key_type, mapped_type>;
+        using value_type = std::pair<key_type, mapped_type>;
         
+        constexpr static bool is_map = true;
+
         template <typename U>
         constexpr static const auto& get(const U& x) noexcept
-        { return std::get<1>(x); } 
+        { return std::get<0>(x); } 
     };
 
     template <typename T>
@@ -87,7 +91,6 @@ namespace leviathan::collections
         constexpr storage_impl(std::size_t hash_code, Args&&... args)
             : storage_impl<T, false>{ (Args&&) args... }, m_hash_code{ hash_code } { }
     };
-
 
 
     template <std::size_t PerturbShift = 5>
@@ -192,7 +195,6 @@ namespace leviathan::collections
     };
 
 
-
     template <typename T,
         typename HashGenerator,
         typename Mode,
@@ -204,12 +206,15 @@ namespace leviathan::collections
 
         constexpr static auto cache_hash_code = CacheHashCode;
 
-        using slot_type = storage_impl<T, CacheHashCode>;
 
         using key_type = typename mode<T, Mode>::key_type;
+
+        using slot_type = storage_impl<T, CacheHashCode>;
         
         using generator_type = HashGenerator;
 
+        constexpr static bool is_map = mode<T, Mode>::is_map;
+        
         template <typename U>
         constexpr static const auto& get(const U& x) noexcept
         { return mode<T, Mode>::get(x); } 
