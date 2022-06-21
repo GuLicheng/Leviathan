@@ -8,11 +8,8 @@
 
 int main()
 {
-    unsigned char raw[10];
-
-    std::cout << reinterpret_cast<int*>(raw) << '\n';
-    std::cout << reinterpret_cast<int*>(&raw) << '\n';
-
+    ::leviathan::collections::hash_map<int, int> h1, h2;
+    std::swap(h1, h2);
 }
 
 

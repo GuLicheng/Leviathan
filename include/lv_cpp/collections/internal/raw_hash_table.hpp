@@ -791,6 +791,19 @@ namespace std
     {
         lhs.swap(rhs);
     }
+
+    template <typename K, typename V, 
+        typename HashFunction, 
+        typename KeyEqual, 
+        typename Allocator>
+    void swap(
+        ::leviathan::collections::hash_map<K, V, HashFunction, KeyEqual, Allocator>& lhs,
+        ::leviathan::collections::hash_map<K, V, HashFunction, KeyEqual, Allocator>& rhs)
+    {
+        lhs.swap(rhs);
+    }
+
+
 }
 
 
