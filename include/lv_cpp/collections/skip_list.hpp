@@ -1,4 +1,8 @@
+"""
+	FIXME: Exception and SkipNode Allocator
+"""
 #pragma once
+
 
 #include <lv_cpp/collections/internal/config.hpp>
 
@@ -41,8 +45,9 @@ namespace leviathan::collections
 		template <typename Derived>
 		struct header
 		{
+
 			Derived* m_prev;
-			std::vector<Derived*> m_next;
+			std::vector<Derived*> m_next; // FIXME: allocator 
 			explicit header(Derived* prev, Derived* next, std::size_t num = MAXLEVEL) noexcept
 				: m_prev{ prev }, m_next{ num, next } { } // make it noexcept
 

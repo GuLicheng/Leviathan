@@ -1,3 +1,4 @@
+#include <memory_resource>
 #include <iostream>
 
 #include "except_allocator.hpp"
@@ -6,11 +7,16 @@
 #include <forward_list>
 #include <set>
 
+#include <lv_cpp/collections/internal/raw_hash_table.hpp>
+
 int main()
 {
-    std::list<int, RecordAllocator<int>> ls;
-    std::forward_list<int, RecordAllocator<int>> fls;
-    fls.push_front(1);
+    ::leviathan::collections::hash_set<
+        int, 
+        std::hash<::leviathan::collections::auto_hash>, 
+        std::equal_to<>, 
+        RecordPolymorphicAllocator<int>> hs;
+    hs.insert(1);
     Report();
 }
 

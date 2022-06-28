@@ -6,6 +6,7 @@
 #include <string>
 #include <iostream>
 #include <lv_cpp/meta/template_info.hpp>
+#include <memory_resource>
 
 template <typename T>
 class ExceptionAllocator : public std::allocator<T>
@@ -88,3 +89,44 @@ public:
         Base::deallocate(p, n);
     }
 };
+
+
+template <typename T>
+class RecordPolymorphicAllocator : public std::pmr::polymorphic_allocator<T>
+{
+    using Base = std::pmr::polymorphic_allocator<T>;
+    using Self = RecordPolymorphicAllocator<T>;
+
+    constexpr static std::string_view Name = TypeInfo(Self);
+
+public:
+    [[nodiscard]] constexpr T *allocate(std::size_t n)
+    {
+        recorder[Name].allocate_cnt++;
+        recorder[Name].allocate_size += n * sizeof(T);
+        return Base::allocate(n);
+    }
+
+    template <class U, class... Args>
+    void construct(U *p, Args &&...args)
+    {
+        recorder[Name].construct_cnt++;
+        std::construct_at(p, (Args&&) args...);
+    }
+
+    template <class U>
+    void destroy(U *p)
+    {
+        recorder[Name].destroy_cnt++;
+        std::destroy_at(p);
+    }
+
+    constexpr void deallocate(T *p, std::size_t n)
+    {
+        recorder[Name].deallocate_cnt++;
+        recorder[Name].deallocate_size += n * sizeof(T);
+        Base::deallocate(p, n);
+    }
+};
+
+

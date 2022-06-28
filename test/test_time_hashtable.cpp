@@ -7,10 +7,9 @@
 #include <unordered_set>
 
 #include <lv_cpp/collections/internal/raw_hash_table.hpp>
-#include <lv_cpp/collections/hash_table.hpp>
 
 using UNORDERED_SET1 = std::unordered_set<int>;
-using UNORDERED_SET2 = ::leviathan::collections2::hash_table<int>;
+using UNORDERED_SET2 = std::unordered_set<int>;
 using UNORDERED_SET3 = ::leviathan::collections::hash_set<int>;
 
 TEST_CASE("duplicate_unordered_search")

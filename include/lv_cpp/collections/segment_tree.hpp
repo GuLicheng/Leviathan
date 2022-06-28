@@ -1,5 +1,5 @@
-#ifndef __SEGMENT_TREE_HPP__
-#define __SEGMENT_TREE_HPP__
+#ifndef SEGMENT_TREE_HPP
+#define SEGMENT_TREE_HPP
 
 #include <cstdint> // std::size_t
 #include <type_traits> // for std::is_convertible_v
