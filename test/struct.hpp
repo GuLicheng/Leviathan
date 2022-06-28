@@ -116,5 +116,31 @@ struct MoveCounter
     MoveCounter(const MoveCounter&) = delete;
 };
 
+struct NoDefaultConstructable
+{
+    NoDefaultConstructable(int) { }
+    constexpr bool operator==(const NoDefaultConstructable&) const noexcept
+    { return true; }
+};
+
+namespace std 
+{
+    template <>
+    struct hash<::NoDefaultConstructable>
+    {
+        constexpr auto operator()(const ::NoDefaultConstructable& f) const noexcept
+        { return 0; }
+    };
+}
+
+
+
+
+
+
+
+
+
+
 
 

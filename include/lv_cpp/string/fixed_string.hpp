@@ -115,8 +115,6 @@ template <size_t N> using fixed_string = basic_fixed_string<N, char>;
 template <size_t N> using fixed_wstring = basic_fixed_string<N, wchar_t>;
 
 
-basic_fixed_string fs = "H";
-
 // helper meta
 template <basic_fixed_string... FixedStrings>
 struct fixed_string_list
@@ -142,7 +140,7 @@ namespace std
     template <size_t N, typename CharT, typename Traits>
     struct hash<::leviathan::basic_fixed_string<N, CharT, Traits>>
     {
-        size_t operator()(const ::leviathan::basic_fixed_string<N, CharT, Traits>& x) const noexcept 
+        constexpr size_t operator()(const ::leviathan::basic_fixed_string<N, CharT, Traits>& x) const noexcept 
         { return x.hash_code(); }
     };
 }

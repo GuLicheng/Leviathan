@@ -259,7 +259,8 @@ TEST_CASE("operator[]", "[operator]")
 
 }
 
-#include <lv_cpp/utils/struct.hpp>
+#include "struct.hpp"
+#include "except_allocator.hpp"
 
 TEST_CASE("element destroy", "[dtor]")
 {
@@ -280,6 +281,43 @@ TEST_CASE("element destroy", "[dtor]")
 
     REQUIRE(a == b);
 }
+
+TEST_CASE("exception thrown in constructor", "[emplace][exception]")
+{
+    
+    {
+        ::leviathan::collections::hash_set<
+            Int32<>, 
+            std::hash<::leviathan::collections::auto_hash>, 
+            std::equal_to<>, 
+            ExceptionAllocator<Int32<>>> h;
+
+        REQUIRE_THROWS(h.emplace());
+    }
+
+    auto a = Int32<>::total_construct();
+    auto b = Int32<>::total_destruct();
+
+    REQUIRE(a == b);
+    REQUIRE(a != 0);
+
+}
+
+TEST_CASE("no construable")
+{
+    // NoDefaultConstructable _;
+    ::leviathan::collections::hash_set<NoDefaultConstructable> hs;
+    hs.emplace(1);
+    REQUIRE(hs.size() == 1);
+}
+
+
+
+
+
+
+
+
 
 
 
