@@ -111,14 +111,14 @@ public:
     void construct(U *p, Args &&...args)
     {
         recorder[Name].construct_cnt++;
-        Base::construct_at(p, (Args&&) args...);
+        Base::construct(p, (Args&&) args...);
     }
 
     template <class U>
     void destroy(U *p)
     {
         recorder[Name].destroy_cnt++;
-        Base::destroy_at(p);
+        Base::destroy(p);
     }
 
     constexpr void deallocate(T *p, std::size_t n)
