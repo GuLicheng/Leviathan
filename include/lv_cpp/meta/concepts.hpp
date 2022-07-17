@@ -22,23 +22,25 @@ namespace leviathan::meta
     } && []<std::size_t... I>(std::index_sequence<I...>)
     { return (is_tuple_element<T, I> &&...); } (std::make_index_sequence<std::tuple_size_v<T>>{});
 
-    template <bool Flag>
-    struct lv_static_assert
-    {
-        static_assert(Flag);
-    };
-
     template <typename Tuple>
     struct tuple_traits;
 
-    // C++20 dose not support template auto... Args
+    // C++20 dose not support template auto... Args so std::array is not supported
     template <template <typename...> typename Tuple, typename... Args1>
     struct tuple_traits<Tuple<Args1...>>
     {
         static_assert(tuple_like<Tuple<Args1...>>);
         
+        using this_type = Tuple<Args1...>;
+        
         template <typename... Args2>
-        using rebind_tuple = Tuple<Args2...>;
+        using rebind_args = Tuple<Args2...>;
+
+        template <std::size_t N>
+        using tuple_element_t = std::tuple_element_t<N, this_type>;
+
+        constexpr static auto tuple_size_v = std::tuple_size_v<this_type>;
+
     };
 
     

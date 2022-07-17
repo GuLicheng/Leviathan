@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <assert.h>
 
+
 namespace leviathan::collections
 {
 

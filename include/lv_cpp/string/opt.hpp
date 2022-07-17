@@ -56,6 +56,15 @@ namespace leviathan
     template <typename Target, typename Source>
     struct lexical_cast_t;
 
+    class bad_lexical_cast : public std::bad_cast 
+    {
+        virtual ~bad_lexical_cast() { }
+
+        virtual const char* what() const noexcept
+        { return "bad_lexical_cast"; }
+
+    };
+
     template <typename Source>
     struct lexical_cast_t<std::string, Source>
     {

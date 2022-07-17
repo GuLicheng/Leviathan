@@ -1,7 +1,27 @@
 #pragma once
 
+#include <type_traits>
+#include <utility>
+
 namespace leviathan::collections
 {
+    struct identity
+    {
+        template <typename T>
+        using type = T;
+
+        constexpr const auto& operator()(const auto& x)
+        { return x; }
+    };
+
+    struct select1st
+    {
+        template <typename T>
+        using type = std::tuple_element_t<0, T>;
+
+        constexpr const auto& operator()(const auto& x)
+        { return std::get<0>(x); }
+    };
 
     namespace detail
     {
@@ -16,6 +36,8 @@ namespace leviathan::collections
         template <typename T> concept is_transparent = requires 
         { typename T::is_transparent; };
 
+        // Non-deduced contexts
+        // https://en.cppreference.com/w/cpp/language/template_argument_deduction
         // if IsTransparent is true, return K1, otherwise K2 
         template <bool IsTransparent>
         struct key_arg_helper 
@@ -49,10 +71,6 @@ namespace leviathan::collections
             constexpr static bool value = is_same_as_key;
         };
     }
-
-
-
-
 }
 
 

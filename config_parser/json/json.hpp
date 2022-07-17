@@ -1,5 +1,5 @@
-#ifndef __JSON_HPP__
-#define __JSON_HPP__
+#ifndef JSON_HPP
+#define JSON_HPP
 
 #include "../encode.hpp"
 

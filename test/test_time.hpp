@@ -11,7 +11,7 @@
 #include <ranges>
 
 #ifndef DEFAULT_NUM
-#define DEFAULT_NUM 1'000'000
+#define DEFAULT_NUM 100'000
 #endif
 
 #define SplitLine() (std::cout << "===============================================\n")
@@ -30,8 +30,7 @@ namespace leviathan::test
         std::vector<int> random_range_int(int n = default_num)
         {
             auto random_generator = [&]() {
-                // return rd() % (default_num * 10);
-                return rd();
+                return rd() % (default_num * 10);
             };
             std::vector<int> ret;
             ret.reserve(n);
@@ -116,15 +115,10 @@ namespace leviathan::test
     template <typename OrderedSet>
     auto search_test(const OrderedSet& s)
     {
-
         REQUIRE(s.size() > 0);
-
         int cnt = 0;
-
-        for (auto val : search::searching) cnt += s.contains((uint64_t)val);
-
-        REQUIRE(cnt <= detail::default_num);
-
+        for (auto val : search::searching) 
+            cnt += s.contains(val);
         return cnt;
     }
 
@@ -141,8 +135,6 @@ namespace leviathan::test
     template <typename... OrderedSets>
     void random_insert(OrderedSets&... s)
     {
-        bool is_all_empty = (s.empty() && ...); 
-        REQUIRE(is_all_empty);
         for (auto val : insertion::random_int) 
         {
             (s.insert(val), ...);   
