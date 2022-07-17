@@ -511,7 +511,7 @@ namespace leviathan::collections
         { return size() == 0; }
 
         allocator_type get_allocator() const
-        { return m_alloc; }
+        { return allocator_type(m_alloc); }
 
         size_type max_size() const 
         { return node_alloc_traits::max_size(m_alloc); }
@@ -531,10 +531,10 @@ namespace leviathan::collections
         { return emplace(std::move(x)); }
 
         iterator insert(const_iterator hint, const value_type& x)
-        { return emplace_hint(hint, x).first; }
+        { return emplace_hint(hint, x); }
 
         iterator insert(const_iterator hint, value_type& x)
-        { return emplace_hint(hint, std::move(x)).first; }
+        { return emplace_hint(hint, std::move(x)); }
 
         // template< class InputIt >
         // void insert( InputIt first, InputIt last );
@@ -559,7 +559,7 @@ namespace leviathan::collections
         // FIXME:
         template <typename... Args>
         iterator emplace_hint(const_iterator, Args&&... args)
-        { return emplace((Args&&) args...); }
+        { return emplace((Args&&) args...).first; }
 
         void clear()
         { reset(); }
@@ -704,7 +704,7 @@ namespace leviathan::collections
         std::pair<iterator, iterator> equal_range_impl(const K& x)
         {
             auto lower = lower_bound_impl(x);
-            auto upper = (lower == end() || m_cmp(x, keys(*lower))) ? lower : std::next(lower); 
+            auto upper = (lower == end() || m_cmp(x, KeyOfValue()(*lower))) ? lower : std::next(lower); 
             return { lower, upper };
         }
 

@@ -16,7 +16,7 @@ TEST_CASE("hash_iterator", "[iterator]")
     REQUIRE(std::ranges::distance(first, last) == 0);
 }
 
-TEST_CASE("insert elements", "[iterator][insert][emplace]")
+TEST_CASE("insert elements", "[iterator][insert][emplace][emplace_hint]")
 {
     HashT h;
     
