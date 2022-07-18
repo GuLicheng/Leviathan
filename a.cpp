@@ -24,8 +24,8 @@ std::vector<int> random_number()
 {
     std::vector<int> ret;
     static std::random_device rd;
-    std::generate_n(std::back_inserter(ret), 10'00'000, [](){
-        return rd();
+    std::generate_n(std::back_inserter(ret), 1000'000, [](){
+        return rd() % 1000'000;
     });
     return ret;
 }
@@ -40,23 +40,24 @@ void test()
     int cnt2 = 0;
     auto numbers1 = random_number();
     auto numbers2 = random_number();
+    auto numbers3 = random_number();
     {
         ::leviathan::timer _;
         for (auto x : numbers1)
             s1.insert(x);
+        for (auto x : numbers3)
+            cnt1 += s1.contains(x);
         for (auto x : numbers2)
             s1.erase(x);
-        for (auto x : numbers1)
-            cnt1 += s1.contains(x);
     }
     {
         ::leviathan::timer _;
         for (auto x : numbers1)
             s2.insert(x);
+        for (auto x : numbers3)
+            cnt2 += s2.contains(x);
         for (auto x : numbers2)
             s2.erase(x);
-        for (auto x : numbers1)
-            cnt2 += s2.contains(x);
     }
 
     assert(std::ranges::equal(s1, s2));

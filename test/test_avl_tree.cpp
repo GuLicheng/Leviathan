@@ -31,7 +31,7 @@ void test_height_and_value()
     using node_type = T::tree_node;
 
     auto root_value = [](const avl_node_base* p) {
-        return static_cast<const node_type*>(p)->m_val;
+        return *static_cast<const node_type*>(p)->value_ptr();
     };
 
     auto root = avl.root();
