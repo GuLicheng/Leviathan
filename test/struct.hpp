@@ -128,7 +128,7 @@ namespace std
     template <>
     struct hash<::NoDefaultConstructable>
     {
-        constexpr auto operator()(const ::NoDefaultConstructable& f) const noexcept
+        constexpr auto operator()(const ::NoDefaultConstructable&) const noexcept
         { return 0; }
     };
 }

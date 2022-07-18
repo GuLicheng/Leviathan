@@ -4,10 +4,7 @@
 #include <vector>
 #include <queue>
 
-#include "avl_tree.hpp"
-
-
-
+#include <lv_cpp/collections/internal/avl_tree.hpp>
 
 /*
     level 1:              2(rank = 1)
@@ -119,9 +116,9 @@ struct drawer
 };
 
 template <typename T, typename Compare, typename Allocator, typename KeyOfValue, bool UniqueKey>
-struct tree_traits<avl_tree<T, Compare, Allocator, KeyOfValue, UniqueKey>>
+struct tree_traits<::leviathan::collections::avl_tree<T, Compare, Allocator, KeyOfValue, UniqueKey>>
 {
-    using tree_type = avl_tree<T, Compare, Allocator, KeyOfValue, UniqueKey>;
+    using tree_type = ::leviathan::collections::avl_tree<T, Compare, Allocator, KeyOfValue, UniqueKey>;
     using node_type = typename tree_type::tree_node;
 
     // Convert node to string

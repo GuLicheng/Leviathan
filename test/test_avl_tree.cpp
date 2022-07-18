@@ -5,7 +5,9 @@
 
 using leviathan::collections::avl_node_base;
 using leviathan::collections::avl_set;
+using leviathan::collections::avl_map;
 using SetT = avl_set<int>;
+using MapT = avl_map<int, std::string>;
  
 void test_height_and_value()
 {
@@ -170,4 +172,140 @@ TEST_CASE("search elements", "[iterator][contains][find][lower_bound][upper_boun
     REQUIRE(h.count(1) == 1);
 
 }
+
+
+TEST_CASE("remove elements", "[iterator][remove][clear][find][size][empty]")
+{
+    SetT h;
+
+    REQUIRE(h.erase(0) == 0);
+
+    h.insert(1);
+    h.insert(2);
+    h.insert(3);
+
+    REQUIRE(h.erase(1) == 1);
+    REQUIRE(h.erase(1) == 0);
+    REQUIRE(h.erase(2) == 1);
+    REQUIRE(h.size() == 1);
+
+    // { 0, 3 }
+    h.insert(0);
+    REQUIRE(h.size() == 2);
+
+    h.erase(h.find(0));
+    REQUIRE(h.size() == 1);
+
+    h.erase(h.find(3));
+    REQUIRE(h.empty());
+}
+
+TEST_CASE("member type", "[concept or type]")
+{
+    // https://en.cppreference.com/w/cpp/container/set
+    using key_type = int;
+    using value_type = int;
+    using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
+    using key_compare = std::less<>;
+    using value_compare = std::less<>;
+    using allocator_type = std::allocator<int>;
+    using reference = int&;
+    using const_reference = const int&;
+    using pointer = std::allocator_traits<allocator_type>::pointer;
+    using const_pointer = std::allocator_traits<allocator_type>::const_pointer;
+    using SetType = SetT;
+
+#define CheckTypeIsEqual(type) REQUIRE(std::is_same_v< typename SetType:: type, type >)
+
+    CheckTypeIsEqual(key_type);
+    CheckTypeIsEqual(value_type);
+    CheckTypeIsEqual(size_type);
+    CheckTypeIsEqual(difference_type);
+    CheckTypeIsEqual(key_compare);
+    CheckTypeIsEqual(value_compare);
+    CheckTypeIsEqual(allocator_type);
+    CheckTypeIsEqual(reference);
+    CheckTypeIsEqual(const_reference);
+    CheckTypeIsEqual(pointer);
+    CheckTypeIsEqual(const_pointer);
+
+#undef CheckTypeIsEqual
+
+    REQUIRE(std::ranges::forward_range<SetType>);
+
+}
+
+#include "struct.hpp"
+#include "except_allocator.hpp"
+
+TEST_CASE("element destroy", "[dtor]")
+{
+
+    {
+        ::leviathan::collections::avl_set<Int32<>> h;
+
+        for (int i = 0; i < 10; ++i)
+        {
+            h.insert(Int32<>(i));
+            h.emplace(i);
+        }
+    }
+
+    auto a = Int32<>::total_construct();
+    auto b = Int32<>::total_destruct();
+
+    REQUIRE(a == b);
+}
+
+TEST_CASE("memory", "[dtor]")
+{
+    {
+        ::leviathan::collections::avl_set<int, std::less<>, RecordAllocator<int>> h;
+
+        for (int i = 0; i < 10; ++i)
+        {
+            h.insert(i);
+            h.emplace((long long)i);
+        }
+    }
+    REQUIRE(CheckMemoryAlloc());
+}
+
+TEST_CASE("operator[]", "[operator]")
+{
+    MapT m;
+
+    m[1] = "Hello";
+    m[2] = "World";
+    m[3] = "!";
+
+    REQUIRE(m.find(1) != m.end());
+    REQUIRE(m.size() == 3);
+    REQUIRE(m.contains(3));
+
+    m[3] = "!!";
+
+    REQUIRE(m.find(3)->second == "!!");
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

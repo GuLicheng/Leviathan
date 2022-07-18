@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <algorithm>
 #include <lv_cpp/meta/template_info.hpp>
 #include <memory_resource>
 
@@ -29,6 +30,9 @@ struct Counter
     std::size_t destroy_cnt = 0;
     std::size_t deallocate_cnt = 0;
 
+    bool check() const
+    { return allocate_size == deallocate_size; }
+
     friend std::ostream& operator<<(std::ostream& os, const Counter& counter)
     {
         #define PrintX(x) (os << #x << ": " << counter. x << '\n')
@@ -50,6 +54,13 @@ void Report()
 {
     for (const auto& [name, c] : recorder)
         std::cout << "Name: " << name << "\n" << c << '\n';
+}
+
+bool CheckMemoryAlloc()
+{
+    return std::all_of(recorder.begin(), recorder.end(), [](const auto& r){
+        return r.second.check();
+    });
 }
 
 template <typename T>

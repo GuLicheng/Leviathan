@@ -12,6 +12,9 @@
 #include <vector>
 #include <string_view>
 #include <lv_cpp/utils/timer.hpp>
+#include <bits/stl_tree.h>
+#include <map>
+#include "tree1.hpp"
 
 using leviathan::collections::avl_set;
 using leviathan::collections::pmr_avl_set;
@@ -27,38 +30,42 @@ std::vector<int> random_number()
     return ret;
 }
 
-int main()
+void test()
 {
     system("chcp 65001");
 
     std::set<int> s1;
     T s2;
-
-    auto numbers1 = random_number();
-    {
-        ::leviathan::timer _;
-        for (auto x : numbers1)
-        s1.insert(x);
-    }
-    {
-        ::leviathan::timer _;
-        for (auto x : numbers1)
-        {
-            s2.insert(x);
-        }
-    }
-
     int cnt1 = 0;
     int cnt2 = 0;
+    auto numbers1 = random_number();
     auto numbers2 = random_number();
-    // assert(false);
-    assert(std::ranges::is_sorted(s2.begin(), s2.end()));
+    {
+        ::leviathan::timer _;
+        for (auto x : numbers1)
+            s1.insert(x);
+        for (auto x : numbers2)
+            s1.erase(x);
+        for (auto x : numbers1)
+            cnt1 += s1.contains(x);
+    }
+    {
+        ::leviathan::timer _;
+        for (auto x : numbers1)
+            s2.insert(x);
+        for (auto x : numbers2)
+            s2.erase(x);
+        for (auto x : numbers1)
+            cnt2 += s2.contains(x);
+    }
+
     assert(std::ranges::equal(s1, s2));
     assert(cnt1 == cnt2);
-    std::cout << cnt1 << ' ' << cnt2 << '\n';
+}
 
-    s2.erase(s2.begin(), s2.end());
-    std::cout << s2.size() << " " << std::distance(s2.begin(), s2.end()) << '\n';
+int main()
+{
+    test();
     std::cout << "Ok\n";
 }
 

@@ -171,19 +171,13 @@ namespace leviathan::collections
             avl_node_base*& leftmost = header->m_left;
             avl_node_base*& rightmost = header->m_right;
 
-            // try update leftmost and rightmost
-            if (leftmost == x)
-                leftmost = x->m_parent;
-            if (rightmost == x)
-                rightmost = x->m_parent;
-
             avl_node_base* child = nullptr;
             avl_node_base* parent = nullptr; // for rebalance
 
             if (x->m_left && x->m_right)
             {
                 auto successor = minimum(x->m_right);
-                auto child = successor->m_right;
+                child = successor->m_right;
                 parent = successor->m_parent;
                 if (child)
                 {
@@ -216,7 +210,30 @@ namespace leviathan::collections
             }
             else
             {
-                child = x->m_left ? x->m_left : x->m_right;
+                // update leftmost or rightmost
+                if (!x->m_left && !x->m_right) 
+                {
+                    // leaf, such as just one root
+                    if (x == leftmost)
+                        leftmost = x->m_parent;
+                    if (x == rightmost)
+                        rightmost = x->m_parent;
+                }
+                else if (x->m_left)
+                {
+                    // only left child
+                    child = x->m_left;
+                    if (x == rightmost)
+                        rightmost = maximum(child);
+                }                
+                else
+                {
+                    // only right child
+                    child = x->m_right;
+                    if (x == leftmost)
+                        leftmost = minimum(child);
+                }
+
                 if (child)
                     child->m_parent = x->m_parent;
                 if (x == root)
@@ -345,7 +362,7 @@ namespace leviathan::collections
 
     };
 
-    template <typename T, typename Compare, typename Allocator, typename KeyOfValue, bool UniqueKey = true>
+    template <typename T, typename Compare, typename Allocator, typename KeyOfValue, bool UniqueKey>
     class avl_tree
     {
         static_assert(UniqueKey, "Not Support MultiKey");
@@ -426,6 +443,9 @@ namespace leviathan::collections
                 return *(static_cast<cast_link_type>(m_ptr)->value_ptr()); 
             }
 
+            constexpr auto operator->() const
+            { return std::addressof(this->operator*()); }
+            
             constexpr bool operator==(const tree_iterator&) const = default;
 
             tree_iterator<!Const> const_cast_to_iterator() const requires (Const)
@@ -536,8 +556,14 @@ namespace leviathan::collections
         iterator insert(const_iterator hint, value_type& x)
         { return emplace_hint(hint, std::move(x)); }
 
-        // template< class InputIt >
-        // void insert( InputIt first, InputIt last );
+        template <typename InputIterator>
+        void insert(InputIterator first, InputIterator last)
+        {
+            for (; first != last; ++first)
+                insert(*first);
+        }
+
+
         // void insert( std::initializer_list<value_type> ilist );
         // insert_return_type insert( tree_node&& nh );
         // iterator insert( const_iterator hint, tree_node&& nh );
@@ -564,7 +590,7 @@ namespace leviathan::collections
         void clear()
         { reset(); }
 
-        iterator erase(const_iterator pos) const
+        iterator erase(const_iterator pos) 
         {
             auto ret = std::next(pos);
             erase_by_node(pos.const_cast_to_iterator());
@@ -580,10 +606,11 @@ namespace leviathan::collections
 
         iterator erase(iterator first, iterator last)
         {
-            // FIXME:
-            auto cur = first;
-            while (cur != last) cur = erase(cur);
-            return cur;
+            if (first == begin() && last == end()) 
+                clear();
+            else
+                for (; first != last; first = erase(first));
+            return last;
         }
 
         iterator erase(const_iterator first, const_iterator last)
@@ -727,15 +754,6 @@ namespace leviathan::collections
             m_size--;
         }
 
-
-
-        avl_node_base m_header;
-        size_type m_size;
-        [[no_unique_address]] Compare m_cmp;
-        [[no_unique_address]] node_allocator m_alloc;
-
-
-
         link_type get_node()
         { return node_alloc_traits::allocate(m_alloc, 1); }
 
@@ -771,10 +789,7 @@ namespace leviathan::collections
         }
 
         void destroy_node(link_type p)
-        {
-            node_alloc_traits::destroy(m_alloc, p->value_ptr());
-            p->~avl_node();
-        }
+        { node_alloc_traits::destroy(m_alloc, p->value_ptr()); }
 
         void drop_node(link_type p)
         {
@@ -854,20 +869,6 @@ namespace leviathan::collections
                 return { insert_node(x, p, z), true };
             drop_node(z);
             return { x, false };
-
-            // try
-            // {
-            //     auto [x, p] = get_insert_unique_pos(keys(z));
-            //     if (p)
-            //         return { insert_node(x, p, z), true };
-            //     drop_node(z);
-            //     return { x, false };
-            // }
-            // catch (...)
-            // {
-            //     drop_node(z);
-            //     throw;
-            // }
         }
     
         void dfs_deconstruct(base_ptr p)
@@ -888,6 +889,11 @@ namespace leviathan::collections
             m_size = 0;
         }
 
+        avl_node_base m_header;
+        size_type m_size;
+        [[no_unique_address]] Compare m_cmp;
+        [[no_unique_address]] node_allocator m_alloc;
+
     };
 
     template <typename T, typename Compare = std::less<>, typename Allocator = std::allocator<T>>
@@ -896,9 +902,40 @@ namespace leviathan::collections
     template <typename T, typename Compare = std::less<>>
     class pmr_avl_set : public avl_tree<T, Compare, std::pmr::polymorphic_allocator<T>, identity, true> { };
 
-    template <typename K, typename V, typename Compare = std::less<>, typename Allocator = std::allocator<std::pair<const K, V>>>
-    class avl_map : public avl_tree<std::pair<const K, V>, Compare, Allocator, select1st, true> { };
+    template <typename K, typename V, typename Compare, typename Allocator>
+    class avl_map_base : public avl_tree<std::pair<const K, V>, Compare, Allocator, select1st, true>
+    {
+    public:
+        using mapped_type = V;
+        using typename avl_tree<std::pair<const K, V>, Compare, Allocator, select1st, true>::value_type;
 
+        struct value_compare
+        {
+            bool operator()(const value_type& lhs, const value_type& rhs) const
+            { return m_c(lhs.first, rhs.first); }
+
+        protected:
+            value_compare(Compare c) : m_c{ c } { }
+            Compare m_c;
+        };
+
+        value_compare value_comp() const
+        { return value_comp(this->m_cmp); }
+
+        // FIXME
+        V& operator[](const K& key)
+        { return this->insert(std::make_pair(key, V())).first->second; }
+
+        V& operator[](K&& key)
+        { return this->insert(std::make_pair(std::move(key), V())).first->second; }
+
+    };
+
+    template <typename K, typename V, typename Compare = std::less<>, typename Allocator = std::allocator<std::pair<const K, V>>>
+    class avl_map : public avl_map_base<K, V, Compare, Allocator> { };
+
+    template <typename K, typename V, typename Compare = std::less<>>
+    class pmr_avl_map : public avl_map_base<K, V, Compare, std::pmr::polymorphic_allocator<std::pair<const K, V>>> { };
 
 }
 
