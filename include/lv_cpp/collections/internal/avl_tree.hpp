@@ -710,7 +710,7 @@ namespace leviathan::collections
         iterator upper_bound_impl(const K& k)
         {
             base_ptr y = &m_header, x = m_header.m_parent;
-            while (x != 0)
+            while (x)
                 if (m_cmp(k, keys(x)))
                     y = x, x = x->m_left;
                 else
@@ -837,7 +837,7 @@ namespace leviathan::collections
         }
 
         template<typename Arg>
-        iterator insert_value(base_ptr x, base_ptr p, Arg &&v)
+        iterator insert_value(base_ptr x, base_ptr p, Arg&& v)
         {
             bool insert_left = (x != 0 || p == &m_header 
                 || m_cmp(KeyOfValue()(v), keys(p)));
