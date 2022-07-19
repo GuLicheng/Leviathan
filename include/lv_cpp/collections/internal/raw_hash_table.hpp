@@ -105,25 +105,18 @@ namespace leviathan::collections
 
         constexpr static bool IsNoexceptMoveConstruct = 
                 std::is_nothrow_move_constructible_v<hasher>
-             && std::is_nothrow_move_constructible_v<key_equal>
-             && std::is_nothrow_move_constructible_v<value_type> 
-             && std::is_nothrow_move_constructible_v<allocator_type>; 
+             && std::is_nothrow_move_constructible_v<key_equal>;
 
         constexpr static bool IsNoexceptMoveAssignable = 
-                IsNoexceptMoveConstruct
-            && std::is_nothrow_move_assignable_v<hasher>
-            && std::is_nothrow_move_assignable_v<key_equal>
-            && std::is_nothrow_move_assignable_v<value_type>
-            && std::is_nothrow_move_assignable_v<allocator_type>
-            && []() {
-                if constexpr (typename alloc_traits::propagate_on_container_move_assignment())
-                    return true;
-                else if constexpr (typename alloc_traits::is_always_equal())
-                    return true;
-                else
-                    return false; // in this routine, assign_from may invoked 
-            }();
-     
+                std::is_nothrow_move_assignable_v<hasher>
+             && std::is_nothrow_move_assignable_v<key_equal>
+             && typename alloc_traits::is_always_equal();
+
+        constexpr static bool IsNoexceptSwap = 
+                typename alloc_traits::is_always_equal()
+             && std::is_nothrow_swappable_v<hasher>
+             && std::is_nothrow_swappable_v<key_equal>;
+
 
         // we must evaluate IsTransparent first
         constexpr static bool IsTransparent = detail::is_transparent<hasher> && detail::is_transparent<key_equal>;
@@ -227,7 +220,7 @@ namespace leviathan::collections
 		{
         }
 
-		void swap(raw_hash_table& rhs)
+		void swap(raw_hash_table& rhs) noexcept(IsNoexceptSwap)
 		{
 			if (this != std::addressof(rhs))
 			{
@@ -244,8 +237,7 @@ namespace leviathan::collections
 				}
 				else
 				{
-					// Undefined Behaviour
-					throw std::runtime_error("Undefined Behaviour");
+                    assert(false && "Undefined Behaviour");
 				}
 			}
 		}
@@ -254,24 +246,16 @@ namespace leviathan::collections
 		{
 			if (std::addressof(rhs) != this)
 			{
-				// std::true_type
+                clear();
 				if constexpr (typename std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment())
-				{
-					if (m_alloc != rhs.m_alloc)
-					{
-						// clear_and_deallocate_memory()
-						reset();
-					}
 					m_alloc = rhs.m_alloc;
-				}
-				// assign_from(rhs.begin(), rhs.end());
 				try
 				{
 					assign_from(rhs.cbegin(), rhs.cend());
 				}
 				catch (...)
 				{
-					reset();
+					clear();
 					throw;
 				}
 			}
@@ -283,24 +267,18 @@ namespace leviathan::collections
 		{
 			if (this != std::addressof(rhs))
 			{
+                clear();
 				if constexpr (typename alloc_traits::propagate_on_container_move_assignment())
 				{
-					// clear_and_deallocate_memory
-					// move alloc and impl
-					reset();
 					m_alloc = std::move(rhs.m_alloc);
 					move_impl_and_reset_other(rhs);
 				}
 				else if (typename alloc_traits::is_always_equal() || m_alloc == rhs.m_alloc)
 				{
-					// clear_and_deallocate_memory()
-					// impl = move(rhs.impl)
-                    reset();
 					move_impl_and_reset_other(rhs);
 				}
 				else
 				{
-					// assign(move_iter(rhs.begin()), move_iter(rhs.end()));
 					assign_from(std::make_move_iterator(rhs.begin()), std::make_move_iterator(rhs.end()));
 				}
 			}
@@ -382,14 +360,14 @@ namespace leviathan::collections
                 alignas(T) unsigned char raw[sizeof(T)];
                 T* slot = reinterpret_cast<T*>(&raw);
                 slot_alloc alloc { m_alloc };
-                slot_alloc_traits::construct(alloc, slot, (Args&&) args...);
 
                 // insert may invoke `rehash` and std::bad_alloc may be thrown
-                // ~unique_ptr will destroy the object constructed above
+                // ~unique_ptr will destroy the object constructed.
                 auto deleter = [&](T* p) {
                     slot_alloc_traits::destroy(alloc, p);
                 };
                 std::unique_ptr<T, decltype(deleter)> _ { slot, deleter };
+                slot_alloc_traits::construct(alloc, slot, (Args&&) args...);
                 auto [pos, exits] = insert_impl(std::move(*slot));
                 return std::make_pair(iterator(this, pos), !exits);
             }
@@ -462,12 +440,13 @@ namespace leviathan::collections
 
         void swap_impl(raw_hash_table& rhs)
         {
-            std::swap(m_ctrl, rhs.m_ctrl);
-            std::swap(m_slots, rhs.m_slots);
-            std::swap(m_size, rhs.m_size);
-            std::swap(m_capacity, rhs.m_capacity);
-            std::swap(m_hash, rhs.m_hash);
-            std::swap(m_ke, rhs.m_ke);
+            using std::swap;
+            swap(m_ctrl, rhs.m_ctrl);
+            swap(m_slots, rhs.m_slots);
+            swap(m_size, rhs.m_size);
+            swap(m_capacity, rhs.m_capacity);
+            swap(m_hash, rhs.m_hash);
+            swap(m_ke, rhs.m_ke);
         }
 
         template <typename I, typename S>
@@ -491,7 +470,7 @@ namespace leviathan::collections
         bool check_equal(std::size_t hash, std::size_t pos, const K& x) const noexcept
         {
             // for integer with hash(x) = x, compare hash_code is equivalent to x == value
-            // for std::string or other string type, compare hash_code first may faster
+            // for std::string or other string types, compare hash_code first may faster
             if constexpr (CacheHashCode)
             {
                 return H2(hash) == (std::uint8_t)m_ctrl[pos]
@@ -561,6 +540,9 @@ namespace leviathan::collections
                     {
                         slot_alloc_traits::destroy(alloc, m_slots + pos);
                     }
+                    // We first set ctrl[pos] to deleted, since if some exceptions thrown by construct
+                    // the destroy will not be called when clearing hashtable. 
+                    m_ctrl[pos] = ctrl::deleted;
                     if constexpr (CacheHashCode)
                     {
                         slot_alloc_traits::construct(alloc, m_slots + pos, hash, (U&&) x); 

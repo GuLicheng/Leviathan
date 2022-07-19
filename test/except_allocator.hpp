@@ -14,8 +14,9 @@ class ExceptionAllocator : public std::allocator<T>
 {
 public:
     template <typename... Args>
-    void construct(T *p, Args &&...args)
+    void construct(T, Args &&...)
     {
+        std::cout << "Called\n";
         throw std::bad_alloc{};
     }
 };

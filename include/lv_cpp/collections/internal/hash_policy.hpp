@@ -5,7 +5,7 @@
 #include <memory>
 #include <algorithm>
 #include <assert.h>
-
+#include "common.hpp"
 
 namespace leviathan::collections
 {
@@ -33,9 +33,6 @@ namespace leviathan::collections
 
     }
 
-	struct identity { };
-
-	struct select1st { };
 
     template <typename T, typename Tag>
     struct mode;
