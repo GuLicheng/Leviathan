@@ -30,7 +30,6 @@ std::vector<int> random_number()
 
 void test()
 {
-    system("chcp 65001");
 
     std::set<int> s1;
     T s2;
@@ -62,9 +61,31 @@ void test()
     assert(cnt1 == cnt2);
 }
 
+#include "tree1.hpp"
+
+void test2()
+{
+    avl_set<int> s1;
+    // s1.insert(0);
+    // s1.insert(1);
+    // s1.insert(2);
+    // s1.insert(3);
+
+    avl_set<int> s2 = std::move(s1);
+
+    // for (auto x : s2)
+        // std::cout << x << '\n';
+
+    in_order_printer<avl_set<int>> in1(s1), in2(s2);
+    in2.show();
+    in1.show();
+}
+
 int main()
 {
-    test();
+    system("chcp 65001");
+
+    test2();
     std::cout << "Ok\n";
 }
 

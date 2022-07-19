@@ -475,14 +475,138 @@ namespace leviathan::collections
         // using insert_return_type = 
 
 
-        avl_tree()
+        avl_tree() : avl_tree(Compare(), Allocator()) { }
+
+        explicit avl_tree(const Compare& compare, const Allocator& allocator = Allocator())
+            : m_alloc{ allocator }, m_cmp{ compare }, m_size{ 0 }
         {
-            m_header.reset();
-            m_size = 0;
+            header()->reset();
         }
+
+        explicit avl_tree(const Allocator& alloc)
+            : avl_tree(Compare(), alloc) { }
+
 
         ~avl_tree()
         { clear(); }
+
+        void copy_from_other(const avl_tree& rhs)
+        {
+            if (!rhs.root())
+                return;
+            header()->m_parent = clone_tree(header()->m_parent, header(), rhs.m_header.m_parent);
+            header()->m_left = avl_node_base::minimum(m_header.m_parent);
+            header()->m_right = avl_node_base::maximum(m_header.m_parent);
+        }
+
+        void move_from_other(avl_tree&& rhs)
+        {
+            header()->reset();
+            if (!rhs.root())
+                return;
+            header()->m_parent = move_tree(header()->m_parent, header(), rhs.m_header.m_parent);
+            header()->m_left = avl_node_base::minimum(m_header.m_parent);
+            header()->m_right = avl_node_base::maximum(m_header.m_parent);
+        }
+
+        avl_tree(const avl_tree& rhs) 
+            : m_alloc{ node_alloc_traits::select_on_container_copy_construction(rhs.m_alloc) },
+              m_size{ rhs.m_size },
+              m_cmp{ rhs.m_cmp }
+        {
+			try 
+			{
+                copy_from_other(rhs);
+			}
+			catch (...)
+			{
+				clear();
+				throw; // rethrow exception
+			}
+		}
+
+        avl_tree(avl_tree&& rhs)
+		noexcept(std::is_nothrow_move_constructible_v<Compare> && std::is_nothrow_move_constructible_v<node_allocator>)
+			: m_cmp{ std::move(rhs.m_cmp) }, m_alloc{ std::move(rhs.m_alloc) }, m_size{ rhs.m_size }, m_header{ rhs.m_header }
+		{
+            if (!rhs.root())
+                header()->reset();
+            rhs.header()->reset();
+		}        
+
+
+        avl_tree& operator=(const avl_tree& rhs)
+        {
+            if (std::addressof(rhs) != this)
+			{
+                clear();
+                // copy member
+                m_size = rhs.m_size;
+                m_cmp = rhs.m_cmp;
+				if constexpr (typename node_alloc_traits::propagate_on_container_copy_assignment())
+					m_alloc = rhs.m_alloc;
+				try
+				{
+                    copy_from_other(rhs);
+				}
+				catch (...)
+				{
+					clear();
+					throw;
+				}
+			}
+			return *this;
+        }
+
+        avl_tree& operator=(avl_tree&& rhs) 
+        noexcept(typename node_alloc_traits::is_always_equal() && std::is_nothrow_move_assignable<Compare>::value)
+        {
+            if (this != std::addressof(rhs))
+			{
+                clear();
+                m_cmp = std::move(rhs.m_cmp);
+                m_size = rhs.m_size;
+				if constexpr (typename node_alloc_traits::propagate_on_container_move_assignment())
+				{
+					m_alloc = std::move(rhs.m_alloc);
+                    if (rhs.root())
+                        m_header = rhs.m_header;
+                    rhs.header()->reset();
+				}
+				else if (typename node_alloc_traits::is_always_equal() || m_alloc == rhs.m_alloc)
+				{
+                    if (rhs.root())
+                        m_header = rhs.m_header;
+                    rhs.header()->reset();
+				}
+				else
+				{
+                    move_from_other(std::move(rhs));
+				}
+			}
+			return *this;
+        }
+
+        void swap(avl_tree &rhs) noexcept(typename node_alloc_traits::is_always_equal()
+                                                && std::is_nothrow_swappable_v<Compare>)
+        {
+			if (this != std::addressof(rhs))
+			{
+				if constexpr (typename node_alloc_traits::propagate_on_container_swap())
+				{
+					swap_impl(rhs);
+					std::swap(m_alloc, rhs.m_alloc);
+				}
+				else if (typename node_alloc_traits::is_always_equal() || m_alloc == rhs.m_alloc)
+				{
+					swap_impl(rhs);
+				}
+				else
+				{
+                    assert(false && "Undefined Behaviour");
+				}
+			}
+        }
 
         // Iterators
         iterator begin() 
@@ -622,7 +746,6 @@ namespace leviathan::collections
         size_type erase(K&& x) 
         { return erase_by_key(x); }
 
-        // void swap(set &other) noexcept(/* see below */);
 
         // tree_node extract(const_iterator position);
         // template <class K>
@@ -686,6 +809,12 @@ namespace leviathan::collections
         const tree_node* root() const
         { return static_cast<const tree_node*>(m_header.m_parent); }
 
+        avl_node_base* header() 
+        { return std::addressof(m_header); }
+
+        const avl_node_base* header() const
+        { return std::addressof(m_header); }
+
     protected:
 
         using link_type = avl_node*;
@@ -693,6 +822,36 @@ namespace leviathan::collections
         using base_ptr = avl_node_base*;
         using const_base_ptr = const avl_node_base*;
 
+        void swap_impl(avl_tree& rhs)
+        {
+            std::swap(m_size, rhs.m_size);
+            std::swap(m_cmp, rhs.m_cmp);
+            std::swap(m_header, rhs.m_header);
+        }
+
+        base_ptr clone_tree(base_ptr& cur, const base_ptr parent, const base_ptr cloned_node)
+        {
+            if (!cloned_node)
+                return nullptr;
+
+            cur = create_node(*(static_cast<link_type>(cloned_node)->value_ptr()));
+            cur->m_left = clone_tree(cur->m_left, cur, cloned_node->m_left);
+            cur->m_right = clone_tree(cur->m_right, cur, cloned_node->m_right);  
+            cur->m_parent = parent;
+            return cur;                
+        }
+
+        base_ptr move_tree(base_ptr& cur, const base_ptr parent, base_ptr cloned_node)
+        {
+            if (!cloned_node)
+                return nullptr;
+
+            cur = create_node(std::move(*(static_cast<link_type>(cloned_node)->value_ptr())));
+            cur->m_left = clone_tree(cur->m_left, cur, cloned_node->m_left);
+            cur->m_right = clone_tree(cur->m_right, cur, cloned_node->m_right);  
+            cur->m_parent = parent;
+            return cur;                
+        }
 
         template <typename K>
         iterator lower_bound_impl(const K& k)
@@ -918,7 +1077,7 @@ namespace leviathan::collections
         };
 
         value_compare value_comp() const
-        { return value_comp(this->m_cmp); }
+        { return value_compare(this->m_cmp); }
 
         // FIXME
         V& operator[](const K& key)

@@ -141,6 +141,11 @@ struct tree_traits<::leviathan::collections::avl_tree<T, Compare, Allocator, Key
 
 };
 
+template <typename T, typename Compare, typename Allocator>
+struct tree_traits<::leviathan::collections::avl_set<T, Compare, Allocator>> 
+    : tree_traits<::leviathan::collections::avl_tree<T, Compare, Allocator, ::leviathan::collections::identity, true>> { };
+
+
 template <typename Node>
 struct TreeNode
 {
@@ -349,6 +354,11 @@ public:
     void show()
     {
         auto root = traits::root(m_tree);
+        if (!root)
+        {
+            std::cout << "Empty Tree\n";
+            return;
+        }
         std::string context;
         output(root, "", true, context);
         std::cout << "Tree: \n" << context << std::endl;

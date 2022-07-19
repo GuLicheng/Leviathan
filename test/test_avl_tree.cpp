@@ -234,22 +234,53 @@ TEST_CASE("member type", "[concept or type]")
 
     REQUIRE(std::ranges::forward_range<SetType>);
 
+    REQUIRE(std::is_nothrow_move_constructible_v<SetT>);
+    REQUIRE(std::is_nothrow_move_assignable_v<SetT>);
 }
+
+
 
 #include "struct.hpp"
 #include "except_allocator.hpp"
+
+TEST_CASE("swap", "[swap]")
+{
+    SetT h1, h2;
+    h1.insert(0);
+    h1.insert(1);
+    h1.insert(2);
+    h2.insert(-1);
+
+    h1.swap(h2);
+
+    REQUIRE(h1.size() == 1);
+    REQUIRE(h1.contains(-1));
+
+    REQUIRE(h2.size() == 3);
+    REQUIRE(h2.contains(0));
+    REQUIRE(h2.contains(1));
+    REQUIRE(h2.contains(2));
+
+    REQUIRE(noexcept(h1.swap(h2)));
+
+}
 
 TEST_CASE("element destroy", "[dtor]")
 {
 
     {
-        ::leviathan::collections::avl_set<Int32<>> h;
+        ::leviathan::collections::avl_set<Int32<>> h1, h2, h3;
 
         for (int i = 0; i < 10; ++i)
         {
-            h.insert(Int32<>(i));
-            h.emplace(i);
+            h1.insert(Int32<>(i));
+            h1.emplace(i);
         }
+        h2.emplace(0);
+        h3.emplace(0);
+        h1 = h2; // copy assign
+        ::leviathan::collections::avl_set<Int32<>> moved{ std::move(h1) }; 
+        h3 = std::move(moved); // move assign
     }
 
     auto a = Int32<>::total_construct();
@@ -261,12 +292,12 @@ TEST_CASE("element destroy", "[dtor]")
 TEST_CASE("memory", "[dtor]")
 {
     {
-        ::leviathan::collections::avl_set<int, std::less<>, RecordAllocator<int>> h;
+        ::leviathan::collections::avl_set<int, std::less<>, RecordAllocator<int>> h1, h2;
 
         for (int i = 0; i < 10; ++i)
         {
-            h.insert(i);
-            h.emplace((long long)i);
+            h1.insert(i);
+            h1.emplace((long long)i);
         }
     }
     REQUIRE(CheckMemoryAlloc());
