@@ -25,6 +25,7 @@ namespace leviathan::collections
 
     namespace detail
     {
+
         // C++17 version
         // template <typename T, typename = void>
         // struct is_transparent : std::false_type { };
@@ -71,6 +72,12 @@ namespace leviathan::collections
             constexpr static bool value = is_same_as_key;
         };
     }
+
+
+
+
+
+
 }
 
 

@@ -393,9 +393,11 @@ namespace leviathan::collections
         {
             using link_type = std::conditional_t<Const, const avl_node_base*, avl_node_base*>;
             using value_type = std::conditional_t<Const, const T, T>;
-            using reference = value_type&;
             using difference_type = std::ptrdiff_t;
             using iterator_category = std::bidirectional_iterator_tag;
+            // for set, reference should be const value_type&
+            // for map, reference is just value_type&
+            using reference = std::conditional_t<std::is_same_v<Key, T>, const value_type&, value_type&>;
 
             link_type m_ptr;
 
@@ -435,7 +437,7 @@ namespace leviathan::collections
                 return old;
             } 
 
-            constexpr auto& operator*() const 
+            constexpr reference operator*() const 
             {
                 using cast_link_type = std::conditional_t<Const, const avl_node*, avl_node*>;  
                 return *(static_cast<cast_link_type>(m_ptr)->value_ptr()); 
@@ -755,9 +757,9 @@ namespace leviathan::collections
         { return erase_by_key(x); }
 
 
-        // tree_node extract(const_iterator position);
+        // node_type extract(const_iterator position);
         // template <class K>
-        // tree_node extract(K &&x);
+        // node_type extract(K &&x);
 
         // void merge(); We don't want to implement this
 
