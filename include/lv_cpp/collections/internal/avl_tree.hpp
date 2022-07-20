@@ -824,9 +824,10 @@ namespace leviathan::collections
 
         void swap_impl(avl_tree& rhs)
         {
-            std::swap(m_size, rhs.m_size);
-            std::swap(m_cmp, rhs.m_cmp);
-            std::swap(m_header, rhs.m_header);
+            using std::swap;
+            swap(m_size, rhs.m_size);
+            swap(m_cmp, rhs.m_cmp);
+            swap(m_header, rhs.m_header);
         }
 
         base_ptr clone_tree(base_ptr& cur, const base_ptr parent, const base_ptr cloned_node)
@@ -928,9 +929,6 @@ namespace leviathan::collections
             }
             catch (...)
             {
-                // Construct or destroy may need rebind_alloc.
-                // But some allocator just call std::construct_at or std::destroy_at
-                // it can be compiled.
                 node_alloc_traits::destroy(m_alloc, node->value_ptr());
                 put_node(node);
                 throw;
