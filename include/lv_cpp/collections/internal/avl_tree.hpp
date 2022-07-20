@@ -451,6 +451,17 @@ namespace leviathan::collections
 
         };
 
+        constexpr static bool IsNothrowMoveConstruct = 
+                    std::is_nothrow_move_constructible_v<Compare> 
+                 && typename node_alloc_traits::is_always_equal();
+
+        constexpr static bool IsNothrowMoveAssign = 
+                    std::is_nothrow_move_assignable_v<Compare> 
+                 && typename node_alloc_traits::is_always_equal();
+
+        constexpr static bool IsNothrowSwap = 
+                    std::is_nothrow_swappable_v<Compare> 
+                 && typename node_alloc_traits::is_always_equal();
 
     public:
         
@@ -525,8 +536,7 @@ namespace leviathan::collections
 			}
 		}
 
-        avl_tree(avl_tree&& rhs)
-		noexcept(std::is_nothrow_move_constructible_v<Compare> && std::is_nothrow_move_constructible_v<node_allocator>)
+        avl_tree(avl_tree&& rhs) noexcept(IsNothrowMoveConstruct)
 			: m_cmp{ std::move(rhs.m_cmp) }, m_alloc{ std::move(rhs.m_alloc) }, m_size{ rhs.m_size }, m_header{ rhs.m_header }
 		{
             if (!rhs.root())
@@ -558,8 +568,7 @@ namespace leviathan::collections
 			return *this;
         }
 
-        avl_tree& operator=(avl_tree&& rhs) 
-        noexcept(typename node_alloc_traits::is_always_equal() && std::is_nothrow_move_assignable<Compare>::value)
+        avl_tree& operator=(avl_tree&& rhs) noexcept(IsNothrowMoveAssign)
         {
             if (this != std::addressof(rhs))
 			{
@@ -587,8 +596,7 @@ namespace leviathan::collections
 			return *this;
         }
 
-        void swap(avl_tree &rhs) noexcept(typename node_alloc_traits::is_always_equal()
-                                                && std::is_nothrow_swappable_v<Compare>)
+        void swap(avl_tree &rhs) noexcept(IsNothrowSwap)
         {
 			if (this != std::addressof(rhs))
 			{
@@ -1055,14 +1063,17 @@ namespace leviathan::collections
     class avl_set : public avl_tree<T, Compare, Allocator, identity, true> { };
 
     template <typename T, typename Compare = std::less<>>
-    class pmr_avl_set : public avl_tree<T, Compare, std::pmr::polymorphic_allocator<T>, identity, true> { };
+    using pmr_avl_set = avl_set<T, Compare, std::pmr::polymorphic_allocator<T>>;
 
-    template <typename K, typename V, typename Compare, typename Allocator>
-    class avl_map_base : public avl_tree<std::pair<const K, V>, Compare, Allocator, select1st, true>
+    template <typename K, typename V, typename Compare = std::less<>, typename Allocator = std::allocator<std::pair<const K, V>>>
+    class avl_map : public avl_tree<std::pair<const K, V>, Compare, Allocator, select1st, true>
     {
+        using base_tree_type = avl_tree<std::pair<const K, V>, Compare, Allocator, select1st, true>;
     public:
         using mapped_type = V;
-        using typename avl_tree<std::pair<const K, V>, Compare, Allocator, select1st, true>::value_type;
+        using typename base_tree_type::value_type;
+        using typename base_tree_type::iterator;
+        using typename base_tree_type::const_iterator;
 
         struct value_compare
         {
@@ -1070,6 +1081,7 @@ namespace leviathan::collections
             { return m_c(lhs.first, rhs.first); }
 
         protected:
+            friend class avl_map_base;
             value_compare(Compare c) : m_c{ c } { }
             Compare m_c;
         };
@@ -1077,24 +1089,96 @@ namespace leviathan::collections
         value_compare value_comp() const
         { return value_compare(this->m_cmp); }
 
-        // FIXME
         V& operator[](const K& key)
-        { return this->insert(std::make_pair(key, V())).first->second; }
+        { return this->try_emplace(key).first->second; }
 
         V& operator[](K&& key)
-        { return this->insert(std::make_pair(std::move(key), V())).first->second; }
+        { return this->try_emplace(std::move(key)).first->second; }
+
+        template <typename... Args>
+        std::pair<iterator, bool> try_emplace(const K& k, Args&&... args)
+        { return try_emplace_impl(k, (Args&&) args...); }
+
+        template <typename... Args>
+        std::pair<iterator, bool> try_emplace(K&& k, Args&&... args)
+        { return try_emplace_impl(std::move(k), (Args&&) args...); }
+
+        // FIXME
+        template <typename... Args>
+        std::pair<iterator, bool> try_emplace(const_iterator, const K& k, Args&&... args)
+        { return try_emplace_impl(k, (Args&&) args...); }
+
+        template <typename... Args>
+        std::pair<iterator, bool> try_emplace(const_iterator, K&& k, Args&&... args)
+        { return try_emplace_impl(std::move(k), (Args&&) args...); }
+
+        template <typename M>
+        std::pair<iterator, bool> insert_or_assign(const K& k, M&& obj)
+        { return insert_or_assign_impl(k, (M&&)obj); }
+
+        template <typename M>
+        std::pair<iterator, bool> insert_or_assign(K&& k, M&& obj)
+        { return insert_or_assign_impl(std::move(k), (M&&)obj); }
+
+
+    private:
+
+        template <typename KK, typename M>
+        std::pair<iterator, bool> insert_or_assign_impl(KK&& k, M&& obj)
+        {
+            auto [x, p] = this->get_insert_unique_pos(k);
+            if (p) 
+            {
+                auto z = this->create_node((KK&&)k, (M&&)obj);
+                return { this->insert_node(x, p, z), true };
+            }
+            auto j = iterator(x);
+            *j = (M&&)obj;
+            return { j, false };
+        }
+
+        template <typename KK, typename... Args>
+        std::pair<iterator, bool> try_emplace_impl(KK&& k, Args&&... args)
+        {
+            auto [x, p] = this->get_insert_unique_pos(k);
+            if (p) 
+            {
+                auto z = this->create_node(
+                    std::piecewise_construct, 
+                    std::forward_as_tuple((KK&)k), 
+                    std::forward_as_tuple((Args&&)args...));
+                return { this->insert_node(x, p, z), true };
+            }
+            return { x, false };
+        }
+
 
     };
 
-    template <typename K, typename V, typename Compare = std::less<>, typename Allocator = std::allocator<std::pair<const K, V>>>
-    class avl_map : public avl_map_base<K, V, Compare, Allocator> { };
-
     template <typename K, typename V, typename Compare = std::less<>>
-    class pmr_avl_map : public avl_map_base<K, V, Compare, std::pmr::polymorphic_allocator<std::pair<const K, V>>> { };
+    using pmr_avl_map = avl_map<K, V, Compare, std::pmr::polymorphic_allocator<std::pair<const K, V>>>;
 
 }
 
 
+namespace std
+{
+    template <typename K, typename V, typename Compare, typename Allocator>
+    void swap(::leviathan::collections::avl_map<K, V, Compare, Allocator>& lhs,
+              ::leviathan::collections::avl_map<K, V, Compare, Allocator>& rhs)
+    noexcept(noexcept(lhs.swap(rhs)))
+    {
+        lhs.swap(rhs);
+    }
 
+    template <typename T, typename Compare, typename Allocator>
+    void swap(::leviathan::collections::avl_set<T, Compare, Allocator>& lhs,
+              ::leviathan::collections::avl_set<T, Compare, Allocator>& rhs)
+    noexcept(noexcept(lhs.swap(rhs)))
+    {
+        lhs.swap(rhs);
+    }
+    
+}
 
 

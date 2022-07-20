@@ -318,7 +318,6 @@ TEST_CASE("operator[]", "[operator]")
     m[3] = "!!";
 
     REQUIRE(m.find(3)->second == "!!");
-
 }
 
 
