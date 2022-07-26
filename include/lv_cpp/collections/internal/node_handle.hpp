@@ -81,11 +81,18 @@ namespace leviathan::collections
         void reset()
         { m_alloc.reset(); }
 
+        node_handle_base(Node* node, allocator_type alloc)
+            : m_node{ node }, m_alloc{ alloc } { }
+
         std::optional<allocator_type> m_alloc = {};
         Node* m_node = nullptr;
     };
 
+    template <typename Node, typename Alloc, typename FriendClass>
+    struct set_node_handle;
 
+    template <typename Node, typename Alloc, typename FriendClass>
+    struct map_node_handle;
 
 
     template <typename Iterator, typename NodeType>

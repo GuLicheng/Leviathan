@@ -16,8 +16,9 @@ namespace leviathan::collections
 
     struct select1st
     {
+        // for std::pair<const K, V>
         template <typename T>
-        using type = std::tuple_element_t<0, T>;
+        using type = std::remove_const_t<std::tuple_element_t<0, T>>;
 
         constexpr const auto& operator()(const auto& x)
         { return std::get<0>(x); }

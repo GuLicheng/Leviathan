@@ -232,7 +232,7 @@ TEST_CASE("member type", "[concept or type]")
 
 #undef CheckTypeIsEqual
 
-    REQUIRE(std::ranges::forward_range<SetType>);
+    REQUIRE(std::ranges::bidirectional_range<SetType>);
 
     REQUIRE(std::is_nothrow_move_constructible_v<SetT>);
     REQUIRE(std::is_nothrow_move_assignable_v<SetT>);
@@ -322,6 +322,40 @@ TEST_CASE("operator[]", "[operator]")
 
 
 
+TEST_CASE("map member type", "[concept or type]")
+{
+    // https://en.cppreference.com/w/cpp/container/map
+    using key_type = int;
+    using value_type = std::pair<const int, std::string>;
+    using mapped_type = std::string;
+    using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
+    using allocator_type = std::allocator< std::pair<const int, std::string> >;
+    using reference = std::pair<const int, std::string>&;
+    using const_reference = const std::pair<const int, std::string>&;
+    using pointer = std::allocator_traits<allocator_type>::pointer;
+    using const_pointer = std::allocator_traits<allocator_type>::const_pointer;
+    using key_compare = std::less<>;
+    using MapType = MapT;
+
+#define CheckTypeIsEqual(type) REQUIRE(std::is_same_v< typename MapType:: type, type >)
+
+    CheckTypeIsEqual(key_type);
+    CheckTypeIsEqual(value_type);
+    CheckTypeIsEqual(mapped_type);
+    CheckTypeIsEqual(size_type);
+    CheckTypeIsEqual(difference_type);
+    CheckTypeIsEqual(allocator_type);
+    CheckTypeIsEqual(reference);
+    CheckTypeIsEqual(const_reference);
+    CheckTypeIsEqual(pointer);
+    CheckTypeIsEqual(const_pointer);
+    CheckTypeIsEqual(key_compare);
+
+#undef CheckTypeIsEqual
+
+    REQUIRE(std::ranges::bidirectional_range<MapType>);
+}
 
 
 

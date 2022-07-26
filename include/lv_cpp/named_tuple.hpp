@@ -94,6 +94,13 @@ class named_tuple
 public:
     using tuple_type = std::tuple<typename Fields::value_type...>;
 
+    template <size_t N>
+    constexpr std::string_view name_of() const
+    {
+        using T = std::tuple_element_t<N, std::tuple<Fields...>>;
+        return T::tag_value.sv();
+    }
+
     template <typename... TagValues>
     constexpr named_tuple(TagValues... tvs)
         : val(adjust_parameters<tuple_type, Fields...>(std::move(tvs)...)) 

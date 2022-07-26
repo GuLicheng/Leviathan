@@ -29,9 +29,14 @@ public:
 
     static constexpr auto npos = string_view_type::npos;
 
-    constexpr auto size() const noexcept { return N; }
-    constexpr auto length() const noexcept { return N; }
-    constexpr bool empty() const noexcept { return size() == 0; }
+    constexpr auto size() const noexcept 
+    { return N; }
+    
+    constexpr auto length() const noexcept 
+    { return N; }
+    
+    constexpr bool empty() const noexcept 
+    { return size() == 0; }
 
     constexpr basic_fixed_string(const CharT (&str)[N + 1]) noexcept
     {
@@ -39,13 +44,12 @@ public:
         Traits::copy(m_data, str, N + 1);
     }
 
-    constexpr string_view_type sv() const { return { begin(), end() }; }
+    constexpr string_view_type sv() const 
+    { return { begin(), end() }; }
 
     template <size_t K>
     constexpr auto operator<=>(const basic_fixed_string<K, CharT, Traits>& rhs) const noexcept
-    {
-        return sv() <=> rhs.sv();
-    }
+    { return sv() <=> rhs.sv(); }
 
     // clang: the return type selected from == function for rewritten != shoule be boolean
     // auto is OK for gcc
@@ -100,7 +104,7 @@ public:
 
     constexpr const value_type* c_str() const noexcept { return m_data; }
 
-private:
+public:
     CharT m_data[N + 1];
 };
 
