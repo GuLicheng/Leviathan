@@ -6,6 +6,7 @@
 #include <iostream>
 #include <array>
 #include <iterator>
+#include <vector>
 #include <memory_resource>
 #include <type_traits>
 #include <random>
@@ -142,10 +143,7 @@ namespace leviathan::collections
 			{ return std::addressof(this->operator*()); }
 
 			constexpr reference operator*() const
-			{
-                using cast_link_type = std::conditional_t<Const, const skip_list_node*, skip_list_node*>; 
-                return *(static_cast<cast_link_type>(m_ptr)->value_ptr()); 
-            }
+			{ return *(m_ptr->value_ptr()); }
 
             constexpr skip_list_iterator skip(difference_type i) const 
             { return { m_ptr->m_next[i] }; }
