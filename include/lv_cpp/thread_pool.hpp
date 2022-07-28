@@ -11,17 +11,16 @@
 #include <type_traits>
 #include <condition_variable>
 
-
 namespace leviathan
 {
 
-class thread_pool
-{
+    class thread_pool
+    {
     public:
         thread_pool(size_t size);
 
         template <typename F, typename... Args>
-        auto post(F&& f, Args&&... args);
+        auto post(F &&f, Args &&...args);
 
         ~thread_pool();
 
@@ -31,13 +30,13 @@ class thread_pool
         std::condition_variable cond;
         std::vector<std::thread> workers;
         std::queue<std::function<void()>> tasks;
-};
+    };
 
-thread_pool::thread_pool(size_t size)
-{
-    for (size_t i = 0; i != size; ++i)
+    thread_pool::thread_pool(size_t size)
+    {
+        for (size_t i = 0; i != size; ++i)
             workers.emplace_back([this]
-            {
+                                 {
                 while (true)
                 {
                     std::function<void()> task;
@@ -50,38 +49,35 @@ thread_pool::thread_pool(size_t size)
                         tasks.pop();
                     }
                     task();
-                }
-            });
-}
-
-template <typename F, typename... Args>
-auto thread_pool::post(F&& f, Args&&... args)
-{
-    using task_type = std::packaged_task<std::invoke_result_t<F, Args...>()>;
-    auto task = std::make_shared<task_type>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
-    auto fut = task->get_future();
-    {
-        std::unique_lock lock(mutex);
-        tasks.emplace([task]{ (*task)(); });
+                } });
     }
-    cond.notify_one();
-    return fut;
-}
 
-thread_pool::~thread_pool()
-{
+    template <typename F, typename... Args>
+    auto thread_pool::post(F &&f, Args &&...args)
     {
-        std::unique_lock lock(mutex);
-        stop = true;
+        using task_type = std::packaged_task<std::invoke_result_t<F, Args...>()>;
+        auto task = std::make_shared<task_type>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+        auto fut = task->get_future();
+        {
+            std::unique_lock lock(mutex);
+            tasks.emplace([task]
+                          { (*task)(); });
+        }
+        cond.notify_one();
+        return fut;
     }
-    cond.notify_all();
-    for (auto& worker: workers)
+
+    thread_pool::~thread_pool()
+    {
+        {
+            std::unique_lock lock(mutex);
+            stop = true;
+        }
+        cond.notify_all();
+        for (auto &worker : workers)
             worker.join();
-}
-
-
+    }
 
 } // namespace leviathan
-
 
 #endif
