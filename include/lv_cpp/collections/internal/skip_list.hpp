@@ -423,6 +423,12 @@ namespace leviathan::collections
         }
 
 
+        friend auto operator<=>(const skip_list& lhs, const skip_list& rhs)
+        {
+            return std::lexicographical_compare_three_way(
+                lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+        }
+
         void clear()
         { reset(); }
 
@@ -543,7 +549,6 @@ namespace leviathan::collections
 			int new_level;
             iterator sent = end();
             iterator head = iterator{ header() };
-			// for (new_level = m_level - 1; new_level >= 0 && is_sentinel(m_header.m_next[new_level]); --new_level);
 			for (new_level = m_level - 1; new_level >= 0 && head.skip(new_level) == sent; --new_level);
 			m_level = new_level + 1;
 
