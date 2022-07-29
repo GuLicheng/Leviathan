@@ -320,8 +320,6 @@ TEST_CASE("operator[]", "[operator]")
     REQUIRE(m.find(3)->second == "!!");
 }
 
-
-
 TEST_CASE("map member type", "[concept or type]")
 {
     // https://en.cppreference.com/w/cpp/container/map

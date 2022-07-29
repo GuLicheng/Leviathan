@@ -162,6 +162,9 @@ namespace leviathan::collections
 
 			constexpr bool operator==(const skip_list_iterator& rhs) const = default;
 
+            skip_list_iterator<!Const> const_cast_to_iterator() const requires (Const)
+            { return skip_list_iterator<!Const>(const_cast<typename skip_list_iterator<!Const>::link_type>(m_ptr)); }
+
 		};
 
         constexpr static bool IsNothrowMoveConstruct = 
@@ -290,7 +293,58 @@ namespace leviathan::collections
         std::pair<iterator, bool> insert(T&& x)
         { return insert_unique(std::move(x)); }
 
+        iterator erase(const_iterator pos) 
+        {
+            auto ret = std::next(pos);
+            erase_node_by_value(*pos);
+            return ret.const_cast_to_iterator();
+        }
+
+        iterator erase(iterator pos)
+        {
+            auto ret = std::next(pos);
+            erase_node_by_value(*pos);
+            return ret;
+        }
+
+        iterator erase(iterator first, iterator last)
+        {
+            if (first == begin() && last == end()) 
+                clear();
+            else
+                for (; first != last; first = erase(first));
+            return last;
+        }
+
+        iterator erase(const_iterator first, const_iterator last)
+        { return erase(first.const_cast_to_iterator(), last.const_cast_to_iterator()); }
+
+
+        // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p2077r3.html
+        template <typename K> requires (IsTransparent)
+        size_type erase(K&& x) 
+        {
+            auto old_size = size();
+            erase_node_by_value(x);
+            return old_size - size();
+        }
+
+        size_type erase(const key_type& x)
+        {
+            auto old_size = size();
+            erase_node_by_value(x);
+            return old_size - size();
+        }
+
+
         // Lookup
+        template <typename K = key_type>
+        size_type count(const key_arg_t<K>& x)
+        {
+            auto [lower, upper] = equal_range(x);
+            return std::distance(lower, upper);
+        }
+
         template <typename K = key_type>
         iterator find(const key_arg_t<K>& x)
         {
@@ -300,17 +354,48 @@ namespace leviathan::collections
 
         template <typename K = key_type>
         const_iterator find(const key_arg_t<K>& x) const
+        { return const_cast<skip_list&>(*this).find(x); }
+
+        template <typename K = key_type>
+        bool contains(const key_arg_t<K>& x) const
+        { return find(x) != end(); }
+
+        template <typename K = key_type>
+        iterator lower_bound(const key_arg_t<K>& x)
         {
             auto [node, exist] = find_node(x);
-            return exist ? const_iterator(node) : end();
+            return exist ? iterator(node) : std::next(iterator(node));
         }
 
-        size_type erase(const key_type& x)
+        template <typename K = key_type>
+        const_iterator lower_bound(const key_arg_t<K>& x) const
+        { return const_cast<skip_list&>(*this).lower_bound(x); }
+
+        template <typename K = key_type>
+        iterator upper_bound(const key_arg_t<K>& x)
         {
-            auto old_size = size();
-            erase_node_by_value(x);
-            return size() - old_size;
+            auto [node, exist] = find_node(x);
+            return std::next(iterator(node));
         }
+
+        template <typename K = key_type>
+        const_iterator upper_bound(const key_arg_t<K>& x) const
+        { return const_cast<skip_list&>(*this).upper_bound(x); }
+
+        template <typename K = key_type>
+        std::pair<iterator, iterator> equal_range(const key_arg_t<K>& x)
+        {
+            auto [node, exist] = find_node(x);
+            auto lower = iterator(node);
+            auto upper = std::next(lower);
+            return exist ? 
+                std::pair<iterator, iterator>{ lower, upper } : 
+                std::pair<iterator, iterator>{ upper, upper };
+        }
+
+        template <typename K = key_type>
+        std::pair<const_iterator , const_iterator> equal_range(const key_arg_t<K>& x) const
+        { return const_cast<skip_list&>(*this).equal_range(x); }
 
         void show() const
         {
@@ -400,7 +485,7 @@ namespace leviathan::collections
 			return { worker, true };
         }
 
-		// return target node if succeed else prev position of target node for inserting
+		// return target node if succeed otherwise prev position of target node for inserting
 		template <typename K>
 		std::pair<iterator, bool> find_node_with_prev(const K& val, std::array<iterator, MaxLevel>& prev) 
 		{
@@ -422,7 +507,7 @@ namespace leviathan::collections
 			return { cur, exits };
 		}
 
-        // return target node if succeed else prev of target value 
+        // return target node if succeed otherwise prev of target value 
 		template <typename K>
 		std::pair<iterator, bool> find_node(const K& val) 
 		{
