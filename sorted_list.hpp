@@ -42,12 +42,9 @@ namespace leviathan::collections
 			using out_iter = typename outer_container::iterator;
 
 			using link_type = std::conditional_t<Const, const sorted_list*, sorted_list*>;
-
-			using value_type = std::conditional_t<Const,
-				const typename std::iterator_traits<in_iter>::value_type,
-				typename std::iterator_traits<in_iter>::value_type>;
+            using value_type = std::conditional_t<Const, const T, T>;
 			
-			using reference = value_type&;
+            using reference = std::conditional_t<std::is_same_v<Key, T>, const value_type&, value_type&>;
 
 			using difference_type = typename std::iterator_traits<in_iter>::difference_type;
 			using iterator_category = std::bidirectional_iterator_tag;

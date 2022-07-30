@@ -71,7 +71,7 @@ namespace leviathan::collections
 
             static skip_list_node* allocate_node(node_allocator& alloc, int count)
             {
-                auto size = sizeof(skip_list_node) + count * sizeof(skip_list_node*);
+                const auto size = sizeof(skip_list_node) + count * sizeof(skip_list_node*);
                 // For some fancy pointer such as FancyPtr<T>, the allocator may return 
                 // FancyPtr<char>, so we cast the pointer to char* firstly.
                 skip_list_node* node = reinterpret_cast<skip_list_node*>(
@@ -83,7 +83,7 @@ namespace leviathan::collections
 
             static void deallocate(node_allocator& alloc, skip_list_node* node)
             {
-                auto size = sizeof(skip_list_node) + node->m_cnt * sizeof(skip_list_node*);
+                const auto size = sizeof(skip_list_node) + node->m_cnt * sizeof(skip_list_node*);
                 node_alloc_traits::deallocate(alloc, reinterpret_cast<char*>(node), size);
             }
 

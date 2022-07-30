@@ -1,3 +1,7 @@
+/*
+    https://stackoverflow.com/questions/65645904/implementing-a-custom-allocator-with-fancy-pointers
+    https://en.cppreference.com/mwiki/index.php?title=cpp%2Fconcept%2FAllocator&diff=89066&oldid=86365
+*/
 #include <cstddef>
 #include <iterator>
 #include <memory>
