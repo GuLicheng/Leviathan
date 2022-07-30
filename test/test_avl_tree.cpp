@@ -242,6 +242,7 @@ TEST_CASE("member type", "[concept or type]")
 
 #include "struct.hpp"
 #include "except_allocator.hpp"
+#include "fancy_ptr.hpp"
 
 TEST_CASE("swap", "[swap]")
 {
@@ -287,6 +288,12 @@ TEST_CASE("element destroy", "[dtor]")
     auto b = Int32<>::total_destruct();
 
     REQUIRE(a == b);
+}
+
+TEST_CASE("fancy pointer")
+{
+    ::leviathan::collections::avl_set<int, std::less<>, TrivialAllocator<int>> t;
+    t.insert(0);
 }
 
 TEST_CASE("memory", "[dtor]")

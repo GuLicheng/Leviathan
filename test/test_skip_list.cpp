@@ -85,4 +85,48 @@ TEST_CASE("remove elements", "[iterator][remove][clear][find][size][empty]")
     REQUIRE(h.empty());
 }
 
+#include "struct.hpp"
+#include "except_allocator.hpp"
+#include "fancy_ptr.hpp"
+
+TEST_CASE("fancy pointer")
+{
+    ::leviathan::collections::skip_set<int, std::less<>, TrivialAllocator<int>> sl;
+    sl.insert(0);
+}
+
+TEST_CASE("element destroy", "[dtor]")
+{
+
+    {
+        ::leviathan::collections::skip_set<Int32<>> h1, h2, h3;
+
+        for (int i = 0; i < 10; ++i)
+        {
+            h1.insert(Int32<>(i));
+        }
+    }
+
+    auto a = Int32<>::total_construct();
+    auto b = Int32<>::total_destruct();
+
+    REQUIRE(a == b);
+}
+
+TEST_CASE("memory", "[dtor]")
+{
+    {
+        ::leviathan::collections::skip_set<int, std::less<>, RecordAllocator<int>> h1, h2;
+
+        for (int i = 0; i < 10; ++i)
+        {
+            h1.insert(i);
+            // h1.emplace((long long)i);
+        }
+    }
+    REQUIRE(CheckMemoryAlloc());
+}
+
+
+
 

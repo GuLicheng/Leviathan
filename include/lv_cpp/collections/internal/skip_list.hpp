@@ -72,7 +72,11 @@ namespace leviathan::collections
             static skip_list_node* allocate_node(node_allocator& alloc, int count)
             {
                 auto size = sizeof(skip_list_node) + count * sizeof(skip_list_node*);
-                skip_list_node* node = reinterpret_cast<skip_list_node*>(node_alloc_traits::allocate(alloc, size));
+                // For some fancy pointer such as FancyPtr<T>, the allocator may return 
+                // FancyPtr<char>, so we cast the pointer to char* firstly.
+                skip_list_node* node = reinterpret_cast<skip_list_node*>(
+                    static_cast<char*>(node_alloc_traits::allocate(alloc, size))
+                );
                 node->m_cnt = count;
                 return node;
             }
