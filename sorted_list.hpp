@@ -189,7 +189,13 @@ namespace leviathan::collections
 		{ return insert_impl(std::move(x)); }
         
 		size_type erase(const key_type& x)
-		{ return remove_impl(x); }
+		{
+			auto old_size = size();
+			auto iter = find(x);
+			if (x != end())
+				remove_impl(iter);
+			return old_size - size();
+		}
 
         // Lookup
         template <typename K = key_type>
