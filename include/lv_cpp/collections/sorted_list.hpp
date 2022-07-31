@@ -296,6 +296,7 @@ namespace leviathan::collections
 			std::size_t out_idx, in_idx;
 			if (m_lists.size())
 			{
+				// auto [i, j] = find_item_by_key(Config::get_key(val));
 				auto [i, j] = find_item_by_key(Config::get_key(val));
 				// std::cout << i << '-' << j << '\n';
 				if (i == m_lists.size())
@@ -339,12 +340,12 @@ namespace leviathan::collections
 			return { iterator(this, out_idx, in_idx), succeed };
 		}
 
-		template <typename U> 
-		std::pair<iterator, bool> insert_impl(U&& val)
-		{
-			struct NotImplErr { };
-			throw NotImplErr{ };
-		}
+		// template <typename U> 
+		// std::pair<iterator, bool> insert_impl(U&& val)
+		// {
+		// 	struct NotImplErr { };
+		// 	throw NotImplErr{ };
+		// }
 
 		template <typename K>
 		iterator find_impl(const K& val) noexcept

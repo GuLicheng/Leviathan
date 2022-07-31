@@ -1,6 +1,7 @@
 #pragma once
 
 #include <lv_cpp/collections/internal/common.hpp>
+#include <lv_cpp/iterators/norm_iterator.hpp>
 
 #include <vector>
 #include <algorithm>
@@ -124,11 +125,239 @@ namespace leviathan::collections
         using const_pointer = std::allocator_traits<allocator_type>::const_pointer;
         // using insert_return_type = 
 
+		sorted_list() noexcept(std::is_nothrow_default_constructible_v<Compare>) 
+			: m_lists{ }, m_cmp{ }, m_size { } { }
+
+		explicit sorted_list(const Compare& cmp) : m_lists{ }, m_cmp { cmp }, m_size { 0 } { }
+
+		sorted_list(const sorted_list&) = default;
+		sorted_list(sorted_list&&) 
+			noexcept(std::is_nothrow_move_constructible_v<Compare> && std::is_nothrow_move_constructible_v<outer_container>) = default;
+
+		sorted_list& operator=(const sorted_list&) = default;
+		sorted_list& operator=(sorted_list&&) 
+			noexcept(std::is_nothrow_assignable_v<Compare> && std::is_nothrow_move_assignable_v<outer_container>) = default;
+
+		size_type size() const  
+		{ return m_size; }
+		
+		bool empty() const  
+		{ return m_size == 0; }
+
+		// simple API for iterator
+		iterator begin()  
+		{ return { this, 0 }; }
+		
+		iterator end()  
+		{ return { this, m_lists.size() }; }
+
+		const_iterator begin() const  
+		{ return const_cast<sorted_list&>(*this).begin(); }
+
+		const_iterator end() const  
+		{ return const_cast<sorted_list&>(*this).end(); }
+
+		const_iterator cbegin() const  
+		{ return begin(); }
+
+		const_iterator cend() const  
+		{ return end(); }
+
+		reverse_iterator rbegin()  
+		{ return std::make_reverse_iterator(end()); } 
+
+		reverse_iterator rend()  
+		{ return std::make_reverse_iterator(begin()); } 
+
+		const_reverse_iterator rbegin() const  
+		{ return std::make_reverse_iterator(end()); } 
+
+		const_reverse_iterator rend() const  
+		{ return std::make_reverse_iterator(begin()); } 
+		
+		const_reverse_iterator rcbegin() const  
+		{ return rbegin(); } 
+
+		const_reverse_iterator rcend() const  
+		{ return rend(); } 
+
+        // Modifiers
+		std::pair<iterator, bool> insert(const value_type& x)
+		{ return insert_impl(x); }
+
+		std::pair<iterator, bool> insert(value_type&& x)
+		{ return insert_impl(std::move(x)); }
+        
+		size_type erase(const key_type& x)
+		{ return remove_impl(x); }
+
+        // Lookup
+        template <typename K = key_type>
+        iterator lower_bound(const key_arg_t<K>& x)
+		{
+			auto [i, j] = find_item_by_key(x);
+			return i == m_lists.size() ? end() : iterator(this, i, j);
+		}
+
+        template <typename K = key_type>
+		iterator find(const key_arg_t<K>& x)
+		{
+			auto lower = lower_bound(x);
+			return lower == end() || m_cmp(x, KeyOfValue()(*lower)) ? end() : lower;
+		}
+
+
+
     private:
         outer_container m_lists;
-        size_type m_size;
         [[no_unique_address]] Compare m_cmp;
+        size_type m_size;
+
+		template <typename U> 
+		std::pair<iterator, bool> insert_impl(U&& val) 
+		{
+			bool succeed;
+			std::size_t out_idx, in_idx;
+			if (m_lists.size())
+			{
+				auto [i, j] = find_item_by_key(KeyOfValue()(val));
+				if (i == m_lists.size())
+				{
+					// insert last position
+					m_lists.back().emplace_back((U&&) val);
+					i = m_lists.size() - 1;
+					j = m_lists.back().size() - 1;
+					succeed = true;
+				}
+				else
+				{
+					// if (Config::get_key(m_lists[i][j]) == Config::get_key(val)) lower -> i, j >= val
+					if (m_cmp(KeyOfValue(val), KeyOfValue(m_lists[i][j])))
+					{
+						succeed = false;
+					}
+					else
+					{
+						auto& v = m_lists[i];
+						auto ret_iter = v.insert(v.begin() + j, (U&&)val);
+						j = std::ranges::distance(v.begin(), ret_iter);
+						succeed = true;
+					}
+				}
+
+				bool expanded = expand(i);
+				if (expanded && j > TrunkSize)
+				{
+					i++;
+					j -= TrunkSize;
+				}
+				out_idx = i, in_idx = j;
+			}
+			else
+			{
+				m_lists.emplace_back(inner_container{ (U&&) val });
+				out_idx = in_idx = 0;
+				succeed = true;
+			}
+			m_size += succeed;
+			return { iterator(this, out_idx, in_idx), succeed };
+		}
+
+		// return lower_bound item
+		template <typename K>
+		std::pair<std::size_t, std::size_t> find_item_by_key(const K& k) const 
+		{
+			auto bucket_loc = std::lower_bound(m_lists.begin(), m_lists.end(), k, [this](const auto& vec, const auto& value) { 
+				return m_cmp(KeyOfValue()(vec.back()), value);
+			});
+			
+			if (bucket_loc == m_lists.end())
+				return { m_lists.size(), 0 };
+			auto iter = std::lower_bound(bucket_loc->begin(), bucket_loc->end(), k, [this](const auto& item, const auto& value) { 
+				return m_cmp(KeyOfValue()(item), value);
+			});
+			return { std::ranges::distance(m_lists.begin(), bucket_loc), std::ranges::distance(bucket_loc->begin(), iter) };
+		}
+
+
+		iterator remove_impl(const_iterator pos) 
+		{
+			auto i = pos.m_out_idx, j = pos.m_in_idx;
+			m_lists[i].erase(m_lists[i].begin() + j);
+			--m_size;
+
+			shrink(i);	
+			// if (m_lists[i].empty())
+			// {
+			// 	m_lists.erase(m_lists.begin() + i);
+			// 	return { this, i, j };
+			// }
+
+			if (j == m_lists[i].size())
+				return { this, i + 1, 0 };
+
+			return { this, i, j };
+		}
+
+		// move elements more than truck_size in bucket[pos] into next bucket
+		bool expand(size_t pos)
+		{
+			if (m_lists[pos].size() > TrunkSize * 2)
+			{
+				auto& bucket = m_lists[pos];
+				std::vector<T> half;
+				// move
+				half.reserve(std::ranges::distance(bucket.begin() + TrunkSize, bucket.end()));
+				// if constexpr (std::is_nothrow_constructible_v<T>)
+				// {
+				// 	half.insert(half.end(),
+				// 		std::make_move_iterator(bucket.begin() + TrunkSize),
+				// 		std::make_move_iterator(bucket.end()));
+				// }
+				// else
+				// {
+				// 	half.insert(half.end(), bucket.begin() + TrunkSize, bucket.end());
+				// }
+
+				half.insert(half.end(), 
+					make_move_if_noexcept_iterator(bucket.begin() + TrunkSize), 
+					make_move_if_noexcept_iterator(bucket.end()));
+
+				bucket.erase(bucket.begin() + TrunkSize, bucket.end());
+				m_lists.insert(m_lists.begin() + pos + 1, std::move(half));
+				return true;
+			}
+			return false;
+		}
+
+		// Make sure that each bucket will not be empty !
+		void shrink(size_t pos)
+		{
+			if (m_lists[pos].size() < TrunkSize / 2 && m_lists.size() > 1)
+			{
+				if (pos == 0)
+					pos++;
+				auto prev = pos - 1;
+				// move elements of pos into prev and check whether the number of elements in prev is 
+				// greater than TrunkSize * 2. If prev.size() > TruckSize * 2, we move half of elements
+				// from prev to pos, otherwise erase pos. 
+				m_lists[prev].insert(m_lists[prev].end(), m_lists[pos].begin(), m_lists[pos].end());
+				if (m_lists[prev].size() < TrunkSize * 2)
+					m_lists.erase(m_lists.begin() + pos);
+				else
+				{
+					m_lists[pos].clear();
+					m_lists[pos].insert(m_lists[pos].end(), m_lists[prev].begin() + m_lists.size() / 2, m_lists[prev].end());
+					m_lists[prev].erase(m_lists[prev].begin() + m_lists.size() / 2, m_lists[prev].end());
+				}
+			}
+		}
 
     };
+
+
+    template <typename T, typename Compare = std::less<>>
+    class sorted_set : public sorted_list<T, Compare, identity, true> { };
+
 
 };

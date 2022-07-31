@@ -804,7 +804,7 @@ namespace leviathan::collections
         { return equal_range_impl(x); }
 
         template <typename K = key_type>
-        std::pair<const_iterator , const_iterator> equal_range(const key_arg_t<K>& x) const
+        std::pair<const_iterator, const_iterator> equal_range(const key_arg_t<K>& x) const
         { return const_cast<avl_tree&>(*this).equal_range(x); }
 
         friend auto operator<=>(const avl_tree& lhs, const avl_tree& rhs)
