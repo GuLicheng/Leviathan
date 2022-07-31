@@ -238,7 +238,7 @@ namespace leviathan::collections
 				else
 				{
 					// if (Config::get_key(m_lists[i][j]) == Config::get_key(val)) lower -> i, j >= val
-					if (m_cmp(KeyOfValue(val), KeyOfValue(m_lists[i][j])))
+					if (m_cmp(KeyOfValue()(val), KeyOfValue()(m_lists[i][j])))
 					{
 						succeed = false;
 					}
@@ -314,20 +314,20 @@ namespace leviathan::collections
 				std::vector<T> half;
 				// move
 				half.reserve(std::ranges::distance(bucket.begin() + TrunkSize, bucket.end()));
-				// if constexpr (std::is_nothrow_constructible_v<T>)
-				// {
-				// 	half.insert(half.end(),
-				// 		std::make_move_iterator(bucket.begin() + TrunkSize),
-				// 		std::make_move_iterator(bucket.end()));
-				// }
-				// else
-				// {
-				// 	half.insert(half.end(), bucket.begin() + TrunkSize, bucket.end());
-				// }
+				if constexpr (std::is_nothrow_constructible_v<T>)
+				{
+					half.insert(half.end(),
+						std::make_move_iterator(bucket.begin() + TrunkSize),
+						std::make_move_iterator(bucket.end()));
+				}
+				else
+				{
+					half.insert(half.end(), bucket.begin() + TrunkSize, bucket.end());
+				}
 
-				half.insert(half.end(), 
-					make_move_if_noexcept_iterator(bucket.begin() + TrunkSize), 
-					make_move_if_noexcept_iterator(bucket.end()));
+				// half.insert(half.end(), 
+				// 	make_move_if_noexcept_iterator(bucket.begin() + TrunkSize), 
+					// make_move_if_noexcept_iterator(bucket.end()));
 
 				bucket.erase(bucket.begin() + TrunkSize, bucket.end());
 				m_lists.insert(m_lists.begin() + pos + 1, std::move(half));
