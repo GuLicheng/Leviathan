@@ -212,7 +212,8 @@ namespace leviathan::collections
 			return lower == end() || m_cmp(x, KeyOfValue()(*lower)) ? end() : lower;
 		}
 
-
+		size_type bucket_count() const 
+		{ return m_lists.size(); }
 
     private:
         outer_container m_lists;
@@ -237,8 +238,7 @@ namespace leviathan::collections
 				}
 				else
 				{
-					// if (Config::get_key(m_lists[i][j]) == Config::get_key(val)) lower -> i, j >= val
-					if (m_cmp(KeyOfValue()(val), KeyOfValue()(m_lists[i][j])))
+					if (!m_cmp(KeyOfValue()(val), KeyOfValue()(m_lists[i][j])))
 					{
 						succeed = false;
 					}
