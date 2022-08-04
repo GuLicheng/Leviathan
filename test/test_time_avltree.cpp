@@ -6,9 +6,12 @@
 #include <set>
 #include <lv_cpp/collections/internal/avl_tree.hpp>
 
+#include <lv_cpp/collections/internal/tree.hpp>
+
 
 using Tree1 = std::set<int>;
 using Tree2 = leviathan::collections::avl_set<int>;
+using Tree3 = leviathan::collections::tree_set<int>;
 
 TEST_CASE("duplicate_ordered_insert")
 {
@@ -25,6 +28,13 @@ TEST_CASE("duplicate_ordered_insert")
         Tree2 s2;
         return random_insert(s2);
     };
+
+    BENCHMARK("avl_tree2")
+    {
+        Tree3 s2;
+        return random_insert(s2);
+    };
+
 }
 
 TEST_CASE("duplicate_ordered_search")
@@ -32,8 +42,9 @@ TEST_CASE("duplicate_ordered_search")
     using namespace leviathan::test;
     Tree1 s1;
     Tree2 s2;
+    Tree3 s3;
 
-    random_insert(s1, s2);
+    random_insert(s1, s2, s3);
 
     BENCHMARK("std::set")
     {
@@ -44,6 +55,15 @@ TEST_CASE("duplicate_ordered_search")
     {
         return search_test(s2);
     };
+
+    BENCHMARK("avl_tree2")
+    {
+        return search_test(s3);
+    };
+
+    REQUIRE(std::ranges::equal(s1, s2));
+    REQUIRE(std::ranges::equal(s1, s3));
+
 }
 
 #if 0

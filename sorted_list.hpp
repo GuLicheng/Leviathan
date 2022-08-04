@@ -215,6 +215,7 @@ namespace leviathan::collections
 		size_type bucket_count() const 
 		{ return m_lists.size(); }
 
+
     private:
         outer_container m_lists;
         [[no_unique_address]] Compare m_cmp;
@@ -292,15 +293,15 @@ namespace leviathan::collections
 			m_lists[i].erase(m_lists[i].begin() + j);
 			--m_size;
 
-			shrink(i);	
+			shrink(i, j);	
 			// if (m_lists[i].empty())
 			// {
 			// 	m_lists.erase(m_lists.begin() + i);
 			// 	return { this, i, j };
 			// }
 
-			if (j == m_lists[i].size())
-				return { this, i + 1, 0 };
+			// if (j == m_lists[i].size())
+				// return { this, i + 1, 0 };
 
 			return { this, i, j };
 		}
@@ -336,27 +337,38 @@ namespace leviathan::collections
 			return false;
 		}
 
-		// Make sure that each bucket will not be empty !
-		void shrink(size_t pos)
+		// Make sure each bucket will not be empty !
+		void shrink(size_t& out_idx, size_t& in_idx)
 		{
-			if (m_lists[pos].size() < TrunkSize / 2 && m_lists.size() > 1)
+			// We merge elements in prev and out_idx into prev firstly,
+			// and then try to split prev and out_idx
+			if (m_lists[out_idx].size() < TrunkSize / 2 && m_lists.size() > 1)
 			{
-				if (pos == 0)
-					pos++;
-				auto prev = pos - 1;
-				// move elements of pos into prev and check whether the number of elements in prev is 
+				if (out_idx == 0)
+					out_idx++;
+				auto prev = out_idx - 1;
+				// move elements of out_idx into prev and check whether the number of elements in prev is 
 				// greater than TrunkSize * 2. If prev.size() > TruckSize * 2, we move half of elements
-				// from prev to pos, otherwise erase pos. 
-				m_lists[prev].insert(m_lists[prev].end(), m_lists[pos].begin(), m_lists[pos].end());
+				// from prev to out_idx, otherwise erase out_idx. 
+				in_idx += m_lists.size();
+				out_idx--;
+				m_lists[prev].insert(m_lists[prev].end(), m_lists[out_idx].begin(), m_lists[out_idx].end());
 				if (m_lists[prev].size() < TrunkSize * 2)
-					m_lists.erase(m_lists.begin() + pos);
+				{
+					m_lists.erase(m_lists.begin() + out_idx);
+				}
 				else
 				{
-					m_lists[pos].clear();
-					m_lists[pos].insert(m_lists[pos].end(), m_lists[prev].begin() + m_lists.size() / 2, m_lists[prev].end());
+					m_lists[out_idx].clear();
+					auto offset = m_lists.size() / 2;
+					if (in_idx > offset)
+						in_idx -= offset;
+					m_lists[out_idx].insert(m_lists[out_idx].end(), m_lists[prev].begin() + offset, m_lists[prev].end());
 					m_lists[prev].erase(m_lists[prev].begin() + m_lists.size() / 2, m_lists[prev].end());
+					out_idx++;
 				}
 			}
+
 		}
 
     };
