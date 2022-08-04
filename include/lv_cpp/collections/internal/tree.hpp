@@ -474,10 +474,10 @@ namespace leviathan::collections
         }
 
         tree_node* root() 
-        { return static_cast<tree_node*>(m_header.m_parent); }
+        { return static_cast<tree_node*>(NodeType::parent(header())); }
 
         const tree_node* root() const
-        { return static_cast<const tree_node*>(m_header.m_parent); }
+        { return static_cast<const tree_node*>(NodeType::parent(header())); }
 
         NodeType* header() 
         { return std::addressof(m_header); }
@@ -527,24 +527,24 @@ namespace leviathan::collections
         template <typename K>
         iterator lower_bound_impl(const K& k)
         {
-            base_ptr y = &m_header, x = m_header.m_parent;
+            base_ptr y = &m_header, x = NodeType::parent(header());
             while (x)
                 if (!m_cmp(keys(x), k))
-                    y = x, x = x->m_left;
+                    y = x, x = NodeType::left(x);
                 else
-                    x = x->m_right;
+                    x = NodeType::right(x);
             return { y };
         }
 
         template <typename K>
         iterator upper_bound_impl(const K& k)
         {
-            base_ptr y = &m_header, x = m_header.m_parent;
+            base_ptr y = &m_header, x = NodeType::parent(header());
             while (x)
                 if (m_cmp(k, keys(x)))
-                    y = x, x = x->m_left;
+                    y = x, x = NodeType::left(x);
                 else
-                    x = x->m_right;
+                    x = NodeType::right(x);
             return { y };
         }
 
@@ -630,13 +630,13 @@ namespace leviathan::collections
         std::pair<base_ptr, base_ptr>   
         get_insert_unique_pos(const key_type& k)
         {
-            base_ptr y = &m_header, x = m_header.m_parent;
+            base_ptr y = &m_header, x = NodeType::parent(header());
             bool comp = true;
             while (x)
             {
                 y = x;
                 comp = m_cmp(k, keys(x));
-                x = comp ? x->m_left : x->m_right;
+                x = comp ? NodeType::left(x) : NodeType::right(x);
             }
             iterator j { y };
             if (comp)
@@ -699,8 +699,8 @@ namespace leviathan::collections
         {
             if (p)
             {
-                dfs_deconstruct(p->m_left);
-                dfs_deconstruct(p->m_right);
+                dfs_deconstruct(NodeType::left(p));
+                dfs_deconstruct(NodeType::right(p));
                 link_type pp = static_cast<link_type>(p);
                 drop_node(pp);
             }
@@ -708,7 +708,7 @@ namespace leviathan::collections
 
         void reset()
         {
-            dfs_deconstruct(m_header.m_parent);
+            dfs_deconstruct(NodeType::parent(header()));
             NodeType::reset(header());
             m_size = 0;
         }

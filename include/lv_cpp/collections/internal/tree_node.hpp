@@ -148,6 +148,15 @@ namespace leviathan::collections
         constexpr static const TreeNode* parent(const TreeNode* x) 
         { return x->m_parent; }
 
+        constexpr static void set_left(TreeNode* x, TreeNode* left)
+        { x->m_left = left; }
+
+        constexpr static void set_right(TreeNode* x, TreeNode* right)
+        { x->m_right = right; }
+
+        constexpr static void set_parent(TreeNode* x, TreeNode* parent)
+        { x->m_parent = parent; }
+
         TreeNode* m_parent;
         TreeNode* m_left;
         TreeNode* m_right;
