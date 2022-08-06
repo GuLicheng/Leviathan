@@ -48,6 +48,8 @@ namespace leviathan::collections
         constexpr static bool is_header(simple_binary_node* node)
         { return false; }
 
+        constexpr static void clone(simple_binary_node* x, const simple_binary_node* y)
+        { } 
 
         constexpr static simple_binary_node* rebalance_for_erase(simple_binary_node* z, simple_binary_node& header)
         {
@@ -135,5 +137,24 @@ namespace leviathan::collections
 
     };
 
+    static_assert(tree_node_interface<simple_binary_node>);
+
+}
+
+#include "tree.hpp"
+
+namespace leviathan::collections
+{
+    template <typename T, typename Compare = std::less<>, typename Allocator = std::allocator<T>>
+    using binary_set = tree_set<T, Compare, Allocator, simple_binary_node>;
+
+    template <typename T, typename Compare = std::less<>>
+    using pmr_binary_set = tree_set<T, Compare, std::pmr::polymorphic_allocator<T>, simple_binary_node>;  
+
+    template <typename K, typename V, typename Compare = std::less<>, typename Allocator = std::allocator<std::pair<const K, V>>>
+    using binary_map = tree_map<K, V, Compare, Allocator, simple_binary_node>;
+
+    template <typename K, typename V, typename Compare = std::less<>>
+    using pmr_binary_map = tree_map<K, V, Compare, std::pmr::polymorphic_allocator<std::pair<const K, V>>, simple_binary_node>;
 
 }

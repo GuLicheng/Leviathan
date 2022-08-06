@@ -1,96 +1,8 @@
 #define CATCH_CONFIG_MAIN
 
-// #include <lv_cpp/collections/internal/avl_tree.hpp>
-#include <lv_cpp/collections/internal/tree.hpp>
 #include <thirdpart/catch.hpp>
 
-using leviathan::collections::avl_node;
-using leviathan::collections::tree_set;
-using leviathan::collections::tree_map;
-using SetT = tree_set<int>;
-using MapT = tree_map<int, std::string>;
  
-void test_height_and_value()
-{
-    using T = tree_set<int>;
-
-    T avl;
-    avl.insert(5 - 1);
-    avl.insert(6 - 1);
-    avl.insert(7 - 1);
-    avl.insert(3 - 1);
-    avl.insert(4 - 1);
-    avl.insert(1 - 1);
-    avl.insert(2 - 1);
-
-    /*
-                    3
-                1       5
-              0   2   4   6
-    */
-
-    using node_type = T::tree_node_type;
-
-    auto root_value = [](const auto* p) {
-        return *static_cast<const node_type*>(p)->value_ptr();
-    };
-
-    auto root = avl.root();
-
-    REQUIRE(root->m_height == 3);
-
-    REQUIRE(root_value(root) == 3);
-    REQUIRE(root_value(root->m_left) == 1);
-    REQUIRE(root_value(root->m_right) == 5);
-    REQUIRE(root_value(root->m_left->m_left) == 0);
-    REQUIRE(root_value(root->m_left->m_right) == 2);
-    REQUIRE(root_value(root->m_right->m_right) == 6);
-    REQUIRE(root_value(root->m_right->m_left) == 4);
-
-
-    struct HeightChecker
-    {
-        void operator()(avl_node* p)
-        {
-            if (p)
-            {
-                this->operator()(p->m_left);
-                this->operator()(p->m_right);
-
-                int lh = avl_node::height(p->m_left);
-                int rh = avl_node::height(p->m_right);
-                int diff = lh - rh;
-                REQUIRE(-1 <= diff);
-                REQUIRE(diff <= 1);
-                REQUIRE(p->m_height == std::max(lh, rh) + 1);
-                // check leaf height
-                if (!p->m_left && !p->m_right)
-                    REQUIRE(p->m_height == 1);
-            }
-        }
-    };
-
-    HeightChecker()(static_cast<avl_node*>(root));
-
-    T empty_tree;
-    REQUIRE(empty_tree.root() == nullptr);
-
-    T single_element_tree;
-    single_element_tree.insert(1);
-    REQUIRE(single_element_tree.root()->m_height == 1);
-
-    T random_tree;
-    static std::random_device rd;
-    for (auto i = 0; i < 1024; ++i) 
-        random_tree.insert(rd() % 10240);
-    HeightChecker()(static_cast<avl_node*>(random_tree.root()));
-
-}
-
-TEST_CASE("avl_tree_height_test")
-{
-    test_height_and_value();
-}
 
 TEST_CASE("insert elements", "[iterator][insert][emplace][emplace_hint]")
 {
@@ -181,7 +93,6 @@ TEST_CASE("search elements", "[iterator][contains][find][lower_bound][upper_boun
 
 }
 
-
 TEST_CASE("remove elements", "[iterator][remove][clear][find][size][empty]")
 {
     SetT h;
@@ -246,77 +157,45 @@ TEST_CASE("member type", "[concept or type]")
     REQUIRE(std::is_nothrow_move_assignable_v<SetT>);
 }
 
-
-
-#include "struct.hpp"
-#include "except_allocator.hpp"
-#include "fancy_ptr.hpp"
-
-TEST_CASE("swap", "[swap]")
+TEST_CASE("random test", "[contains][insert][erase]")
 {
-    SetT h1, h2;
-    h1.insert(0);
-    h1.insert(1);
-    h1.insert(2);
-    h2.insert(-1);
+    std::random_device rd;
 
-    h1.swap(h2);
-
-    REQUIRE(h1.size() == 1);
-    REQUIRE(h1.contains(-1));
-
-    REQUIRE(h2.size() == 3);
-    REQUIRE(h2.contains(0));
-    REQUIRE(h2.contains(1));
-    REQUIRE(h2.contains(2));
-
-    REQUIRE(noexcept(h1.swap(h2)));
-
-}
-
-TEST_CASE("element destroy", "[dtor]")
-{
-
+    auto random_range_int = [&](int n = 100000)
     {
-        ::leviathan::collections::tree_set<Int32<>> h1, h2, h3;
+        auto random_generator = [&]() {
+            return rd() % (10 * n);
+        };
+        std::vector<int> ret;
+        ret.reserve(n);
+        std::generate_n(std::back_inserter(ret), n, random_generator);
+        return ret;
+    };
 
-        for (int i = 0; i < 10; ++i)
-        {
-            h1.insert(Int32<>(i));
-            h1.emplace(i);
-        }
-        h2.emplace(0);
-        h3.emplace(0);
-        h1 = h2; // copy assign
-        ::leviathan::collections::tree_set<Int32<>> moved{ std::move(h1) }; 
-        h3 = std::move(moved); // move assign
-    }
+    auto dataset1 = random_range_int();
+    auto dataset2 = random_range_int();
+    auto dataset3 = random_range_int();
 
-    auto a = Int32<>::total_construct();
-    auto b = Int32<>::total_destruct();
+    SetT s1;
+    std::set<int> s2;
 
-    REQUIRE(a == b);
+    for (auto value : dataset1)
+        s1.insert(value), s2.insert(value);
+
+    REQUIRE(std::ranges::equal(s1, s2));
+
+    int count1 = 0, count2 = 0;
+
+    for (auto value : dataset2)
+        count1 += s1.contains(value), count2 += s2.contains(value);
+
+    for (auto value : dataset3)
+        s1.erase(value), s2.erase(value);
+
+    REQUIRE(std::ranges::equal(s1, s2));
+
 }
 
-TEST_CASE("fancy pointer")
-{
-    ::leviathan::collections::tree_set<int, std::less<>, TrivialAllocator<int>> t;
-    t.insert(0);
-}
-
-TEST_CASE("memory", "[dtor]")
-{
-    {
-        ::leviathan::collections::tree_set<int, std::less<>, RecordAllocator<int>> h1, h2;
-
-        for (int i = 0; i < 10; ++i)
-        {
-            h1.insert(i);
-            h1.emplace((long long)i);
-        }
-    }
-    REQUIRE(CheckMemoryAlloc());
-}
 
 TEST_CASE("operator[]", "[operator]")
 {
@@ -370,19 +249,77 @@ TEST_CASE("map member type", "[concept or type]")
     REQUIRE(std::ranges::bidirectional_range<MapType>);
 }
 
+TEST_CASE("swap", "[swap]")
+{
+    SetT h1, h2;
+    h1.insert(0);
+    h1.insert(1);
+    h1.insert(2);
+    h2.insert(-1);
+
+    h1.swap(h2);
+
+    REQUIRE(h1.size() == 1);
+    REQUIRE(h1.contains(-1));
+
+    REQUIRE(h2.size() == 3);
+    REQUIRE(h2.contains(0));
+    REQUIRE(h2.contains(1));
+    REQUIRE(h2.contains(2));
+
+    REQUIRE(noexcept(h1.swap(h2)));
+
+}
 
 
+#include "struct.hpp"
+#include "except_allocator.hpp"
+#include "fancy_ptr.hpp"
 
 
+TEST_CASE("element destroy", "[dtor]")
+{
+    using U = ::leviathan::collections::tree_set<Int32<>, std::less<>, std::allocator<Int32<>>, TreeNodeT>;
+    {
+        U h1, h2, h3;
 
+        for (int i = 0; i < 10; ++i)
+        {
+            h1.insert(Int32<>(i));
+            h1.emplace(i);
+        }
+        h2.emplace(0);
+        h3.emplace(0);
+        h1 = h2; // copy assign
+        U moved{ std::move(h1) }; // move ctor
+        h3 = std::move(moved); // move assign
+    }
 
+    auto a = Int32<>::total_construct();
+    auto b = Int32<>::total_destruct();
 
+    REQUIRE(a == b);
+}
 
+TEST_CASE("fancy pointer")
+{
+    ::leviathan::collections::tree_set<int, std::less<>, TrivialAllocator<int>, TreeNodeT> t;
+    t.insert(0);
+    t.find(0);
+    t.erase(0);
+}
 
+TEST_CASE("memory", "[dtor]")
+{
+    {
+        ::leviathan::collections::tree_set<int, std::less<>, RecordAllocator<int>, TreeNodeT> h1, h2;
 
-
-
-
-
-
+        for (int i = 0; i < 10; ++i)
+        {
+            h1.insert(i);
+            h1.emplace((long long)i);
+        }
+    }
+    REQUIRE(CheckMemoryAlloc());
+}
 

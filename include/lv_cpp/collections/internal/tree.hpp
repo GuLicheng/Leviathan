@@ -1,8 +1,6 @@
 #pragma once
 
 #include "common.hpp"
-#include "avl_node.hpp"
-#include "binary_node.hpp"
 
 #include <assert.h>
 #include <iostream>
@@ -17,26 +15,41 @@ namespace std::pmr
 namespace leviathan::collections 
 {
 
-    template <typename T, typename Compare, typename Allocator, typename KeyOfValue, bool UniqueKey, typename NodeType = avl_node>
+    template <typename T, typename BaseNode>
+    struct tree_node_impl : public BaseNode
+    {
+        T m_val;
+        // alignas(T) unsigned char m_val[sizeof(T)];
+
+        T* value_ptr() 
+        { return reinterpret_cast<T*>(std::addressof(m_val)); }
+
+        const T* value_ptr() const
+        { return reinterpret_cast<const T*>(std::addressof(m_val)); }
+
+        BaseNode* base() 
+        { return static_cast<BaseNode*>(this); }
+
+        const BaseNode* base() const
+        { return static_cast<const BaseNode*>(this); }
+
+    };
+
+    template <typename T, typename Compare, typename Allocator, typename KeyOfValue, bool UniqueKey, tree_node_interface NodeType>
     class tree
     {
         static_assert(UniqueKey, "Not Support MultiKey");
 
-        struct tree_node : public NodeType
-        {
-            T m_val;
-            // alignas(T) unsigned char m_val[sizeof(T)];
+    public:
 
-            T* value_ptr() 
-            { return reinterpret_cast<T*>(std::addressof(m_val)); }
+        // for visual
+        using tree_node_base = NodeType;
+        using tree_node = tree_node_impl<T, NodeType>;
 
-            const T* value_ptr() const
-            { return reinterpret_cast<const T*>(std::addressof(m_val)); }
+    private:
 
-        };
-
-        using node_allocator = std::allocator_traits<Allocator>::template rebind_alloc<tree_node>;
-        using node_alloc_traits = std::allocator_traits<node_allocator>;
+        using node_allocator = typename std::allocator_traits<Allocator>::template rebind_alloc<tree_node>;
+        using node_alloc_traits = typename std::allocator_traits<node_allocator>;
 
         constexpr static bool IsTransparent = leviathan::collections::detail::is_transparent<Compare>;
         
@@ -125,8 +138,7 @@ namespace leviathan::collections
                  && typename node_alloc_traits::is_always_equal();
 
     public:
-        
-        using tree_node_type = tree_node;
+
         using size_type = std::size_t;
         using allocator_type = Allocator;
 
@@ -166,19 +178,21 @@ namespace leviathan::collections
         {
             if (!rhs.root())
                 return;
-            header()->m_parent = clone_tree(header()->m_parent, header(), rhs.m_header.m_parent);
-            header()->m_left = NodeType::minimum(m_header.m_parent);
-            header()->m_right = NodeType::maximum(m_header.m_parent);
+            // header()->m_parent = clone_tree(header()->m_parent, header(), rhs.m_header.m_parent);
+            // header()->m_left = NodeType::minimum(m_header.m_parent);
+            // header()->m_right = NodeType::maximum(m_header.m_parent);
+            NodeType::set_parent(header(), clone_tree(root(), header(), rhs.root()));
+            NodeType::set_left(header(), NodeType::minimum(root()));
+            NodeType::set_right(header(), NodeType::maximum(root()));
         }
 
         void move_from_other(tree&& rhs)
         {
-            header()->reset();
             if (!rhs.root())
                 return;
-            header()->m_parent = move_tree(header()->m_parent, header(), rhs.m_header.m_parent);
-            header()->m_left = NodeType::minimum(m_header.m_parent);
-            header()->m_right = NodeType::maximum(m_header.m_parent);
+            NodeType::set_parent(header(), move_tree(root(), header(), rhs.root()));
+            NodeType::set_left(header(), NodeType::minimum(root()));
+            NodeType::set_right(header(), NodeType::maximum(root()));
         }
 
         tree(const tree& rhs) 
@@ -236,24 +250,17 @@ namespace leviathan::collections
                 clear();
                 m_cmp = std::move(rhs.m_cmp);
                 m_size = rhs.m_size;
+                if (rhs.root())
+                    m_header = rhs.m_header;
 				if constexpr (typename node_alloc_traits::propagate_on_container_move_assignment())
 				{
 					m_alloc = std::move(rhs.m_alloc);
-                    if (rhs.root())
-                        m_header = rhs.m_header;
-                    // rhs.header()->reset();
-                    NodeType::reset(rhs.header());
-				}
-				else if (typename node_alloc_traits::is_always_equal() || m_alloc == rhs.m_alloc)
-				{
-                    if (rhs.root())
-                        m_header = rhs.m_header;
-                    rhs.header()->reset();
 				}
 				else
 				{
                     move_from_other(std::move(rhs));
 				}
+                NodeType::reset(rhs.header());
 			}
 			return *this;
         }
@@ -500,27 +507,32 @@ namespace leviathan::collections
             swap(m_header, rhs.m_header);
         }
 
-        base_ptr clone_tree(base_ptr& cur, const base_ptr parent, const base_ptr cloned_node)
+        base_ptr clone_tree(tree_node_base* cur, tree_node_base* parent, const tree_node_base* cloned_node)
         {
             if (!cloned_node)
                 return nullptr;
 
-            cur = create_node(*(static_cast<link_type>(cloned_node)->value_ptr()));
-            cur->m_left = clone_tree(cur->m_left, cur, cloned_node->m_left);
-            cur->m_right = clone_tree(cur->m_right, cur, cloned_node->m_right);  
-            cur->m_parent = parent;
+            cur = create_node(*(static_cast<const tree_node*>(cloned_node)->value_ptr()));
+            NodeType::clone(cur, cloned_node);
+            NodeType::set_left(cur, clone_tree(NodeType::left(cur), cur, NodeType::left(cloned_node)));
+            NodeType::set_right(cur, clone_tree(NodeType::right(cur), cur, NodeType::right(cloned_node)));
+            NodeType::set_parent(cur, parent);
             return cur;                
         }
 
-        base_ptr move_tree(base_ptr& cur, const base_ptr parent, base_ptr cloned_node)
+        base_ptr move_tree(tree_node_base* cur, tree_node_base* parent, tree_node_base* cloned_node)
         {
+            // throw std::runtime_error("Your allocator is very bad!");
             if (!cloned_node)
                 return nullptr;
 
-            cur = create_node(std::move(*(static_cast<link_type>(cloned_node)->value_ptr())));
-            cur->m_left = clone_tree(cur->m_left, cur, cloned_node->m_left);
-            cur->m_right = clone_tree(cur->m_right, cur, cloned_node->m_right);  
-            cur->m_parent = parent;
+            cur = create_node(
+                std::move_if_noexcept(*(static_cast<const tree_node*>(cloned_node)->value_ptr())) // only difference between clone_tree
+            );
+            NodeType::clone(cur, cloned_node);
+            NodeType::set_left(cur, clone_tree(NodeType::left(cur), cur, NodeType::left(cloned_node)));
+            NodeType::set_right(cur, clone_tree(NodeType::right(cur), cur, NodeType::right(cloned_node)));
+            NodeType::set_parent(cur, parent);
             return cur;                
         }
 
@@ -708,7 +720,7 @@ namespace leviathan::collections
 
         void reset()
         {
-            dfs_deconstruct(NodeType::parent(header()));
+            dfs_deconstruct(root());
             NodeType::reset(header());
             m_size = 0;
         }
@@ -720,16 +732,13 @@ namespace leviathan::collections
 
     };
 
-    template <typename T, typename Compare = std::less<>, typename Allocator = std::allocator<T>>
-    class tree_set : public tree<T, Compare, Allocator, identity, true> { };
+    template <typename T, typename Compare, typename Allocator, typename NodeType>
+    class tree_set : public tree<T, Compare, Allocator, identity, true, NodeType> { };
 
-    template <typename T, typename Compare = std::less<>>
-    using pmr_tree_set = tree_set<T, Compare, std::pmr::polymorphic_allocator<T>>;
-
-    template <typename K, typename V, typename Compare = std::less<>, typename Allocator = std::allocator<std::pair<const K, V>>>
-    class tree_map : public tree<std::pair<const K, V>, Compare, Allocator, select1st, true>
+    template <typename K, typename V, typename Compare, typename Allocator, typename NodeType>
+    class tree_map : public tree<std::pair<const K, V>, Compare, Allocator, select1st, true, NodeType>
     {
-        using base_tree_type = tree<std::pair<const K, V>, Compare, Allocator, select1st, true>;
+        using base_tree_type = tree<std::pair<const K, V>, Compare, Allocator, select1st, true, NodeType>;
     public:
         using mapped_type = V;
         using typename base_tree_type::value_type;
@@ -816,25 +825,22 @@ namespace leviathan::collections
 
     };
 
-    template <typename K, typename V, typename Compare = std::less<>>
-    using pmr_tree_map = tree_map<K, V, Compare, std::pmr::polymorphic_allocator<std::pair<const K, V>>>;
-
 }
 
 
 namespace std
 {
-    template <typename K, typename V, typename Compare, typename Allocator>
-    void swap(::leviathan::collections::tree_map<K, V, Compare, Allocator>& lhs,
-              ::leviathan::collections::tree_map<K, V, Compare, Allocator>& rhs)
+    template <typename K, typename V, typename Compare, typename Allocator, typename NodeType>
+    void swap(::leviathan::collections::tree_map<K, V, Compare, Allocator, NodeType>& lhs,
+              ::leviathan::collections::tree_map<K, V, Compare, Allocator, NodeType>& rhs)
     noexcept(noexcept(lhs.swap(rhs)))
     {
         lhs.swap(rhs);
     }
 
-    template <typename T, typename Compare, typename Allocator>
-    void swap(::leviathan::collections::tree_set<T, Compare, Allocator>& lhs,
-              ::leviathan::collections::tree_set<T, Compare, Allocator>& rhs)
+    template <typename T, typename Compare, typename Allocator, typename NodeType>
+    void swap(::leviathan::collections::tree_set<T, Compare, Allocator, NodeType>& lhs,
+              ::leviathan::collections::tree_set<T, Compare, Allocator, NodeType>& rhs)
     noexcept(noexcept(lhs.swap(rhs)))
     {
         lhs.swap(rhs);

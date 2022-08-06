@@ -130,6 +130,7 @@ namespace leviathan::collections
             x->m_parent = y;
         }
 
+        // Observers and modifiers
         constexpr static TreeNode* left(TreeNode* x) 
         { return x->m_left; }
 
@@ -162,12 +163,55 @@ namespace leviathan::collections
         TreeNode* m_right;
     };
 
-    /*
-        class Node
-        {
-            void insert_and_rebalance(bool insert_left, avl_node_base* x, avl_node_base* p, avl_node_base& header);
-            Node* rebalance_for_erase(avl_node_base* z, avl_node_base& header);
-        };
-    */
+    template <typename Node>
+    concept tree_node_interface = requires(Node *node1, Node* node2, const Node *cnode, bool insert_left, Node& header)
+    {
+        // insert node1 to left of node2 if insert_left is true, otherwise right
+        { Node::insert_and_rebalance(insert_left, node1, node2, header) } -> std::same_as<void>;  
 
+        // remove node1 and rebalance tree if necessary
+        { Node::rebalance_for_erase(node1, header) } -> std::same_as<Node*>;  
+    
+        // check whether node1 is a header node
+        { Node::is_header(node1) } -> std::same_as<bool>;
+
+        // predecessor and successor
+        { Node::increment(node1) } -> std::same_as<Node*>;  // the prev node of node1
+        { Node::decrement(node1) } -> std::same_as<Node*>;  // the next node of node1
+
+        // max and min
+        { Node::maximum(node1) } -> std::same_as<Node*>;  // leftmost of node1
+        { Node::minimum(node1) } -> std::same_as<Node*>;  // rightmost of node1
+
+        // setter and getter
+        { Node::set_left(node1, node2) } -> std::same_as<void>;    // equivalent to node1->left = node2
+        { Node::set_right(node1, node2) } -> std::same_as<void>;   // equivalent to node1->right = node2
+        { Node::set_parent(node1, node2) } -> std::same_as<void>;  // equivalent to node1->parent = node2
+
+        { Node::left(node1) } -> std::same_as<Node*>;    // equivalent to return node1->left
+        { Node::right(node1) } -> std::same_as<Node*>;   // equivalent to return node1->right
+        { Node::parent(node1) } -> std::same_as<Node*>;  // equivalent to return node1->parent
+
+        // clone node from other
+        // for AVL tree, it may copy balanced_factor
+        // for RB tree, it may copy color
+        // for SBT, it may copy size infomation 
+        { Node::clone(node1, cnode) } -> std::same_as<void>;  // copy members without value field from node2 to node1
+
+        // default construct for node and header
+        { Node::reset(node1) } -> std::same_as<void>;  // reset header for an empty tree 
+        { Node::init(node1) } -> std::same_as<void>;   // init node without value field after calling allocate
+
+        // const version
+        { Node::increment(cnode) } -> std::same_as<const Node*>;
+        { Node::decrement(cnode) } -> std::same_as<const Node*>;
+
+        { Node::left(cnode) } -> std::same_as<const Node*>;
+        { Node::right(cnode) } -> std::same_as<const Node*>;
+        { Node::parent(cnode) } -> std::same_as<const Node*>;
+
+        { Node::maximum(cnode) } -> std::same_as<const Node*>;
+        { Node::minimum(cnode) } -> std::same_as<const Node*>;
+
+    };
 }
