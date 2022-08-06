@@ -189,8 +189,10 @@ TEST_CASE("random test", "[contains][insert][erase]")
     for (auto value : dataset2)
         count1 += s1.contains(value), count2 += s2.contains(value);
 
+    REQUIRE(count1 == count2);
+
     for (auto value : dataset3)
-        s1.erase(value), s2.erase(value);
+        count1 += s1.erase(value), count2 += s2.erase(value);
 
     REQUIRE(std::ranges::equal(s1, s2));
 

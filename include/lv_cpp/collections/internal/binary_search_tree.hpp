@@ -46,7 +46,13 @@ namespace leviathan::collections
         }
 
         constexpr static bool is_header(simple_binary_node* node)
-        { return false; }
+        {
+            // for an empty tree, the header->parent is nullptr and ++begin() will cause infinite loop
+            // we use this to avoid follow code enter infinite loop
+            // std::set<int> s;
+            // s.begin()++;
+            return node->m_parent == nullptr;
+        }            
 
         constexpr static void clone(simple_binary_node* x, const simple_binary_node* y)
         { } 

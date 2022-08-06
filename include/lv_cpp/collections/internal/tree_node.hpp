@@ -172,7 +172,7 @@ namespace leviathan::collections
         // remove node1 and rebalance tree if necessary
         { Node::rebalance_for_erase(node1, header) } -> std::same_as<Node*>;  
     
-        // check whether node1 is a header node
+        // check whether node1 is a header node, see end of this file
         { Node::is_header(node1) } -> std::same_as<bool>;
 
         // predecessor and successor
@@ -215,3 +215,21 @@ namespace leviathan::collections
 
     };
 }
+
+/*
+    For in gcc and clang, advance an empty set::iterator will cause infinity loop:
+    e.g.
+    {
+        std::set<int> s;
+        s.begin()++; // infinity loop
+    }
+
+    Since for an empty tree, the header->left == header->right == header, see follow code
+    if (x->right)
+    {
+        x = x->right;
+        for (; x->left; x = x->left); // x->left will always be true
+    }
+
+    To avoid this situation, 
+*/
