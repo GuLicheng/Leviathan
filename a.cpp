@@ -34,7 +34,7 @@ private:
 /*
     https://en.cppreference.com/w/cpp/algorithm/ranges/transform
     Return:
-        a unary_transform_result contains an input iterator equal to he last element not transformed
+        a unary_transform_result contains an input iterator equal to the last element not transformed
         and an output iterator to the element past the last element transformed.
 
     e.g.

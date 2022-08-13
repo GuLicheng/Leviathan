@@ -2,7 +2,7 @@
     The code is borrow from: 
     https://github.com/gcc-mirror/gcc/blob/master/libstdc%2B%2B-v3/src/c%2B%2B98/tree.cc
 
-    and this file is and "binary_search_tree.hpp" just debug for design.
+    This file and "binary_search_tree.hpp" is just debugging for design.
 
 */
 
@@ -14,19 +14,22 @@ namespace leviathan::collections
 {
     struct _Rb_tree_node_base : tree_node_basic_operation<_Rb_tree_node_base>
     {
+        // Different form stl_tree, we add another color sentinel, for each node except header, the
+        // color is red or black. And in this way, the iterator can be a circle.
+        // Since compiler will fill some bytes for struct, it will always occupy sizeof(_Rb_tree_node_base*) bytes. 
         enum color
         {
             _S_red,
-            _S_black
+            _S_black,
+            _S_sentinel
         };
 
-        color m_color;
 
         constexpr static void reset(_Rb_tree_node_base* node)
         {
             node->m_parent = nullptr;
             node->m_left = node->m_right = node;
-            node->m_color = _S_black;
+            node->m_color = _S_sentinel;
         }
 
         constexpr static void init(_Rb_tree_node_base* node)
@@ -36,7 +39,7 @@ namespace leviathan::collections
         }
 
         constexpr static bool is_header(_Rb_tree_node_base* node)
-        { return false; }
+        { return node->m_color == _S_sentinel; } 
 
         constexpr static void clone(_Rb_tree_node_base* x, const _Rb_tree_node_base* y)
         { x->m_color = y->m_color; } 
@@ -47,6 +50,7 @@ namespace leviathan::collections
                                       _Rb_tree_node_base *__p,
                                       _Rb_tree_node_base &__header) 
         {
+            __header.m_color = _S_red;
             _Rb_tree_node_base *&__root = __header.m_parent;
 
             // Initialize fields in new node to insert.
@@ -129,12 +133,16 @@ namespace leviathan::collections
                 }
             }
             __root->m_color = _S_black;
+            __header.m_color = _S_sentinel;
         }
 
         constexpr static _Rb_tree_node_base *
         rebalance_for_erase(_Rb_tree_node_base *const __z,
                                      _Rb_tree_node_base &__header) 
         {
+
+            __header.m_color = _S_red;
+
             _Rb_tree_node_base *&__root = __header.m_parent;
             _Rb_tree_node_base *&__leftmost = __header.m_left;
             _Rb_tree_node_base *&__rightmost = __header.m_right;
@@ -290,8 +298,14 @@ namespace leviathan::collections
                 if (__x)
                     __x->m_color = _S_black;
             }
+            
+            __header.m_color = _S_sentinel;            
             return __y;
         }
+
+
+        color m_color;
+
     };
 
     static_assert(tree_node_interface<_Rb_tree_node_base>);

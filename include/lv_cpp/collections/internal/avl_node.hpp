@@ -12,10 +12,7 @@ namespace leviathan::collections
         {
             node->m_parent = nullptr;
             node->m_left = node->m_right = node;
-            node->m_height = -1;
-            // For a empty set in gcc or clang, forward it's iterator will cause infinity loop such:
-            // std::set<int> s; s.begin()++;
-            // so if m_height == -1, the node must be header, and we stop calling increment or decrement
+            node->m_height = -1;    // If m_height == -1, the node must be header.
         }
 
         constexpr static void init(avl_node* node)

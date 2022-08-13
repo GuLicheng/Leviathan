@@ -14,9 +14,7 @@ namespace leviathan::collections
         }
 
         constexpr static void init(simple_binary_node* node)
-        {
-            node->m_left = node->m_right = node->m_parent = nullptr;
-        }
+        { node->m_left = node->m_right = node->m_parent = nullptr; }
 
         constexpr static void insert_and_rebalance(bool insert_left,
                                       simple_binary_node* x,
@@ -46,13 +44,7 @@ namespace leviathan::collections
         }
 
         constexpr static bool is_header(simple_binary_node* node)
-        {
-            // for an empty tree, the header->parent is nullptr and ++begin() will cause infinite loop
-            // we use this to avoid follow code enter infinite loop
-            // std::set<int> s;
-            // s.begin()++;
-            return node->m_parent == nullptr;
-        }            
+        { return node->m_parent == nullptr; }            
 
         constexpr static void clone(simple_binary_node* x, const simple_binary_node* y)
         { } 

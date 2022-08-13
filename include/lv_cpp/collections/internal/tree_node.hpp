@@ -231,5 +231,5 @@ namespace leviathan::collections
         for (; x->left; x = x->left); // x->left will always be true
     }
 
-    To avoid this situation, 
+    To avoid this situation, we use this method to check whether to increment the current node
 */
