@@ -28,6 +28,7 @@ template <basic_fixed_string Tag, typename T>
 struct tag_value 
 {
     constexpr static auto tag() { return Tag; }
+    // constexpr static auto tag = Tag;
     using value_type = T;
     T value; 
 };

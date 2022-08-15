@@ -1,81 +1,203 @@
-#include <iostream>
-#include <vector>
-
-template <typename T>
-std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec)
-{
-    os << '[';
-    for (size_t i = 0; i < vec.size(); ++i)
-    {
-        if (i != 0) os << ", ";
-        os << vec[i];
-    }
-    return os << ']';
-}
 
 
-#include <lv_cpp/named_tuple.hpp>
+#include <lv_cpp/string/fixed_string.hpp>
+#include <stdint.h>
 #include <tuple>
 #include <string_view>
-#include <lv_cpp/meta/concepts.hpp>
-#include <lv_cpp/string/fixed_string.hpp>
 #include <type_traits>
-#include <string>
-#include <stdint.h>
 #include <algorithm>
-#include <array>
-#include <optional>
-#include <lv_cpp/utils/struct.hpp>
 
-enum Gender { Male, Female, Unknown };
-std::ostream& operator<<(std::ostream& os, Gender gender)
+using leviathan::basic_fixed_string;
+using leviathan::fixed_string_list;
+
+///////////////////////////////////////
+//           Initializer
+///////////////////////////////////////
+template <typename T>
+struct default_initializer
 {
-    using enum Gender;
-    switch (gender)
+    constexpr auto operator()() const { return T{}; }
+};
+
+inline constexpr auto required_initializer = []{};
+
+///////////////////////////////////////////////////////
+//   Return type of arg_t for init named_tuple element
+///////////////////////////////////////////////////////
+template <basic_fixed_string Tag, typename T>
+struct tag_value 
+{
+    constexpr static auto tag = Tag;
+    using value_type = T;
+    T value; 
+};
+
+template <typename T>
+struct is_tag_value : std::false_type { };
+
+template <basic_fixed_string Tag, typename T>
+struct is_tag_value<tag_value<Tag, T>> : std::true_type { };
+
+
+///////////////////////////////////////
+//   Helper class for named argument
+///////////////////////////////////////
+template <basic_fixed_string Tag>
+struct arg_t
+{
+    constexpr static auto tag = Tag;
+
+    template <typename T>
+    constexpr auto operator=(T t) const 
+    { return tag_value<Tag, T>{ .value = std::move(t)}; }
+
+};
+
+template <basic_fixed_string Tag>
+inline constexpr auto arg = arg_t<Tag>{ };
+
+template <basic_fixed_string S> 
+constexpr arg_t<S> operator ""_arg() { return {}; }
+
+///////////////////////////////////////
+//   named_tuple member 
+///////////////////////////////////////
+template <basic_fixed_string Tag, typename T, auto Initializer = default_initializer<T>()>
+struct field
+{
+    using value_type = T;
+    constexpr static auto tag_value = Tag;
+    constexpr static auto initializer_value() { return Initializer(); }
+};
+
+// auto is OK, but offer R may faster 
+template <typename R, typename... Fields, typename... TagValues>
+constexpr auto adjust_parameters(TagValues... tvs)
+{
+    constexpr auto size = sizeof...(TagValues);  
+    auto params = std::forward_as_tuple(tvs...); // save params
+
+    auto do_search = [&]<typename Field>() {
+        constexpr auto index = fixed_string_list<tvs.tag...>::template index_of<Field::tag_value>;
+        if constexpr (index == size) 
+            return Field::initializer_value(); // not exist
+        else 
+            return std::move(std::get<index>(params).value);
+    };
+    return R{ do_search.template operator()<Fields>()... };
+}
+
+template <typename... Fields>
+class named_tuple
+{
+    constexpr static fixed_string_list<Fields::tag_value...> tag_list { };
+public:
+    using tuple_type = std::tuple<typename Fields::value_type...>;
+
+    template <size_t N>
+    constexpr std::string_view name_of() const
     {
-        case Male: os << "Male"; break;
-        case Female: os << "Female"; break;
-        default: os << "Unknown"; break;
+        using T = std::tuple_element_t<N, std::tuple<Fields...>>;
+        return T::tag_value.sv();
     }
-    return os;
-}
+
+    template <typename... TagValues>
+    constexpr named_tuple(TagValues... tvs)
+        : val(adjust_parameters<tuple_type, Fields...>(std::move(tvs)...)) 
+    {
+        // avoid error name
+        static_assert((tag_list.template contains<TagValues::tag> && ...), "Unknown Tag");
+    }
+    constexpr named_tuple() = default;
+    constexpr named_tuple(const named_tuple&) = default; // FIX ME
+    constexpr named_tuple(named_tuple&&) noexcept(true) = default; // FIX ME
+    constexpr named_tuple& operator=(const named_tuple&) = default; // FIX ME
+    constexpr named_tuple& operator=(named_tuple&&) noexcept(true) = default; // FIX ME
+
+    template <typename CharT>
+    friend std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const named_tuple& rhs)
+    {   
+        os << '{' << ' ';
+        ((std::cout << Fields::tag_value << ": " << rhs.get_with<Fields::tag_value>() << ", "), ...);
+        return os << '}';
+    }
+
+    template <basic_fixed_string Tag>
+    auto& get_with() 
+    {
+        constexpr auto index = tag_list.template index_of<Tag>;
+        return std::get<index>(val);
+    }
+
+    template <basic_fixed_string Tag>
+    auto& get_with() const
+    {
+        constexpr auto index = tag_list.template index_of<Tag>;
+        return std::get<index>(val);
+    }
+
+    template <size_t N>
+    auto& get_with() { return std::get<N>(val); }
+
+    template <size_t N>
+    auto& get_with() const { return std::get<N>(val); }
+
+    template <typename T>
+    constexpr decltype(auto) operator[](T) const
+    {
+        constexpr auto tag = T::tag;
+        return get_with<tag>();
+    }
+
+    template <typename T>
+    constexpr decltype(auto) operator[](T) 
+    {
+        constexpr auto tag = T::tag;
+        return get_with<tag>();
+    }
 
 
-using KeyField = field<"id", int, required_initializer>;
-using OptionalField = field<"sex", Gender, []{ return Gender::Unknown; }>;
-using NameFiled = field<"name", std::string, []{ return "Ada"; }>;
-using RefFiled = field<"ref", double&>;
-using OtherInfoFiled = field<"infos", std::vector<std::string_view>>;
+private:
+    tuple_type val; // store values
+};
 
-using person = named_tuple<
-        KeyField,
-        OptionalField,
-        NameFiled,
-        RefFiled,
-        OtherInfoFiled
-    >;
-
-static_assert(leviathan::meta::tuple_like<person>); 
-static double pi = 3.14;
-void test1()
+namespace std
 {
-    person p1 { arg<"id"> = 1, arg<"ref"> = std::ref(pi), arg<"name"> = "Alice", arg<"sex"> = Gender::Female };
-    person p2 { "id"_arg = 2, "ref"_arg = std::ref(pi) };
-    std::cout << p1 << '\n';
-    std::cout << p2 << '\n';
+    using ::named_tuple;
 
-    // std::apply([](auto...) { }, p1); 
-    // https://stackoverflow.com/questions/69216934/unable-to-use-stdapply-on-user-defined-types
+    template <typename... Ts>
+    struct tuple_size<named_tuple<Ts...>>
+        : integral_constant<size_t, sizeof...(Ts)> { };
 
+    template <size_t N, typename... Ts>
+    struct tuple_element<N, named_tuple<Ts...>> 
+        : tuple_element<N, typename named_tuple<Ts...>::tuple_type> { };
+
+    template<size_t I, class... Types>
+    constexpr tuple_element_t<I, named_tuple<Types...>>&
+    get(named_tuple<Types...>& t) noexcept
+    {
+        return t.template get_with<I>();
+    }
+
+    template<size_t I, class... Types>
+    constexpr tuple_element_t<I, named_tuple<Types...>>&&
+    get(named_tuple<Types...>&& t) noexcept
+    {
+        return std::move(t.template get_with<I>());
+    }
+
+    template<size_t I, class... Types>
+    constexpr const tuple_element_t<I, named_tuple<Types...>>&
+    get(const named_tuple<Types...>& t) noexcept
+    {
+        return t.template get_with<I>();
+    }
+
+    template<size_t I, class... Types>
+    constexpr const tuple_element_t<I, named_tuple<Types...>>&& 
+    get(const named_tuple<Types...>&& t) noexcept
+    {
+        return std::move(t.template get_with<I>());
+    }
 }
-
-
-int main()
-{
-    test1();
-}
-
-
-
-
-

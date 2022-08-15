@@ -4,42 +4,20 @@
 #include <array>
 #include <algorithm>
 
-#include <lv_cpp/meta/type_list.hpp>
-
-// Arr2IndexSeq IndexSeq2Arr
-
-template <typename Indices1, typename Indices2>
-struct next_index_sequence;
+template <typename>
+struct Default { };
 
 
-template <std::array, typename IndexSeq>
-struct Arr2IdxImpl;
-
-template <std::array value, std::size_t... Idx>
-struct Arr2IdxImpl<value, std::index_sequence<Idx...>>
-{
-    using type = std::index_sequence<
-        value[Idx]...
-    >;
+template <typename T> requires (std::integral<T>)
+struct Default<T> {
+    using type = int;
 };
 
-template <std::array value>
-struct Arr2Idx
-{
-    using type = typename Arr2IdxImpl<value, std::make_index_sequence<value.size()>>::type;
-};
-
-template <typename T>
-struct Idx2Arr;
-
-template <std::size_t... Idx>
-struct Idx2Arr<std::index_sequence<Idx...>>
-{
-    constexpr static std::array value = { Idx... };
-};
 
 
 int main()
 {
-
+    Default<int>::type i = 0;
+    // Default<double>::type i = 0;
+    std::
 }

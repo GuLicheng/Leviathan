@@ -1,12 +1,12 @@
 #pragma once
 
 #include <algorithm>
-#include <functional>
+#include "common.hpp"
 
-namespace leviathan
+namespace leviathan::detail
 {
-    template <typename I, typename Comp = std::less<>>
-    constexpr bool combination(I first1, I middle, I last2, Comp comp = {})
+    template <typename I, typename Comp>
+    constexpr bool combination(I first1, I middle, I last2, Comp comp)
     {
 
         auto ori_f = first1, ori_l = last2;
@@ -56,16 +56,99 @@ namespace leviathan
         return !result;
     }
 
-    template <typename I>
-    constexpr bool next_combination(I first, I middle, I last)
-    {
-        return combination(first, middle, last);
-    }
+} // namespace detail
 
-    template <typename I>
-    constexpr bool prev_combination(I first, I middle, I last)
+namespace leviathan
+{
+
+    // template <typename I>
+    // constexpr bool next_combination(I first, I middle, I last)
+    // {
+    //     return combination(first, middle, last, std::less<>());
+    // }
+
+    // template <typename I>
+    // constexpr bool prev_combination(I first, I middle, I last)
+    // {
+    //     return combination(first, middle, last, std::greater<>());
+    // }
+
+
+    template<typename Iter>
+    using next_combination_result = std::ranges::in_found_result<Iter>;
+
+
+    /*
+        std::vector values = { 1, 2, 3 };
+        do 
+        {
+            for (auto val : values)
+                std::cout << val << ' ';
+            std::endl(std::cout);
+        } while (leviathan::next_combination(values, values.begin() + 2).found);
+        
+        Output:
+            1 2 3
+            1 3 2
+            2 3 1
+
+        std::vector values = { 1, 2, 2 };
+        do 
+        {
+            for (auto val : values)
+                std::cout << val << ' ';
+            std::endl(std::cout);
+        } while (leviathan::next_combination(values, values.begin() + 2).found);
+        
+        Output:
+            1 2 2
+            2 2 1
+    */
+    struct next_combination_fn
     {
-        return combination(first, middle, last, std::greater<>());
-    }
+        template <std::bidirectional_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity>
+        requires std::sortable<I, Comp, Proj>
+        constexpr next_combination_result<I> operator()(I first, I middle, S last, Comp comp = {}, Proj proj = {}) const
+        {
+            auto tail = std::ranges::next(first, last);
+            return { std::move(last), detail::combination(first, middle, tail, detail::make_comp_proj(comp, proj)) };
+        } 
+
+        template <std::ranges::bidirectional_range R, typename Comp = std::ranges::less, typename Proj = std::identity>
+        requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
+        constexpr next_combination_result<std::ranges::borrowed_iterator_t<R>>
+        operator()(R&& r, std::ranges::iterator_t<R> middle, Comp comp = {}, Proj proj = {}) const
+        {
+            return (*this)(std::ranges::begin(r), std::move(middle), std::ranges::end(r),
+                    std::move(comp), std::move(proj));
+        }
+    };
+
+    inline constexpr next_combination_fn next_combination{};
+
+    template<typename Iter>
+    using prev_combination_result = std::ranges::in_found_result<Iter>;
+
+    struct prev_combination_fn
+    {
+        template <std::bidirectional_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::greater, typename Proj = std::identity>
+        requires std::sortable<I, Comp, Proj>
+        constexpr prev_combination_result<I> operator()(I first, I middle, S last, Comp comp = {}, Proj proj = {}) const
+        {
+            auto tail = std::ranges::next(first, last);
+            return { std::move(last), detail::combination(first, tail, detail::make_comp_proj(comp, proj)) };
+        } 
+
+        template <std::ranges::bidirectional_range R, typename Comp = std::ranges::less, typename Proj = std::identity>
+        requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
+        constexpr prev_combination_result<std::ranges::borrowed_iterator_t<R>>
+        operator()(R&& r, std::ranges::iterator_t<R> middle, Comp comp = {}, Proj proj = {}) const
+        {
+            return (*this)(std::ranges::begin(r), std::move(middle), std::ranges::end(r),
+                    std::move(comp), std::move(proj));
+        }
+    };
+
+    inline constexpr prev_combination_fn prev_combination{};
 
 }

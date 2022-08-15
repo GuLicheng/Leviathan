@@ -1,5 +1,6 @@
-#ifndef __ALGORITHM_HPP__
-#define __ALGORITHM_HPP__
+#pragma once
+
+#include "common.hpp"
 
 #include <algorithm>    // some base algorithms
 #include <vector>       // buffer for some algorithms
@@ -451,27 +452,12 @@ namespace leviathan::sort
 namespace leviathan
 {
 
-    // Copy from stl_algo.h
-    template <typename Comp, typename Proj>
-    constexpr auto make_comp_proj(Comp& comp, Proj& proj)
-    {
-        return [&](auto&& lhs, auto&& rhs) -> bool
-        {
-            using _TL = decltype(lhs);
-            using _TR = decltype(rhs);
-            return std::invoke(comp,
-                                 std::invoke(proj, std::forward<_TL>(lhs)),
-                                 std::invoke(proj, std::forward<_TR>(rhs)));
-        };
-    }
-
-
 #define RegisterSortAlgorithm(name) \
     struct name##_fn {  \
         template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity> \
         requires std::sortable<I, Comp, Proj> \
         constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) const \
-        { sort:: name (std::move(first), std::move(last), make_comp_proj(comp, proj)); return first + (last - first); }            \
+        { sort:: name (std::move(first), std::move(last), detail::make_comp_proj(comp, proj)); return first + (last - first); }            \
         template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity> \
         requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj> \
         constexpr std::ranges::borrowed_iterator_t<Range> \
@@ -508,7 +494,7 @@ namespace leviathan
         template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity> \
         requires std::sortable<I, Comp, Proj> \
         constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) const \
-        { std:: name (std::move(first), std::move(last), make_comp_proj(comp, proj)); return first + (last - first); }            \
+        { std:: name (std::move(first), std::move(last), detail::make_comp_proj(comp, proj)); return first + (last - first); }            \
         template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity> \
         requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj> \
         constexpr std::ranges::borrowed_iterator_t<Range> \
@@ -523,7 +509,6 @@ namespace leviathan
 
 } // namespace leviathan
 
-#endif
 
 
 /*
