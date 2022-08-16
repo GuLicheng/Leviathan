@@ -111,7 +111,7 @@ namespace leviathan
         constexpr next_combination_result<I> operator()(I first, I middle, S last, Comp comp = {}, Proj proj = {}) const
         {
             auto tail = std::ranges::next(first, last);
-            return { std::move(last), detail::combination(first, middle, tail, detail::make_comp_proj(comp, proj)) };
+            return { std::move(tail), detail::combination(first, middle, tail, detail::make_comp_proj(comp, proj)) };
         } 
 
         template <std::ranges::bidirectional_range R, typename Comp = std::ranges::less, typename Proj = std::identity>
@@ -136,10 +136,10 @@ namespace leviathan
         constexpr prev_combination_result<I> operator()(I first, I middle, S last, Comp comp = {}, Proj proj = {}) const
         {
             auto tail = std::ranges::next(first, last);
-            return { std::move(last), detail::combination(first, tail, detail::make_comp_proj(comp, proj)) };
+            return { std::move(tail), detail::combination(first, tail, detail::make_comp_proj(comp, proj)) };
         } 
 
-        template <std::ranges::bidirectional_range R, typename Comp = std::ranges::less, typename Proj = std::identity>
+        template <std::ranges::bidirectional_range R, typename Comp = std::ranges::greater, typename Proj = std::identity>
         requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
         constexpr prev_combination_result<std::ranges::borrowed_iterator_t<R>>
         operator()(R&& r, std::ranges::iterator_t<R> middle, Comp comp = {}, Proj proj = {}) const
