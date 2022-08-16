@@ -63,7 +63,7 @@ namespace leviathan::sort
 
         auto i = first - 1, j = last;
         const auto offset = (std::distance(first, last) - 1) >> 1;
-        const auto x = *(first + offset);
+        const auto x = *(first + offset);  // error since we copy the value of *(first + offset)
         while (i < j) 
         {
             while (comp(*(++i), x));
@@ -456,8 +456,12 @@ namespace leviathan
     struct name##_fn {  \
         template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity> \
         requires std::sortable<I, Comp, Proj> \
-        constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) const \
-        { sort:: name (std::move(first), std::move(last), detail::make_comp_proj(comp, proj)); return first + (last - first); }            \
+        constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) const              \
+        {                                                                                          \
+            auto tail = std::ranges::next(first, last);                                            \
+            sort:: name (std::move(first), std::move(tail), detail::make_comp_proj(comp, proj));   \
+            return tail;                                                                           \
+        }                                                                                          \
         template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity> \
         requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj> \
         constexpr std::ranges::borrowed_iterator_t<Range> \
