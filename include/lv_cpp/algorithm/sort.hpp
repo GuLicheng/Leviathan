@@ -459,7 +459,7 @@ namespace leviathan
         constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) const              \
         {                                                                                          \
             auto tail = std::ranges::next(first, last);                                            \
-            sort:: name (std::move(first), std::move(tail), detail::make_comp_proj(comp, proj));   \
+            sort:: name (std::move(first), tail, detail::make_comp_proj(comp, proj));              \
             return tail;                                                                           \
         }                                                                                          \
         template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity> \
@@ -498,7 +498,8 @@ namespace leviathan
         template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity> \
         requires std::sortable<I, Comp, Proj> \
         constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) const \
-        { std:: name (std::move(first), std::move(last), detail::make_comp_proj(comp, proj)); return first + (last - first); }            \
+        { auto tail = std::ranges::next(first, last);\
+        std:: name (std::move(first), tail, detail::make_comp_proj(comp, proj)); return tail; }            \
         template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity> \
         requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj> \
         constexpr std::ranges::borrowed_iterator_t<Range> \

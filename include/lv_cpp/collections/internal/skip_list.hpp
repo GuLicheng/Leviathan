@@ -22,8 +22,8 @@ namespace std::pmr
 namespace leviathan::collections
 {
 
-	template <typename T, typename Compare, typename Allocator, typename KeyOfValue, bool UniqueKey, int MaxLevel = 24, int Ratio = 4>
-	class skip_list
+    template <typename T, typename Compare, typename Allocator, typename KeyOfValue, bool UniqueKey, int MaxLevel = 24, int Ratio = 4>
+    class skip_list
     {
         static_assert(UniqueKey, "Not support multi-key now");
 
@@ -41,13 +41,13 @@ namespace leviathan::collections
         //     return std::min(MaxLevel, level);
         // }
 
-		static int get_level()
-		{
+        static int get_level()
+        {
             // return get_level_debug(); // debug
-			int level = 1;
-			for (; rd() < p; ++level);
-			return std::min(MaxLevel, level);
-		}
+            int level = 1;
+            for (; rd() < p; ++level);
+            return std::min(MaxLevel, level);
+        }
 
         // https://en.wikipedia.org/wiki/Flexible_array_member
         struct skip_list_node 
@@ -96,9 +96,9 @@ namespace leviathan::collections
         template <typename U> using key_arg_t = leviathan::collections::detail::key_arg<IsTransparent, U, Key>;
 
 
-		template <bool Const>
-		struct skip_list_iterator
-		{
+        template <bool Const>
+        struct skip_list_iterator
+        {
 
             using link_type = std::conditional_t<Const, const skip_list_node*, skip_list_node*>;
             using value_type = std::conditional_t<Const, const T, T>;
@@ -108,46 +108,46 @@ namespace leviathan::collections
 
             link_type m_ptr;
 
-			constexpr skip_list_iterator() noexcept = default;
-			constexpr skip_list_iterator(const skip_list_iterator&) noexcept = default;
+            constexpr skip_list_iterator() noexcept = default;
+            constexpr skip_list_iterator(const skip_list_iterator&) noexcept = default;
 
-			constexpr skip_list_iterator(const skip_list_iterator<!Const>& rhs) noexcept requires (Const)
-				: m_ptr{ rhs.m_ptr } { }
+            constexpr skip_list_iterator(const skip_list_iterator<!Const>& rhs) noexcept requires (Const)
+                : m_ptr{ rhs.m_ptr } { }
 
-			constexpr skip_list_iterator(link_type ptr) noexcept
-				: m_ptr{ ptr } { }
+            constexpr skip_list_iterator(link_type ptr) noexcept
+                : m_ptr{ ptr } { }
 
-			constexpr skip_list_iterator& operator++()
-			{
-				m_ptr = m_ptr->m_next[0];
-				return *this;
-			}
+            constexpr skip_list_iterator& operator++()
+            {
+                m_ptr = m_ptr->m_next[0];
+                return *this;
+            }
 
-			constexpr skip_list_iterator& operator--()
-			{
-				m_ptr = m_ptr->m_prev;
-				return *this;
-			}
+            constexpr skip_list_iterator& operator--()
+            {
+                m_ptr = m_ptr->m_prev;
+                return *this;
+            }
 
-			constexpr skip_list_iterator operator++(int)
-			{
-				auto old = *this;
-				++* this;
-				return old;
-			}
+            constexpr skip_list_iterator operator++(int)
+            {
+                auto old = *this;
+                ++* this;
+                return old;
+            }
 
-			constexpr skip_list_iterator operator--(int)
-			{
-				auto old = *this;
-				--* this;
-				return old;
-			}
+            constexpr skip_list_iterator operator--(int)
+            {
+                auto old = *this;
+                --* this;
+                return old;
+            }
 
-			constexpr auto operator->() const
-			{ return std::addressof(this->operator*()); }
+            constexpr auto operator->() const
+            { return std::addressof(this->operator*()); }
 
-			constexpr reference operator*() const
-			{ return *(m_ptr->value_ptr()); }
+            constexpr reference operator*() const
+            { return *(m_ptr->value_ptr()); }
 
             constexpr skip_list_iterator skip(difference_type i) const 
             { return { m_ptr->m_next[i] }; }
@@ -164,12 +164,12 @@ namespace leviathan::collections
             constexpr auto level() const 
             { return m_ptr->m_cnt; }
 
-			constexpr bool operator==(const skip_list_iterator& rhs) const = default;
+            constexpr bool operator==(const skip_list_iterator& rhs) const = default;
 
             skip_list_iterator<!Const> const_cast_to_iterator() const requires (Const)
             { return skip_list_iterator<!Const>(const_cast<typename skip_list_iterator<!Const>::link_type>(m_ptr)); }
 
-		};
+        };
 
         constexpr static bool IsNothrowMoveConstruct = 
                     std::is_nothrow_move_constructible_v<Compare> 
@@ -464,101 +464,101 @@ namespace leviathan::collections
         template <typename U>
         std::pair<iterator, bool> insert_unique(U&& val)
         {
-			std::array<iterator, MaxLevel> prev;
-			prev.fill(end());
-			auto [cur, exist] = find_node_with_prev(KeyOfValue()(val), prev);
+            std::array<iterator, MaxLevel> prev;
+            prev.fill(end());
+            auto [cur, exist] = find_node_with_prev(KeyOfValue()(val), prev);
 
-			if (exist)
-				return { cur, false };
+            if (exist)
+                return { cur, false };
 
-			// insert a new node
+            // insert a new node
             auto new_node = create_node((U&&) val);
             new_node->reset(cur.m_ptr, header());
             cur.skip(0).set_prev(new_node);
             iterator worker { new_node };
             iterator head { header() };
             
-			// update header
-			const int level = new_node->m_cnt;
-			for (int i = 0; i < level; ++i)
-			{
-				if (i >= m_level)
+            // update header
+            const int level = new_node->m_cnt;
+            for (int i = 0; i < level; ++i)
+            {
+                if (i >= m_level)
                     head.set_next(i, worker);
-				else
-				{
+                else
+                {
                     worker.set_next(i, prev[i].skip(i));
                     prev[i].set_next(i, worker);
-				}
-			}
+                }
+            }
             m_level = std::max(m_level, level);
             ++m_size;
-			return { worker, true };
+            return { worker, true };
         }
 
-		// return target node if succeed otherwise prev position of target node for inserting
-		template <typename K>
-		std::pair<iterator, bool> find_node_with_prev(const K& val, std::array<iterator, MaxLevel>& prev) 
-		{
+        // return target node if succeed otherwise prev position of target node for inserting
+        template <typename K>
+        std::pair<iterator, bool> find_node_with_prev(const K& val, std::array<iterator, MaxLevel>& prev) 
+        {
             iterator cur = header();
             iterator sent = end();
             bool exits = false;
-			for (int i = m_level - 1; i >= 0; --i)
-			{
+            for (int i = m_level - 1; i >= 0; --i)
+            {
                 for (; cur.skip(i) != sent && m_cmp(KeyOfValue()(*cur.skip(i)), val); cur.skip_to(i));
                 auto next = cur.skip(i);
                 // cur is prev of position, so val <= *next
-				if (next != end() && !m_cmp(val, KeyOfValue()(*next)))
-				{
+                if (next != end() && !m_cmp(val, KeyOfValue()(*next)))
+                {
                     exits = true; // find it and do nothing
-				}
-				prev[i] = cur;
-			}
-			// cur is prev of node
-			return { cur, exits };
-		}
+                }
+                prev[i] = cur;
+            }
+            // cur is prev of node
+            return { cur, exits };
+        }
 
         // return target node if succeed otherwise prev of target value 
-		template <typename K>
-		std::pair<iterator, bool> find_node(const K& val) 
-		{
+        template <typename K>
+        std::pair<iterator, bool> find_node(const K& val) 
+        {
             auto cur = iterator(header());
             auto sent = end();
-			for (int i = m_level; i >= 0; --i)
-			{
+            for (int i = m_level; i >= 0; --i)
+            {
                 for (; cur.skip(i) != sent && m_cmp(KeyOfValue()(*cur.skip(i)), val); cur.skip_to(i));
                 auto next = cur.skip(i);
-				if (next != end() && !m_cmp(val, KeyOfValue()(*next)))
-				{
-					return { next, true };
-				}
-			}
-			return { cur, false };
-		}
+                if (next != end() && !m_cmp(val, KeyOfValue()(*next)))
+                {
+                    return { next, true };
+                }
+            }
+            return { cur, false };
+        }
 
         template <typename K>
         void erase_node_by_value(const K& val)
         {
-			std::array<iterator, MaxLevel> prev;
-			prev.fill(end());
-			auto [cur, exist] = find_node_with_prev(val, prev);
+            std::array<iterator, MaxLevel> prev;
+            prev.fill(end());
+            auto [cur, exist] = find_node_with_prev(val, prev);
 
-			if (!exist)
+            if (!exist)
                 return;
 
             auto deleted_pos = cur.skip(0);
             deleted_pos.skip(0).set_prev(cur);
-			for (int i = 0; i < deleted_pos.level(); ++i)
+            for (int i = 0; i < deleted_pos.level(); ++i)
                 prev[i].set_next(i, deleted_pos.skip(i));
 
-			int new_level;
+            int new_level;
             iterator sent = end();
             iterator head = iterator{ header() };
-			for (new_level = m_level - 1; new_level >= 0 && head.skip(new_level) == sent; --new_level);
-			m_level = new_level + 1;
+            for (new_level = m_level - 1; new_level >= 0 && head.skip(new_level) == sent; --new_level);
+            m_level = new_level + 1;
 
-			drop_node(deleted_pos.m_ptr);
-			--m_size;
-			return;
+            drop_node(deleted_pos.m_ptr);
+            --m_size;
+            return;
         }
 
 
@@ -610,11 +610,11 @@ namespace leviathan::collections
         { return m_header; }
 
         // members
-		[[no_unique_address]] Compare m_cmp;
-		[[no_unique_address]] node_allocator m_alloc;
-		std::size_t m_size;
-		skip_list_node* m_header;
-		int m_level;
+        [[no_unique_address]] Compare m_cmp;
+        [[no_unique_address]] node_allocator m_alloc;
+        std::size_t m_size;
+        skip_list_node* m_header;
+        int m_level;
 
     };
 
