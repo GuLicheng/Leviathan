@@ -470,7 +470,7 @@ namespace leviathan::ranges
             if constexpr (std::ranges::common_range<last_view>)
             {
                 constexpr auto N = sizeof...(Vs);
-                return iterator<false>{ this, std::in_place_index<N - 1>, std::ranges::get<N - 1>(m_views) };
+                return iterator<true>{ this, std::in_place_index<N - 1>, std::ranges::end(std::get<N - 1>(m_views)) };
             }
             else
             {
@@ -856,15 +856,17 @@ namespace std::ranges
 
 #include <vector>
 #include <iostream>
-#include <lv_cpp/meta/template_info.hpp>
 #include <span>
 
-
-int main()
+void test()
 {
     std::vector values = { 1, 2, 3, 4, 5 };
-    for (auto [index, value] : values | leviathan::ranges::enumerate)
+    for (const auto [index, value] : values | leviathan::ranges::enumerate) 
+    {
+        PrintTypeCategory(index);
+        PrintTypeCategory(value);
         std::cout << "Index = " << index << " Value = " << value << '\n';
+    }
 
     std::vector<int> v1{1, 2, 3}, v2{4, 5}, v3{};
     std::array a{6, 7, 8};
@@ -872,5 +874,9 @@ int main()
     for (auto value : leviathan::ranges::concat(v1, v2, v3, a, s))
         std::cout << value << ' ';
     std::cout << '\n';
+}
 
+int main()
+{
+    test();
 }
