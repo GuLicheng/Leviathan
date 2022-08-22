@@ -13,6 +13,8 @@
 #include <variant>
 #include <assert.h>
 
+#include <iostream>
+
 // Some utils
 namespace leviathan::ranges::detail
 {
