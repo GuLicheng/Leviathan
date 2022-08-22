@@ -196,9 +196,9 @@ namespace leviathan::collections
         // for AVL tree, it may copy balanced_factor
         // for RB tree, it may copy color
         // for SBT, it may copy size infomation 
-        { Node::clone(node1, cnode) } -> std::same_as<void>;  // copy members without value field from node2 to node1
+        { Node::clone(node1, cnode) } -> std::same_as<void>;  // copy members without value field from cnode to node1
 
-        // default construct for node and header
+        // default constructor for node and header
         { Node::reset(node1) } -> std::same_as<void>;  // reset header for an empty tree 
         { Node::init(node1) } -> std::same_as<void>;   // init node without value field after calling allocate
 
@@ -224,12 +224,12 @@ namespace leviathan::collections
         s.begin()++; // infinity loop
     }
 
-    Since for an empty tree, the header->left == header->right == header, see follow code
+    Since for an empty tree, the header->left == header->right == header, see follow code.
     if (x->right)
     {
         x = x->right;
         for (; x->left; x = x->left); // x->left will always be true
     }
 
-    To avoid this situation, we use this method to check whether to increment the current node
+    To avoid this situation, we use this method(Node::is_header) to check whether to increment the current node.
 */

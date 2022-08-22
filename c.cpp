@@ -79,15 +79,22 @@ namespace leviathan::ranges::detail
         using iterator_category = T;
     };
 
+
+
 }
+
+#include <lv_cpp/meta/template_info.hpp>
+#include <iostream>
 
 namespace leviathan::ranges
 {
+
     // simple pipeline
     template <typename Adaptor>
     struct range_adaptor_closure
     {
-        template <typename R, typename Self>
+        template <std::ranges::viewable_range R, typename Self>
+        requires std::derived_from<std::remove_cvref_t<Self>, Adaptor>
         friend constexpr auto operator|(R&& r, Self&& self)
         { return std::forward<Self>(self)(std::forward<R>(r)); }
     };
@@ -375,6 +382,18 @@ namespace leviathan::ranges
     template <typename R>
     concept constant_time_reversible = (std::ranges::bidirectional_range<R> && std::ranges::common_range<R>) || (std::ranges::sized_range<R> && std::ranges::random_access_range<R>);
 
+    namespace detail
+    {
+        template <typename Tuple, std::size_t... Idx>
+        constexpr bool constant_time_reversible_except_last_element(std::index_sequence<Idx...>)
+        {
+            constexpr auto A = std::tuple_size_v<Tuple>;
+            constexpr auto B = sizeof...(Idx);
+            static_assert(A == B + 1 && B > 0);
+            return (constant_time_reversible<std::tuple_element_t<Idx, Tuple>> && ...);
+        }
+    }
+
     template <typename Ref, typename RRef, typename It>
     concept concat_indirectly_readable_impl = requires (const It it)
     {
@@ -398,7 +417,7 @@ namespace leviathan::ranges
     } && concat_indirectly_readable<Rs...>;
 
     template <typename... Rs>
-    concept concat_bidirectional = false; 
+    concept concat_bidirectional = std::ranges::bidirectional_range<detail::last_element_t<Rs...>> && detail::constant_time_reversible_except_last_element<std::tuple<Rs...>>(std::make_index_sequence<sizeof...(Rs) - 1>());
     // Last element of Rs... models bidirectional_range
     // And, all except the last element of Rs... model constant-time-reversible.
 
@@ -437,7 +456,7 @@ namespace leviathan::ranges
             if constexpr (std::ranges::common_range<last_view>)
             {
                 constexpr auto N = sizeof...(Vs);
-                return iterator<false>{ this, std::in_place_index<N - 1>, std::ranges::get<N - 1>(m_views) };
+                return iterator<false> { this, std::in_place_index<N - 1>, std::ranges::end(std::get<N - 1>(m_views)) };
             }
             else
             {
@@ -568,7 +587,7 @@ namespace leviathan::ranges
                 }
                 else
                 {
-                    m_iter.template emplace<N + 1>(std::ranges::begin(get<N + 1>(m_parent->m_views)));
+                    m_iter.template emplace<N + 1>(std::ranges::begin(std::get<N + 1>(m_parent->m_views)));
                     advance_fwd<N + 1>(0, offset + steps - n_size);
                 }
             }
@@ -589,10 +608,10 @@ namespace leviathan::ranges
                 }
                 else
                 {
-                    m_iter.template emplace<N - 1>(std::ranges::begin(get<N - 1>(m_parent->m_views)) +
-                                                   std::ranges::size(get<N - 1>(m_parent->m_views)));
+                    m_iter.template emplace<N - 1>(std::ranges::begin(std::get<N - 1>(m_parent->m_views)) +
+                                                   std::ranges::size(std::get<N - 1>(m_parent->m_views)));
                     advance_bwd<N - 1>(
-                        static_cast<difference_type>(std::ranges::size(get<N - 1>(m_parent->m_views))),
+                        static_cast<difference_type>(std::ranges::size(std::get<N - 1>(m_parent->m_views))),
                         steps - offset);
                 }
             }
@@ -616,18 +635,16 @@ namespace leviathan::ranges
         constexpr iterator& operator++()
         {
             assert(!m_iter.valueless_by_exception());
-            auto impl = [this]<std::size_t... Idx>(std::index_sequence<Idx...>)
+            const auto i = m_iter.index();
+
+            [=, this]<std::size_t... Idx>(std::index_sequence<Idx...>)
             {
-                auto do_next = [this]<std::size_t I>(int index)
+                auto do_next = [=, this]<std::size_t I>()
                 {
-                    if (I == index)
+                    if (I == i)
                     {
                         ++std::get<I>(m_iter);
                         satisfy<I>();
-                    }
-                    else
-                    {
-                        return;
                     }
                 };
 
@@ -656,17 +673,17 @@ namespace leviathan::ranges
         constexpr iterator& operator--() requires concat_bidirectional<detail::maybe_const_t<Const, Vs>...>
         {
             assert(!m_iter.valueless_by_exception());
-            auto impl = [this]<std::size_t... Idx>(std::index_sequence<Idx...>)
+            const auto i = m_iter.index();
+
+            [=, this]<std::size_t... Idx>(std::index_sequence<Idx...>)
             {
-                auto do_prev = [this]<std::size_t I>(int index)
+                auto do_next = [=, this]<std::size_t I>()
                 {
-                    if (I == index)
+                    if (I == i)
                         prev<I>();
-                    else
-                        return;
                 };
 
-                (do_prev.template operator() <Idx>(), ...);
+                (do_next.template operator() <Idx>(), ...);
 
             }(std::make_index_sequence<sizeof...(Vs)>());
 
@@ -680,55 +697,138 @@ namespace leviathan::ranges
             return temp;
         }
         
-        constexpr iterator& operator+=(difference_type n) requires concat_random_access<detail::maybe_const_t<Const, Vs>...>;
+        constexpr iterator& operator+=(difference_type n) requires concat_random_access<detail::maybe_const_t<Const, Vs>...>
+        {
+            assert(!m_iter.valueless_by_exception());
+            const auto i = m_iter.index();
 
-        constexpr iterator& operator-=(difference_type n) requires concat_random_access<detail::maybe_const_t<Const, Vs>...>;
+            if (n > 0)
+            {
+                [=, this]<std::size_t... Idx>(std::index_sequence<Idx...>)
+                {
+                    auto do_next = [=, this]<std::size_t I>()
+                    {
+                        if (I == i)
+                            advance_fwd<I>(get<I>(m_iter) - std::ranges::begin(get<I>(m_parent->m_views)), n);
+                    };
+
+                    (do_next.template operator() <Idx>(), ...);
+
+                }(std::make_index_sequence<sizeof...(Vs)>());
+            }
+            else if (n < 0)
+            {
+                [=, this]<std::size_t... Idx>(std::index_sequence<Idx...>)
+                {
+                    auto do_next = [=, this]<std::size_t I>()
+                    {
+                        if (I == i)
+                            advance_bwd<I>(get<I>(m_iter) - std::ranges::begin(get<I>(m_parent->m_views)), -n);
+                    };
+
+                    (do_next.template operator() <Idx>(), ...);
+
+                }(std::make_index_sequence<sizeof...(Vs)>());
+            }
+            return *this;
+        }
+
+        constexpr iterator& operator-=(difference_type n) requires concat_random_access<detail::maybe_const_t<Const, Vs>...>
+        {
+            *this += -n;
+            return *this;
+        }
 
         constexpr decltype(auto) operator[](difference_type n) const
-        requires concat_random_access<detail::maybe_const_t<Const, Vs>...>;
+        requires concat_random_access<detail::maybe_const_t<Const, Vs>...>
+        { return *((*this) + n); }
 
-        // friend constexpr bool operator==(const iterator& x, const iterator& y)
-        // requires(std::equality_comparable<std::ranges::iterator_t<detail::maybe_const_t<Const, Vs>>> && ...);
+        friend constexpr bool operator==(const iterator& x, const iterator& y)
+        requires(std::equality_comparable<std::ranges::iterator_t<detail::maybe_const_t<Const, Vs>>> && ...)
+        {
+            assert(!x.m_iter.valueless_by_exception() && !y.m_iter.valueless_by_exception());
+            return x.m_iter == y.m_iter;
+        }
 
-        // friend constexpr bool operator==(const iterator& it, std::default_sentinel_t);
+        friend constexpr bool operator==(const iterator& it, std::default_sentinel_t)
+        {
+            assert(!it.m_iter.valueless_by_exception());
+            constexpr auto last_idx = sizeof...(Vs) - 1;
+            return it.m_iter.index() == last_idx && std::get<last_idx>(it.m_iter) == std::ranges::end(std::get<last_idx>(it.m_parent->m_views));
+        }
 
-        // friend constexpr bool operator<(const iterator& x, const iterator& y)
-        // requires(std::ranges::random_access_range<detail::maybe_const_t<Const, Vs>>&&...);
+        friend constexpr bool operator<(const iterator& x, const iterator& y)
+        requires(std::ranges::random_access_range<detail::maybe_const_t<Const, Vs>>&&...)
+        {
+            assert(!x.m_iter.valueless_by_exception() && !y.m_iter.valueless_by_exception());
+            return x.m_iter < y.m_iter;
+        }
 
-        // friend constexpr bool operator>(const iterator& x, const iterator& y)
-        // requires(std::ranges::random_access_range<detail::maybe_const_t<Const, Vs>>&&...);
+        friend constexpr bool operator>(const iterator& x, const iterator& y)
+        requires(std::ranges::random_access_range<detail::maybe_const_t<Const, Vs>>&&...)
+        { return y < x; }
 
-        // friend constexpr bool operator<=(const iterator& x, const iterator& y)
-        // requires(std::ranges::random_access_range<detail::maybe_const_t<Const, Vs>>&&...);
+        friend constexpr bool operator<=(const iterator& x, const iterator& y)
+        requires(std::ranges::random_access_range<detail::maybe_const_t<Const, Vs>>&&...)
+        { return !(y < x); }
 
-        // friend constexpr bool operator>=(const iterator& x, const iterator& y)
-        // requires(std::ranges::random_access_range<detail::maybe_const_t<Const, Vs>> && ...);
+        friend constexpr bool operator>=(const iterator& x, const iterator& y)
+        requires(std::ranges::random_access_range<detail::maybe_const_t<Const, Vs>> && ...)
+        { return !(x < y); }
 
-        // friend constexpr auto operator<=>(const iterator& x, const iterator& y)
-        // requires((std::ranges::random_access_range<detail::maybe_const_t<Const, Vs>> &&std::three_way_comparable<detail::maybe_const_t<Const, Vs>>) && ...);
+        friend constexpr auto operator<=>(const iterator& x, const iterator& y)
+        requires((std::ranges::random_access_range<detail::maybe_const_t<Const, Vs>> &&std::three_way_comparable<detail::maybe_const_t<Const, Vs>>) && ...)
+        {
+            assert(!x.m_iter.valueless_by_exception() && !y.m_iter.valueless_by_exception());
+            return x.m_iter <=> y.m_iter;
+        }
 
-        // friend constexpr iterator operator+(const iterator& it, difference_type n)
-        // requires concat_random_access<detail::maybe_const_t<Const, Vs>...>;
+        friend constexpr iterator operator+(const iterator& it, difference_type n)
+        requires concat_random_access<detail::maybe_const_t<Const, Vs>...>
+        { return iterator{ it } += n; }
 
-        // friend constexpr iterator operator+(difference_type n, const iterator& it)
-        // requires concat_random_access<detail::maybe_const_t<Const, Vs>...>;
+        friend constexpr iterator operator+(difference_type n, const iterator& it)
+        requires concat_random_access<detail::maybe_const_t<Const, Vs>...>
+        { return it + n; }
 
-        // friend constexpr iterator operator-(const iterator& it, difference_type n)
-        // requires concat_random_access<detail::maybe_const_t<Const, Vs>...>;
+        friend constexpr iterator operator-(const iterator& it, difference_type n)
+        requires concat_random_access<detail::maybe_const_t<Const, Vs>...>
+        { return iterator{ it } -= n; }
 
-        // friend constexpr difference_type operator-(const iterator& x, const iterator& y) 
-        // requires concat_random_access<detail::maybe_const_t<Const, Vs>...>;
+        friend constexpr difference_type operator-(const iterator& x, const iterator& y) 
+        requires concat_random_access<detail::maybe_const_t<Const, Vs>...>
+        {
+            assert(!x.m_iter.valueless_by_exception() && !y.m_iter.valueless_by_exception());
+            const auto ix = x.m_iter.index(), iy = y.m_iter.index();
+            struct NotImpl { };
+            throw NotImpl{ };
+        }
 
         // friend constexpr difference_type operator-(const iterator& x, default_sentinel_t) 
         // requires concat_random_access<detail::maybe_const_t<Const, Vs>...>;
 
-        // friend constexpr difference_type operator-(std::default_sentinel_t, const iterator& x) 
-        // requires concat_random_access<detail::maybe_const_t<Const, Vs>...>;
+        friend constexpr difference_type operator-(std::default_sentinel_t, const iterator& x) 
+        requires concat_random_access<detail::maybe_const_t<Const, Vs>...>
+        { return -(x - std::default_sentinel); }
 
-        // friend constexpr decltype(auto) iter_move(iterator const& it) noexcept(see below);
+        friend constexpr decltype(auto) iter_move(iterator const& it) noexcept(((std::is_nothrow_invocable_v<decltype(std::ranges::iter_move), const std::ranges::iterator_t<detail::maybe_const_t<Const, Vs>>&> && std::is_nothrow_convertible_v<std::ranges::range_rvalue_reference_t<detail::maybe_const_t<Const, Vs>>, std::common_reference_t<std::ranges::range_rvalue_reference_t<detail::maybe_const_t<Const, Vs>>...>>) && ...))
+        {
+            assert(!it.m_iter.valueless_by_exception());
+            return std::visit(
+                [](const auto& i) -> std::common_reference_t<std::ranges::range_rvalue_reference_t<detail::maybe_const_t<Const, Vs>>...> {
+                    return std::ranges::iter_move(i);
+                }, it.m_iter
+            );
+        }
 
-        // friend constexpr void iter_swap(const iterator& x, const iterator& y) noexcept(see below)
-        // requires see below;
+        // Remarks: The exception specification is true if and only if: For every combination of two types X and Y in the set of all types in the parameter pack iterator_t<maybe-const<Const, Views>>>..., is_nothrow_invocable_v<decltype(ranges::iter_swap), const X&, const Y&> is true.
+        // Remarks: The expression in the requires-clause is true if and only if: For every combination of two types X and Y in the set of all types in the parameter pack iterator_t<maybe-const<Const, Views>>>..., indirectly_swappable<X, Y> is modelled.
+        friend constexpr void iter_swap(const iterator& x, const iterator& y) noexcept(false)
+        requires true
+        {
+            assert(!x.m_iter.valueless_by_exception() && !y.m_iter.valueless_by_exception());
+            std::visit(std::ranges::iter_swap, x.m_iter, y.m_iter);
+        }
 
     };
 
@@ -736,16 +836,41 @@ namespace leviathan::ranges
     template <typename... R>
     concat_view(R&&...) -> concat_view<std::views::all_t<R>...>;
 
+
+    struct concat_adaptor /* : range_adaptor_closure<concat_adaptor> */
+    {
+        template <std::ranges::viewable_range... Rs>
+        constexpr auto operator() [[nodiscard]] (Rs&&... rs) const
+        { return concat_view{ (Rs&&) rs...}; }
+    };
+
+    inline constexpr concat_adaptor concat{};
 }
+
+namespace std::ranges
+{
+    template <typename... Rs>
+    inline constexpr bool enable_borrowed_range<::leviathan::ranges::concat_view<Rs...>> = (enable_borrowed_range<Rs> && ...);
+}
+
 
 #include <vector>
 #include <iostream>
 #include <lv_cpp/meta/template_info.hpp>
-struct Foo { Foo() = delete; Foo(int) { } };
+#include <span>
+
 
 int main()
 {
     std::vector values = { 1, 2, 3, 4, 5 };
     for (auto [index, value] : values | leviathan::ranges::enumerate)
         std::cout << "Index = " << index << " Value = " << value << '\n';
+
+    std::vector<int> v1{1, 2, 3}, v2{4, 5}, v3{};
+    std::array a{6, 7, 8};
+    auto s = std::views::single(9);
+    for (auto value : leviathan::ranges::concat(v1, v2, v3, a, s))
+        std::cout << value << ' ';
+    std::cout << '\n';
+
 }
