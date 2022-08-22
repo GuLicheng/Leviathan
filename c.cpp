@@ -427,11 +427,12 @@ namespace leviathan::ranges
     requires (std::ranges::view<Vs> && ...) && (sizeof...(Vs) > 0) && concatable<Vs...>
     class concat_view : public std::ranges::view_interface<concat_view<Vs...>>
     {
-        std::tuple<Vs...> m_views = std::tuple<Vs...>();
         
         template <bool Const> struct iterator;
 
     public:
+
+        std::tuple<Vs...> m_views = std::tuple<Vs...>();
 
         constexpr concat_view() requires (std::default_initializable<Vs> && ...) = default;
         
@@ -806,8 +807,29 @@ namespace leviathan::ranges
             throw NotImpl{ };
         }
 
-        // friend constexpr difference_type operator-(const iterator& x, default_sentinel_t) 
-        // requires concat_random_access<detail::maybe_const_t<Const, Vs>...>;
+        friend constexpr difference_type operator-(const iterator& x, std::default_sentinel_t) 
+        requires concat_random_access<detail::maybe_const_t<Const, Vs>...>
+        {
+            assert(!x.m_iter.valueless_by_exception());
+            const auto i = x.m_iter.index();
+            difference_type dx = 0, s = 0;
+
+            [&]<std::size_t... Idx>(std::index_sequence<Idx...>)
+            {
+                auto do_calculate = [&]<std::size_t I>()
+                {
+                    if (I == i)
+                        dx = std::ranges::distance(std::get<I>(x.m_iter), std::ranges::end(std::get<I>(x.m_parent->m_views)));
+                    if (I > i)
+                        s += std::ranges::size(std::get<I>(x.m_parent->m_views));
+                };
+
+                (do_calculate.template operator() <Idx>(), ...);
+
+            }(std::make_index_sequence<sizeof...(Vs)>());
+
+            return -(dx + s);
+        }
 
         friend constexpr difference_type operator-(std::default_sentinel_t, const iterator& x) 
         requires concat_random_access<detail::maybe_const_t<Const, Vs>...>
@@ -865,8 +887,6 @@ void test()
     std::vector values = { 1, 2, 3, 4, 5 };
     for (const auto [index, value] : values | leviathan::ranges::enumerate) 
     {
-        PrintTypeCategory(index);
-        PrintTypeCategory(value);
         std::cout << "Index = " << index << " Value = " << value << '\n';
     }
 
@@ -876,9 +896,18 @@ void test()
     for (auto value : leviathan::ranges::concat(v1, v2, v3, a, s))
         std::cout << value << ' ';
     std::cout << '\n';
+    auto rg = leviathan::ranges::concat(v1, v2, v3, a, s);
+    auto iter = rg.begin();
+    iter += 2;
+    std::cout << *iter;
 }
 
 int main()
 {
-    test();
+    // test();
+    std::vector l{3,1,4,1,5,9,2,6};
+    auto counter = std::counted_iterator(std::begin(l), 4);
+    auto rg = std::ranges::subrange(counter, std::default_sentinel);
+    auto rg2 = leviathan::ranges::concat(l, rg);
+    std::cout << std::ranges::distance(rg2.begin(), std::default_sentinel);
 }
