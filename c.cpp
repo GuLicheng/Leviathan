@@ -121,7 +121,7 @@ namespace leviathan::ranges
     class enumerate_view : public std::ranges::view_interface<enumerate_view<V>>
     {
     private:
-        V m_base = {};
+        V m_base = V();
         template <bool Const> struct iterator;
         template <bool Const> struct sentinel;
 
@@ -907,7 +907,7 @@ namespace leviathan::ranges
                         return I == ix ? std::get<I>(x.m_iter) - std::get<I>(y.m_iter) : 0;
                     };
 
-                    return (do_calculate.template operator() <Idx>() +  ... + 0);
+                    return (do_calculate.template operator() <Idx>() + ... + 0);
 
                 }(std::make_index_sequence<sizeof...(Vs)>());
             }
