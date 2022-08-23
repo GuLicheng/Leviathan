@@ -3,21 +3,23 @@
 #include <functional>
 #include <array>
 #include <algorithm>
+#include <iostream>
+#include <type_traits>
 
-template <typename>
-struct Default { };
-
-
-template <typename T> requires (std::integral<T>)
-struct Default<T> {
-    using type = int;
+template <template <typename...> typename BinaryFn, typename T, typename... Ts>
+struct combination_one_row
+{
+    constexpr static bool value = (BinaryFn<T, Ts>::value && ...);
 };
 
-
+template <template <typename...> typename BinaryFn, typename... Ts>
+struct combination
+{   
+    constexpr static bool value = (combination_one_row<BinaryFn, Ts, Ts...>::value && ...);
+};
 
 int main()
 {
-    Default<int>::type i = 0;
-    // Default<double>::type i = 0;
-    std::
+    constexpr auto a = combination<std::is_same, int, double, int>::value;
+    std::cout << a << '\n';
 }

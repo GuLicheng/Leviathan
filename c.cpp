@@ -44,8 +44,15 @@ namespace leviathan::ranges::detail
     } && []<std::size_t... I>(std::index_sequence<I...>)
     { return (is_tuple_element<T, I> &&...); } (std::make_index_sequence<std::tuple_size_v<T>>{});
 
+
     template <typename... Ts>
-    using tuple_or_pair = std::conditional_t<(sizeof...(Ts) == 2), std::pair<Ts...>, std::tuple<Ts...>>;
+    struct tuple_or_pair_impl : std::type_identity<std::tuple<Ts...>> { };
+
+    template <typename T, typename U> 
+    struct tuple_or_pair_impl<T, U> : std::type_identity<std::pair<T, U>> { };
+
+    template <typename... Ts>
+    using tuple_or_pair = typename tuple_or_pair_impl<Ts...>::type;
 
     template <typename F, typename Tuple>
     constexpr auto tuple_transform(F&& f, Tuple&& tuple)
@@ -395,6 +402,62 @@ namespace leviathan::ranges
             return (constant_time_reversible<std::tuple_element_t<Idx, Tuple>> && ...);
         }
     }
+
+    namespace detail
+    {
+        // <int, double>
+        // <X, Y> -> 
+        // <int, int> , <int, double>, 
+        // <double, int>, <double, double>
+
+        // func1 -> std::is_nothrow_invocable
+        // func2 -> indirectly_swappable
+        
+        template <typename X, typename Y>
+        struct func1
+        {
+            constexpr static bool value = std::is_nothrow_invocable_v<decltype(std::ranges::iter_swap), const X&, const Y&>;
+        };
+        
+        template <typename X, typename Y>
+        struct func2
+        {
+            constexpr static bool value = std::indirectly_swappable<X, Y>;
+        };
+
+        // unfold:
+        // <X1, X2, Xs...> ->
+        // X1, X1, X2, Xs...
+        // X2, X1, X2, Xs...
+        // ...
+        // XS, X1, X2, Xs...
+
+        template <template <typename...> typename BinaryFn, typename T, typename... Ts>
+        struct combination_one_row
+        {
+            constexpr static bool value = (BinaryFn<T, Ts>::value && ...);
+        };
+
+        template <template <typename...> typename BinaryFn, typename... Ts>
+        struct combination
+        {   
+            constexpr static bool value = (combination_one_row<BinaryFn, Ts, Ts...>::value && ...);
+        };
+
+        template <bool Const, typename... Vs>
+        concept concat_view_iterator_nothrow_iter_swap = combination<
+            func1,
+            std::ranges::iterator_t<maybe_const_t<Const, Vs>>...
+        >::value;
+
+        template <bool Const, typename... Vs>
+        concept concat_view_iterator_requires_iter_swap = combination<
+            func2,
+            std::ranges::iterator_t<maybe_const_t<Const, Vs>>...
+        >::value;
+
+    }
+
 
     template <typename Ref, typename RRef, typename It>
     concept concat_indirectly_readable_impl = requires (const It it)
@@ -803,8 +866,45 @@ namespace leviathan::ranges
         {
             assert(!x.m_iter.valueless_by_exception() && !y.m_iter.valueless_by_exception());
             const auto ix = x.m_iter.index(), iy = y.m_iter.index();
-            struct NotImpl { };
-            throw NotImpl{ };
+            if (ix > iy)
+            {
+                difference_type dy = 0, s = 0, dx = 0;
+
+                [&]<std::size_t... Idx>(std::index_sequence<Idx...>)
+                {
+                    auto do_calculate = [&]<std::size_t I>()
+                    {
+                        if (iy < I && I < ix)
+                            s += std::ranges::size(std::get<I>(x.m_parent->m_views));
+                        if (I == ix)
+                            dx += std::ranges::distance(std::ranges::begin(std::get<I>(x.m_parent->m_views)), std::get<I>(x.m_iter));
+                        if (I == iy)
+                            dy += std::ranges::distance(std::get<I>(y.m_iter), std::ranges::end(std::get<I>(y.m_parent->m_views)));
+                    };
+
+                    (do_calculate.template operator() <Idx>(), ...);
+
+                }(std::make_index_sequence<sizeof...(Vs)>());
+
+                return dy + s + dx;
+            }
+            else if (ix < iy)
+            {
+                return -(y - x);
+            }
+            else
+            {
+                return [=]<std::size_t... Idx>(std::index_sequence<Idx...>)
+                {
+                    auto do_calculate = [=]<std::size_t I>()
+                    {
+                        return I == ix ? std::get<I>(x.m_iter) - std::get<I>(y.m_iter) : 0;
+                    };
+
+                    return (do_calculate.template operator() <Idx>() +  ... + 0);
+
+                }(std::make_index_sequence<sizeof...(Vs)>());
+            }
         }
 
         friend constexpr difference_type operator-(const iterator& x, std::default_sentinel_t) 
@@ -845,10 +945,12 @@ namespace leviathan::ranges
             );
         }
 
+
+
         // Remarks: The exception specification is true if and only if: For every combination of two types X and Y in the set of all types in the parameter pack iterator_t<maybe-const<Const, Views>>>..., is_nothrow_invocable_v<decltype(ranges::iter_swap), const X&, const Y&> is true.
         // Remarks: The expression in the requires-clause is true if and only if: For every combination of two types X and Y in the set of all types in the parameter pack iterator_t<maybe-const<Const, Views>>>..., indirectly_swappable<X, Y> is modelled.
-        friend constexpr void iter_swap(const iterator& x, const iterator& y) noexcept(false)
-        requires true
+        friend constexpr void iter_swap(const iterator& x, const iterator& y) noexcept(detail::concat_view_iterator_nothrow_iter_swap<Const, Vs...>)
+        requires detail::concat_view_iterator_requires_iter_swap<Const, Vs...>
         {
             assert(!x.m_iter.valueless_by_exception() && !y.m_iter.valueless_by_exception());
             std::visit(std::ranges::iter_swap, x.m_iter, y.m_iter);
@@ -863,7 +965,13 @@ namespace leviathan::ranges
 
     struct concat_adaptor /* : range_adaptor_closure<concat_adaptor> */
     {
-        template <std::ranges::viewable_range... Rs>
+        // constexpr void operator()() const = delete;
+
+        template <std::ranges::viewable_range V>
+        constexpr auto operator() [[nodiscard]] (V&& v) const 
+        { return std::views::all(static_cast<V&&>(v)); }
+
+        template <std::ranges::input_range... Rs> requires (sizeof...(Rs) > 1) && ::leviathan::ranges::concatable<std::views::all_t<Rs>...> && (std::ranges::viewable_range<Rs> && ...)
         constexpr auto operator() [[nodiscard]] (Rs&&... rs) const
         { return concat_view{ (Rs&&) rs...}; }
     };
@@ -897,17 +1005,20 @@ void test()
         std::cout << value << ' ';
     std::cout << '\n';
     auto rg = leviathan::ranges::concat(v1, v2, v3, a, s);
-    auto iter = rg.begin();
-    iter += 2;
-    std::cout << *iter;
+    auto i1 = rg.begin(), i2 = rg.begin() + 1;
+    std::cout << "Before Swap: ";
+    for (auto value : rg)
+        std::cout << value << ' ';
+    std::cout << '\n';
+    std::ranges::iter_swap(i1, i2);
+    std::cout << "After Swap: ";
+    for (auto value : rg)
+        std::cout << value << ' ';
+    std::cout << '\n';
+    
 }
 
 int main()
 {
-    // test();
-    std::vector l{3,1,4,1,5,9,2,6};
-    auto counter = std::counted_iterator(std::begin(l), 4);
-    auto rg = std::ranges::subrange(counter, std::default_sentinel);
-    auto rg2 = leviathan::ranges::concat(l, rg);
-    std::cout << std::ranges::distance(rg2.begin(), std::default_sentinel);
+    test();
 }
