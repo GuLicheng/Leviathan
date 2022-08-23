@@ -983,6 +983,7 @@ namespace leviathan::ranges
     };
 
     inline constexpr concat_adaptor concat{};
+
 }
 
 namespace std::ranges
@@ -1026,7 +1027,9 @@ void test()
     using IteratorT = decltype(rg.begin());
     using IteratorCategory = typename IteratorT::iterator_category;
     static_assert(std::is_same_v<IteratorCategory, std::random_access_iterator_tag>);
-    
+
+    for (auto value : leviathan::ranges::concat(v1))
+        std::cout << "Single Range Value = " << value << '\n';    
 }
 
 int main()
