@@ -88,12 +88,7 @@ namespace leviathan::ranges::detail
         using iterator_category = T;
     };
 
-
-
 }
-
-#include <lv_cpp/meta/template_info.hpp>
-#include <iostream>
 
 namespace leviathan::ranges
 {
@@ -367,14 +362,6 @@ namespace std::ranges
 namespace leviathan::ranges
 {
 
-    namespace detail
-    {
-        template <bool Const, typename... Vs>
-        constexpr auto concat_iterator_category()
-        {
-            // TODO: ... 
-        }
-    }
 
     template <typename... Rs>
     using concat_reference_t = std::common_reference_t<std::ranges::range_reference_t<Rs>...>;
@@ -430,7 +417,7 @@ namespace leviathan::ranges
         // X1, X1, X2, Xs...
         // X2, X1, X2, Xs...
         // ...
-        // XS, X1, X2, Xs...
+        // Xs, X1, X2, Xs...
 
         template <template <typename...> typename BinaryFn, typename T, typename... Ts>
         struct combination_one_row
@@ -485,6 +472,26 @@ namespace leviathan::ranges
     concept concat_bidirectional = std::ranges::bidirectional_range<detail::last_element_t<Rs...>> && detail::constant_time_reversible_except_last_element<std::tuple<Rs...>>(std::make_index_sequence<sizeof...(Rs) - 1>());
     // Last element of Rs... models bidirectional_range
     // And, all except the last element of Rs... model constant-time-reversible.
+
+    namespace detail
+    {
+        template <bool Const, typename... Vs>
+        constexpr auto concat_iterator_category()
+        {
+            using reference = std::common_reference_t<std::ranges::range_reference_t<detail::maybe_const_t<Const, Vs>>...>;
+            if constexpr (!std::is_lvalue_reference_v<reference>) 
+                return std::input_iterator_tag{};
+            else if constexpr ((std::derived_from<typename std::iterator_traits<std::ranges::iterator_t<maybe_const_t<Const, Vs>>>::iterator_category, std::random_access_iterator_tag> && ...) && concat_random_access<maybe_const_t<Const, Vs>...>)
+                return std::random_access_iterator_tag{};
+            else if constexpr ((std::derived_from<typename std::iterator_traits<std::ranges::iterator_t<maybe_const_t<Const, Vs>>>::iterator_category, std::bidirectional_iterator_tag> && ...) && concat_bidirectional<maybe_const_t<Const, Vs>...>)
+                return std::bidirectional_iterator_tag{};
+            else if constexpr ((std::derived_from<typename std::iterator_traits<std::ranges::iterator_t<maybe_const_t<Const, Vs>>>::iterator_category, std::forward_iterator_tag> && ...))
+                return std::forward_iterator_tag{};
+            else
+                return std::input_iterator_tag{};
+        }
+    }
+
 
     template <std::ranges::input_range... Vs>
     requires (std::ranges::view<Vs> && ...) && (sizeof...(Vs) > 0) && concatable<Vs...>
@@ -567,7 +574,7 @@ namespace leviathan::ranges
     template <std::ranges::input_range... Vs>
     requires (std::ranges::view<Vs> && ...) && (sizeof...(Vs) > 0) && concatable<Vs...>
     template <bool Const>
-    struct concat_view<Vs...>::iterator 
+    struct concat_view<Vs...>::iterator : public detail::has_typedef_name_of_iterator_category<(std::ranges::forward_range<detail::maybe_const_t<Const, Vs>> && ...), decltype(detail::concat_iterator_category<Const, Vs...>())>
     {
     private:
         constexpr static auto iterator_concept_check()
@@ -586,7 +593,6 @@ namespace leviathan::ranges
         using value_type = std::common_type_t<std::ranges::range_value_t<detail::maybe_const_t<Const, Vs>>...>;
         using difference_type = std::common_type_t<std::ranges::range_difference_t<detail::maybe_const_t<Const, Vs>>...>;
         using iterator_concept = decltype(iterator_concept_check()); //
-        using iterator_category = void; // FIXME ...
 
         using base_iter = std::variant<std::ranges::iterator_t<detail::maybe_const_t<Const, Vs>>...>;
         detail::maybe_const_t<Const, concat_view>* m_parent = nullptr;
@@ -989,6 +995,7 @@ namespace std::ranges
 #include <vector>
 #include <iostream>
 #include <span>
+#include <lv_cpp/meta/template_info.hpp>
 
 void test()
 {
@@ -1015,6 +1022,10 @@ void test()
     for (auto value : rg)
         std::cout << value << ' ';
     std::cout << '\n';
+
+    using IteratorT = decltype(rg.begin());
+    using IteratorCategory = typename IteratorT::iterator_category;
+    static_assert(std::is_same_v<IteratorCategory, std::random_access_iterator_tag>);
     
 }
 
