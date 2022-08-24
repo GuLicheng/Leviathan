@@ -969,7 +969,7 @@ namespace leviathan::ranges
     concat_view(R&&...) -> concat_view<std::views::all_t<R>...>;
 
 
-    struct concat_adaptor /* : range_adaptor_closure<concat_adaptor> */
+    struct concat_factory 
     {
         // constexpr void operator()() const = delete;
 
@@ -982,7 +982,13 @@ namespace leviathan::ranges
         { return concat_view{ (Rs&&) rs...}; }
     };
 
-    inline constexpr concat_adaptor concat{};
+    inline constexpr concat_factory concat{};
+
+    struct concat_adaptor : range_adaptor_closure<concat_adaptor>
+    {
+        
+    };
+
 
 }
 
