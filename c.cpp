@@ -71,10 +71,7 @@ namespace leviathan::ranges::detail
     } 
 
     template <typename... Ts>
-    struct last_element 
-    {
-        using type = typename decltype((std::type_identity<Ts>{}, ...))::type;
-    };
+    struct last_element : std::type_identity<decltype((std::type_identity<Ts>{}, ...))> { };
 
     template <typename... Ts>
     using last_element_t = typename last_element<Ts...>::type;
@@ -92,7 +89,6 @@ namespace leviathan::ranges::detail
 
 namespace leviathan::ranges
 {
-
     // simple pipeline
     template <typename Adaptor>
     struct range_adaptor_closure
@@ -592,7 +588,7 @@ namespace leviathan::ranges
     public:
         using value_type = std::common_type_t<std::ranges::range_value_t<detail::maybe_const_t<Const, Vs>>...>;
         using difference_type = std::common_type_t<std::ranges::range_difference_t<detail::maybe_const_t<Const, Vs>>...>;
-        using iterator_concept = decltype(iterator_concept_check()); //
+        using iterator_concept = decltype(iterator_concept_check()); 
 
         using base_iter = std::variant<std::ranges::iterator_t<detail::maybe_const_t<Const, Vs>>...>;
         detail::maybe_const_t<Const, concat_view>* m_parent = nullptr;
@@ -983,12 +979,6 @@ namespace leviathan::ranges
     };
 
     inline constexpr concat_factory concat{};
-
-    struct concat_adaptor : range_adaptor_closure<concat_adaptor>
-    {
-        
-    };
-
 
 }
 

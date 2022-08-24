@@ -1,12 +1,12 @@
 #include <ranges>
 
-#include <vector>
+#include <iostream>
 
 
 int main()
 {
-    std::vector values { 1, 2, 3, 4 };
-    auto adaptor = std::views::take(3);
+    for (auto value : std::ranges::istream_view<int>(std::cin))
+        std::cout << value << '\n';
 }
 
 
