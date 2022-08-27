@@ -15,6 +15,8 @@
 
 #include <iostream>
 
+
+
 // Some utils
 namespace leviathan::ranges::detail
 {
@@ -179,8 +181,8 @@ namespace leviathan::ranges
     public:
 
         using iterator_category = typename std::iterator_traits<std::ranges::iterator_t<base_type>>::iterator_category;
-        // using reference = enumerate_result<index_type, std::ranges::range_reference_t<base_type>>;
-        using reference = std::pair<index_type, std::ranges::range_reference_t<base_type>>;
+        using reference = enumerate_result<index_type, std::ranges::range_reference_t<base_type>>;
+        // using reference = std::pair<index_type, std::ranges::range_reference_t<base_type>>;
         using value_type = std::tuple<index_type, std::ranges::range_value_t<base_type>>;
         using difference_type = std::ranges::range_difference_t<base_type>;
 
@@ -353,11 +355,9 @@ namespace std::ranges
     inline constexpr bool enable_borrowed_range<::leviathan::ranges::enumerate_view<R>> = enable_borrowed_range<R>;
 }
 
-
 // range.concat.view [3] 
 namespace leviathan::ranges
 {
-
 
     template <typename... Rs>
     using concat_reference_t = std::common_reference_t<std::ranges::range_reference_t<Rs>...>;
@@ -997,10 +997,8 @@ namespace std::ranges
 void test()
 {
     std::vector values = { 1, 2, 3, 4, 5 };
-    for (const auto [index, value] : values | leviathan::ranges::enumerate) 
-    {
+    for (auto [index, value] : values | leviathan::ranges::enumerate) 
         std::cout << "Index = " << index << " Value = " << value << '\n';
-    }
 
     std::vector<int> v1{1, 2, 3}, v2{4, 5}, v3{};
     std::array a{6, 7, 8};
@@ -1027,6 +1025,11 @@ void test()
     for (auto value : leviathan::ranges::concat(v1))
         std::cout << "Single Range Value = " << value << '\n';    
 }
+
+
+#include <functional>
+#include <utility>
+#include <lv_cpp/meta/template_info.hpp>
 
 int main()
 {

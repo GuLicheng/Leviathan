@@ -35,8 +35,6 @@ struct traits_parameters_from_type_list<TemplateClass, Container<Types...>>
     : std::enable_if<true, TemplateClass<Types...>> { };
 
 
-
-
 namespace detail
 {
 template <typename... Lists>
