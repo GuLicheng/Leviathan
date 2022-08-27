@@ -4,7 +4,9 @@
 #include <utility>
 #include <tuple>
 
-template <typename... Ts> struct type_list { };
+template <typename... Ts> struct type_list {
+    using first_type = std::tuple_element_t<0, std::tuple<Ts...>>;
+};
 
 template <typename... Ts> struct merge_index_sequence;
 
@@ -58,19 +60,37 @@ struct merge<T1, T2, T3, Ts...> : merge<typename merge<T1, T2>::type, T3, Ts...>
 
 #include <variant>
 
+template <size_t I, size_t... Idx, typename... IndexSeq, typename Visitor, typename... Vs>
+auto DoVisitImpl(type_list<IndexSeq...> _, std::index_sequence<Idx...>, Visitor&& visitor, Vs&&... vs)
+{
+    if constexpr (I == sizeof...(IndexSeq))
+        return;
+    else
+    {
+        const std::array indices = { vs.index()... };
+        const std::array cur_indices = { Idx... };
+
+        if (indices == cur_indices)
+            return std::invoke((Visitor&&) visitor, std::get<Idx>((Vs&&)vs) ...);
+        else
+            return DoVisitImpl<I + 1>(_, std::tuple_element_t<I + 1, std::tuple<IndexSeq...>>(), (Visitor&&) visitor, (Vs&&)vs...);
+    }
+}
+
+
 template <typename... IndexSeq, typename Visitor, typename... Vs>
 auto DoVisit(type_list<IndexSeq...>, Visitor&& visitor, Vs&&... vs)
 {
-    const std::array indices = { vs.index()... };
+    // const std::array indices = { vs.index()... };
     
-    auto do_call = [&]<size_t... Idx>(std::index_sequence<Idx...>) {
-        const std::array cur_indices = { Idx... };
-        if (cur_indices == indices)
-            std::invoke((Visitor&&) visitor, std::get<Idx>((Vs&&)vs) ...);
-    };
+    // auto do_call = [&]<size_t... Idx>(std::index_sequence<Idx...>) {
+    //     const std::array cur_indices = { Idx... };
+    //     if (cur_indices == indices)
+    //         std::invoke((Visitor&&) visitor, std::get<Idx>((Vs&&)vs) ...);
+    // };
 
-    ((do_call.template operator() <> (IndexSeq{})), ...);
-
+    // ((do_call.template operator() <> (IndexSeq{})), ...);
+    // DoVisitImpl()
 }
 
 template <typename Visitor, typename V1, typename... Vs>
@@ -81,7 +101,8 @@ auto Visit(Visitor&& visitor, V1&& v1, Vs&&... vs)
     using first_list = typename generate_index_sequence_list_by_index_sequence<first_index_seq>::type;
     using T = typename merge<first_list, std::make_index_sequence<std::variant_size_v<std::remove_cvref_t<Vs>>>...>::type;
     // T::print();
-    DoVisit(T{}, (Visitor&&) visitor, (V1&&) v1, (Vs&&) vs...);
+    // DoVisit(T{}, (Visitor&&) visitor, (V1&&) v1, (Vs&&) vs...);
+    return DoVisitImpl<0>(T{}, std::tuple_element_t<0, typename T::first_type>(), (Visitor&&) visitor, (V1&&) v1, (Vs&&) vs...);
 }
 
 
