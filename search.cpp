@@ -63,13 +63,16 @@ struct merge<T1, T2, T3, Ts...> : merge<typename merge<T1, T2>::type, T3, Ts...>
 template <size_t I, size_t... Idx, typename... IndexSeq, typename Visitor, typename... Vs>
 auto DoVisitImpl(type_list<IndexSeq...> _, std::index_sequence<Idx...>, Visitor&& visitor, Vs&&... vs)
 {
-    if constexpr (I == sizeof...(IndexSeq))
-        return;
+    const std::array indices = { vs.index()... };
+    const std::array cur_indices = { Idx... };
+
+    if constexpr (I + 1 == sizeof...(IndexSeq))
+        if (indices == cur_indices)
+            return std::invoke((Visitor&&) visitor, std::get<Idx>((Vs&&)vs) ...);
+        else
+            throw std::bad_variant_access{}; // variant.index() may equal to std::variant::npos
     else
     {
-        const std::array indices = { vs.index()... };
-        const std::array cur_indices = { Idx... };
-
         if (indices == cur_indices)
             return std::invoke((Visitor&&) visitor, std::get<Idx>((Vs&&)vs) ...);
         else
@@ -79,18 +82,9 @@ auto DoVisitImpl(type_list<IndexSeq...> _, std::index_sequence<Idx...>, Visitor&
 
 
 template <typename... IndexSeq, typename Visitor, typename... Vs>
-auto DoVisit(type_list<IndexSeq...>, Visitor&& visitor, Vs&&... vs)
+auto DoVisit(type_list<IndexSeq...> _, Visitor&& visitor, Vs&&... vs)
 {
-    // const std::array indices = { vs.index()... };
-    
-    // auto do_call = [&]<size_t... Idx>(std::index_sequence<Idx...>) {
-    //     const std::array cur_indices = { Idx... };
-    //     if (cur_indices == indices)
-    //         std::invoke((Visitor&&) visitor, std::get<Idx>((Vs&&)vs) ...);
-    // };
-
-    // ((do_call.template operator() <> (IndexSeq{})), ...);
-    // DoVisitImpl()
+    return DoVisitImpl<0>(_, std::tuple_element_t<0, std::tuple<IndexSeq...>>(), (Visitor&&) visitor, (Vs&&) vs...);
 }
 
 template <typename Visitor, typename V1, typename... Vs>
@@ -100,9 +94,7 @@ auto Visit(Visitor&& visitor, V1&& v1, Vs&&... vs)
     using first_index_seq = decltype(std::make_index_sequence<first_size>());
     using first_list = typename generate_index_sequence_list_by_index_sequence<first_index_seq>::type;
     using T = typename merge<first_list, std::make_index_sequence<std::variant_size_v<std::remove_cvref_t<Vs>>>...>::type;
-    // T::print();
-    // DoVisit(T{}, (Visitor&&) visitor, (V1&&) v1, (Vs&&) vs...);
-    return DoVisitImpl<0>(T{}, std::tuple_element_t<0, typename T::first_type>(), (Visitor&&) visitor, (V1&&) v1, (Vs&&) vs...);
+    return DoVisit(T{}, (Visitor&&) visitor, (V1&&) v1, (Vs&&) vs...);
 }
 
 
@@ -111,11 +103,16 @@ int main()
     std::variant<int, double> v1 = 1;
     std::variant<int, std::string> v2 = std::string("Hello");
     auto f = [](auto x, auto y) {
-        std::cout << "x = " << x << ", y = " << y << '\n'; 
+        double second = 0;
+        if constexpr (std::is_same_v<decltype(y), std::string>)
+            second = (double)(y.size());
+        else
+            second = y;
+        return (double)x + second;
     };
 
-    Visit(f, v1, v2);
-
+    auto result = Visit(f, v1, v2);
+    std::cout << result << '\n';
 
 }
 
