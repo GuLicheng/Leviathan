@@ -1,23 +1,27 @@
-#include <lv_cpp/meta/template_info.hpp>
 #include <iostream>
 #include <functional>
 #include <utility>
 #include <tuple>
+#include <variant>
+
+/*
+    For variant<int, double>, variant<int, double, bool>, we generate follow indices:
+    { (0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2) }
+    Then use these to match the variant::index
+*/
 
 template <typename... Ts> struct type_list { };
 
 template <typename... Ts> struct merge_index_sequence;
 
-template <typename IndexSeq, typename TypeList> struct merge_index_sequence_and_type_list; 
-
 // flatten: traits all types in Ts if Ts is a container(template class) and add all types into Container
+// for flatten<type_list, tuple<int>, tuple<bool, tuple<int>>> -> type_list<int, bool, int>
 template <template <typename...> typename Container, typename... Ts> struct flatten;
 
 // for (0, 1, 2) -> (0), (1), (2)
 template <typename T> struct generate_index_sequence_list_by_index_sequence;
 
 template <typename... Ts> struct merge;
-
 
 // ---------------------impl----------------------------
 template <typename List, typename... Ts> struct flatten_impl;
@@ -56,18 +60,13 @@ struct merge<T1, T2> : std::type_identity<typename merge_index_sequence<T1, T2>:
 template <typename T1, typename T2, typename T3, typename... Ts> 
 struct merge<T1, T2, T3, Ts...> : merge<typename merge<T1, T2>::type, T3, Ts...> { }; 
 
-
-#include <variant>
-
-
-
+// https://pbackus.github.io/blog/beating-stdvisit-without-really-trying.html
+// we use index_sequence, complier is able to inline the individual visitor functions(maybe...)
 template <size_t I, size_t... Idx, typename... IndexSeq, typename Visitor, typename... Vs>
-auto DoVisitImpl(type_list<IndexSeq...> _, std::index_sequence<Idx...>, Visitor&& visitor, Vs&&... vs)
+constexpr auto DoVisitImpl(type_list<IndexSeq...> _, std::index_sequence<Idx...>, Visitor&& visitor, Vs&&... vs)
 {
     const std::array indices = { vs.index()... };
-    const std::array cur_indices = { Idx... };
-    
-    // std::__detail::__variant::__get()
+    constexpr std::array cur_indices = { Idx... };
     
     if constexpr (I + 1 == sizeof...(IndexSeq))
         if (indices == cur_indices)
@@ -77,22 +76,22 @@ auto DoVisitImpl(type_list<IndexSeq...> _, std::index_sequence<Idx...>, Visitor&
     else
     {
         if (indices == cur_indices)
-            return std::invoke((Visitor&&) visitor, std::get<Idx>((Vs&&)vs) ...);
+            // use follow version can generate less asm code.
             // return std::invoke((Visitor&&) visitor, std::__detail::__variant::__get<Idx>((Vs&&)vs) ...);
+            return std::invoke((Visitor&&) visitor, std::get<Idx>((Vs&&)vs) ...);
         else
             return DoVisitImpl<I + 1>(_, std::tuple_element_t<I + 1, std::tuple<IndexSeq...>>(), (Visitor&&) visitor, (Vs&&)vs...);
     }
 }
 
-
 template <typename... IndexSeq, typename Visitor, typename... Vs>
-auto DoVisit(type_list<IndexSeq...> _, Visitor&& visitor, Vs&&... vs)
+constexpr auto DoVisit(type_list<IndexSeq...> indices, Visitor&& visitor, Vs&&... vs)
 {
-    return DoVisitImpl<0>(_, std::tuple_element_t<0, std::tuple<IndexSeq...>>(), (Visitor&&) visitor, (Vs&&) vs...);
+    return DoVisitImpl<0>(indices, std::tuple_element_t<0, std::tuple<IndexSeq...>>(), (Visitor&&) visitor, (Vs&&) vs...);
 }
 
 template <typename Visitor, typename V1, typename... Vs>
-auto Visit(Visitor&& visitor, V1&& v1, Vs&&... vs)
+constexpr auto Visit(Visitor&& visitor, V1&& v1, Vs&&... vs)
 {
     constexpr static auto first_size = std::variant_size_v<std::remove_cvref_t<V1>>;
     using first_index_seq = decltype(std::make_index_sequence<first_size>());
@@ -101,52 +100,18 @@ auto Visit(Visitor&& visitor, V1&& v1, Vs&&... vs)
     return DoVisit(T{}, (Visitor&&) visitor, (V1&&) v1, (Vs&&) vs...);
 }
 
-
-
-#include <variant>
-
-// Source: https://en.cppreference.com/w/cpp/utility/variant/visit
-template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-
-struct T0 {};
-struct T1 {};
-struct T2 {};
-struct T3 {};
-struct T4 {};
-struct T5 {};
-struct T6 {};
-struct T7 {};
-struct T8 {};
-struct T9 {};
-
-using example_variant = std::variant<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>;
-
-int do_visit(example_variant v)
-{
-	return std::visit(overloaded {
-		[](T0 val) { return 3; },
-		[](T1 val) { return 5; },
-		[](T2 val) { return 8; },
-		[](T3 val) { return 13; },
-		[](T4 val) { return 21; },
-		[](T5 val) { return 34; },
-		[](T6 val) { return 55; },
-		[](T7 val) { return 89; },
-		[](T8 val) { return 144; },
-		[](T9 val) { return 233; },
-	}, v);
-}
-
 int main()
 {
     std::variant<int, double> v1 = 1;
     std::variant<int, std::string> v2 = std::string("Hello");
-    auto f = [](auto x) -> int {
-        return x;
+    auto f = [](auto x, auto y) -> int {
+        if constexpr (std::is_same_v<decltype(y), std::string>)
+            return x + y.size();
+        else
+            return x + y;
     };
 
-    auto result = Visit(f, v1);
+    auto result = Visit(f, v1, v2);
     std::cout << result << '\n';
 
 }
