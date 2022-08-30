@@ -1033,5 +1033,5 @@ void test()
 
 int main()
 {
-        test();
+    test();
 }

@@ -100,7 +100,48 @@ constexpr auto Visit(Visitor&& visitor, V1&& v1, Vs&&... vs)
     return DoVisit(T{}, (Visitor&&) visitor, (V1&&) v1, (Vs&&) vs...);
 }
 
-int main()
+
+// tuple_cat
+// FIXME: 
+// 1. rvalue_reference is not permitted
+// 2. automatically unfold tuple-like type, but only one level, why not recursive ?
+template <size_t I, typename IndexSeq> struct generate_indices_for_one_tuple;
+
+template <size_t I, size_t... Idx> 
+struct generate_indices_for_one_tuple<I, std::index_sequence<Idx...>>
+    : std::type_identity<type_list<std::index_sequence<I, Idx>...>> { };
+
+template <typename IndexSeq, typename Tuples> struct generate_indices_for_tuples;
+
+// (0, 1)  { (0, 1) (0, 2) }
+template <size_t... Idx, typename... IndexSeq> 
+struct generate_indices_for_tuples<std::index_sequence<Idx...>, type_list<IndexSeq...>>
+    : std::type_identity<type_list<typename generate_indices_for_one_tuple<Idx, IndexSeq>::type...>> { };
+
+
+template <typename... IndexSeq, typename Tuple>
+auto TupleCatImpl(type_list<IndexSeq...>, Tuple&& tuple)
+{
+    auto get_element = [&]<size_t OuterIndex, size_t InnerIndex>(std::index_sequence<OuterIndex, InnerIndex>) {
+        return std::get<InnerIndex>(std::get<OuterIndex>(tuple));
+    };
+    return std::make_tuple(get_element(IndexSeq{})...);
+}
+
+template <typename... Tuples>
+auto TupleCat(Tuples&&... tuples)
+{
+    using T1 = decltype(std::make_index_sequence<sizeof...(Tuples)>());
+    using T2 = type_list<decltype(std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<Tuples>>>())...>;
+    using T3 = typename generate_indices_for_tuples<T1, T2>::type;
+    using T4 = typename flatten<type_list, T3>::type;
+    return TupleCatImpl(T4{}, std::forward_as_tuple((Tuples&&)tuples...));
+}
+
+#include <iostream>
+#include <lv_cpp/meta/template_info.hpp>
+
+void test_variant_visit()
 {
     std::variant<int, double> v1 = 1;
     std::variant<int, std::string> v2 = std::string("Hello");
@@ -113,7 +154,23 @@ int main()
 
     auto result = Visit(f, v1, v2);
     std::cout << result << '\n';
+}
 
+void test_tuple_cat()
+{
+    auto ret = TupleCat(std::make_tuple(1, 2.0), std::make_tuple(true, std::string("Hello")));
+    PrintTypeCategory(ret);
+}
+
+int main()
+{
+    // test_tuple_cat();
+    int a = 1;
+
+    std::tuple<int, int&, const int> t{ 1, a, 0 };
+    std::tuple<int> t1{ 0 };
+    auto ret = std::tuple_cat(t, t1, std::make_tuple(1, std::make_tuple(1, 2, 3)));
+    PrintTypeCategory(ret);
 }
 
 
