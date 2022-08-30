@@ -181,8 +181,8 @@ namespace leviathan::ranges
     public:
 
         using iterator_category = typename std::iterator_traits<std::ranges::iterator_t<base_type>>::iterator_category;
-        using reference = enumerate_result<index_type, std::ranges::range_reference_t<base_type>>;
-        // using reference = std::pair<index_type, std::ranges::range_reference_t<base_type>>;
+        // using reference = enumerate_result<index_type, std::ranges::range_reference_t<base_type>>;
+        using reference = std::pair<index_type, std::ranges::range_reference_t<base_type>>;
         using value_type = std::tuple<index_type, std::ranges::range_value_t<base_type>>;
         using difference_type = std::ranges::range_difference_t<base_type>;
 
@@ -1033,5 +1033,5 @@ void test()
 
 int main()
 {
-    test();
+        test();
 }
