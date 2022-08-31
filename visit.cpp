@@ -27,11 +27,11 @@ template <typename T> struct generate_index_sequence_list_by_index_sequence;
 template <typename... Ts> struct merge;
 
 // ---------------------impl----------------------------
-template <typename List, typename... Ts> struct flatten_impl;
-
 template <size_t... Idx> 
 struct generate_index_sequence_list_by_index_sequence<std::index_sequence<Idx...>>
     : std::type_identity<type_list<std::index_sequence<Idx>...>> { };
+
+template <typename List, typename... Ts> struct flatten_impl;
 
 template <template <typename...> typename Container, typename... Ts>
 struct flatten_impl<Container<Ts...>> : std::enable_if<true, Container<Ts...>> { };
