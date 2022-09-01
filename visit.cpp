@@ -71,7 +71,6 @@ struct check_variant_return
         std::add_rvalue_reference_t<std::variant_alternative_t<I, std::remove_reference_t<Variant>>>>;
 };
 
-
 template <size_t I, size_t... Idx, typename... IndexSeq, typename Visitor, typename... Vs>
 constexpr auto DoVisitImpl(type_list<IndexSeq...> _, std::index_sequence<Idx...>, Visitor&& visitor, Vs&&... vs)
 {
