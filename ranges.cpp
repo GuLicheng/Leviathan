@@ -7,6 +7,7 @@
 
 #include <ranges>
 #include <concepts>
+#include <optional>
 #include <tuple>
 #include <compare>
 #include <functional>
@@ -91,15 +92,101 @@ namespace leviathan::ranges::detail
 
 namespace leviathan::ranges
 {
+
+    template <typename Adaptor, typename... Args>
+    concept adaptor_invocable = requires 
+    {
+        std::declval<Adaptor>()(std::declval<Args>()...);
+    };
+
+    template <typename Adaptor, typename... Args> struct partial;
+
+    template <typename Lhs, typename Rhs> struct pipe;
+
     // simple pipeline
-    template <typename Adaptor>
     struct range_adaptor_closure
     {
-        template <std::ranges::viewable_range R, typename Self>
-        requires std::derived_from<std::remove_cvref_t<Self>, Adaptor>
-        friend constexpr auto operator|(R&& r, Self&& self)
-        { return std::forward<Self>(self)(std::forward<R>(r)); }
+        template <typename Self, typename Range>
+        requires std::derived_from<std::remove_cvref_t<Self>, range_adaptor_closure> && adaptor_invocable<Self, Range>
+        friend constexpr auto operator|(Range&& r, Self&& self)
+        { return std::forward<Self>(self)(std::forward<Range>(r)); }
+
+        template <typename Lhs, typename Rhs>
+        requires std::derived_from<Lhs, range_adaptor_closure> && std::derived_from<Rhs, range_adaptor_closure>
+        friend constexpr auto operator|(Lhs lhs, Rhs rhs)
+        { return pipe<Lhs, Rhs>{ std::move(lhs), std::move(rhs)}; }
     };
+
+    template <typename Derived>
+    struct range_adaptor
+    {
+        template <typename... Args> 
+        // requires adaptor_invocable<Derived, Args...>
+        constexpr auto operator()(Args&&... args) const 
+        { return partial<Derived, std::decay_t<Args>...>{ std::forward<Args>(args)... }; }
+    };
+
+    template <typename Adaptor, typename... Args>
+    struct partial : range_adaptor_closure
+    {
+        std::tuple<Args...> m_args;
+
+        constexpr partial(Args... args) : m_args(std::move(args)...) { }
+
+        template <typename Range>
+        requires adaptor_invocable<Adaptor, Range, const Args&...>
+        constexpr auto operator()(Range&& r) const&
+        {
+            auto forwarder = [&r](const auto&... args) {
+                return Adaptor{}(std::forward<Range>(r), args...);
+            };
+            return std::apply(forwarder, m_args);
+        }
+
+        template <typename Range>
+        requires adaptor_invocable<Adaptor, Range, Args...>
+        constexpr auto operator()(Range&& r) &&
+        {
+            auto forwarder = [&r](auto&... args) {
+                return Adaptor{}(std::forward<Range>(r), std::move(args)...);
+            };
+            return std::apply(forwarder, m_args);
+        }
+
+        template <typename Range>
+        constexpr auto operator()(Range&& r) const&& = delete;
+
+    };
+
+    template <typename Lhs, typename Rhs, typename Range>
+    concept pipe_invocable = requires 
+    {
+        std::declval<Rhs>()(std::forward<Lhs>()(std::declval<Range>()));
+    };
+
+    template <typename Lhs, typename Rhs>
+    struct pipe : range_adaptor_closure
+    {
+        [[no_unique_address]] Lhs m_lhs;
+        [[no_unique_address]] Rhs m_rhs;
+
+        constexpr pipe(Lhs lhs, Rhs rhs) : m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) { }
+
+        template <typename Range>
+        requires pipe_invocable<const Lhs&, const Rhs&, Range>
+        constexpr auto operator()(Range&& r) const&
+        { return m_rhs(m_lhs(std::forward<Range>(r))); }
+
+        template <typename Range>
+        requires pipe_invocable<Lhs, Rhs, Range>
+        constexpr auto operator()(Range&& r) &&
+        { return std::move(m_rhs)(std::move(m_lhs)(std::forward<Range>(r))); }
+
+        template <typename Range>
+        constexpr auto operator()(Range&& r) const&& = delete;
+
+    };
+
 }
 
 
@@ -338,8 +425,7 @@ namespace leviathan::ranges
 
     };
 
-
-    struct enumerate_adaptor : range_adaptor_closure<enumerate_adaptor>
+    struct enumerate_adaptor : range_adaptor_closure
     {
         template <std::ranges::viewable_range R>
         constexpr auto operator() [[nodiscard]] (R&& r) const
@@ -487,7 +573,6 @@ namespace leviathan::ranges
                 return std::input_iterator_tag{};
         }
     }
-
 
     template <std::ranges::input_range... Vs>
     requires (std::ranges::view<Vs> && ...) && (sizeof...(Vs) > 0) && concatable<Vs...>
@@ -980,6 +1065,24 @@ namespace leviathan::ranges
 
     inline constexpr concat_factory concat{};
 
+    template <typename R1, typename R2>
+    concept can_concatable_range = requires 
+    {
+        concat_view(std::declval<R1>(), std::declval<R2>());
+    };
+
+    struct concat_with_fn : range_adaptor<concat_with_fn>
+    {
+        template <std::ranges::viewable_range R1, std::ranges::viewable_range R2>
+        requires can_concatable_range<R1, R2>
+        constexpr auto operator()(R1&& r1, R2&& r2) const 
+        { return concat_view((R1&&)r1, (R2&&)r2); }
+
+        using range_adaptor<concat_with_fn>::operator();
+    };
+
+    inline constexpr concat_with_fn concat_with{};
+
 }
 
 namespace std::ranges
@@ -988,6 +1091,38 @@ namespace std::ranges
     inline constexpr bool enable_borrowed_range<::leviathan::ranges::concat_view<Rs...>> = (enable_borrowed_range<Rs> && ...);
 }
 
+namespace leviathan::ranges
+{
+    template <std::copy_constructible W, std::semiregular Bound = std::unreachable_sentinel_t>
+    requires (std::is_object_v<W> && std::same_as<W, std::remove_cvref_t<W>> && (std::integral<Bound> || std::same_as<Bound, std::unreachable_sentinel_t>))
+    class repeat_view : std::view_inteface<repeat_view<W, Bound>>
+    {
+    private:
+        struct iterator;
+
+        std::optional<W> m_value = std::optional<W>();
+        Bound m_bound = Bound();
+
+    public:
+        repeat_view() requires std::default_initializable<W> = default;
+
+        constexpr explicit repeat_view(const W& value, Bound bound = Bound());
+        constexpr explicit repeat_view(W&& value, Bound bound = Bound());
+        template <typename... WArgs, typename... BoundArgs>
+        requires std::constructible_from<W, WArgs...> && std::constructible_from<Bound, BoundArgs...>
+        constexpr explicit repeat_view(std::piecewise_construct_t, std::tuple<WArgs...> value_args, std::tuple<BoundArgs...> bound_args = std::tuple<>{});
+
+        constexpr iterator begin() const;
+        constexpr iterator end() const requires (!std::same_as<Bound, std::unreachable_sentinel_t>);
+        constexpr std::unreachable_sentinel_t end() const noexcept;
+        constexpr auto size() const requires (!std::same_as<Bound, std::unreachable_sentinel_t>);
+
+
+    };
+}
+
+
+/* --------------------------------------------Test------------------------------------------------------- */
 
 #include <vector>
 #include <iostream>
@@ -1022,7 +1157,7 @@ void test()
     using IteratorCategory = typename IteratorT::iterator_category;
     static_assert(std::is_same_v<IteratorCategory, std::random_access_iterator_tag>);
 
-    for (auto value : leviathan::ranges::concat(v1))
+    for (auto value : v1 | leviathan::ranges::concat_with(v2) | leviathan::ranges::concat_with(a))
         std::cout << "Single Range Value = " << value << '\n';    
 }
 
