@@ -2033,7 +2033,12 @@ namespace leviathan::ranges
 
 }
 
-
+namespace std::ranges
+{
+    template <typename... Views>
+    inline constexpr bool enable_borrowed_range<::leviathan::ranges::zip_view<Views...>> = 
+        (enable_borrowed_range<Views> && ...);
+}
 
 // range.adjacent_view
 namespace leviathan::ranges
@@ -2348,6 +2353,14 @@ namespace leviathan::ranges
 
 }
 
+namespace std::ranges
+{
+    template <typename V, std::size_t N>
+    inline constexpr bool enable_borrowed_range<::leviathan::ranges::adjacent_view<V, N>> = 
+        enable_borrowed_range<V>;
+}
+
+// ranges.chunk_view
 namespace leviathan::ranges
 {
     // For num = 3, denom = 2, div_ceil = 2
@@ -2838,6 +2851,14 @@ namespace leviathan::ranges
 
 }
 
+namespace std::ranges
+{
+    template <typename V>
+    inline constexpr bool enable_borrowed_range<::leviathan::ranges::chunk_view<V>> = 
+        enable_borrowed_range<V> && std::ranges::forward_range<V>;
+}
+
+// ranges.chunk_by_view
 namespace leviathan::ranges
 {   
 
@@ -3039,6 +3060,11 @@ namespace leviathan::ranges
     };
 
     inline constexpr chunk_by_adaptor chunk_by{};
+
+}
+
+namespace leviathan::ranges
+{
 
 }
 
