@@ -12,6 +12,7 @@ class Thread
     pthread_t id;    
 public:
     Thread() noexcept = default;
+    Thread(const Thread&) = delete;
     template <typename Callable, typename... Args>
     explicit Thread(Callable&& f, Args&&... args)
     {
