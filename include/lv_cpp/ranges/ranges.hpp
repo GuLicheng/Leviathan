@@ -3338,7 +3338,7 @@ namespace leviathan::ranges
     {
         using range_adaptor<stride_adaptor>::operator();
         template <std::ranges::viewable_range R, typename N>
-            // requires can_stride<R, N>
+            requires can_stride<R, N>
         constexpr auto operator()(R&& r, N n) const
         {
             return stride_view((R&&)r, n);
