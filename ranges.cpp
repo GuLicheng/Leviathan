@@ -14,25 +14,33 @@
 
 struct Foo { Foo(auto... ) { } };
 
-namespace stdw = std::views;
+namespace stdv = std::views;
+namespace stdr = std::ranges;
 
 #include <numbers>
 
 
 int main() 
 {
-    // std::vector v = { 1, 2, 2, 3, 0, 4, 5, 2 };
-    std::list v = { 1, 2, 2, 3, 0, 4, 5, 2 };
-    
-    for (auto r : v | leviathan::ranges::chunk_by(std::ranges::less_equal{}) | stdw::reverse)
-    {
-        std::cout << "[";
-        auto sep = "";
-        for (auto i : r) {
-            std::cout << sep << i;
-            sep = ", ";
-        }
-        std::cout << "] ";
-    }
+    auto x = std::vector{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+
+    // prints 0 3 6 9
+    stdr::copy(x | leviathan::ranges::stride(3), std::ostream_iterator<int>(std::cout, " "));
+
+    std::endl(std::cout);
+
+    // prints 9 6 3 0
+    stdr::copy(leviathan::ranges::stride(x, 3) | stdv::reverse, std::ostream_iterator<int>(std::cout, " "));
+    std::endl(std::cout);
+
+    auto y = std::vector{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    // // prints 0 3 6 9
+    stdr::copy(leviathan::ranges::stride(y, 3), std::ostream_iterator<int>(std::cout, " "));
+    std::endl(std::cout);
+
+    // // prints 8 5 2: not the same range in reverse!?
+    stdr::copy(leviathan::ranges::stride(y, 3) | stdv::reverse, std::ostream_iterator<int>(std::cout, " "));
+    std::endl(std::cout);
 }
 
