@@ -3077,6 +3077,9 @@ namespace leviathan::ranges
         R m_base = R();
         std::ranges::range_difference_t<R> m_stride = 1;
 
+
+    public:
+
         template <typename I>
         constexpr I compute_distance(I distance) const
         {
@@ -3084,8 +3087,6 @@ namespace leviathan::ranges
             const auto remainder = distance % static_cast<I>(m_stride);
             return quotient + static_cast<I>(remainder > 0);
         }
-
-    public:
 
         stride_view() = default;
 
@@ -3137,6 +3138,7 @@ namespace leviathan::ranges
         }
 
     private:
+
 
         template <bool Const>
         struct iterator 
@@ -3218,28 +3220,32 @@ namespace leviathan::ranges
             constexpr decltype(auto) operator[](difference_type n) const
                 requires std::ranges::random_access_range<Base>
             {
-                return *(this + n);
+                return *(*this + n);
             }
 
             constexpr friend iterator operator+(const iterator& x, difference_type n)
                 requires std::ranges::random_access_range<Base>
             {
-                return x += n;
+                auto r = x;
+                r += n;
+                return r;
             }
 
             constexpr friend iterator operator+(difference_type n, const iterator& x)
                 requires std::ranges::random_access_range<Base>
             {
-                return x += n;
+                return x + n;
             }
 
             constexpr friend iterator operator-(const iterator& x, difference_type n)
                 requires std::ranges::random_access_range<Base>
             {
-                return x -= n;
+                auto r = x;
+                r -= n;
+                return r;
             }
 
-            constexpr friend iterator operator-(const iterator& x, const iterator& y)
+            constexpr friend difference_type operator-(const iterator& x, const iterator& y)
                 requires std::ranges::random_access_range<Base>
             {
                 return x.m_parent->compute_distance(x.m_current - y.m_current);

@@ -1,4 +1,5 @@
 #include <lv_cpp/ranges/ranges.hpp>
+#include <lv_cpp/algorithm/sort.hpp>
 
 /* --------------------------------------------Test------------------------------------------------------- */
 
@@ -7,10 +8,8 @@
 #include <span>
 #include <list>
 #include <lv_cpp/meta/template_info.hpp>
-
 #include <functional>
 #include <utility>
-#include <lv_cpp/meta/template_info.hpp>
 
 struct Foo { Foo(auto... ) { } };
 
@@ -19,28 +18,22 @@ namespace stdr = std::ranges;
 
 #include <numbers>
 
+void shell_sort(std::vector<int>& v)
+{
+    for (auto i = v.size(); i; i >>= 1)
+    {
+        // std::ranges::sort(v | leviathan::ranges::stride(i));
+        leviathan::insertion_sort(v | leviathan::ranges::stride(i));
+    }
+}
 
 int main() 
 {
-    auto x = std::vector{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    std::vector<int> v = { 5, 4, 3, 2, 1 };
 
-    // prints 0 3 6 9
-    stdr::copy(x | leviathan::ranges::stride(3), std::ostream_iterator<int>(std::cout, " "));
+    shell_sort(v);
 
-    std::endl(std::cout);
+    std::ranges::copy(v, std::ostream_iterator<int>{std::cout, " "});
 
-    // prints 9 6 3 0
-    stdr::copy(leviathan::ranges::stride(x, 3) | stdv::reverse, std::ostream_iterator<int>(std::cout, " "));
-    std::endl(std::cout);
-
-    auto y = std::vector{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-
-    // // prints 0 3 6 9
-    stdr::copy(leviathan::ranges::stride(y, 3), std::ostream_iterator<int>(std::cout, " "));
-    std::endl(std::cout);
-
-    // // prints 8 5 2: not the same range in reverse!?
-    stdr::copy(leviathan::ranges::stride(y, 3) | stdv::reverse, std::ostream_iterator<int>(std::cout, " "));
-    std::endl(std::cout);
 }
 
