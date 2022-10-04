@@ -1,0 +1,497 @@
+INFO:2022-29-09 08:38:07:=====================================================================================
+INFO:2022-29-09 08:38:07:AdjustLearningRate
+INFO:2022-29-09 08:38:07:=====================================================================================
+INFO:2022-29-09 08:38:07:image_directory = /home/zeyu_yan/VOC2012/JPEGImages
+INFO:2022-29-09 08:38:07:semantic_directory = /home/zeyu_yan/VOC2012/SegmentationClassAug
+INFO:2022-29-09 08:38:07:train_txt = /home/zeyu_yan/VOC2012/scribble_train.txt
+INFO:2022-29-09 08:38:07:val_txt = /home/zeyu_yan/VOC2012/val.txt
+INFO:2022-29-09 08:38:07:image_level_npy = /home/zeyu_yan/VOC2012/cls_labels.npy
+INFO:2022-29-09 08:38:07:train2_txt = /home/zeyu_yan/VOC2012/ImageSets/Segmentation/train.txt
+INFO:2022-29-09 08:38:07:arch = vit_small
+INFO:2022-29-09 08:38:07:num_classes = 20
+INFO:2022-29-09 08:38:07:image_size = 384
+INFO:2022-29-09 08:38:07:crop_size = 384
+INFO:2022-29-09 08:38:07:cuda_visible_devices = 0,3,4,5
+INFO:2022-29-09 08:38:07:work_dir = /data2/zeyu_yan/work2V2
+INFO:2022-29-09 08:38:07:lr = 0.00075
+INFO:2022-29-09 08:38:07:eps = 1e-08
+INFO:2022-29-09 08:38:07:output_seed_dir = /mnt/diskg/zeyu_yan/VOC2012/VOCdevkit/VOC2012/Seed
+INFO:2022-29-09 08:38:07:batch_size = 32
+INFO:2022-29-09 08:38:07:epochs = 50
+INFO:2022-29-09 08:38:07:weight_decay = 0.0
+INFO:2022-29-09 08:38:07:num_workers = 8
+INFO:2022-29-09 08:38:07:seed = 17
+INFO:2022-29-09 08:38:07:momentum = 0.9
+INFO:2022-29-09 08:38:07:betas = [0.9, 0.999]
+INFO:2022-29-09 08:38:07:rank = 0
+INFO:2022-29-09 08:38:07:pretrained = /home/zeyu_yan/.cache/torch/hub/checkpoints/S_16-i21k-300ep-lr_0.001-aug_light1-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_384.npz
+INFO:2022-29-09 08:38:07:cam_out = /mnt/diskg/zeyu_yan/VOC2012/VOCdevkit/VOC2012/CAMs
+INFO:2022-29-09 08:38:07:mode = train
+INFO:2022-29-09 08:38:07:session = AdjustLearningRate
+INFO:2022-29-09 08:38:07:gpus = [0, 1, 2, 3]
+INFO:2022-29-09 08:38:07:=====================================================================================
+INFO:2022-29-09 08:38:07:Training PipeLine:
+INFO:2022-29-09 08:38:07:ReadImage { args : ['image'] }
+INFO:2022-29-09 08:38:07:RandomScaleCrop { args : ['image'] size : (384, 384) scale : (0.5, 2.0) ratio : (0.75, 1.3333333333333333) }
+INFO:2022-29-09 08:38:07:RandomHorizontalFlip { args : ['image'] ratio : 0.5 }
+INFO:2022-29-09 08:38:07:ColorJitterImage { args : ['image'] brightness : 0.3 contrast : 0.3 saturation : 0.3 hue : 0.1 }
+INFO:2022-29-09 08:38:07:ToTensor { args : ['image'] }
+INFO:2022-29-09 08:38:07:NormalizeImage { args : ['image'] mean : [123.675, 116.28, 103.53] std : [58.395, 57.12, 57.375] }
+INFO:2022-29-09 08:38:07:=====================================================================================
+INFO:2022-29-09 08:38:07:Validation PipeLine:
+INFO:2022-29-09 08:38:07:ReadImage { args : ['image'] }
+INFO:2022-29-09 08:38:07:ReadAnnotation { args : ['semantic'] }
+INFO:2022-29-09 08:38:07:ToTensor { args : ['image', 'semantic'] }
+INFO:2022-29-09 08:38:07:NormalizeImage { args : ['image'] mean : [123.675, 116.28, 103.53] std : [58.395, 57.12, 57.375] }
+INFO:2022-29-09 08:38:07:=====================================================================================
+INFO:2022-29-09 08:38:08:VisualTransformerClassifier(
+  (backbone): VisionTransformer(
+    (patch_embed): PatchEmbed(
+      (proj): Conv2d(3, 384, kernel_size=(16, 16), stride=(16, 16))
+    )
+    (pos_drop): Dropout(p=0.0, inplace=False)
+    (blocks): ModuleList(
+      (0): Block(
+        (norm1): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (attn): Attention(
+          (qkv): Linear(in_features=384, out_features=1152, bias=True)
+          (attn_drop): Dropout(p=0.0, inplace=False)
+          (proj): Linear(in_features=384, out_features=384, bias=True)
+          (proj_drop): Dropout(p=0.0, inplace=False)
+        )
+        (drop_path): Identity()
+        (norm2): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (mlp): Mlp(
+          (fc1): Linear(in_features=384, out_features=1536, bias=True)
+          (act): GELU()
+          (fc2): Linear(in_features=1536, out_features=384, bias=True)
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (1): Block(
+        (norm1): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (attn): Attention(
+          (qkv): Linear(in_features=384, out_features=1152, bias=True)
+          (attn_drop): Dropout(p=0.0, inplace=False)
+          (proj): Linear(in_features=384, out_features=384, bias=True)
+          (proj_drop): Dropout(p=0.0, inplace=False)
+        )
+        (drop_path): Identity()
+        (norm2): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (mlp): Mlp(
+          (fc1): Linear(in_features=384, out_features=1536, bias=True)
+          (act): GELU()
+          (fc2): Linear(in_features=1536, out_features=384, bias=True)
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (2): Block(
+        (norm1): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (attn): Attention(
+          (qkv): Linear(in_features=384, out_features=1152, bias=True)
+          (attn_drop): Dropout(p=0.0, inplace=False)
+          (proj): Linear(in_features=384, out_features=384, bias=True)
+          (proj_drop): Dropout(p=0.0, inplace=False)
+        )
+        (drop_path): Identity()
+        (norm2): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (mlp): Mlp(
+          (fc1): Linear(in_features=384, out_features=1536, bias=True)
+          (act): GELU()
+          (fc2): Linear(in_features=1536, out_features=384, bias=True)
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (3): Block(
+        (norm1): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (attn): Attention(
+          (qkv): Linear(in_features=384, out_features=1152, bias=True)
+          (attn_drop): Dropout(p=0.0, inplace=False)
+          (proj): Linear(in_features=384, out_features=384, bias=True)
+          (proj_drop): Dropout(p=0.0, inplace=False)
+        )
+        (drop_path): Identity()
+        (norm2): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (mlp): Mlp(
+          (fc1): Linear(in_features=384, out_features=1536, bias=True)
+          (act): GELU()
+          (fc2): Linear(in_features=1536, out_features=384, bias=True)
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (4): Block(
+        (norm1): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (attn): Attention(
+          (qkv): Linear(in_features=384, out_features=1152, bias=True)
+          (attn_drop): Dropout(p=0.0, inplace=False)
+          (proj): Linear(in_features=384, out_features=384, bias=True)
+          (proj_drop): Dropout(p=0.0, inplace=False)
+        )
+        (drop_path): Identity()
+        (norm2): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (mlp): Mlp(
+          (fc1): Linear(in_features=384, out_features=1536, bias=True)
+          (act): GELU()
+          (fc2): Linear(in_features=1536, out_features=384, bias=True)
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (5): Block(
+        (norm1): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (attn): Attention(
+          (qkv): Linear(in_features=384, out_features=1152, bias=True)
+          (attn_drop): Dropout(p=0.0, inplace=False)
+          (proj): Linear(in_features=384, out_features=384, bias=True)
+          (proj_drop): Dropout(p=0.0, inplace=False)
+        )
+        (drop_path): Identity()
+        (norm2): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (mlp): Mlp(
+          (fc1): Linear(in_features=384, out_features=1536, bias=True)
+          (act): GELU()
+          (fc2): Linear(in_features=1536, out_features=384, bias=True)
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (6): Block(
+        (norm1): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (attn): Attention(
+          (qkv): Linear(in_features=384, out_features=1152, bias=True)
+          (attn_drop): Dropout(p=0.0, inplace=False)
+          (proj): Linear(in_features=384, out_features=384, bias=True)
+          (proj_drop): Dropout(p=0.0, inplace=False)
+        )
+        (drop_path): Identity()
+        (norm2): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (mlp): Mlp(
+          (fc1): Linear(in_features=384, out_features=1536, bias=True)
+          (act): GELU()
+          (fc2): Linear(in_features=1536, out_features=384, bias=True)
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (7): Block(
+        (norm1): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (attn): Attention(
+          (qkv): Linear(in_features=384, out_features=1152, bias=True)
+          (attn_drop): Dropout(p=0.0, inplace=False)
+          (proj): Linear(in_features=384, out_features=384, bias=True)
+          (proj_drop): Dropout(p=0.0, inplace=False)
+        )
+        (drop_path): Identity()
+        (norm2): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (mlp): Mlp(
+          (fc1): Linear(in_features=384, out_features=1536, bias=True)
+          (act): GELU()
+          (fc2): Linear(in_features=1536, out_features=384, bias=True)
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (8): Block(
+        (norm1): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (attn): Attention(
+          (qkv): Linear(in_features=384, out_features=1152, bias=True)
+          (attn_drop): Dropout(p=0.0, inplace=False)
+          (proj): Linear(in_features=384, out_features=384, bias=True)
+          (proj_drop): Dropout(p=0.0, inplace=False)
+        )
+        (drop_path): Identity()
+        (norm2): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (mlp): Mlp(
+          (fc1): Linear(in_features=384, out_features=1536, bias=True)
+          (act): GELU()
+          (fc2): Linear(in_features=1536, out_features=384, bias=True)
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (9): Block(
+        (norm1): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (attn): Attention(
+          (qkv): Linear(in_features=384, out_features=1152, bias=True)
+          (attn_drop): Dropout(p=0.0, inplace=False)
+          (proj): Linear(in_features=384, out_features=384, bias=True)
+          (proj_drop): Dropout(p=0.0, inplace=False)
+        )
+        (drop_path): Identity()
+        (norm2): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (mlp): Mlp(
+          (fc1): Linear(in_features=384, out_features=1536, bias=True)
+          (act): GELU()
+          (fc2): Linear(in_features=1536, out_features=384, bias=True)
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (10): Block(
+        (norm1): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (attn): Attention(
+          (qkv): Linear(in_features=384, out_features=1152, bias=True)
+          (attn_drop): Dropout(p=0.0, inplace=False)
+          (proj): Linear(in_features=384, out_features=384, bias=True)
+          (proj_drop): Dropout(p=0.0, inplace=False)
+        )
+        (drop_path): Identity()
+        (norm2): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (mlp): Mlp(
+          (fc1): Linear(in_features=384, out_features=1536, bias=True)
+          (act): GELU()
+          (fc2): Linear(in_features=1536, out_features=384, bias=True)
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (11): Block(
+        (norm1): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (attn): Attention(
+          (qkv): Linear(in_features=384, out_features=1152, bias=True)
+          (attn_drop): Dropout(p=0.0, inplace=False)
+          (proj): Linear(in_features=384, out_features=384, bias=True)
+          (proj_drop): Dropout(p=0.0, inplace=False)
+        )
+        (drop_path): Identity()
+        (norm2): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+        (mlp): Mlp(
+          (fc1): Linear(in_features=384, out_features=1536, bias=True)
+          (act): GELU()
+          (fc2): Linear(in_features=1536, out_features=384, bias=True)
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+    )
+    (norm): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+    (head): Identity()
+    (pre_logits): Identity()
+  )
+  (blk): TransformerBlock(
+    (norm1): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+    (attn): Attention(
+      (qkv): Linear(in_features=384, out_features=1152, bias=True)
+      (attn_drop): Dropout(p=0, inplace=False)
+      (proj): Linear(in_features=384, out_features=384, bias=True)
+      (proj_drop): Dropout(p=0, inplace=False)
+    )
+    (drop_path): Identity()
+    (norm2): LayerNorm((384,), eps=1e-06, elementwise_affine=True)
+    (mlp): Mlp(
+      (fc1): Linear(in_features=384, out_features=1536, bias=True)
+      (act): GELU()
+      (fc2): Linear(in_features=1536, out_features=384, bias=True)
+      (drop): Dropout(p=0, inplace=False)
+    )
+  )
+  (norm): Identity()
+  (head): Conv2d(384, 20, kernel_size=(1, 1), stride=(1, 1))
+  (seghead): MaskTransformer(
+    (blocks): ModuleList(
+      (0): Block(
+        (norm1): LayerNorm((384,), eps=1e-05, elementwise_affine=True)
+        (norm2): LayerNorm((384,), eps=1e-05, elementwise_affine=True)
+        (attn): Attention(
+          (qkv): Linear(in_features=384, out_features=1152, bias=True)
+          (attn_drop): Dropout(p=0.0, inplace=False)
+          (proj): Linear(in_features=384, out_features=384, bias=True)
+          (proj_drop): Dropout(p=0.0, inplace=False)
+        )
+        (mlp): FeedForward(
+          (fc1): Linear(in_features=384, out_features=1536, bias=True)
+          (act): GELU()
+          (fc2): Linear(in_features=1536, out_features=384, bias=True)
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+        (drop_path): Identity()
+      )
+      (1): Block(
+        (norm1): LayerNorm((384,), eps=1e-05, elementwise_affine=True)
+        (norm2): LayerNorm((384,), eps=1e-05, elementwise_affine=True)
+        (attn): Attention(
+          (qkv): Linear(in_features=384, out_features=1152, bias=True)
+          (attn_drop): Dropout(p=0.0, inplace=False)
+          (proj): Linear(in_features=384, out_features=384, bias=True)
+          (proj_drop): Dropout(p=0.0, inplace=False)
+        )
+        (mlp): FeedForward(
+          (fc1): Linear(in_features=384, out_features=1536, bias=True)
+          (act): GELU()
+          (fc2): Linear(in_features=1536, out_features=384, bias=True)
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+        (drop_path): DropPath()
+      )
+    )
+    (proj_dec): Linear(in_features=384, out_features=384, bias=True)
+    (decoder_norm): LayerNorm((384,), eps=1e-05, elementwise_affine=True)
+    (mask_norm): LayerNorm((21,), eps=1e-05, elementwise_affine=True)
+  )
+)
+INFO:2022-29-09 08:49:24:lr = [9.20556759998483e-05, 0.000920556759998483, 0.000920556759998483]
+INFO:2022-29-09 08:49:24:Train Loss: 2.8333, cls: 0.2543, ce: 1.1960,crf: 0.8514, cam: 0.2132.
+INFO:2022-29-09 08:49:24:Training: Epoch: 0/50
+INFO:2022-29-09 08:49:24:Loss: 2.8333
+INFO:2022-29-09 08:50:28:Testing: Epoch: 0/50,             mAP = 0.6950,             mIoU = 0.4499,             Acc = 0.1125
+INFO:2022-29-09 09:01:37:lr = [9.036301429786827e-05, 0.0009036301429786827, 0.0009036301429786827]
+INFO:2022-29-09 09:01:37:Train Loss: 2.3415, cls: 0.1454, ce: 0.9370,crf: 0.8567, cam: 0.1341.
+INFO:2022-29-09 09:01:37:Training: Epoch: 1/50
+INFO:2022-29-09 09:01:37:Loss: 2.3415
+INFO:2022-29-09 09:02:39:Testing: Epoch: 1/50,             mAP = 0.8592,             mIoU = 0.5050,             Acc = 0.3464
+INFO:2022-29-09 09:13:41:lr = [8.866682204987233e-05, 0.0008866682204987232, 0.0008866682204987232]
+INFO:2022-29-09 09:13:41:Train Loss: 2.1845, cls: 0.1152, ce: 0.8563,crf: 0.8535, cam: 0.1171.
+INFO:2022-29-09 09:13:41:Training: Epoch: 2/50
+INFO:2022-29-09 09:13:41:Loss: 2.1845
+INFO:2022-29-09 09:14:45:Testing: Epoch: 2/50,             mAP = 0.9077,             mIoU = 0.5500,             Acc = 0.4617
+INFO:2022-29-09 09:25:53:lr = [8.696701652038315e-05, 0.0008696701652038314, 0.0008696701652038314]
+INFO:2022-29-09 09:25:53:Train Loss: 2.1094, cls: 0.0999, ce: 0.8197,crf: 0.8535, cam: 0.1073.
+INFO:2022-29-09 09:25:53:Training: Epoch: 3/50
+INFO:2022-29-09 09:25:53:Loss: 2.1094
+INFO:2022-29-09 09:26:57:Testing: Epoch: 3/50,             mAP = 0.9251,             mIoU = 0.5669,             Acc = 0.5424
+INFO:2022-29-09 09:38:15:lr = [8.526351119164954e-05, 0.0008526351119164953, 0.0008526351119164953]
+INFO:2022-29-09 09:38:15:Train Loss: 2.0508, cls: 0.0902, ce: 0.7900,crf: 0.8525, cam: 0.1018.
+INFO:2022-29-09 09:38:15:Training: Epoch: 4/50
+INFO:2022-29-09 09:38:15:Loss: 2.0508
+INFO:2022-29-09 09:39:18:Testing: Epoch: 4/50,             mAP = 0.9338,             mIoU = 0.5544,             Acc = 0.5942
+INFO:2022-29-09 09:50:35:lr = [8.355621550270124e-05, 0.0008355621550270124, 0.0008355621550270124]
+INFO:2022-29-09 09:50:35:Train Loss: 2.0062, cls: 0.0842, ce: 0.7612,crf: 0.8554, cam: 0.0995.
+INFO:2022-29-09 09:50:35:Training: Epoch: 5/50
+INFO:2022-29-09 09:50:35:Loss: 2.0062
+INFO:2022-29-09 09:51:38:Testing: Epoch: 5/50,             mAP = 0.9412,             mIoU = 0.5764,             Acc = 0.6239
+INFO:2022-29-09 10:02:53:lr = [8.184503456404943e-05, 0.0008184503456404942, 0.0008184503456404942]
+INFO:2022-29-09 10:02:53:Train Loss: 1.9686, cls: 0.0794, ce: 0.7432,crf: 0.8548, cam: 0.0936.
+INFO:2022-29-09 10:02:53:Training: Epoch: 6/50
+INFO:2022-29-09 10:02:53:Loss: 1.9686
+INFO:2022-29-09 10:03:57:Testing: Epoch: 6/50,             mAP = 0.9452,             mIoU = 0.6099,             Acc = 0.6377
+INFO:2022-29-09 10:15:14:lr = [8.012986884513896e-05, 0.0008012986884513895, 0.0008012986884513895]
+INFO:2022-29-09 10:15:14:Train Loss: 1.9310, cls: 0.0759, ce: 0.7227,crf: 0.8510, cam: 0.0899.
+INFO:2022-29-09 10:15:14:Training: Epoch: 7/50
+INFO:2022-29-09 10:15:14:Loss: 1.9310
+INFO:2022-29-09 10:16:16:Testing: Epoch: 7/50,             mAP = 0.9484,             mIoU = 0.6078,             Acc = 0.6556
+INFO:2022-29-09 10:27:37:lr = [7.841061383123845e-05, 0.0007841061383123845, 0.0007841061383123845]
+INFO:2022-29-09 10:27:37:Train Loss: 1.9209, cls: 0.0737, ce: 0.7237,crf: 0.8504, cam: 0.0887.
+INFO:2022-29-09 10:27:37:Training: Epoch: 8/50
+INFO:2022-29-09 10:27:37:Loss: 1.9209
+INFO:2022-29-09 10:28:38:Testing: Epoch: 8/50,             mAP = 0.9498,             mIoU = 0.6198,             Acc = 0.6618
+INFO:2022-29-09 10:39:54:lr = [7.668715964595876e-05, 0.0007668715964595875, 0.0007668715964595875]
+INFO:2022-29-09 10:39:54:Train Loss: 1.8858, cls: 0.0712, ce: 0.6968,crf: 0.8519, cam: 0.0863.
+INFO:2022-29-09 10:39:54:Training: Epoch: 9/50
+INFO:2022-29-09 10:39:54:Loss: 1.8858
+INFO:2022-29-09 10:40:57:Testing: Epoch: 9/50,             mAP = 0.9512,             mIoU = 0.6350,             Acc = 0.6743
+INFO:2022-29-09 10:52:14:lr = [7.495939063500977e-05, 0.0007495939063500977, 0.0007495939063500977]
+INFO:2022-29-09 10:52:14:Train Loss: 1.8645, cls: 0.0695, ce: 0.6843,crf: 0.8518, cam: 0.0845.
+INFO:2022-29-09 10:52:14:Training: Epoch: 10/50
+INFO:2022-29-09 10:52:14:Loss: 1.8645
+INFO:2022-29-09 10:53:19:Testing: Epoch: 10/50,             mAP = 0.9543,             mIoU = 0.6328,             Acc = 0.6805
+INFO:2022-29-09 11:04:37:lr = [7.322718490611651e-05, 0.000732271849061165, 0.000732271849061165]
+INFO:2022-29-09 11:04:37:Train Loss: 1.8711, cls: 0.0682, ce: 0.6844,crf: 0.8606, cam: 0.0840.
+INFO:2022-29-09 11:04:37:Training: Epoch: 11/50
+INFO:2022-29-09 11:04:37:Loss: 1.8711
+INFO:2022-29-09 11:05:43:Testing: Epoch: 11/50,             mAP = 0.9556,             mIoU = 0.6357,             Acc = 0.6812
+INFO:2022-29-09 11:17:06:lr = [7.149041381919858e-05, 0.0007149041381919858, 0.0007149041381919858]
+INFO:2022-29-09 11:17:06:Train Loss: 1.8394, cls: 0.0672, ce: 0.6731,crf: 0.8507, cam: 0.0820.
+INFO:2022-29-09 11:17:06:Training: Epoch: 12/50
+INFO:2022-29-09 11:17:06:Loss: 1.8394
+INFO:2022-29-09 11:18:08:Testing: Epoch: 12/50,             mAP = 0.9557,             mIoU = 0.6506,             Acc = 0.6812
+INFO:2022-29-09 11:29:29:lr = [6.974894141994335e-05, 0.0006974894141994336, 0.0006974894141994336]
+INFO:2022-29-09 11:29:29:Train Loss: 1.8012, cls: 0.0652, ce: 0.6374,crf: 0.8561, cam: 0.0797.
+INFO:2022-29-09 11:29:29:Training: Epoch: 13/50
+INFO:2022-29-09 11:29:29:Loss: 1.8012
+INFO:2022-29-09 11:30:32:Testing: Epoch: 13/50,             mAP = 0.9568,             mIoU = 0.6543,             Acc = 0.6922
+INFO:2022-29-09 11:41:55:lr = [6.800262380873582e-05, 0.0006800262380873581, 0.0006800262380873581]
+INFO:2022-29-09 11:41:55:Train Loss: 1.7954, cls: 0.0648, ce: 0.6384,crf: 0.8528, cam: 0.0794.
+INFO:2022-29-09 11:41:55:Training: Epoch: 14/50
+INFO:2022-29-09 11:41:55:Loss: 1.7954
+INFO:2022-29-09 11:42:59:Testing: Epoch: 14/50,             mAP = 0.9566,             mIoU = 0.6634,             Acc = 0.6950
+INFO:2022-29-09 11:54:25:lr = [6.625130843550455e-05, 0.0006625130843550455, 0.0006625130843550455]
+INFO:2022-29-09 11:54:25:Train Loss: 1.7723, cls: 0.0636, ce: 0.6188,crf: 0.8536, cam: 0.0783.
+INFO:2022-29-09 11:54:25:Training: Epoch: 15/50
+INFO:2022-29-09 11:54:25:Loss: 1.7723
+INFO:2022-29-09 11:55:30:Testing: Epoch: 15/50,             mAP = 0.9585,             mIoU = 0.6653,             Acc = 0.7005
+INFO:2022-29-09 12:06:51:lr = [6.449483330934526e-05, 0.0006449483330934526, 0.0006449483330934526]
+INFO:2022-29-09 12:06:51:Train Loss: 1.7668, cls: 0.0624, ce: 0.6172,crf: 0.8505, cam: 0.0783.
+INFO:2022-29-09 12:06:51:Training: Epoch: 16/50
+INFO:2022-29-09 12:06:51:Loss: 1.7668
+INFO:2022-29-09 12:07:52:Testing: Epoch: 16/50,             mAP = 0.9598,             mIoU = 0.6612,             Acc = 0.6970
+INFO:2022-29-09 12:19:08:lr = [6.27330261097188e-05, 0.0006273302610971879, 0.0006273302610971879]
+INFO:2022-29-09 12:19:08:Train Loss: 1.7586, cls: 0.0621, ce: 0.6121,crf: 0.8542, cam: 0.0774.
+INFO:2022-29-09 12:19:08:Training: Epoch: 17/50
+INFO:2022-29-09 12:19:08:Loss: 1.7586
+INFO:2022-29-09 12:20:12:Testing: Epoch: 17/50,             mAP = 0.9605,             mIoU = 0.6607,             Acc = 0.7012
+INFO:2022-29-09 12:31:32:lr = [6.09657031834975e-05, 0.000609657031834975, 0.000609657031834975]
+INFO:2022-29-09 12:31:32:Train Loss: 1.7406, cls: 0.0610, ce: 0.6010,crf: 0.8497, cam: 0.0764.
+INFO:2022-29-09 12:31:32:Training: Epoch: 18/50
+INFO:2022-29-09 12:31:32:Loss: 1.7406
+INFO:2022-29-09 12:32:36:Testing: Epoch: 18/50,             mAP = 0.9606,             mIoU = 0.6661,             Acc = 0.7039
+INFO:2022-29-09 12:43:59:lr = [5.919266840902995e-05, 0.0005919266840902995, 0.0005919266840902995]
+INFO:2022-29-09 12:43:59:Train Loss: 1.7301, cls: 0.0605, ce: 0.5914,crf: 0.8522, cam: 0.0757.
+INFO:2022-29-09 12:43:59:Training: Epoch: 19/50
+INFO:2022-29-09 12:43:59:Loss: 1.7301
+INFO:2022-29-09 12:45:02:Testing: Epoch: 19/50,             mAP = 0.9616,             mIoU = 0.6669,             Acc = 0.7060
+INFO:2022-29-09 12:56:22:lr = [5.7413711904554994e-05, 0.00057413711904555, 0.00057413711904555]
+INFO:2022-29-09 12:56:22:Train Loss: 1.7153, cls: 0.0593, ce: 0.5846,crf: 0.8481, cam: 0.0757.
+INFO:2022-29-09 12:56:22:Training: Epoch: 20/50
+INFO:2022-29-09 12:56:22:Loss: 1.7153
+INFO:2022-29-09 12:57:24:Testing: Epoch: 20/50,             mAP = 0.9619,             mIoU = 0.6702,             Acc = 0.7095
+INFO:2022-29-09 13:08:55:lr = [5.562860855351254e-05, 0.0005562860855351253, 0.0005562860855351253]
+INFO:2022-29-09 13:08:55:Train Loss: 1.7190, cls: 0.0592, ce: 0.5838,crf: 0.8534, cam: 0.0762.
+INFO:2022-29-09 13:08:55:Training: Epoch: 21/50
+INFO:2022-29-09 13:08:55:Loss: 1.7190
+INFO:2022-29-09 13:09:59:Testing: Epoch: 21/50,             mAP = 0.9618,             mIoU = 0.6702,             Acc = 0.7095
+INFO:2022-29-09 13:21:20:lr = [5.383711631329869e-05, 0.0005383711631329869, 0.0005383711631329869]
+INFO:2022-29-09 13:21:20:Train Loss: 1.7131, cls: 0.0594, ce: 0.5788,crf: 0.8511, cam: 0.0761.
+INFO:2022-29-09 13:21:20:Training: Epoch: 22/50
+INFO:2022-29-09 13:21:20:Loss: 1.7131
+INFO:2022-29-09 13:22:24:Testing: Epoch: 22/50,             mAP = 0.9614,             mIoU = 0.6731,             Acc = 0.7122
+INFO:2022-29-09 13:33:41:lr = [5.203897426643e-05, 0.0005203897426643, 0.0005203897426643]
+INFO:2022-29-09 13:33:41:Train Loss: 1.6899, cls: 0.0584, ce: 0.5638,crf: 0.8487, cam: 0.0749.
+INFO:2022-29-09 13:33:41:Training: Epoch: 23/50
+INFO:2022-29-09 13:33:41:Loss: 1.6899
+INFO:2022-29-09 13:34:45:Testing: Epoch: 23/50,             mAP = 0.9634,             mIoU = 0.6733,             Acc = 0.7143
+INFO:2022-29-09 13:46:08:lr = [5.023390036341954e-05, 0.0005023390036341954, 0.0005023390036341954]
+INFO:2022-29-09 13:46:08:Train Loss: 1.6882, cls: 0.0577, ce: 0.5595,crf: 0.8522, cam: 0.0744.
+INFO:2022-29-09 13:46:08:Training: Epoch: 24/50
+INFO:2022-29-09 13:46:08:Loss: 1.6882
+INFO:2022-29-09 13:47:11:Testing: Epoch: 24/50,             mAP = 0.9625,             mIoU = 0.6723,             Acc = 0.7164
+INFO:2022-29-09 13:58:27:lr = [4.842158879425083e-05, 0.00048421588794250834, 0.00048421588794250834]
+INFO:2022-29-09 13:58:27:Train Loss: 1.6778, cls: 0.0573, ce: 0.5514,crf: 0.8521, cam: 0.0747.
+INFO:2022-29-09 13:58:27:Training: Epoch: 25/50
+INFO:2022-29-09 13:58:27:Loss: 1.6778
+INFO:2022-29-09 13:59:30:Testing: Epoch: 25/50,             mAP = 0.9633,             mIoU = 0.6731,             Acc = 0.7239
+INFO:2022-29-09 14:10:51:lr = [4.660170690923126e-05, 0.0004660170690923126, 0.0004660170690923126]
+INFO:2022-29-09 14:10:51:Train Loss: 1.6578, cls: 0.0568, ce: 0.5375,crf: 0.8498, cam: 0.0738.
+INFO:2022-29-09 14:10:51:Training: Epoch: 26/50
+INFO:2022-29-09 14:10:51:Loss: 1.6578
+INFO:2022-29-09 14:11:55:Testing: Epoch: 26/50,             mAP = 0.9624,             mIoU = 0.6767,             Acc = 0.7219
+INFO:2022-29-09 14:23:12:lr = [4.477389158890694e-05, 0.0004477389158890693, 0.0004477389158890693]
+INFO:2022-29-09 14:23:12:Train Loss: 1.6641, cls: 0.0566, ce: 0.5377,crf: 0.8555, cam: 0.0742.
+INFO:2022-29-09 14:23:12:Training: Epoch: 27/50
+INFO:2022-29-09 14:23:12:Loss: 1.6641
+INFO:2022-29-09 14:24:16:Testing: Epoch: 27/50,             mAP = 0.9629,             mIoU = 0.6672,             Acc = 0.7205
+INFO:2022-29-09 14:35:33:lr = [4.293774493478155e-05, 0.00042937744934781546, 0.00042937744934781546]
+INFO:2022-29-09 14:35:33:Train Loss: 1.6603, cls: 0.0566, ce: 0.5362,crf: 0.8545, cam: 0.0738.
+INFO:2022-29-09 14:35:33:Training: Epoch: 28/50
+INFO:2022-29-09 14:35:33:Loss: 1.6603
+INFO:2022-29-09 14:36:37:Testing: Epoch: 28/50,             mAP = 0.9627,             mIoU = 0.6618,             Acc = 0.7246
+INFO:2022-29-09 14:48:01:lr = [4.109282911514676e-05, 0.0004109282911514676, 0.0004109282911514676]
+INFO:2022-29-09 14:48:01:Train Loss: 1.6502, cls: 0.0558, ce: 0.5270,crf: 0.8535, cam: 0.0745.
+INFO:2022-29-09 14:48:01:Training: Epoch: 29/50
+INFO:2022-29-09 14:48:01:Loss: 1.6502
+INFO:2022-29-09 14:49:05:Testing: Epoch: 29/50,             mAP = 0.9639,             mIoU = 0.6717,             Acc = 0.7267
+INFO:2022-29-09 15:00:23:lr = [3.923866014953602e-05, 0.0003923866014953602, 0.0003923866014953602]
+INFO:2022-29-09 15:00:23:Train Loss: 1.6432, cls: 0.0559, ce: 0.5242,crf: 0.8524, cam: 0.0737.
+INFO:2022-29-09 15:00:23:Training: Epoch: 30/50
+INFO:2022-29-09 15:00:23:Loss: 1.6432
+INFO:2022-29-09 15:01:27:Testing: Epoch: 30/50,             mAP = 0.9634,             mIoU = 0.6679,             Acc = 0.7274
+INFO:2022-29-09 15:12:50:lr = [3.737470034542469e-05, 0.0003737470034542469, 0.0003737470034542469]
+INFO:2022-29-09 15:12:50:Train Loss: 1.6291, cls: 0.0558, ce: 0.5133,crf: 0.8523, cam: 0.0722.
+INFO:2022-29-09 15:12:50:Training: Epoch: 31/50
+INFO:2022-29-09 15:12:50:Loss: 1.6291
+INFO:2022-29-09 15:13:55:Testing: Epoch: 31/50,             mAP = 0.9641,             mIoU = 0.6702,             Acc = 0.7281
+INFO:2022-29-09 15:25:14:lr = [3.550034900316866e-05, 0.00035500349003168656, 0.00035500349003168656]
+INFO:2022-29-09 15:25:14:Train Loss: 1.6396, cls: 0.0554, ce: 0.5196,crf: 0.8528, cam: 0.0743.
+INFO:2022-29-09 15:25:14:Training: Epoch: 32/50
+INFO:2022-29-09 15:25:14:Loss: 1.6396
+INFO:2022-29-09 15:26:17:Testing: Epoch: 32/50,             mAP = 0.9638,             mIoU = 0.6705,             Acc = 0.7281
+INFO:2022-29-09 15:37:37:lr = [3.3614930866486256e-05, 0.0003361493086648625, 0.0003361493086648625]
+INFO:2022-29-09 15:37:37:Train Loss: 1.6248, cls: 0.0555, ce: 0.5110,crf: 0.8490, cam: 0.0732.
+INFO:2022-29-09 15:37:37:Training: Epoch: 33/50
+INFO:2022-29-09 15:37:37:Loss: 1.6248
+INFO:2022-29-09 17:16:42:lr = [1.8010724279794538e-05, 0.0001801072427979454, 0.0001801072427979454]
+INFO:2022-29-09 17:16:42:Train Loss: 1.5903, cls: 0.0536, ce: 0.4804,crf: 0.8513, cam: 0.0724.
+INFO:2022-29-09 17:16:42:Training: Epoch: 41/50
+INFO:2022-29-09 17:16:42:Loss: 1.5903
+INFO:2022-29-09 17:17:47:Testing: Epoch: 41/50,             mAP = 0.9645,             mIoU = 0.6569,             Acc = 0.7322

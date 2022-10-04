@@ -22,8 +22,8 @@ void shell_sort(std::vector<int>& v)
 {
     for (auto i = v.size(); i; i >>= 1)
     {
-        // std::ranges::sort(v | leviathan::ranges::stride(i));
-        leviathan::insertion_sort(v | leviathan::ranges::stride(i));
+        std::ranges::sort(v | leviathan::ranges::stride(i));
+        // leviathan::insertion_sort(v | leviathan::ranges::stride(i));
     }
 }
 

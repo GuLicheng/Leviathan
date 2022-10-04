@@ -64,7 +64,7 @@ namespace leviathan::json
 
     // string、number、object、array、(true、false)、null
 
-    // declearation
+    // declaration 
     struct json_boolean;
     struct json_array;
     struct json_number;

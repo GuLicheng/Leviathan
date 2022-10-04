@@ -133,7 +133,7 @@ namespace leviathan::ini
         ~INI_handler() = default;
 
         /**
-         * load ini file
+         * @brief: load ini file
          * @param:
          *      file: the path of file
          * @return:

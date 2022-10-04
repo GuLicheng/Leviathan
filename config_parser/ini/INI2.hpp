@@ -5,8 +5,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
-#include <algorithm>
-#include <assert.h>
+
 
 inline constexpr auto TrimBlank = [](std::string_view line) {
     auto first = std::ranges::find_if_not(line, ::isspace);
@@ -93,20 +92,9 @@ public:
         TryParse();
     }
 
-    // const auto& operator[](std::string_view section) 
-    // {
-    //     return result[section];
-    // }
-
-    std::string_view find(std::string_view section, std::string_view key) const
+    const auto& operator[](std::string_view section) 
     {
-        auto entry = result.find(section);
-        if (entry == result.end())
-            return "";
-        auto kv = entry->second.find(key);
-        if (kv == entry->second.end())
-            return "";
-        return kv->second;
+        return result[section];
     }
 
 private:
@@ -177,16 +165,16 @@ private:
 
 
 
-int main()
-{
-    SimpleInIReader reader { "a.ini" };
+// int main()
+// {
+//     SimpleInIReader reader { "a.ini" };
 
-    SimpleInIWriter writer { reader };
+//     SimpleInIWriter writer { reader };
 
-    writer["Boris"]["Cost"] = "1500";
+//     writer["Boris"]["Cost"] = "1500";
 
-    writer.Write(std::cout);
-}
+//     writer.Write(std::cout);
+// }
 
 
 
