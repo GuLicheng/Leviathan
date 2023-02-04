@@ -188,3 +188,59 @@ public:
 // };
 
 } // namespace leviathan::metaV2 
+
+
+
+/*
+
+
+template <std::array Array, std::size_t Length = Array.size()>
+consteval auto array_to_index_sequence()
+{
+    auto return_index_sequence = []<size_t... Idx>(std::index_sequence<Idx...>)
+    {
+        return std::index_sequence<Array[Idx]...>();
+    };
+    return return_index_sequence(std::make_index_sequence<Length>());
+}
+
+template <std::size_t... Idx>
+consteval auto index_sequence_to_array(std::index_sequence<Idx...>)
+{
+    std::array arr = { Idx... };
+    return arr;
+}
+
+template <typename TypeList, typename Indices> struct index;
+
+template <typename... Ts, size_t... Idx> 
+struct index<std::tuple<Ts...>, std::index_sequence<Idx...>>
+{
+    using type = std::tuple<std::tuple_element_t<Idx, std::tuple<Ts...>>...>;
+};
+
+int main()
+{
+    constexpr std::array A = { 1, 8, 3 };
+    constexpr auto index = array_to_index_sequence<A>();
+    constexpr auto array = index_sequence_to_array(std::index_sequence<1, 3, 5>());
+
+    using TL = std::tuple<int, double, bool>;
+    using R = typename index<TL, std::index_sequence<0, 2>>::type;
+
+    PrintTypeInfo(R);
+
+    std::cout << "Ok\n";
+}
+
+
+
+*/
+
+
+
+
+
+
+
+

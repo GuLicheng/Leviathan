@@ -247,6 +247,44 @@ namespace leviathan::ranges
 
     };
 
+
+    // template <typename F>
+    // struct closure : range_adaptor_closure<closure<F>>
+    // {
+    //     constexpr closure(F func) : func(std::move(func)) { }
+
+    //     template <std::ranges::viewable_range R>
+    //         requires std::invoke<const F&, R>
+    //     constexpr auto operator()(R&& r) const
+    //     {
+    //         return std::invoke(f, (R&&) r);
+    //     }
+
+    // private:
+    //     F func;
+    // };
+
+    // struct take_closure // 注意，views::take自己并不是RACO，所以不用继承
+    // {
+    //     template<typename... Args>
+    //     constexpr operator()(Args... args) const
+    //     {
+    //         if constexpr (sizeof...(Args) == 1)
+    //         {
+    //             // views::take(2)
+    //             return closure{std::bind_back(
+    //                 [](auto&& R, auto N) {return take_view{std::forward<decltype(R)>(R), N};},
+    //                 std::forward<Args>(args)...)};
+    //         }
+    //         else
+    //         {
+    //             // views::take(vec, 2)
+    //             static_assert(sizeof...(Args) == 2);
+    //             return take_view{std::forward<Args>(args)...};
+    //         }
+    //     }
+    // };
+
 }
 
 
@@ -1982,8 +2020,10 @@ namespace leviathan::ranges
         {
             return std::apply([](auto... sizes) {
                 // FIXME:
-                using CT = std::make_unsigned_t<std::common_type_t<decltype(sizes)...>>;
-                return std::ranges::min(CT{sizes}...);
+                // using CT = std::make_unsigned_t<std::common_type_t<decltype(sizes)...>>;
+                using CT = std::size_t;
+                // std::array sizes = ;
+                return std::ranges::min({ CT{sizes}... });
             }, detail::tuple_transform(std::ranges::size, m_views));
         }
 
@@ -1992,7 +2032,7 @@ namespace leviathan::ranges
             return std::apply([](auto... sizes) {
                 // FIXME:
                 using CT = std::make_unsigned_t<std::common_type_t<decltype(sizes)...>>;
-                return std::ranges::min(CT{sizes}...);
+                return std::ranges::min({ CT{sizes}...} );
             }, detail::tuple_transform(std::ranges::size, m_views));
         }
 
@@ -2029,6 +2069,7 @@ namespace leviathan::ranges
         {
             return zip_view{ (R1&&)r1, (R2&&)r2 };
         }
+
     };
 
     inline constexpr zip_with_adaptor zip_with{};
@@ -3361,6 +3402,187 @@ namespace std::ranges
     inline constexpr bool enable_borrowed_range<::leviathan::ranges::stride_view<R>> 
         = std::ranges::forward_range<R> && enable_borrowed_range<R>;
 }
+
+// namespace leviathan::ranges
+// {
+
+//     template <typename V>
+//     concept slide_caches_nothing = std::ranges::random_access_range<V> && std::ranges::sized_range<V>;
+
+//     template <typename V>
+//     concept slide_caches_last = !slide_caches_nothing<V> && std::ranges::bidirectional_range<V> && std::ranges::common_range<V>;
+
+//     template <typename V>
+//     concept slide_caches_first = !slide_caches_nothing<V> && !slide_caches_last<V>;
+
+//     template <std::ranges::view V>
+//         requires std::ranges::view<V>
+//     class slide_view : public std::ranges::view_interface<slide_view<V>>
+//     {
+//         V m_base = V();
+//         std::ranges::range_difference_t<V> m_n = 0;
+
+//         template <bool> struct iterator;
+//         template <bool> struct sentinel;
+
+//     public:
+//         slide_view() requires std::default_initializable<V> = default;
+
+//         constexpr explicit slide_view(V base, std::ranges::range_difference_t<V> n)
+//             : m_base(std::move(base)) { }
+
+//         constexpr auto begin()
+//             requires (!(detail::simple_view<V> && slide_caches_nothing<const V>))
+//         {
+//             if constexpr (slide_caches_first<V>)
+//                 return iterator<false>(std::ranges::begin(m_base),
+//                                        std::ranges::next(std::ranges::begin(m_base), m_n - 1, std::ranges::end(m_base)), m_n);
+//             else
+//                 return iterator<false>(std::ranges::begin(m_base), m_n);
+//         }
+
+//         constexpr auto begin() const requires slide_caches_nothing<const V>
+//         {
+//             return iterator<true>(std::ranges::begin(m_base), m_n);
+//         }
+        
+
+//         constexpr auto end()
+//             requires (!(detail::simple_view<V> && slide_caches_nothing<const V>))
+//         {
+//             if constexpr (slide_caches_nothing<V>)
+//                 return iterator<false>(std::ranges::begin(m_base) + std::ranges::range_difference_t<V>(size()), m_n);
+//             else if constexpr (slide_caches_last<V>)
+//                 return iterator<false>(std::ranges::prev(std::ranges::end(m_base), m_n - 1, std::ranges::begin(m_base)), m_n);
+//             else if constexpr (std::ranges::common_range<V>)
+//                 return iterator<false>(std::ranges::end(m_base), std::ranges::end(m_base), m_n);
+//             else
+//                 return sentinel<false>(std::ranges::end(m_base));
+//         }
+
+//         constexpr auto end() const requires slide_caches_nothing<const V>
+//         {
+//             return begin() + std::ranges::range_difference_t<const V>(size());
+//         }
+
+//         constexpr auto size() requires std::ranges::sized_range<V>
+//         {
+//             auto sz = std::ranges::distance(m_base) - m_n + 1;
+//             if (sz < 0) sz = 0;
+//             // FIXME:
+//             return std::make_signed_t<decltype(sz)>(sz);
+//         }
+
+//         constexpr auto size() const requires std::ranges::sized_range<const V>
+//         {
+//             auto sz = std::ranges::distance(m_base) - m_n + 1;
+//             if (sz < 0) sz = 0;
+//             // FIXME:
+//             return std::make_signed_t<decltype(sz)>(sz);
+//         }
+
+//     private:
+        
+//         template <bool Const>
+//         struct iterator 
+//         {
+//             using Base = detail::maybe_const_t<Const, V>;
+//             std::ranges::iterator_t<Base> m_current = std::ranges::iterator_t<Base>();
+//             std::ranges::iterator_t<Base> m_last_ele = std::ranges::iterator_t<Base>();
+            
+//             std::ranges::range_difference_t<Base> m_n = 0;
+
+//             constexpr iterator(std::ranges::iterator_t<Base> current, std::ranges::range_difference_t<Base> n)
+//                 requires (!slide_caches_first<Base>);
+
+//             constexpr iterator(std::ranges::iterator_t<Base> current, std::ranges::iterator_t<Base> last_ele, std::ranges::range_difference_t<Base> n)
+//                 requires slide_caches_first<Base>;
+
+//         public:
+
+//             using iterator_category = std::input_iterator_tag;
+//             using iterator_concept = decltype([]{
+//                 if constexpr (std::ranges::random_access_range<Base>)
+//                     return std::random_access_iterator_tag();
+//                 else if constexpr (std::ranges::bidirectional_range<Base>)
+//                     return std::bidirectional_iterator_tag();
+//                 else
+//                     return std::forward_iterator_tag(); 
+//             }());
+//             using value_type = decltype(std::views::counted(m_current, m_n));
+//             using difference_type = std::ranges::range_difference_t<Base>;
+
+//             iterator() = default;
+
+//             constexpr iterator(iterator<!Const> i)
+//                 requires Const && std::convertible_to<std::ranges::iterator_t<V>, std::ranges::iterator_t<Base>>;
+            
+//             constexpr auto operator*() const;
+//             constexpr iterator& operator++();
+//             constexpr iterator operator++(int);
+
+//             constexpr iterator& operator--() requires std::ranges::bidirectional_range<Base>;
+//             constexpr iterator operator--(int) requires std::ranges::bidirectional_range<Base>;
+
+//             constexpr iterator& operator+=(difference_type x) 
+//                 requires std::ranges::random_access_range<Base>;
+//             constexpr iterator& operator-=(difference_type x) 
+//                 requires std::ranges::random_access_range<Base>;
+
+//             constexpr iterator& operator[](difference_type x) const 
+//                 requires std::ranges::random_access_range<Base>;
+
+//             // friend constexpr bool operator==(const iterator& x, const iterator& y);
+
+//             // friend constexpr bool operator<(const iterator& x, const iterator& y)
+//             //     requires std::ranges::random_access_range<Base>;
+//             // friend constexpr bool operator>(const iterator& x, const iterator& y)
+//             //     requires std::ranges::random_access_range<Base>;
+//             // friend constexpr bool operator<=(const iterator& x, const iterator& y)
+//             //     requires std::ranges::random_access_range<Base>;
+//             // friend constexpr bool operator>=(const iterator& x, const iterator& y)
+//             //     requires std::ranges::random_access_range<Base>;
+//             // friend constexpr bool operator<=>(const iterator& x, const iterator& y)
+//             //     requires std::ranges::random_access_range<Base> &&
+//             //              std::three_way_comparable<std::ranges::iterator_t<Base>>;
+
+//             // friend constexpr iterator operator+(const iterator& i, difference_type n)
+//             //     requires std::ranges::random_access_range<Base>;
+
+//             // friend constexpr iterator operator+(difference_type n, const iterator& i)
+//             //     requires std::ranges::random_access_range<Base>;
+
+//             // friend constexpr iterator operator-(const iterator& i, difference_type n)
+//             //     requires std::ranges::random_access_range<Base>;
+
+//             // friend constexpr iterator operator-(const iterator& x, const iterator& y)
+//             //     requires std::sized_sentinel_for<std::ranges::iterator_t<Base>, std::ranges::iterator_t<Base>>;
+
+
+
+//         };
+
+//     };
+
+//     template <typename R>
+//     slide_view(R&& r, std::ranges::range_difference_t<R>) -> slide_view<std::views::all_t<R>>;
+
+//     // template <std::ranges::view V>
+//     //     requires std::ranges::forward_range<V>
+//     // class slide_view;
+
+
+// }
+
+// namespace std::ranges
+// {
+//     template <typename R>
+//     inline constexpr bool enable_borrowed_range<::leviathan::ranges::slide_view<R>> 
+//         = enable_borrowed_range<R>;
+// }
+
+
+
 
 /*
     reference:

@@ -42,7 +42,8 @@ struct std::formatter<Ranges, CharT>
 			{
 				iter = ',', iter = ' ';
 			}
-			iter = std::format_to(format_context.out(), fmt, *vec_iter);
+			// iter = std::format_to(format_context.out(), fmt, *vec_iter);
+			iter = std::vformat_to(format_context.out(), fmt, std::make_format_args(*vec_iter));
 		}
 		iter = ']';
 		return iter;
