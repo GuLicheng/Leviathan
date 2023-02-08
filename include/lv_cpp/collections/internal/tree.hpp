@@ -49,7 +49,7 @@ namespace leviathan::collections
     private:
 
         using node_allocator = typename std::allocator_traits<Allocator>::template rebind_alloc<tree_node>;
-        using node_alloc_traits = typename std::allocator_traits<node_allocator>;
+        using node_alloc_traits = std::allocator_traits<node_allocator>;
 
         constexpr static bool IsTransparent = leviathan::collections::detail::is_transparent<Compare>;
         

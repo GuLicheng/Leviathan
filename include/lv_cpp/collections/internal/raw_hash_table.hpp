@@ -280,6 +280,7 @@ namespace leviathan::collections
 				else
 				{
 					assign_from(std::make_move_iterator(rhs.begin()), std::make_move_iterator(rhs.end()));
+                    rhs.clear();
 				}
 			}
 			return *this;
@@ -382,6 +383,13 @@ namespace leviathan::collections
 
         iterator erase(const_iterator pos)
         { return remove_by_iter(pos); }
+
+        // iterator erase( const_iterator first, const_iterator last );
+
+        // size_type erase( const Key& key );
+
+        // template< class K >
+        // size_type erase( K&& x );
 
         iterator begin() noexcept 
         {
