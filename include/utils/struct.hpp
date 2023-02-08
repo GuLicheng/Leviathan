@@ -6,18 +6,25 @@
 
 #define PrintLn(x) (std::cout << x << '\n')
 
-template <bool Report = false, int CopyThrowExceptionCount = -1, int MoveThrowExceptionCount = -1>
+template <
+    bool Report = false, 
+    int CopyThrowExceptionCount = -1, 
+    int MoveThrowExceptionCount = -1,
+    bool Copyable = true,
+    bool Moveable = true,
+    bool DefaultConstructable = true>
 struct Int32
 {
-public:
+
     inline static int default_constructor = 0;
-    inline static int copy_constructor = 0;
-    inline static int copy_assignment = 0;
-    inline static int move_constructor = 0;
-    inline static int move_assignment = 0;
-    inline static int destructor = 0;
     inline static int int_constructor = 0;
-public:
+    inline static int copy_constructor = 0;
+    inline static int move_constructor = 0;
+    
+    inline static int copy_assignment = 0;
+    inline static int move_assignment = 0;
+    
+    inline static int destructor = 0;
 
     int static total_construct() 
     {
@@ -31,7 +38,7 @@ public:
 
     int val;
 
-    Int32() : val{ 0 } 
+    Int32() requires(DefaultConstructable) : val{ 0 } 
     { 
         ++default_constructor; 
         if constexpr (Report) std::cout << "default init: " << val << '\n';
@@ -43,7 +50,7 @@ public:
         if constexpr (Report) std::cout << "int init: " << val << '\n';
     }
 
-    Int32(const Int32& rhs) : val{ rhs.val }
+    Int32(const Int32& rhs) requires(Copyable) : val{ rhs.val }
     { 
         ++copy_constructor; 
         if constexpr (Report) std::cout << "copy_constructor" << val << '\n';
@@ -58,7 +65,7 @@ public:
         }
     }
 
-    Int32(Int32&& rhs) noexcept(MoveThrowExceptionCount == -1) : val{ std::exchange(rhs.val, 0) }
+    Int32(Int32&& rhs) requires(Moveable) noexcept(MoveThrowExceptionCount == -1) : val{ std::exchange(rhs.val, 0) }
     { 
         ++move_constructor; 
         if constexpr (Report) std::cout << "move_constructor" << val << '\n';    
@@ -74,7 +81,7 @@ public:
 
     }
 
-    Int32& operator=(const Int32& rhs) 
+    Int32& operator=(const Int32& rhs) requires(Copyable)
     {
         this->val = rhs.val; 
         ++copy_assignment;
@@ -82,7 +89,7 @@ public:
         return *this;
     }
 
-    Int32& operator=(Int32&& rhs) noexcept
+    Int32& operator=(Int32&& rhs) requires(Moveable) noexcept(MoveThrowExceptionCount == -1)
     { 
         this->val = std::exchange(rhs.val, 0);
         ++move_assignment;
@@ -93,7 +100,7 @@ public:
     operator int() const noexcept
     { return this->val; }
 
-    Int32 operator+(Int32 rhs) const noexcept
+    Int32 operator+(const Int32& rhs) const noexcept
     { return Int32{ this->val + rhs.val }; }
 
     ~Int32() 
@@ -121,51 +128,13 @@ public:
 };
 
 
-namespace std 
-{
-    template <bool B>
-    struct hash<::Int32<B>>
-    {
-        constexpr auto operator()(const ::Int32<B>& f) const noexcept
-        { return f.hash_code(); }
-    };
-}
+// Define some helper
 
+template <bool Report>
+using MoveOnlyInt = Int32<Report, -1, -1, false, true, true>;
 
-template <bool Report = false>
-struct MoveCounter
-{
-    inline static int count = 0;
-    MoveCounter() = default;
-    MoveCounter(MoveCounter&&) 
-    {
-        ++count;
-        if constexpr (Report) PrintLn(count);
-    }
-
-    MoveCounter(const MoveCounter&) = delete;
-};
-
-struct NoDefaultConstructable
-{
-    NoDefaultConstructable(int) { }
-    constexpr bool operator==(const NoDefaultConstructable&) const noexcept
-    { return true; }
-};
-
-namespace std 
-{
-    template <>
-    struct hash<::NoDefaultConstructable>
-    {
-        constexpr auto operator()(const ::NoDefaultConstructable&) const noexcept
-        { return 0; }
-    };
-}
-
-
-
-
+template <bool Report, int CopyThrowExceptionCount>
+using CopyThrowException = Int32<Report, CopyThrowExceptionCount, -1, true, true, true>;
 
 
 
