@@ -134,8 +134,10 @@ template <bool Report>
 using MoveOnlyInt = Int32<Report, -1, -1, false, true, true>;
 
 template <bool Report, int CopyThrowExceptionCount>
-using CopyThrowException = Int32<Report, CopyThrowExceptionCount, -1, true, true, true>;
+using CopyThrowExceptionInt = Int32<Report, CopyThrowExceptionCount, -1, true, true, true>;
 
+template <bool Report, int MoveThrowExceptionCount>
+using MoveThrowExceptionInt = Int32<Report, -1, MoveThrowExceptionCount, true, true, true>;
 
 
 
