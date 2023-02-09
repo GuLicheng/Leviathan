@@ -20,7 +20,7 @@ struct Counter
     std::size_t destroy_cnt = 0;
     std::size_t deallocate_cnt = 0;
 
-    bool check() const
+    bool Check() const
     { return allocate_size == deallocate_size; }
 
     friend std::ostream& operator<<(std::ostream& os, const Counter& counter)
@@ -49,7 +49,7 @@ void Report()
 bool CheckMemoryAlloc()
 {
     return std::all_of(recorder.begin(), recorder.end(), [](const auto& r){
-        return r.second.check();
+        return r.second.Check();
     });
 }
 

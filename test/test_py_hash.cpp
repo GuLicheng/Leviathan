@@ -2,25 +2,29 @@
 
 #include <thirdpart/catch.hpp>
 
-#include <lv_cpp/collections/py_hash.hpp>
+#include <lv_cpp/collections/internal/py_hash.hpp>
+#include <utils/struct.hpp>
+#include <utils/record_allocator.hpp>
+#include <utils/fancy_ptr.hpp>
+
 #include <algorithm>
 #include <string>
 
-using HashT = ::python::collections::hash_set<int>;
+using HashT = ::leviathan::collections::hash_set<int>;
 
-#include "struct.hpp"
-#include "except_allocator.hpp"
 
 TEST_CASE("element destroy", "[dtor]")
 {
 
+    using Int = Int32<false>;
+
     {
-        ::python::collections::hash_set<Int32<>> h;
+        ::leviathan::collections::hash_set<Int, Int::HashType> h;
 
         // rehash
         for (int i = 0; i < 10; ++i)
         {
-            h.insert(Int32<>(i));
+            h.insert(Int(i));
             h.emplace(i);
         }
     }
@@ -35,12 +39,10 @@ TEST_CASE("exception thrown in constructor", "[emplace][exception]")
 {
     
     {
-        using Int = Int32<>;
-        python::collections::hash_set<
+        using Int = CopyThrowExceptionInt<false, 2>;
+        leviathan::collections::hash_set<
             Int, 
-            std::hash<Int>, 
-            std::equal_to<Int>, 
-            ExceptionAllocator<Int>> h;
+            Int::HashType> h;
 
         // REQUIRE_THROWS(h.emplace());
         h.emplace();
@@ -54,13 +56,6 @@ TEST_CASE("exception thrown in constructor", "[emplace][exception]")
 
 }
 
-TEST_CASE("no construable")
-{
-    // NoDefaultConstructable _;
-    ::python::collections::hash_set<NoDefaultConstructable> hs;
-    hs.emplace(1);
-    REQUIRE(hs.size() == 1);
-}
 
 
 

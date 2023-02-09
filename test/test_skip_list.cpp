@@ -85,9 +85,13 @@ TEST_CASE("remove elements", "[iterator][remove][clear][find][size][empty]")
     REQUIRE(h.empty());
 }
 
-#include "struct.hpp"
-#include "except_allocator.hpp"
-#include "fancy_ptr.hpp"
+// #include "struct.hpp"
+// #include "except_allocator.hpp"
+// #include "fancy_ptr.hpp"
+
+#include <lv_cpp/struct.hpp>
+#include <lv_cpp/fancy_ptr.hpp>
+#include <lv_cpp/record_allocator.hpp>
 
 TEST_CASE("fancy pointer")
 {

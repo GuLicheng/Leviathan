@@ -35,12 +35,15 @@ namespace leviathan::collections
 
     };
 
-    template <typename T, typename Compare, typename Allocator, typename KeyOfValue, bool UniqueKey, tree_node_interface NodeType>
+    template <typename TypePack, typename Compare, typename Allocator, typename KeyOfValue, bool UniqueKey, tree_node_interface NodeType>
     class tree
     {
         static_assert(UniqueKey, "Not Support MultiKey");
 
+        using T = typename KeyOfValue::template value_type<TypePack>;
+
     public:
+
 
         // for visual
         using tree_node_base = NodeType;
@@ -53,7 +56,7 @@ namespace leviathan::collections
 
         constexpr static bool IsTransparent = leviathan::collections::detail::is_transparent<Compare>;
         
-        using Key = typename KeyOfValue::template type<T>;
+        using Key = typename KeyOfValue::template key_type<TypePack>;
 
         template <typename U> using key_arg_t = leviathan::collections::detail::key_arg<IsTransparent, U, Key>;
 
@@ -733,12 +736,12 @@ namespace leviathan::collections
     };
 
     template <typename T, typename Compare, typename Allocator, typename NodeType>
-    class tree_set : public tree<T, Compare, Allocator, identity, true, NodeType> { };
+    class tree_set : public tree<std::tuple<T>, Compare, Allocator, identity, true, NodeType> { };
 
     template <typename K, typename V, typename Compare, typename Allocator, typename NodeType>
-    class tree_map : public tree<std::pair<const K, V>, Compare, Allocator, select1st, true, NodeType>
+    class tree_map : public tree<std::tuple<K, V>, Compare, Allocator, select1st, true, NodeType>
     {
-        using base_tree_type = tree<std::pair<const K, V>, Compare, Allocator, select1st, true, NodeType>;
+        using base_tree_type = tree<std::tuple<K, V>, Compare, Allocator, select1st, true, NodeType>;
     public:
         using mapped_type = V;
         using typename base_tree_type::value_type;

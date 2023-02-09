@@ -6,15 +6,18 @@
 
 #define PrintLn(x) (std::cout << x << '\n')
 
+
 template <
     bool Report = false, 
-    int CopyThrowExceptionCount = -1, 
-    int MoveThrowExceptionCount = -1,
-    bool Copyable = true,
-    bool Moveable = true,
+    int CopyThrowExceptionCount = 0, 
+    int MoveThrowExceptionCount = 0,
     bool DefaultConstructable = true>
 struct Int32
 {
+
+    constexpr static bool Copyable = CopyThrowExceptionCount < 0;
+    constexpr static bool Moveable = MoveThrowExceptionCount < 0;
+
 
     inline static int default_constructor = 0;
     inline static int int_constructor = 0;
@@ -55,7 +58,7 @@ struct Int32
         ++copy_constructor; 
         if constexpr (Report) std::cout << "copy_constructor" << val << '\n';
 
-        if constexpr (CopyThrowExceptionCount != -1)
+        if constexpr (CopyThrowExceptionCount > 0)
         {
             struct CopyConstructorException { };
             if (copy_constructor >= CopyThrowExceptionCount)
@@ -65,12 +68,12 @@ struct Int32
         }
     }
 
-    Int32(Int32&& rhs) requires(Moveable) noexcept(MoveThrowExceptionCount == -1) : val{ std::exchange(rhs.val, 0) }
+    Int32(Int32&& rhs) noexcept(MoveThrowExceptionCount == 0) requires(Moveable)  : val{ std::exchange(rhs.val, 0) }
     { 
         ++move_constructor; 
         if constexpr (Report) std::cout << "move_constructor" << val << '\n';    
 
-        if constexpr (MoveThrowExceptionCount != -1)
+        if constexpr (MoveThrowExceptionCount > 0)
         {
             struct MoveConstructorException { };
             if (move_constructor >= MoveThrowExceptionCount)
@@ -89,7 +92,7 @@ struct Int32
         return *this;
     }
 
-    Int32& operator=(Int32&& rhs) requires(Moveable) noexcept(MoveThrowExceptionCount == -1)
+    Int32& operator=(Int32&& rhs) noexcept(MoveThrowExceptionCount == 0) requires(Moveable) 
     { 
         this->val = std::exchange(rhs.val, 0);
         ++move_assignment;
@@ -131,13 +134,13 @@ struct Int32
 // Define some helper
 
 template <bool Report>
-using MoveOnlyInt = Int32<Report, -1, -1, false, true, true>;
+using MoveOnlyInt = Int32<Report, 0, -1, true>;
 
 template <bool Report, int CopyThrowExceptionCount>
-using CopyThrowExceptionInt = Int32<Report, CopyThrowExceptionCount, -1, true, true, true>;
+using CopyThrowExceptionInt = Int32<Report, CopyThrowExceptionCount, 0, true>;
 
 template <bool Report, int MoveThrowExceptionCount>
-using MoveThrowExceptionInt = Int32<Report, -1, MoveThrowExceptionCount, true, true, true>;
+using MoveThrowExceptionInt = Int32<Report, 0, MoveThrowExceptionCount, true>;
 
 
 

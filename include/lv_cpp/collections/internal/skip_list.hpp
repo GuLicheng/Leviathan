@@ -22,10 +22,12 @@ namespace std::pmr
 namespace leviathan::collections
 {
 
-    template <typename T, typename Compare, typename Allocator, typename KeyOfValue, bool UniqueKey, int MaxLevel = 24, int Ratio = 4>
+    template <typename TypePack, typename Compare, typename Allocator, typename KeyOfValue, bool UniqueKey, int MaxLevel = 24, int Ratio = 4>
     class skip_list
     {
         static_assert(UniqueKey, "Not support multi-key now");
+
+        using T = typename KeyOfValue::template value_type<TypePack>;
 
         inline static std::random_device rd;
 
@@ -91,7 +93,7 @@ namespace leviathan::collections
 
         constexpr static bool IsTransparent = leviathan::collections::detail::is_transparent<Compare>;
         
-        using Key = typename KeyOfValue::template type<T>;
+        using Key = typename KeyOfValue::template key_type<TypePack>;
 
         template <typename U> using key_arg_t = leviathan::collections::detail::key_arg<IsTransparent, U, Key>;
 
@@ -619,7 +621,7 @@ namespace leviathan::collections
     };
 
     template <typename T, typename Compare = std::less<>, typename Allocator = std::allocator<T>>
-    class skip_set : public skip_list<T, Compare, Allocator, identity, true> { };
+    class skip_set : public skip_list<std::tuple<T>, Compare, Allocator, identity, true> { };
 
 
 }
