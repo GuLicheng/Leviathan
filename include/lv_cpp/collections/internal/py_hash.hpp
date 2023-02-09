@@ -1,10 +1,9 @@
 /**
  * We implement a hashtable align with Python. There are some difference between Python.
  * 1. This hashtable is C++ style and the key and value will never split.
- * 2. We use under score case since it's copied from another library.
- * 3. Python dict use two array to save elements. One for indices(arr1) and another for elements(arr2). 
+ * 2. Python dict use two array to save elements. One for indices(arr1) and another for elements(arr2). 
  * When removing an element, set value of arr1 to -2 and arr2 to nullptr(each element in Python is a PyObject*) is OK. 
- * But the element type in C++ does not require for pointer type. In such way, this dict cannot keep ordered.
+ * But the element type in C++ does not require for pointer type. In such way, the iterator is not efficient as Python.
  * 
 */
 
@@ -464,11 +463,6 @@ namespace leviathan::collections
                         t->m_size = size;
                         t->m_capacity = capacity;
                         t->m_used = used;
-                        for (auto& value : *t)
-                        {
-                            std::cout << value.val << ' ';
-                        }
-                        std::cout << '\n';
                     }
                 }
             };
