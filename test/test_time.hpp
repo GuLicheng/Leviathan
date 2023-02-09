@@ -179,7 +179,6 @@ namespace leviathan::test
         return s.size();
     }
 
-
 }
 
 

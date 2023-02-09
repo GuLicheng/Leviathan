@@ -3,9 +3,9 @@
 #include <thirdpart/catch.hpp>
 
 #include <lv_cpp/collections/internal/py_hash.hpp>
-#include <utils/struct.hpp>
-#include <utils/record_allocator.hpp>
-#include <utils/fancy_ptr.hpp>
+#include <lv_cpp/struct.hpp>
+#include <lv_cpp/record_allocator.hpp>
+#include <lv_cpp/fancy_ptr.hpp>
 
 #include <algorithm>
 #include <string>
@@ -56,6 +56,13 @@ TEST_CASE("exception thrown in constructor", "[emplace][exception]")
 
 }
 
+
+#include "test_random_int.hpp"
+
+TEST_CASE("data structure is correct", "[insert][contains][erase]")
+{
+    ::leviathan::test::test_set_is_correct<HashT, false>();
+}
 
 
 

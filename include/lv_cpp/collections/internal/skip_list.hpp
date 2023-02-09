@@ -185,6 +185,7 @@ namespace leviathan::collections
                     std::is_nothrow_swappable_v<Compare> 
                  && typename node_alloc_traits::is_always_equal();
 
+    public:
         using size_type = std::size_t;
         using allocator_type = Allocator;
 

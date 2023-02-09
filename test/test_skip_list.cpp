@@ -85,6 +85,13 @@ TEST_CASE("remove elements", "[iterator][remove][clear][find][size][empty]")
     REQUIRE(h.empty());
 }
 
+#include "test_random_int.hpp"
+
+TEST_CASE("data structure is correct", "[insert][contains][erase]")
+{
+    ::leviathan::test::test_set_is_correct<SetT, true>();
+}
+
 // #include "struct.hpp"
 // #include "except_allocator.hpp"
 // #include "fancy_ptr.hpp"
