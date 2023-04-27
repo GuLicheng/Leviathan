@@ -1,6 +1,8 @@
 .vs
 .idea
 .vscode
+build
+thirdpart
 
 Makefile
 __pycache__

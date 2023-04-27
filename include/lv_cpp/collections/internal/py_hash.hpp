@@ -631,8 +631,6 @@ namespace leviathan::collections
             }
         }
 
-
-
         hash_table(hash_table&& rhs) noexcept(IsNothrowMoveConstruct)
             : m_hash{ std::move(rhs.m_hash) },  m_ke{ std::move(rhs.m_ke) }, m_alloc{ std::move(rhs.m_alloc) },
               m_indices{ std::exchange(rhs.m_indices, nullptr) }, 

@@ -1,18 +1,7 @@
-#pragma once
+#include <lv_cpp/string/fixed_string.hpp>
+#include <catch2/catch_all.hpp>
 
-
-#include <iostream>
-#include <functional>
-#include <algorithm>
-#include <string>
-#include <string_view>
 #include <ranges>
-#include <string.h>
-
-#include "base.hpp"
-
-
-LV_TEST_BEGIN
 
 template <typename StringType>
 void test_string()
@@ -62,9 +51,8 @@ void test_string()
 
 }
 
-
-
-
-LV_TEST_END
-
-
+TEST_CASE("fixed_basic_string")
+{
+    using T = ::leviathan::basic_fixed_string<15, char>; // "[Hello World !]";
+    test_string<T>();
+}

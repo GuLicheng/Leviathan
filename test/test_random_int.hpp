@@ -1,6 +1,6 @@
 #pragma once
 
-#include <thirdpart/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 #include <set>
 #include <vector>
@@ -10,7 +10,6 @@
 
 namespace leviathan::test
 {
-
     template <typename SetType, bool IsOrdered>
     void test_set_is_correct()
     {
@@ -62,7 +61,6 @@ namespace leviathan::test
 
         }
 
-
         if constexpr (IsOrdered)
         {
             REQUIRE(std::ranges::equal(s1, s2));
@@ -72,8 +70,5 @@ namespace leviathan::test
             std::set<int> s3 { s2.begin(), s2.end() };
             REQUIRE(s1 == s3);
         }
-
     }
-
-
 }

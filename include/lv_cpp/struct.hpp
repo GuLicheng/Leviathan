@@ -15,8 +15,8 @@ template <
 struct Int32
 {
 
-    constexpr static bool Copyable = CopyThrowExceptionCount < 0;
-    constexpr static bool Moveable = MoveThrowExceptionCount < 0;
+    constexpr static bool Copyable = CopyThrowExceptionCount > 0;
+    constexpr static bool Moveable = MoveThrowExceptionCount > 0;
 
 
     inline static int default_constructor = 0;
@@ -50,14 +50,11 @@ struct Int32
     explicit Int32(int x) : val{ x }
     {
         ++int_constructor; 
-        if constexpr (Report) std::cout << "int init: " << val << '\n';
+        if constexpr (Report) std::cout << "int_constructor" << val << '\n';
     }
 
     Int32(const Int32& rhs) requires(Copyable) : val{ rhs.val }
     { 
-        ++copy_constructor; 
-        if constexpr (Report) std::cout << "copy_constructor" << val << '\n';
-
         if constexpr (CopyThrowExceptionCount > 0)
         {
             struct CopyConstructorException { };
@@ -66,13 +63,12 @@ struct Int32
                 throw CopyConstructorException();
             }
         }
+        if constexpr (Report) std::cout << "copy_constructor" << val << '\n';
+        ++copy_constructor; 
     }
 
     Int32(Int32&& rhs) noexcept(MoveThrowExceptionCount == 0) requires(Moveable)  : val{ std::exchange(rhs.val, 0) }
     { 
-        ++move_constructor; 
-        if constexpr (Report) std::cout << "move_constructor" << val << '\n';    
-
         if constexpr (MoveThrowExceptionCount > 0)
         {
             struct MoveConstructorException { };
@@ -81,7 +77,8 @@ struct Int32
                 throw MoveConstructorException();
             }
         }
-
+        if constexpr (Report) std::cout << "move_constructor" << val << '\n';    
+        ++move_constructor;     
     }
 
     Int32& operator=(const Int32& rhs) requires(Copyable)
