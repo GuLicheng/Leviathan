@@ -9,7 +9,7 @@ __pycache__
 
 *.exe
 *.o
-*.txt
+# *.txt
 *.ini
 *.xml
 *.json
