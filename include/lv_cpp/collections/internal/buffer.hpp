@@ -75,9 +75,12 @@ namespace leviathan::collections
         // ~buffer()
         constexpr void dispose(Allocator& allocator)
         {
-            clear(allocator);
-            std::allocator_traits<Allocator>::deallocate(allocator, begin(), capacity());
-            m_start = m_finish = m_end_of_storage = nullptr;
+            if (m_start)
+            {
+                clear(allocator);
+                std::allocator_traits<Allocator>::deallocate(allocator, begin(), capacity());
+                m_start = m_finish = m_end_of_storage = nullptr;
+            }
         }
 
         constexpr void clear(Allocator& allocator)
@@ -96,7 +99,8 @@ namespace leviathan::collections
         template <typename... Args>
         constexpr T* emplace_back(Allocator& allocator, Args&&... args)
         {
-            try_expand(allocator, size() + 1);
+            if (m_finish == m_end_of_storage)
+                expand_unchecked_capacity(allocator, std::bit_ceil(size() + 1));
 
             std::allocator_traits<Allocator>::construct(allocator, m_finish, (Args&&)args...);
             // If an exceptions is thrown above, the m_finish will not increase.
@@ -113,7 +117,9 @@ namespace leviathan::collections
             // which may make position invalid.
             const auto dist = position - m_start; 
 
-            try_expand(allocator, size() + 1);
+            // try_expand(allocator, size() + 1);
+            if (m_finish == m_end_of_storage)
+                expand_unchecked_capacity(allocator, std::bit_ceil(size() + 1));
 
             if (dist == size())
             {
@@ -129,7 +135,6 @@ namespace leviathan::collections
                 std::allocator_traits<Allocator>::destroy(allocator, dest);
                 std::allocator_traits<Allocator>::construct(allocator, dest, (Args&&) args...);
                 ++m_finish;
-
                 return dest;
             }
         }
@@ -147,12 +152,9 @@ namespace leviathan::collections
             std::swap(m_end_of_storage, other.m_end_of_storage);
         }
 
-        void try_expand(Allocator& allocator, size_t n)
+        void expand_unchecked_capacity(Allocator& allocator, size_t n)
         {
-            if (capacity() >= n)
-                return;
-
-            n = std::bit_ceil(n);
+            assert(std::popcount(n) == 1);
 
             buffer new_buffer(allocator, n);
 
@@ -195,6 +197,11 @@ namespace leviathan::collections
             new_buffer.swap(*this);
         }
 
+        void try_expand(Allocator& allocator, size_t n)
+        {
+            if (capacity() < n)
+                expand_unchecked_capacity(allocator, std::bit_ceil(n));
+        }
     };
 } // namespace leviathan
 

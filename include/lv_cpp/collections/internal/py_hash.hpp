@@ -13,7 +13,6 @@
 
 namespace leviathan::collections
 {
-
     namespace detail
     {
         template <typename T> 
@@ -148,7 +147,6 @@ namespace leviathan::collections
         //     std::size_t m_delta;
         // };
     } // namespace detail
-
 
     template <typename TypePack, 
         typename HashFunction, 
@@ -585,7 +583,6 @@ namespace leviathan::collections
             }
             std::unreachable();
         }
-
 
     public:
 

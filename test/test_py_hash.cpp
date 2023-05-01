@@ -1,6 +1,6 @@
 #define CATCH_CONFIG_MAIN
 
-#include <thirdpart/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 #include <lv_cpp/collections/internal/py_hash.hpp>
 #include <lv_cpp/struct.hpp>

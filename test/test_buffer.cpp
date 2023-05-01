@@ -191,6 +191,26 @@ TEST_CASE("exception")
     REQUIRE(T::total_construct() == T::total_destruct());
 }
 
+#include <memory_resource>
+
+TEST_CASE("pmr::allocator")
+{
+    using PmrAllocator = std::pmr::polymorphic_allocator<int>;
+    using Buffer = leviathan::collections::buffer<int, PmrAllocator>;
+
+    Buffer buffer;
+
+    PmrAllocator pa;
+
+    buffer.emplace_back(pa, 0);
+    buffer.emplace_back(pa, 1);
+
+    REQUIRE(buffer[0] == 0);
+    REQUIRE(buffer[1] == 1);
+
+    buffer.dispose(pa);
+}
+
 #include <vector>
 
 TEST_CASE("benchmark insert")
@@ -250,3 +270,6 @@ TEST_CASE("benchmark emplace_back")
         });
     };
 }
+
+
+
