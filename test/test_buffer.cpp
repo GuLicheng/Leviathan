@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <list>
 #include <random>
 #include <algorithm>
 
@@ -129,12 +130,118 @@ TEST_CASE("insert")
 
     REQUIRE(buffer.size() == 4);
     REQUIRE(buffer.capacity() == 4);
+    
     REQUIRE(buffer[0] == "Alice");
     REQUIRE(buffer[1] == "Bob");
     REQUIRE(buffer[2] == "Cindy");
     REQUIRE(buffer[3] == "David");
 
+    REQUIRE(buffer.front() == "Alice");
+    REQUIRE(buffer.back() == "David");
+
     buffer.dispose(salloc);
+}
+
+TEST_CASE("erase_element")
+{
+    leviathan::collections::buffer<int, AllocatorT> buffer;
+
+    for (int i = 0; i < 10; ++i)
+    {
+        buffer.emplace_back(allocator, i); 
+    } // [0, 1, ..., 9]
+
+    auto ret = buffer.erase(allocator, buffer.cbegin());
+
+    REQUIRE(*ret == 1);
+
+    ret = buffer.erase(allocator, buffer.cend() - 1);
+
+    REQUIRE(ret == buffer.end());
+
+    REQUIRE(buffer.size() == 8);
+
+    REQUIRE(std::ranges::contiguous_range<leviathan::collections::buffer<int, AllocatorT>>);
+
+    auto ilist = { 1, 2, 3, 4, 5, 6, 7, 8 };
+
+    REQUIRE(std::ranges::equal(buffer, ilist));
+
+}
+
+TEST_CASE("erase_range")
+{
+    leviathan::collections::buffer<int, AllocatorT> buffer;
+
+    for (int i = 0; i < 10; ++i)
+    {
+        buffer.emplace_back(allocator, i); 
+    } // [0, 1, ..., 9]
+
+    auto ret = buffer.erase(allocator, buffer.end(), buffer.end());
+
+    REQUIRE(ret == buffer.cend());
+    REQUIRE(buffer.size() == 10);
+    // Remove last two elements
+
+    ret = buffer.erase(allocator, buffer.end() - 2, buffer.end());
+    auto ilist1 = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
+    REQUIRE(std::ranges::equal(buffer, ilist1));
+    REQUIRE(ret == buffer.end());
+
+    // Remove first two elements
+    ret = buffer.erase(allocator, buffer.begin(), buffer.begin() + 2);
+    auto ilist2 = { 2, 3, 4, 5, 6, 7 };
+    REQUIRE(std::ranges::equal(buffer, ilist2));
+    REQUIRE(*ret == 2);
+}
+
+TEST_CASE("insert_range")
+{
+    leviathan::collections::buffer<int, AllocatorT> buffer;
+
+    // Insert empty range
+    std::initializer_list<int> empty_list{};
+    auto ret = buffer.insert(allocator, buffer.end(), empty_list.begin(), empty_list.end());
+    
+    REQUIRE(ret == buffer.end());
+    REQUIRE(buffer.size() == 0);
+
+    // Insert element at end
+    auto ilist = { 1, 2, 3 };
+    ret = buffer.insert(allocator, buffer.end(), ilist.begin(), ilist.end());
+
+    REQUIRE(std::ranges::equal(buffer, ilist));
+    REQUIRE(buffer.size() == ilist.size());
+    REQUIRE(*ret == 1);
+
+    // Insert element at begin
+    ret = buffer.insert(allocator, buffer.begin(), ilist.begin(), ilist.end());
+    auto ilist2 = { 1, 2, 3, 1, 2, 3 };
+    
+    REQUIRE(std::ranges::equal(buffer, ilist2));
+    REQUIRE(buffer.size() == ilist.size() * 2);
+    REQUIRE(*ret == 1);
+
+    // Insert element at middle
+    ret = buffer.insert(allocator, buffer.begin() + 1, ilist.begin(), ilist.end());
+
+    auto ilist3 = { 1, 1, 2, 3, 2, 3, 1, 2, 3 };
+    REQUIRE(std::ranges::equal(buffer, ilist3));  
+    REQUIRE(buffer.size() == ilist.size() * 3);
+    REQUIRE(*ret == 1);
+
+    // Insert bidirectional range
+    std::list<int> bidirectional_list = { -1, -2, -3 };
+
+    ret = buffer.insert(allocator, buffer.cbegin(), bidirectional_list.begin(), bidirectional_list.end());
+
+    REQUIRE(buffer.size() == ilist.size() * 3 + 3);
+    REQUIRE(*ret == -1);
+    REQUIRE(buffer[0] == -1);
+    REQUIRE(buffer[1] == -2);
+    REQUIRE(buffer[2] == -3);
 }
 
 TEST_CASE("random_insert")

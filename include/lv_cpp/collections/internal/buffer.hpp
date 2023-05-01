@@ -14,6 +14,9 @@ namespace leviathan::collections
         T* m_finish = nullptr;
         T* m_end_of_storage = nullptr;
 
+        using iterator = T*;
+        using const_iterator = const T*;
+
         buffer() = default;
 
         buffer(const buffer&) = delete;
@@ -25,22 +28,32 @@ namespace leviathan::collections
             m_end_of_storage = m_start + size;
         }
 
-        constexpr T* begin()
+        constexpr iterator begin()
         {
             return m_start;
         }
 
-        constexpr const T* begin() const
-        {
-            return m_start;
-        }
-
-        constexpr T* end()
+        constexpr iterator end()
         {
             return m_finish;
         }
 
-        constexpr const T* end() const
+        constexpr const_iterator begin() const
+        {
+            return m_start;
+        }
+
+        constexpr const_iterator end() const
+        {
+            return m_finish;
+        }
+
+        constexpr const_iterator cbegin() const
+        {
+            return m_start;
+        }
+
+        constexpr const_iterator cend() const
         {
             return m_finish;
         }
@@ -48,6 +61,11 @@ namespace leviathan::collections
         constexpr size_t size() const
         {
             return m_finish - m_start;
+        }
+
+        constexpr ssize_t ssize() const
+        {
+            return static_cast<ssize_t>(size());
         }
 
         constexpr size_t capacity() const
@@ -70,6 +88,30 @@ namespace leviathan::collections
         {
             assert(n < size() && "invalid index");
             return m_start[n];
+        }
+
+        constexpr const T& front() const
+        {
+            assert(!empty() && "buffer has no elements!");
+            return *m_start;
+        }
+
+        constexpr T& front() 
+        {
+            assert(!empty() && "buffer has no elements!");
+            return *m_start;
+        }
+
+        constexpr const T& back() const
+        {
+            assert(!empty() && "buffer has no elements!");
+            return *(m_finish - 1);
+        }
+
+        constexpr T& back() 
+        {
+            assert(!empty() && "buffer has no elements!");
+            return *(m_finish - 1);
         }
 
         // ~buffer()
@@ -97,7 +139,7 @@ namespace leviathan::collections
         }
 
         template <typename... Args>
-        constexpr T* emplace_back(Allocator& allocator, Args&&... args)
+        constexpr iterator emplace_back(Allocator& allocator, Args&&... args)
         {
             if (m_finish == m_end_of_storage)
                 expand_unchecked_capacity(allocator, std::bit_ceil(size() + 1));
@@ -106,6 +148,85 @@ namespace leviathan::collections
             // If an exceptions is thrown above, the m_finish will not increase.
             m_finish++;
             return m_finish;
+        }
+
+        template <typename InputIterator>
+        constexpr iterator insert(Allocator& allocator, const_iterator pos, InputIterator first, InputIterator last)
+        {
+            if (first == last)
+            {
+                return const_cast<iterator>(pos);
+            }
+
+            assert(m_start <= pos && pos <= m_finish && "Invalid position");
+
+            const auto d1 = pos - cbegin();
+            const auto d2 = size();
+
+            // Reserve enough memory if possible
+            if constexpr (std::random_access_iterator<InputIterator>)
+            {
+                const auto dist = std::distance(first, last);
+                try_expand(allocator, dist + size());
+                for (; first != last; ++first)
+                {
+                    std::allocator_traits<Allocator>::construct(allocator, m_finish++, *first);
+                }
+            }
+            else
+            {
+                for (; first != last; ++first)
+                {
+                    emplace_back(allocator, *first);
+                }
+            }
+
+            // It's difficult to move elements first since the memory of [m_finish, m_end_of_capacity)
+            // is uninitialized. So we emplace them at the end and rotate them to correct 
+            // position. This technique can be seen in some STL's implementation. 
+            std::rotate(begin() + d1, begin() + d2, end());
+            return begin() + d1;
+        }
+
+        iterator erase(Allocator& allocator, const_iterator pos)
+        {
+            assert(m_start <= pos && pos < m_finish && "Invalid position");
+
+            iterator dest = const_cast<iterator>(pos);
+            std::move(dest + 1, m_finish, dest);
+            // Remove last element
+            std::allocator_traits<Allocator>::destroy(allocator, --m_finish);
+            return dest;
+        }
+
+        iterator erase(Allocator& allocator, const_iterator first, const_iterator last)
+        {
+            if (first == last)
+            {
+                return const_cast<iterator>(first);
+            }
+
+            assert(m_start <= first && first < last && "Invalid position");
+            assert(m_start < last && last <= last && "Invalid position");
+
+            if (last == cend())
+            {
+                iterator dest = const_cast<iterator>(first);
+                for (; m_finish != dest;)
+                    std::allocator_traits<Allocator>::destroy(allocator, --m_finish);
+                return dest;
+            }
+
+            // Move [last, m_finish) to [first, first + (last - first)) and 
+            // erase [first + (last - first), m_finish)
+            std::move(const_cast<iterator>(last), end(), const_cast<iterator>(first));
+            iterator dest = const_cast<iterator>(first + (cend() - last));
+            for (; m_finish != dest;)
+            {
+                std::allocator_traits<Allocator>::destroy(allocator, --m_finish);
+            }
+
+            return const_cast<iterator>(first);
         }
 
         template <typename... Args>
@@ -119,7 +240,9 @@ namespace leviathan::collections
 
             // try_expand(allocator, size() + 1);
             if (m_finish == m_end_of_storage)
+            {
                 expand_unchecked_capacity(allocator, std::bit_ceil(size() + 1));
+            }
 
             if (dist == size())
             {
@@ -200,7 +323,9 @@ namespace leviathan::collections
         void try_expand(Allocator& allocator, size_t n)
         {
             if (capacity() < n)
+            {
                 expand_unchecked_capacity(allocator, std::bit_ceil(n));
+            }
         }
     };
 } // namespace leviathan

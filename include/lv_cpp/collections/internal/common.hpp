@@ -24,7 +24,7 @@ namespace leviathan::collections
     };
 
     // For map<int, int>, the key_type is int and value_type is std::pair<const int, int>
-    // For map<const int>, the key_type is const int and value_type is std::pair<const int, int>
+    // For map<const int, int>, the key_type is const int and value_type is std::pair<const int, int>
     struct select1st
     {
         template <typename T> 

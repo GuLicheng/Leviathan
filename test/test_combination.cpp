@@ -36,12 +36,3 @@ TEST_CASE("range_combination")
         REQUIRE(vec == result[i++]);
     } while (leviathan::ranges::next_combination(vec, vec.begin() + 2).found);
 }
-
-TEST_CASE("combination2")
-{
-    std::vector<int> vec = { 0, 3, 5, 7, 9 };
-
-    do {
-        INFO("vec = " << Catch::rangeToString(vec));
-    } while (leviathan::next_combination(vec.begin(), vec.begin() + 2, vec.end()));
-}
