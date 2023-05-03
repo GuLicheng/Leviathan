@@ -15,6 +15,23 @@ include_directories(include)
 include_directories(thirdpart/Catch2/src)
 
 add_subdirectory(thirdpart/Catch2)
-add_subdirectory(test)
 
-include(CTest)
+set(LEVIAYHAN_BUILD_BENCHMARK ON)
+set(LEVIATHAN_BUILD_TEST ON)
+
+
+if(LEVIAYHAN_BUILD_BENCHMARK STREQUAL "ON")
+    message(STATUS "Build benchmark")
+    add_subdirectory(benchmark)
+endif()
+    
+
+if(LEVIATHAN_BUILD_TEST STREQUAL "ON")
+    message(STATUS "Build test")
+    add_subdirectory(test)
+    include(CTest)
+endif()
+
+
+
+

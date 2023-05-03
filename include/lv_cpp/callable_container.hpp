@@ -121,7 +121,7 @@ struct callable_container
         m_maps[std::move(name)] = std::bind_front(&invoker<std::remove_cvref_t<F>>::apply, std::move(f));
     }
 
-    void destory_handler(std::string_view name)
+    void destroy_handler(std::string_view name)
     {
         // https://en.cppreference.com/w/cpp/container/unordered_map/erase (4) C++23 
         auto iter = m_maps.find(name);

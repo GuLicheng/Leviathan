@@ -11,7 +11,7 @@
 #include <ranges>
 
 #ifndef DEFAULT_NUM
-#define DEFAULT_NUM 100'000
+#define DEFAULT_NUM 1'000'000
 #endif
 
 #define SplitLine() (std::cout << "===============================================\n")

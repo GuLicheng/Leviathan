@@ -9,7 +9,8 @@
 #include <algorithm>
 
 #include <lv_cpp/collections/internal/buffer.hpp>
-#include <catch2/catch_all.hpp>
+// #include <catch2/catch_all.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 // #include <thirdpart/catch_amalgamated.hpp>
 
@@ -65,6 +66,8 @@ TEST_CASE("buffer_reverse")
     REQUIRE(buffer.capacity() == 32);
 
     buffer.clear(allocator);
+
+    buffer.dispose(allocator);
 }
 
 TEST_CASE("emplace_back_and_pop_back")
@@ -95,6 +98,7 @@ TEST_CASE("emplace_back_and_pop_back")
     {
         REQUIRE(buffer.begin()[i] == i);
     }
+    buffer.dispose(allocator);
 }
 
 TEST_CASE("iterator")
@@ -112,6 +116,8 @@ TEST_CASE("iterator")
     {
         REQUIRE(value == i++);
     }
+
+    buffer.dispose(allocator);
 }
 
 TEST_CASE("insert")
@@ -167,6 +173,7 @@ TEST_CASE("erase_element")
 
     REQUIRE(std::ranges::equal(buffer, ilist));
 
+    buffer.dispose(allocator);
 }
 
 TEST_CASE("erase_range")
@@ -195,6 +202,8 @@ TEST_CASE("erase_range")
     auto ilist2 = { 2, 3, 4, 5, 6, 7 };
     REQUIRE(std::ranges::equal(buffer, ilist2));
     REQUIRE(*ret == 2);
+
+    buffer.dispose(allocator);
 }
 
 TEST_CASE("insert_range")
@@ -242,6 +251,8 @@ TEST_CASE("insert_range")
     REQUIRE(buffer[0] == -1);
     REQUIRE(buffer[1] == -2);
     REQUIRE(buffer[2] == -3);
+
+    buffer.dispose(allocator);
 }
 
 TEST_CASE("random_insert")
@@ -263,6 +274,8 @@ TEST_CASE("random_insert")
         numbers.begin(), numbers.end(), 
         buffer.begin()
     ));
+
+    buffer.dispose(allocator);
 }
 
 #include "../include/lv_cpp/struct.hpp"
@@ -316,66 +329,6 @@ TEST_CASE("pmr::allocator")
     REQUIRE(buffer[1] == 1);
 
     buffer.dispose(pa);
-}
-
-#include <vector>
-
-TEST_CASE("benchmark insert")
-{
-    constexpr int N = 1024;
-
-    BENCHMARK_ADVANCED("std::vector")(Catch::Benchmark::Chronometer meter) {
-        meter.measure([]{
-            std::vector<int> vec;
-            vec.reserve(N);
-            for (int i = 0; i < N; ++i) 
-                vec.emplace(vec.begin(), i);
-            auto first = *vec.begin();
-            return first;
-        });
-    };
-
-    BENCHMARK_ADVANCED("buffer")(Catch::Benchmark::Chronometer meter) {
-        meter.measure([]{
-            leviathan::collections::buffer<int, AllocatorT> buffer;
-            AllocatorT alloc;
-            buffer.reserve(alloc, N);
-            for (int i = 0; i < N; ++i) 
-                buffer.emplace(alloc, buffer.begin(), i);
-            auto first = *buffer.begin();
-            buffer.dispose(alloc);
-            return first;
-        });
-    };
-}
-
-TEST_CASE("benchmark emplace_back")
-{
-    constexpr int N = 1024 * 4;
-
-    BENCHMARK_ADVANCED("std::vector")(Catch::Benchmark::Chronometer meter) {
-        meter.measure([]{
-            std::vector<int> vec;
-            // vec.reserve(N);
-            for (int i = 0; i < N; ++i) 
-                vec.emplace_back(i);
-            auto s = vec.size();
-            return s;
-        });
-    };
-
-    BENCHMARK_ADVANCED("buffer")(Catch::Benchmark::Chronometer meter) {
-        meter.measure([]{
-            leviathan::collections::buffer<int, AllocatorT> buffer;
-            AllocatorT alloc;
-            // buffer.reserve(alloc, N);
-            for (int i = 0; i < N; ++i) 
-                buffer.emplace_back(alloc, i);
-            auto s = buffer.size();
-            buffer.dispose(alloc);
-            return s;
-        });
-    };
 }
 
 

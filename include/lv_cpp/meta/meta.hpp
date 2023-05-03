@@ -24,17 +24,20 @@ namespace leviathan::meta
     template <typename T, typename... Ts>
     constexpr bool should_be_v = should_be<T, Ts...>::value;
 
+    
+    // std::unwrap_reference_t<int>
     template <typename T>
-    struct referece_traits : std::type_identity<T> { };
+    struct reference_traits : std::type_identity<T> { };
 
     template <typename T>
-    struct referece_traits<std::reference_wrapper<T>> : std::type_identity<T&> { };
+    struct reference_traits<std::reference_wrapper<T>> : std::type_identity<T&> { };
 
     template <template <typename...> typename TemplateClass, typename T>
     struct is_instance : std::false_type { };
 
     template <template <typename...> typename TemplateClass, typename... Args>
     struct is_instance<TemplateClass, TemplateClass<Args...>> : std::true_type { };
+
 
 }
 

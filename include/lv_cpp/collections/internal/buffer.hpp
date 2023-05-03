@@ -1,12 +1,16 @@
 #pragma once
 
 #include <memory>
-
+#include <algorithm>
 #include <assert.h>
 
 namespace leviathan::collections
 {
-    // Difference from std::vector, this class does not contain allocator
+    // Difference from std::vector, this class does not contain allocator.
+    // Any container can split two part: implementation and allocator. Some containers 
+    // such as hashtable with chain(std::unordered_map) require dynamic array as 
+    // for their implementation. If we use std::vector, the allocator in std::vector
+    // will cost more memory and for user defined allocator, the code may be more complex.
     template <typename T, typename Allocator>
     struct buffer
     {
