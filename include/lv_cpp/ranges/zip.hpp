@@ -2,6 +2,8 @@
 
 #include "common.hpp"
 
+#include <algorithm>
+
 // range.zip_view
 namespace leviathan::ranges
 {

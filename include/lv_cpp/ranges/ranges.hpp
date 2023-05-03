@@ -1,38 +1,27 @@
 /*
-
-    factories:
-        concat
-        enumerate
-        repeat
-
-    adaptor:
-        concat_with
-        join_with
+    We try implement these range adaptors ahead of cpp standard or compiler.
 */
 
 #pragma once 
 
+#include "common.hpp"
 
-#include <concepts>
+
 #include <optional>
-#include <tuple>
 #include <compare>
-#include <functional>
-#include <variant>
 #include <assert.h>
 
 #include <iostream>
-#include <lv_cpp/meta/template_info.hpp>
-#include "common.hpp"
+// #include <lv_cpp/meta/template_info.hpp>
 
-#include "enumerate.hpp"
 #include "concat.hpp"
-#include "common.hpp"
-#include "repeat.hpp"
-#include "join_with.hpp"
-#include "zip.hpp"
-#include "adjacent.hpp"
-#include "chunk.hpp"
-#include "chunk_by.hpp"
-#include "stride.hpp"
+
+#include "enumerate.hpp"     // C++23
+#include "repeat.hpp"        // C++23
+#include "join_with.hpp"     // C++20/23
+#include "zip.hpp"           // C++23
+#include "adjacent.hpp"      // C++23
+#include "chunk.hpp"         // C++23
+#include "chunk_by.hpp"      // C++23
+#include "stride.hpp"        // C++23
 

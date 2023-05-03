@@ -2,6 +2,9 @@
 
 #include "common.hpp"
 
+#include <variant>
+
+
 // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2542r2.html
 namespace leviathan::ranges
 {

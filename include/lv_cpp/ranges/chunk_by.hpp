@@ -2,6 +2,7 @@
 
 #include "common.hpp"
 
+
 // ranges.chunk_by_view
 namespace leviathan::ranges
 {   
@@ -205,3 +206,5 @@ namespace leviathan::ranges
     inline constexpr chunk_by_adaptor chunk_by{};
 
 }
+
+// chunk_by_view never models borrowed_range or sized_range.

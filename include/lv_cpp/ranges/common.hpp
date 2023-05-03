@@ -3,6 +3,7 @@
 #include <ranges>
 #include <concepts>
 #include <tuple>
+#include <functional>
 
 // Some utils
 namespace leviathan::ranges::detail
