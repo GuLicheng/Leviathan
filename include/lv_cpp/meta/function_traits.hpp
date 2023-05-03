@@ -34,7 +34,6 @@ namespace leviathan::meta
                 0100 for &
                 1000 for &&
             */
-
         };
 
     } // namespace detail

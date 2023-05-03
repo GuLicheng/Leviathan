@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include <lv_cpp/meta/type_list.hpp>
-#include <lv_cpp/meta/template_info.hpp>
+// #include <lv_cpp/meta/type_list.hpp>
+// #include <lv_cpp/meta/template_info.hpp>
 #include <lv_cpp/meta/function_traits.hpp>
 
 using namespace leviathan::meta;
@@ -60,6 +60,9 @@ void test_for_lambda()
     static_assert(std::is_same_v<Arg3, std::tuple<int, double>>);
 }
 
+template <typename T, typename... Ts>
+struct all_type : std::conjunction<std::is_same<T, Ts>...> { };
+
 void test_for_class_member_function()
 {
     struct foo
@@ -98,18 +101,23 @@ void test_for_class_member_function()
     using T11 = function_traits<decltype(&foo::volatile_r_ref)>::class_type;
     using T12 = function_traits<decltype(&foo::const_volatile_r_ref)>::class_type;
 
-    PrintTypeInfo(T1);
-    PrintTypeInfo(T2);
-    PrintTypeInfo(T3);
-    PrintTypeInfo(T4);
-    PrintTypeInfo(T5);
-    PrintTypeInfo(T6);
-    PrintTypeInfo(T7);
-    PrintTypeInfo(T8);
-    PrintTypeInfo(T9);
-    PrintTypeInfo(T10);
-    PrintTypeInfo(T11);
-    PrintTypeInfo(T12);
+    // PrintTypeInfo(T1);
+    // PrintTypeInfo(T2);
+    // PrintTypeInfo(T3);
+    // PrintTypeInfo(T4);
+    // PrintTypeInfo(T5);
+    // PrintTypeInfo(T6);
+    // PrintTypeInfo(T7);
+    // PrintTypeInfo(T8);
+    // PrintTypeInfo(T9);
+    // PrintTypeInfo(T10);
+    // PrintTypeInfo(T11);
+    // PrintTypeInfo(T12);
+
+    static_assert(
+        all_type<foo, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>::value
+    );
+
     static_assert(function_traits<decltype(&foo::none)>::is_noexcept == true);
     static_assert(function_traits<decltype(&foo::ref)>::is_noexcept == false);
     static_assert(function_traits<decltype(&foo::ref)>::attribute == 0x0100);
