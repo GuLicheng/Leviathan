@@ -27,7 +27,7 @@ struct RAII
     }
 };
 
-TEST_CASE("benchmark insert")
+TEST_CASE("benchmark insert at first")
 {
     constexpr int N = 1024 * 4;
 
@@ -63,7 +63,7 @@ TEST_CASE("benchmark emplace_back")
     BENCHMARK_ADVANCED("std::vector")(Catch::Benchmark::Chronometer meter) {
         meter.measure([]{
             std::vector<int> vec;
-            // vec.reserve(N);
+            vec.reserve(N);
             for (int i = 0; i < N; ++i) 
                 vec.emplace_back(i);
             auto s = vec.size();
@@ -75,7 +75,7 @@ TEST_CASE("benchmark emplace_back")
         meter.measure([]{
             leviathan::collections::buffer<int, AllocatorT> buffer;
             AllocatorT alloc;
-            // buffer.reserve(alloc, N);
+            buffer.reserve(alloc, N);
             RAII guard([&](){ buffer.dispose(alloc); });
             for (int i = 0; i < N; ++i) 
                 buffer.emplace_back(alloc, i);

@@ -15,6 +15,20 @@ struct is_instance_base_of<BaseTemplateClass, DerivedInstance, std::void_t<declt
 template <template <typename...> typename BaseTemplateClass, typename DerivedInstance>
 constexpr auto is_instance_base_of = is_instance_base_of<BaseTemplateClass, DerivedInstance>::value;
 
+
+template <template <typename ...> typename B, typename T, typename = std::void_t<>>
+struct is_derived : std::false_type
+{
+};
+
+template <template <typename ...> typename B, typename T>
+struct is_derived <B, T, std::void_t<decltype([]<typename... Args>(B<Args...>*) {}(std::declval<T*>())) >> : std::true_type
+{
+};
+
+template <template <typename ...> typename Base, typename T>
+inline constexpr auto is_derived_v = is_derived<T, Base>::value;
+
 template <typename... Args>
 struct base
 {
@@ -29,23 +43,10 @@ struct B : public base<T>
 {
 };
 
-template <template <typename ...> typename B, typename T, typename = std::void_t<>>
-struct is_derived : std::false_type
-{
-};
-
-template <template <typename ...> typename B, typename T>
-struct is_derived <B, T, std::void_t<decltype([]<typename... Args>(B<Args...>*) {}(std::declval<T*>())) >> : std::true_type
-{
-};
-
-template <template <typename ...> typename B, typename T>
-inline constexpr auto is_derived_v = is_derived<T, B>::value;
-
 int main(int argc, char* argv[])
 {
     static_assert(is_derived_v<base, A>);
-    static_assert(is_derived_v<base, Base<int>>);
+    static_assert(is_derived_v<base, base<int>>);
     static_assert(is_derived_v<base, std::tuple<int>>);
     static_assert(is_derived_v<base, std::tuple<>>);
 }
