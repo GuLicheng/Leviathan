@@ -16,8 +16,8 @@ template <
 struct Int32
 {
 
-    constexpr static bool Copyable = CopyThrowExceptionCount > 0;
-    constexpr static bool Moveable = MoveThrowExceptionCount > 0;
+    constexpr static bool Copyable = CopyThrowExceptionCount >= 0;
+    constexpr static bool Moveable = MoveThrowExceptionCount >= 0;
 
 
     inline static int default_constructor = 0;
