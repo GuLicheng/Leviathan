@@ -46,12 +46,12 @@ namespace leviathan
         static_assert(NumTypes > 0, "Internal error");
 
         template <typename T>
-        static constexpr size_t type_index() 
+        static consteval size_t type_index() 
         {
             return detail::find_first_index<T, Ts...>();
         }
     
-        static constexpr size_t alignment() 
+        static consteval size_t alignment() 
         {
             return std::ranges::max({ alignof(Ts)... });
         }
