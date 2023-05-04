@@ -1,12 +1,10 @@
-#ifndef __CONSOLE_ENUM_HPP__
-#define __CONSOLE_ENUM_HPP__
+// https://en.wikipedia.org/wiki/ANSI_escape_code
 
-
+#pragma once
 
 namespace leviathan::io
 {
-
-    enum struct console_color : unsigned char
+    enum console_color 
     {
         black = 0,
         red,
@@ -24,22 +22,10 @@ namespace leviathan::io
         bright_blue,
         bright_magenta,
         bright_cyan,
-        bright_white
-
+        bright_white,
     };
 
-    enum struct console_style : unsigned char
-    {
-        reset = 0,
-        bold,
-        faint,
-        italic,
-        underline,
-        slow_blink,
-        rapid_blink
-    };
-
-    constexpr inline static const char* color[] = 
+    constexpr inline static const char* colors[] = 
     {
         // foreground
         "\033[30m", // black
@@ -81,7 +67,18 @@ namespace leviathan::io
         "\033[107m", // bright white
     };
 
-    constexpr inline static const char* style[] =
+    enum console_font 
+    {
+        reset = 0,
+        bold,
+        faint,
+        italic,
+        underline,
+        slow_blink,
+        rapid_blink,
+    };
+
+    constexpr inline static const char* fonts[] =
     {   
         "\033[0m", // reset
         "\033[1m", // bold 
@@ -91,9 +88,5 @@ namespace leviathan::io
         "\033[5m", // slow_blink
         "\033[6m", // rapid_blink
     };   
+} // namespace leviathan::io
 
-
-} //  namespcace io
-
-
-#endif
