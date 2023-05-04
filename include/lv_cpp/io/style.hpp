@@ -67,7 +67,7 @@ namespace leviathan::io
         "\033[107m", // bright white
     };
 
-    enum console_font 
+    enum console_fontstyle 
     {
         reset = 0,
         bold,
@@ -78,7 +78,7 @@ namespace leviathan::io
         rapid_blink,
     };
 
-    constexpr inline static const char* fonts[] =
+    constexpr inline static const char* fontstyles[] =
     {   
         "\033[0m", // reset
         "\033[1m", // bold 

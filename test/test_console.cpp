@@ -22,9 +22,9 @@ void set_background_color(console_color color, const char* info)
     console::write(info);
 }
 
-void set_font_style(console_font font, const char* info)
+void set_font_style(console_fontstyle fontstyle, const char* info)
 {
-    console::set_font(font);
+    console::set_font(fontstyle);
     console::write(info);
 }
 
@@ -70,13 +70,13 @@ void test_for_output()
 
     console::reset_color();
 
-    set_font_style(console_font::bold, "This is bold\n");
-    set_font_style(console_font::italic, "This is italic\n");
-    set_font_style(console_font::faint, "This is faint\n");
-    set_font_style(console_font::underline, "This is underline\n");
-    set_font_style(console_font::slow_blink, "This is slow_blink\n");
-    set_font_style(console_font::rapid_blink, "This is rapid_blink\n");
+    set_font_style(console_fontstyle::bold, "This is bold\n");
+    set_font_style(console_fontstyle::italic, "This is italic\n");
+    set_font_style(console_fontstyle::faint, "This is faint\n");
+    set_font_style(console_fontstyle::underline, "This is underline\n");
+    set_font_style(console_fontstyle::slow_blink, "This is slow_blink\n");
+    set_font_style(console_fontstyle::rapid_blink, "This is rapid_blink\n");
 
-    console::reset_font();
+    console::reset();
 }
 

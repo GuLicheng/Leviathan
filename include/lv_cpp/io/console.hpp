@@ -33,14 +33,14 @@ namespace leviathan::io
             write("\033[49m"); 
         }
 
-        static void set_font(console_font font)
+        static void set_font(console_fontstyle font)
         {
-            write(fonts[font]);
+            write(fontstyles[font]);
         }
 
-        static void reset_font()
+        static void reset()
         {
-            set_font(console_font::reset);
+            set_font(console_fontstyle::reset);
         }
     };
 } // namespace leviathan::io
