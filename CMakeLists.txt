@@ -16,7 +16,7 @@ include_directories(thirdpart/Catch2/src)
 
 add_subdirectory(thirdpart/Catch2)
 
-add_executable(a a.cpp)
+add_executable(main main.cpp)
 
 set(LEVIAYHAN_BUILD_BENCHMARK ON)
 set(LEVIATHAN_BUILD_TEST ON)

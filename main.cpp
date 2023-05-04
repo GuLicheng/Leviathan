@@ -11,6 +11,5 @@ int main(int argc, char const *argv[])
     const int* pb = &i;
     
     auto c = pa - pb;
-
     return 0;
 }
