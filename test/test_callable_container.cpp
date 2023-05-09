@@ -89,6 +89,7 @@ TEST_CASE("object free")
         callables.call_by_name<void>("capture_int");
         callables.call_by_name<void>("capture_int");
         callables.call_by_name<void>("capture_int");
+        callables.destroy_all_handlers();
     }
 
     REQUIRE(Int32<>::total_construct() == Int32<>::total_destruct());
@@ -98,12 +99,14 @@ TEST_CASE("object free")
         callables.register_handler("tuple", tuple);
         auto p = callables.call_by_name<int>("tuple", std::make_tuple(1));
         REQUIRE(*p == 1);
+        callables.destroy_all_handlers();
     }   
 
     {
         callables.register_handler("capture_Int32", [](int i) { return Int32<>(i); });
         auto p = callables.call_by_name<Int32<>>("capture_Int32", -1);
         std::cout << "Int32<> = " << p->val << '\n';
+        callables.destroy_all_handlers();
     }
 
     REQUIRE(Int32<>::total_construct() == Int32<>::total_destruct());

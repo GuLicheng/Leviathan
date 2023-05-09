@@ -129,6 +129,11 @@ struct callable_container
             m_maps.erase(iter);
     }
 
+    void destroy_all_handlers()
+    {
+        m_maps.clear();
+    }
+
     template <typename R, typename... Args>
     unique_wrapper<R> call_by_name(std::string_view name, Args&&... args)
     {

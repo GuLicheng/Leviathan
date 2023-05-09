@@ -15,6 +15,9 @@ using AvlTree = leviathan::collections::avl_set<int>;
 using RBTree = leviathan::collections::rb_set<int>;
 using PyHashTable = leviathan::collections::hash_set<int>;
 
+using STLHashTable = std::unordered_set<int>;
+using STLRBTree = std::set<int>;
+
 TEST_CASE("duplicate_collections_random_insert")
 {
     // --------------------- Ordered Collections ---------------------
@@ -120,5 +123,93 @@ TEST_CASE("duplicate_collections_descend_insert")
     BENCHMARK("std::unordered_set descend_insert")
     {
         return leviathan::descending_insert_test<std::unordered_set<int>>();
+    };
+}
+
+TEST_CASE("duplicate_collections_random_search")
+{
+    SkipList sl;
+    AvlTree avl;
+    RBTree rb;
+    PyHashTable ph;
+    STLHashTable stlhash;
+    STLRBTree stlrb;
+
+    leviathan::random_insert(sl, avl, rb, ph, stlhash, stlrb);
+
+    // --------------------- Ordered Collections ---------------------
+    BENCHMARK("skip_list search")
+    {
+        return leviathan::search_test(sl);
+    };
+
+    BENCHMARK("avl search")
+    {
+        return leviathan::search_test(avl);
+    };
+
+    BENCHMARK("rb search")
+    {
+        return leviathan::search_test(rb);
+    };
+
+    BENCHMARK("stlrb search")
+    {
+        return leviathan::search_test(stlrb);
+    };
+
+    // --------------------- UnOrdered Collections ---------------------
+    BENCHMARK("pyhash search")
+    {
+        return leviathan::search_test(ph);
+    };
+
+    BENCHMARK("stlhash search")
+    {
+        return leviathan::search_test(stlhash);
+    };
+}
+
+TEST_CASE("duplicate_collections_random_remove")
+{
+    SkipList sl;
+    AvlTree avl;
+    RBTree rb;
+    PyHashTable ph;
+    STLHashTable stlhash;
+    STLRBTree stlrb;
+
+    leviathan::random_insert(sl, avl, rb, ph, stlhash, stlrb);
+
+    // --------------------- Ordered Collections ---------------------
+    BENCHMARK("skip_list remove")
+    {
+        return leviathan::remove_test(sl);
+    };
+
+    BENCHMARK("avl remove")
+    {
+        return leviathan::remove_test(avl);
+    };
+
+    BENCHMARK("rb remove")
+    {
+        return leviathan::remove_test(rb);
+    };
+
+    BENCHMARK("stlrb remove")
+    {
+        return leviathan::remove_test(stlrb);
+    };
+
+    // --------------------- UnOrdered Collections ---------------------
+    BENCHMARK("pyhash remove")
+    {
+        return leviathan::remove_test(ph);
+    };
+
+    BENCHMARK("stlhash remove")
+    {
+        return leviathan::remove_test(stlhash);
     };
 }

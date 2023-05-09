@@ -52,6 +52,7 @@ namespace leviathan::collections
         }
 
         // https://en.wikipedia.org/wiki/Flexible_array_member
+        // layout may be a better choice to replace flexible array.
         struct skip_list_node 
         {
             alignas(T) unsigned char m_raw[sizeof(T)];
@@ -231,7 +232,6 @@ namespace leviathan::collections
             clear();
             clear_header();
         }
-
 
         // Iterators
         iterator begin() 

@@ -591,7 +591,7 @@ namespace leviathan::collections
         {
         }
 
-        hash_table(hasher hash, key_equal ke, allocator_type alloc)
+        hash_table(const hasher& hash, const key_equal& ke, const allocator_type& alloc)
             : m_hash{ hash }, m_ke{ ke }, m_alloc{ alloc }, m_indices{ }, m_slots{ }, m_size{ }, m_capacity{ }, m_used{ }
         {
         }
@@ -614,7 +614,7 @@ namespace leviathan::collections
 
         hash_table(const hash_table& rhs)
             : m_hash{ rhs.m_hash },  m_ke{ rhs.m_ke }, 
-              m_alloc{ std::allocator_traits<allocator_type>::select_on_container_copy_construction(rhs.m_alloc)},
+              m_alloc{ std::allocator_traits<allocator_type>::select_on_container_copy_construction(rhs.m_alloc) },
               m_indices{ }, m_slots{ }, m_size{ }, m_capacity{ }, m_used{ }
         {
             try

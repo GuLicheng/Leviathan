@@ -173,7 +173,6 @@ namespace leviathan::collections
         explicit tree(const Allocator& alloc)
             : tree(Compare(), alloc) { }
 
-
         ~tree()
         { clear(); }
 
@@ -246,44 +245,17 @@ namespace leviathan::collections
 			return *this;
         }
 
-        tree& operator=(tree&& rhs) noexcept(IsNothrowMoveAssign)
-        {
-            if (this != std::addressof(rhs))
-			{
-                clear();
-                m_cmp = std::move(rhs.m_cmp);
-                m_size = rhs.m_size;
-                if (rhs.root())
-                    m_header = rhs.m_header;
-				if constexpr (typename node_alloc_traits::propagate_on_container_move_assignment())
-				{
-					m_alloc = std::move(rhs.m_alloc);
-				}
-				else
-				{
-                    move_from_other(std::move(rhs));
-				}
-                NodeType::reset(rhs.header());
-			}
-			return *this;
-        }
+        // TODO
+        tree& operator=(tree&& rhs) noexcept(IsNothrowMoveAssign) = delete;
 
         void swap(tree &rhs) noexcept(IsNothrowSwap)
         {
 			if (this != std::addressof(rhs))
 			{
+                swap_impl(rhs);
 				if constexpr (typename node_alloc_traits::propagate_on_container_swap())
 				{
-					swap_impl(rhs);
 					std::swap(m_alloc, rhs.m_alloc);
-				}
-				else if (typename node_alloc_traits::is_always_equal() || m_alloc == rhs.m_alloc)
-				{
-					swap_impl(rhs);
-				}
-				else
-				{
-                    assert(false && "Undefined Behaviour");
 				}
 			}
         }

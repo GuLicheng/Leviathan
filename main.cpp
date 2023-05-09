@@ -2,6 +2,7 @@
 #include <utility>
 
 #include <lv_cpp/ranges/ranges.hpp>
+#include <unordered_set>
 
 int main(int argc, char const *argv[])
 {
