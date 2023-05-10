@@ -61,8 +61,8 @@ struct tracked
     size_t num_moves() { return *m_num_moves; }
 
     T m_val;
-    std::shared_ptr<size_t> m_num_moves = std::make_shared<size_t>(0);
     std::shared_ptr<size_t> m_num_copies = std::make_shared<size_t>(0);
+    std::shared_ptr<size_t> m_num_moves = std::make_shared<size_t>(0);
 };
 
 enum alloc_spec
@@ -128,7 +128,8 @@ struct checked_allocator
 
     void deallocate(T* ptr, size_t n) 
     {
-        memset(ptr, 0, n * sizeof(T));
+        std::destroy_at(ptr);
+        // memset(ptr, 0, n * sizeof(T));
         track_dealloc(ptr);
         return std::allocator<T>().deallocate(ptr, n);
     }
