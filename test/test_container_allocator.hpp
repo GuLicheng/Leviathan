@@ -260,12 +260,12 @@ void test_propagate_on_container_swap()
     REQUIRE(it->num_copies() == 0);
 }
 
+#define CreatePropagateTesting(function, type) \
+    TEST_CASE(#function) \
+    { function<type>(); }
 
 
-
-
-
-
+// CreatePropagateTesting(test_propagate_on_container_swap, LinkList);
 
 
 

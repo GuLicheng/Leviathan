@@ -197,21 +197,40 @@ namespace leviathan::collections
             NodeType::set_right(header(), NodeType::maximum(root()));
         }
 
-        tree(const tree& rhs) 
-            : m_alloc{ node_alloc_traits::select_on_container_copy_construction(rhs.m_alloc) },
-              m_size{ rhs.m_size },
-              m_cmp{ rhs.m_cmp }
+        tree(const tree& rhs, const allocator_type& a) 
+            : tree(Compare(), a)
         {
 			try 
 			{
                 copy_from_other(rhs);
+                m_size = rhs.m_size;
 			}
 			catch (...)
 			{
 				clear();
 				throw; // rethrow exception
 			}
-		}
+        }
+
+        tree(const tree& rhs) 
+            : tree(rhs, node_alloc_traits::select_on_container_copy_construction(rhs.m_alloc))
+        { }
+
+        tree(tree&& rhs, const allocator_type& a)
+            : m_cmp(std::move(rhs.m_cmp)), m_alloc(a)
+        {
+            if (rhs.m_alloc == a) 
+            {
+                m_header = rhs.header();
+                NodeType::reset(rhs.header());
+            }
+            else
+            {
+                move_from_other(rhs);
+                m_size = rhs.m_size;
+                rhs.clear();
+            }
+        }
 
         tree(tree&& rhs) noexcept(IsNothrowMoveConstruct)
 			: m_cmp{ std::move(rhs.m_cmp) }, m_alloc{ std::move(rhs.m_alloc) }, m_size{ rhs.m_size }, m_header{ rhs.m_header }
@@ -220,7 +239,6 @@ namespace leviathan::collections
                 NodeType::reset(header());
             NodeType::reset(rhs.header());
 		}        
-
 
         tree& operator=(const tree& rhs)
         {

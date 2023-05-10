@@ -3,8 +3,9 @@
 #include <catch2/catch_all.hpp>
 #include <lv_cpp/algorithm/combination_range.hpp>
 #include <vector>
+#include <list>
 
-TEST_CASE("combination")
+TEST_CASE("combination random access iterator")
 {
     std::vector<int> vec = { 1, 2, 2 };
 
@@ -35,4 +36,20 @@ TEST_CASE("range_combination")
     do {
         REQUIRE(vec == result[i++]);
     } while (leviathan::ranges::next_combination(vec, vec.begin() + 2).found);
+}
+
+TEST_CASE("combination bidirectional iterator")
+{
+    std::list<int> vec = { 1, 2, 2 };
+
+    std::list<int> result[2] = {
+        std::list<int>{ 1, 2, 2 },
+        std::list<int>{ 2, 2, 1 },
+    };
+
+    int i = 0;
+
+    do {
+        REQUIRE(vec == result[i++]);
+    } while (leviathan::next_combination(vec.begin(), std::next(vec.begin(), 2), vec.end()));
 }
