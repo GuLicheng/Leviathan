@@ -2,8 +2,6 @@
 
 #include <catch2/catch_all.hpp>
 
- 
-
 TEST_CASE("insert elements", "[iterator][insert][emplace][emplace_hint]")
 {
 
@@ -198,7 +196,6 @@ TEST_CASE("random test", "[contains][insert][erase]")
 
 }
 
-
 TEST_CASE("operator[]", "[operator]")
 {
     MapT m;
@@ -334,4 +331,3 @@ TEST_CASE("memory", "[dtor]")
     }
     REQUIRE(CheckMemoryAlloc());
 }
-

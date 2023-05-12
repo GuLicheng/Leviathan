@@ -140,6 +140,15 @@ public:
         return { Iterator(node), true };
     }
 
+    template <typename... Args>
+    std::pair<Iterator, bool> emplace(Args&&... args) {
+        auto node = make_node((Args&&) args...);
+        node->next = impl.header.next;
+        impl.header.next = node;
+        impl.size++;
+        return { Iterator(node), true };
+    }
+
     void clear() {
         auto p = impl.header.next;
         while (p) {
@@ -202,48 +211,52 @@ public:
     [[no_unique_address]] Allocator alloc;
 };
 
+// template <typename... Ts>
+// using ContainerType = LinkList<Ts...>;
 
-TEST_CASE("test_propagate_on_container_copy_assignment_on_all_with_same_allocator")
-{
-    test_propagate_on_container_copy_assignment_on_all_with_same_allocator<LinkList>();
-}
+// TEST_CASE("test_propagate_on_container_copy_assignment_on_all_with_same_allocator")
+// {
+//     test_propagate_on_container_copy_assignment_on_all_with_same_allocator<ContainerType>();
+// }
 
-TEST_CASE("test_propagate_on_container_copy_assignment_on_nocopy_with_same_allocator")
-{
-    test_propagate_on_container_copy_assignment_on_nocopy_with_same_allocator<LinkList>();
-}
+// TEST_CASE("test_propagate_on_container_copy_assignment_on_nocopy_with_same_allocator")
+// {
+//     test_propagate_on_container_copy_assignment_on_nocopy_with_same_allocator<ContainerType>();
+// }
 
-TEST_CASE("test_propagate_on_container_copy_assignment_on_all_with_different_allocator")
-{
-    test_propagate_on_container_copy_assignment_on_all_with_different_allocator<LinkList>();
-}
+// TEST_CASE("test_propagate_on_container_copy_assignment_on_all_with_different_allocator")
+// {
+//     test_propagate_on_container_copy_assignment_on_all_with_different_allocator<ContainerType>();
+// }
 
-TEST_CASE("test_propagate_on_container_copy_assignment_on_nocopy_with_different_allocator")
-{
-    test_propagate_on_container_copy_assignment_on_nocopy_with_different_allocator<LinkList>();
-}
+// TEST_CASE("test_propagate_on_container_copy_assignment_on_nocopy_with_different_allocator")
+// {
+//     test_propagate_on_container_copy_assignment_on_nocopy_with_different_allocator<ContainerType>();
+// }
 
-TEST_CASE("test_propagate_on_container_move_assignment_on_all_with_same_allocator")
-{
-    test_propagate_on_container_move_assignment_on_all_with_same_allocator<LinkList>();
-}
+// TEST_CASE("test_propagate_on_container_move_assignment_on_all_with_same_allocator")
+// {
+//     test_propagate_on_container_move_assignment_on_all_with_same_allocator<ContainerType>();
+// }
 
-TEST_CASE("test_propagate_on_container_move_assignment_on_nomove_with_same_allocator")
-{
-    test_propagate_on_container_move_assignment_on_nomove_with_same_allocator<LinkList>();
-}
+// TEST_CASE("test_propagate_on_container_move_assignment_on_nomove_with_same_allocator")
+// {
+//     test_propagate_on_container_move_assignment_on_nomove_with_same_allocator<ContainerType>();
+// }
 
-TEST_CASE("test_propagate_on_container_move_assignment_on_all_with_different_allocator")
-{
-    test_propagate_on_container_move_assignment_on_all_with_different_allocator<LinkList>();
-}
+// TEST_CASE("test_propagate_on_container_move_assignment_on_all_with_different_allocator")
+// {
+//     test_propagate_on_container_move_assignment_on_all_with_different_allocator<ContainerType>();
+// }
 
-TEST_CASE("test_propagate_on_container_move_assignment_on_nomove_with_different_allocator")
-{
-    test_propagate_on_container_move_assignment_on_nomove_with_different_allocator<LinkList>();
-}
+// TEST_CASE("test_propagate_on_container_move_assignment_on_nomove_with_different_allocator")
+// {
+//     test_propagate_on_container_move_assignment_on_nomove_with_different_allocator<ContainerType>();
+// }
 
-TEST_CASE("test_propagate_on_container_swap")
-{
-    test_propagate_on_container_swap<LinkList>();
-}
+// TEST_CASE("test_propagate_on_container_swap")
+// {
+//     test_propagate_on_container_swap<ContainerType>();
+// }
+
+CreateAllPropagateTesting(LinkList)

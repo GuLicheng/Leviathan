@@ -7,6 +7,9 @@
 #include <memory>
 #include <utility>
 
+#include <format>
+#include <lv_cpp/meta/template_info.hpp>
+
 namespace std::pmr
 {
     template<typename _Tp> class polymorphic_allocator;
@@ -164,13 +167,13 @@ namespace leviathan::collections
 
         tree() : tree(Compare(), Allocator()) { }
 
-        explicit tree(const Compare& compare, const Allocator& allocator = Allocator())
+        explicit tree(const Compare& compare, const Allocator& allocator)
             : m_alloc{ allocator }, m_cmp{ compare }, m_size{ 0 }
         {
             NodeType::reset(header());
         }
 
-        explicit tree(const Allocator& alloc)
+        tree(const Allocator& alloc)
             : tree(Compare(), alloc) { }
 
         ~tree()
@@ -264,7 +267,32 @@ namespace leviathan::collections
         }
 
         // TODO
-        tree& operator=(tree&& rhs) noexcept(IsNothrowMoveAssign) = delete;
+        tree& operator=(tree&& rhs) noexcept(IsNothrowMoveAssign)
+        {
+            if (this != std::addressof(rhs)) 
+            {
+                clear();
+                m_cmp = std::move(rhs.m_cmp);
+                m_size = std::exchange(rhs.m_size, 0);
+                if (typename node_alloc_traits::propagate_on_container_move_assignment())
+                {
+                    m_alloc = std::move(rhs.m_alloc);
+                    m_header = rhs.m_header;
+                    NodeType::reset(rhs.header());
+                }
+                else if (m_alloc == rhs.m_alloc) 
+                {
+                    m_header = rhs.m_header;
+                    NodeType::reset(rhs.header());
+                }
+                else
+                {
+                    move_from_other(std::move(rhs));
+                    rhs.clear();
+                }
+            }
+            return *this;
+        }
 
         void swap(tree &rhs) noexcept(IsNothrowSwap)
         {
@@ -520,7 +548,7 @@ namespace leviathan::collections
                 return nullptr;
 
             cur = create_node(
-                std::move_if_noexcept(*(static_cast<const tree_node*>(cloned_node)->value_ptr())) // only difference between clone_tree
+                std::move_if_noexcept(*(static_cast<tree_node*>(cloned_node)->value_ptr())) // only difference between clone_tree
             );
             NodeType::clone(cur, cloned_node);
             NodeType::set_left(cur, clone_tree(NodeType::left(cur), cur, NodeType::left(cloned_node)));

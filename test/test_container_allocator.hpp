@@ -24,11 +24,20 @@ void test_propagate_on_container_copy_assignment_on_all_with_same_allocator()
     // Ret should be iterator which reference value_type
     auto it = c1.insert(0).first;
 
+    // For node-based container, insert will accepts a const T& or T&&, and
+    // this will construct a prvalue first and then call move ctor to
+    // construct a node, the will make it->num_moves() == 1.
+    // An alternative way is to use emplace, but for table-based container,
+    // they may construct a value on stack first and move the value into 
+    // table if possibly, such as hashtable. So we record the num_moves
+    // before copy assignment and just test whether it is modified after copying.
+    auto num_moves = it->num_moves();
+
     // use a1 construct another container
     c2 = c1; // copy assign
 
     REQUIRE(a1.num_allocs() == 2);
-    REQUIRE(it->num_moves() == 0);
+    REQUIRE(it->num_moves() == num_moves);
     REQUIRE(it->num_copies() == 1);
 }
 
@@ -48,12 +57,13 @@ void test_propagate_on_container_copy_assignment_on_nocopy_with_same_allocator()
     
     // Ret should be iterator which reference value_type
     auto it = c1.insert(0).first;
+    auto num_moves = it->num_moves();
 
     // use a1 construct another container
     c2 = c1; // copy assign
 
     REQUIRE(a1.num_allocs() == 2);
-    REQUIRE(it->num_moves() == 0);
+    REQUIRE(it->num_moves() == num_moves);
     REQUIRE(it->num_copies() == 1);
 }
 
@@ -77,14 +87,14 @@ void test_propagate_on_container_copy_assignment_on_all_with_different_allocator
 
     // Ret should be iterator which reference value_type
     auto it = c1.insert(0).first;
-
+    auto num_moves = it->num_moves();
 
     c2 = c1; // copy assign
 
     REQUIRE(a1 == c2.get_allocator());
     REQUIRE(a1.num_allocs() == 2);
     REQUIRE(a2.num_allocs() == 0);
-    REQUIRE(it->num_moves() == 0);
+    REQUIRE(it->num_moves() == num_moves);
     REQUIRE(it->num_copies() == 1);
 }
 
@@ -107,13 +117,14 @@ void test_propagate_on_container_copy_assignment_on_nocopy_with_different_alloca
 
     // Ret should be iterator which reference value_type
     auto it = c1.insert(0).first;
+    auto num_moves = it->num_moves();
 
     c2 = c1; // copy assign
 
     REQUIRE(a2 == c2.get_allocator());
     REQUIRE(a1.num_allocs() == 1);
     REQUIRE(a2.num_allocs() == 1);
-    REQUIRE(it->num_moves() == 0);
+    REQUIRE(it->num_moves() == num_moves);
     REQUIRE(it->num_copies() == 1);
 }
 
@@ -134,12 +145,13 @@ void test_propagate_on_container_move_assignment_on_all_with_same_allocator()
 
     // Ret should be iterator which reference value_type
     auto it = c1.insert(0).first;
+    auto num_moves = it->num_moves();
 
     c2 = std::move(c1); // move assign
 
     REQUIRE(a1 == c2.get_allocator());
     REQUIRE(a1.num_allocs() == 1);
-    REQUIRE(it->num_moves() == 0);  // move impl
+    REQUIRE(it->num_moves() == num_moves);  // move impl
     REQUIRE(it->num_copies() == 0);
 }
 
@@ -147,6 +159,7 @@ template <template <typename...> typename Container>
 void test_propagate_on_container_move_assignment_on_nomove_with_same_allocator()
 {
     using Allocator = checked_allocator<tracked<int>, NoMovePropagate>;
+
     Allocator a1(1);
 
     // use allocator constructor
@@ -158,12 +171,13 @@ void test_propagate_on_container_move_assignment_on_nomove_with_same_allocator()
 
     // Ret should be iterator which reference value_type
     auto it = c1.insert(0).first;
+    auto num_moves = it->num_moves();
 
     c2 = std::move(c1); // move assign
 
     REQUIRE(a1 == c2.get_allocator());
     REQUIRE(a1.num_allocs() == 1);
-    REQUIRE(it->num_moves() == 0);  // move impl
+    REQUIRE(it->num_moves() == num_moves);  // move impl
     REQUIRE(it->num_copies() == 0);
 }
 
@@ -186,14 +200,14 @@ void test_propagate_on_container_move_assignment_on_all_with_different_allocator
 
     // Ret should be iterator which reference value_type
     auto it = c1.insert(0).first;
-
+    auto num_moves = it->num_moves();
 
     c2 = std::move(c1); // move assign
 
     REQUIRE(a1 == c2.get_allocator());
     REQUIRE(a1.num_allocs() == 1);
     REQUIRE(a2.num_allocs() == 0);
-    REQUIRE(it->num_moves() == 0);  // move impl
+    REQUIRE(it->num_moves() == num_moves);  // move impl
     REQUIRE(it->num_copies() == 0);
 }
 
@@ -216,6 +230,7 @@ void test_propagate_on_container_move_assignment_on_nomove_with_different_alloca
 
     // Ret should be iterator which reference value_type
     auto it = c1.insert(0).first;
+    auto num_moves = it->num_moves();
 
     c2 = std::move(c1); // move assign
 
@@ -224,7 +239,7 @@ void test_propagate_on_container_move_assignment_on_nomove_with_different_alloca
     REQUIRE(a2 == c2.get_allocator());
     REQUIRE(a1.num_allocs() == 1);
     REQUIRE(a2.num_allocs() == 1);
-    REQUIRE(it->num_moves() == 1);  // move impl
+    REQUIRE(it->num_moves() == 1 + num_moves);  // move impl
     REQUIRE(it->num_copies() == 0);
 }
 
@@ -247,6 +262,7 @@ void test_propagate_on_container_swap()
 
     // Ret should be iterator which reference value_type
     auto it = c1.insert(0).first;
+    auto num_moves = it->num_moves();
 
     c2.swap(c1);
 
@@ -256,7 +272,7 @@ void test_propagate_on_container_swap()
     REQUIRE(a2 == c1.get_allocator());
     REQUIRE(a1.num_allocs() == 1);
     REQUIRE(a2.num_allocs() == 0);
-    REQUIRE(it->num_moves() == 0);  // swap impl
+    REQUIRE(it->num_moves() == num_moves);  // swap impl
     REQUIRE(it->num_copies() == 0);
 }
 
@@ -267,7 +283,16 @@ void test_propagate_on_container_swap()
 
 // CreatePropagateTesting(test_propagate_on_container_swap, LinkList);
 
-
+#define CreateAllPropagateTesting(type) \
+    CreatePropagateTesting(test_propagate_on_container_copy_assignment_on_all_with_same_allocator, type) \
+    CreatePropagateTesting(test_propagate_on_container_copy_assignment_on_nocopy_with_same_allocator, type) \
+    CreatePropagateTesting(test_propagate_on_container_copy_assignment_on_all_with_different_allocator, type) \
+    CreatePropagateTesting(test_propagate_on_container_copy_assignment_on_nocopy_with_different_allocator, type) \
+    CreatePropagateTesting(test_propagate_on_container_move_assignment_on_all_with_same_allocator, type) \
+    CreatePropagateTesting(test_propagate_on_container_move_assignment_on_nomove_with_same_allocator, type) \
+    CreatePropagateTesting(test_propagate_on_container_move_assignment_on_all_with_different_allocator, type) \
+    CreatePropagateTesting(test_propagate_on_container_move_assignment_on_nomove_with_different_allocator, type) \
+    CreatePropagateTesting(test_propagate_on_container_swap, type) 
 
 
 

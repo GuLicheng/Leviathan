@@ -6,6 +6,7 @@
 #include <limits>
 #include <format>
 #include <iostream>
+#include <compare>
 
 #include <stdlib.h>
 #include <string.h>
@@ -26,7 +27,7 @@ struct tracked
         ++(*m_num_copies);
     }
 
-    tracked(tracked&& other) 
+    tracked(tracked&& other) noexcept
         : m_val(std::move(other.m_val)),
           m_num_copies(std::move(other.m_num_copies)),
           m_num_moves(std::move(other.m_num_moves)) 
@@ -34,7 +35,7 @@ struct tracked
         ++(*m_num_moves);
     }
 
-    tracked& operator=(const tracked& other)
+    tracked& operator=(const tracked& other) 
     {
         m_val = other.m_val;
         m_num_copies = other.m_num_copies;
@@ -42,7 +43,7 @@ struct tracked
         ++(*m_num_copies);
     }
 
-    tracked& operator=(tracked&& other)
+    tracked& operator=(tracked&& other) noexcept
     {
         m_val = std::move(other.m_val);
         m_num_copies = std::move(other.m_num_copies);
@@ -57,8 +58,13 @@ struct tracked
 
     const T& val() const { return m_val; }
 
-    size_t num_copies() { return *m_num_copies; }
-    size_t num_moves() { return *m_num_moves; }
+    friend auto operator<=>(const tracked& lhs, const tracked& rhs)  
+    {
+        return lhs.m_val <=> rhs.m_val;
+    }
+
+    size_t num_copies() const { return *m_num_copies; }
+    size_t num_moves() const { return *m_num_moves; }
 
     T m_val;
     std::shared_ptr<size_t> m_num_copies = std::make_shared<size_t>(0);
