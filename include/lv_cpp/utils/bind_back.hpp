@@ -4,7 +4,6 @@
 #include <tuple>
 #include <type_traits>
 
-
 namespace leviathan
 {
     template <typename F, typename... BoundArgs>
