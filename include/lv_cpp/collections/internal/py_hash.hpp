@@ -595,13 +595,13 @@ namespace leviathan::collections
 
         hash_table(const allocator_type alloc) : hash_table(hasher(), key_equal(), alloc) { }
 
-        hash_table(const hash_table& rhs, const allocator& alloc) 
+        hash_table(const hash_table& rhs, const allocator_type& alloc) 
             : hash_table(rhs.m_hash, rhs.m_ke, alloc)
         {
             assign_from(rhs.cbegin(), rhs.cend());
         }
 
-        hash_table(hash_table&& rhs, const allocator& alloc) 
+        hash_table(hash_table&& rhs, const allocator_type& alloc) 
             : m_hash(std::move(rhs.m_hash)), m_ke(std::move(rhs.m_ke)), m_alloc(alloc)
         {
             if (m_alloc == rhs.m_alloc)
@@ -637,7 +637,7 @@ namespace leviathan::collections
         { }
 
         hash_table(hash_table&& rhs) noexcept(IsNothrowMoveConstruct)
-            : m_hash(std::move(rhs.m_hash)),  m_ke(std::move(rhs.m_ke)), m_alloc(std::move(rhs.m_alloc)),
+            : m_hash(std::move(rhs.m_hash)),  m_ke(std::move(rhs.m_ke)), m_alloc(std::move(rhs.m_alloc))
         {
             move_impl_and_reset_other(rhs);
         }
