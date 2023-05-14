@@ -586,19 +586,39 @@ namespace leviathan::collections
 
     public:
 
-        hash_table() 
-            : m_hash{ }, m_ke{ }, m_alloc{ }, m_indices{ }, m_slots{ }, m_size{ }, m_capacity{ }, m_used{ }
+        hash_table() =  default;
+
+        hash_table(const hasher& hash, const key_equal& ke, const allocator_type& alloc)
+            : m_hash(hash), m_ke(ke), m_alloc(alloc)
         {
         }
 
-        hash_table(const hasher& hash, const key_equal& ke, const allocator_type& alloc)
-            : m_hash{ hash }, m_ke{ ke }, m_alloc{ alloc }, m_indices{ }, m_slots{ }, m_size{ }, m_capacity{ }, m_used{ }
+        hash_table(const allocator_type alloc) : hash_table(hasher(), key_equal(), alloc) { }
+
+        hash_table(const hash_table& rhs, const allocator& alloc) 
+            : hash_table(rhs.m_hash, rhs.m_ke, alloc)
         {
+            assign_from(rhs.cbegin(), rhs.cend());
+        }
+
+        hash_table(hash_table&& rhs, const allocator& alloc) 
+            : m_hash(std::move(rhs.m_hash)), m_ke(std::move(rhs.m_ke)), m_alloc(alloc)
+        {
+            if (m_alloc == rhs.m_alloc)
+            {
+                move_impl_and_reset_other(rhs);
+            }
+            else
+            {
+                assign_from(std::make_move_iterator(rhs.begin()), std::make_move_iterator(rhs.end()));
+                rhs.clear();
+            }
         }
 
         template <typename I, typename S>
         void assign_from(I first, S last)
         {
+            assert(!m_slots && !m_indices && m_size == 0 && "Table should be empty.");
             for (auto iter = first; iter != last; ++iter)
                 insert(*iter);
         }
@@ -613,29 +633,13 @@ namespace leviathan::collections
         }
 
         hash_table(const hash_table& rhs)
-            : m_hash{ rhs.m_hash },  m_ke{ rhs.m_ke }, 
-              m_alloc{ std::allocator_traits<allocator_type>::select_on_container_copy_construction(rhs.m_alloc) },
-              m_indices{ }, m_slots{ }, m_size{ }, m_capacity{ }, m_used{ }
-        {
-            try
-            {
-                assign_from(rhs.begin(), rhs.end());
-            }
-            catch(...)
-            {
-                clear();
-                throw; // rethrow exception
-            }
-        }
+            : hash_table(rhs, std::allocator_traits<allocator_type>::select_on_container_copy_construction(rhs.m_alloc))
+        { }
 
         hash_table(hash_table&& rhs) noexcept(IsNothrowMoveConstruct)
-            : m_hash{ std::move(rhs.m_hash) },  m_ke{ std::move(rhs.m_ke) }, m_alloc{ std::move(rhs.m_alloc) },
-              m_indices{ std::exchange(rhs.m_indices, nullptr) }, 
-              m_slots{ std::exchange(rhs.m_slots, nullptr) }, 
-              m_size{ std::exchange(rhs.m_size, 0) }, 
-              m_capacity{ std::exchange(rhs.m_capacity, 0) }, 
-              m_used{ std::exchange(rhs.m_used, 0) }
+            : m_hash(std::move(rhs.m_hash)),  m_ke(std::move(rhs.m_ke)), m_alloc(std::move(rhs.m_alloc)),
         {
+            move_impl_and_reset_other(rhs);
         }
 
         hash_table& operator=(const hash_table& rhs) 
@@ -647,7 +651,9 @@ namespace leviathan::collections
                 m_ke = rhs.m_ke;
                 m_hash = rhs.m_hash;
 				if constexpr (typename alloc_traits::propagate_on_container_copy_assignment())
+                {
 					m_alloc = rhs.m_alloc;
+                }
 				try
 				{
                     assign_from(rhs.begin(), rhs.end());
@@ -677,7 +683,7 @@ namespace leviathan::collections
 				}
                 else
                 {
-                    if (typename alloc_traits::is_always_equal() || m_alloc == rhs.m_alloc)
+                    if (m_alloc == rhs.m_alloc)
                     {
                         move_impl_and_reset_other(rhs);
                     }
@@ -876,11 +882,11 @@ namespace leviathan::collections
         [[no_unique_address]] key_equal m_ke;
         [[no_unique_address]] allocator_type m_alloc;
     
-        index_type* m_indices;      // store indices or state
-        slot_type* m_slots;         // store entries
-        std::size_t m_size;         // number of elements
-        std::size_t m_capacity;     // table capacity
-        std::size_t m_used;         // used slots, always point the end of m_slots
+        index_type* m_indices = nullptr;      // store indices or state
+        slot_type* m_slots = nullptr;         // store entries
+        std::size_t m_size = 0;               // number of elements
+        std::size_t m_capacity = 0;           // table capacity
+        std::size_t m_used = 0;               // used slots, always point the end of m_slots
     };
 
     template <typename T, typename HashFunction = std::hash<T>, 

@@ -11,6 +11,7 @@ namespace leviathan::collections
     // such as hashtable with chain(std::unordered_map) require dynamic array as 
     // for their implementation. If we use std::vector, the allocator in std::vector
     // will cost more memory and for user defined allocator, the code may be more complex.
+    // All API is similar to std::vector but the first argument is Allocator&.
     template <typename T, typename Allocator>
     struct buffer
     {

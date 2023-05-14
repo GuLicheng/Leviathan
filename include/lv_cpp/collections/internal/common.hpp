@@ -124,6 +124,8 @@ namespace leviathan::collections
          * construct a new value. However, if there is only one argument and the type 
          * is const T&/T&/const T&&/T&&, this step is not necessary. So this meta
          * is used to check whether the arguments passed in is followed type.
+         * 
+         * @return True if std::remove_cvref_t<Args> is same as T.
         */
         template <typename T, typename... Args>
         struct emplace_helper
