@@ -23,5 +23,6 @@ using TreeT = leviathan::collections::binary_set<
     T, std::less<>, Allocator
 >;
 
+using TrackedT = tracked<int>;
 
-CreateAllPropagateTesting(TreeT)
+CreatePropagateTestingWithAllocator(TreeT, checked_allocator, TrackedT)

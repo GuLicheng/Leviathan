@@ -157,6 +157,8 @@ namespace leviathan::collections
             using alloc_traits = typename std::allocator_traits<Alloc>::template rebind_traits<T>;
             using alloc_type = typename std::allocator_traits<Alloc>::template rebind_alloc<T>;
             alloc_type a{ alloc };
+            // The alloc_traits::allocate will return alloc_traits::pointer, please
+            // make sure it can behavior as a raw pointer.
             T* addr = alloc_traits::allocate(a, n); 
             return addr;
         }

@@ -7,6 +7,7 @@
 #include <format>
 #include <iostream>
 #include <compare>
+#include <functional>
 
 #include <stdlib.h>
 #include <string.h>
@@ -70,6 +71,18 @@ struct tracked
     std::shared_ptr<size_t> m_num_copies = std::make_shared<size_t>(0);
     std::shared_ptr<size_t> m_num_moves = std::make_shared<size_t>(0);
 };
+
+namespace std 
+{
+    template <typename T>
+    struct hash<tracked<T>>
+    {
+        constexpr auto operator()(const tracked<T>& x) const 
+        {
+            return std::hash<T>()(x.m_val);
+        }
+    };
+}
 
 enum alloc_spec
 {
@@ -146,6 +159,13 @@ struct checked_allocator
     }
 
     size_t num_allocs() const { return m_state->m_num_allocs; }
+
+    void swap(checked_allocator& other)
+    {
+        using std::swap;
+        swap(m_id, other.m_id);
+        swap(m_state, other.m_state);
+    }
 
     friend void swap(checked_allocator& lhs, checked_allocator& rhs)
     {

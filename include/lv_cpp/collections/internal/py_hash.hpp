@@ -675,7 +675,6 @@ namespace leviathan::collections
                 m_hash = std::move(rhs.m_hash);
                 m_ke = std::move(rhs.m_ke);
 
-
 				if constexpr (typename alloc_traits::propagate_on_container_move_assignment())
 				{
 					m_alloc = std::move(rhs.m_alloc);
@@ -697,11 +696,24 @@ namespace leviathan::collections
 			return *this;
         }
 
-
         ~hash_table()
         { clear(); }
 
-        void swap(hash_table& rhs) = delete;
+        void swap(hash_table& rhs) 
+        {
+            using std::swap;
+            swap(m_capacity, rhs.m_capacity);
+            swap(m_hash, rhs.m_hash);
+            swap(m_indices, rhs.m_indices);
+            swap(m_ke, rhs.m_ke);
+            swap(m_size, rhs.m_size);
+            swap(m_slots, rhs.m_slots);
+            swap(m_used, rhs.m_used);
+            if constexpr (typename alloc_traits::propagate_on_container_swap())
+            {
+                swap(m_alloc, rhs.m_alloc);
+            }
+        }
 
         std::size_t size() const 
         { return m_size; }
@@ -857,7 +869,10 @@ namespace leviathan::collections
         void clear()
         {
             if (m_capacity == 0)
+            {
+                assert(!m_size && !m_indices && !m_slots && !m_used);
                 return;
+            }
 
             // Destroy elements
             slot_allocator alloc { m_alloc };

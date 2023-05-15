@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <set>
 #include <format>
+#include <vector>
 
 int main(int argc, char const *argv[])
 {

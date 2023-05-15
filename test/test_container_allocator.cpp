@@ -259,4 +259,6 @@ public:
 //     test_propagate_on_container_swap<ContainerType>();
 // }
 
-CreateAllPropagateTesting(LinkList)
+using TrackedT = tracked<int>;
+
+CreatePropagateTestingWithAllocator(LinkList, checked_allocator, TrackedT)
