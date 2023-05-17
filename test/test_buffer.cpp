@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <format>
 #include <list>
 #include <random>
 #include <algorithm>
@@ -103,6 +104,10 @@ TEST_CASE("emplace_back_and_pop_back")
 
 TEST_CASE("iterator")
 {
+    using TBuffer = leviathan::collections::buffer<int, AllocatorT>;
+
+    REQUIRE(std::ranges::contiguous_range<TBuffer>);
+
     leviathan::collections::buffer<int, AllocatorT> buffer;
 
     for (int i = 0; i < 10; ++i)
@@ -276,6 +281,27 @@ TEST_CASE("random_insert")
     ));
 
     buffer.dispose(allocator);
+}
+
+TEST_CASE("insert_element_from_self")
+{
+    using StringAllocator = std::allocator<std::string>;
+    leviathan::collections::buffer<std::string, StringAllocator> buffer;
+
+    StringAllocator salloc;
+
+    buffer.emplace(salloc, buffer.begin(), "This sentence must be longer enough and will be moved to last position");
+    buffer.emplace(salloc, buffer.begin(), "This sentence must be longer enough and will be moved to third position");
+    buffer.emplace(salloc, buffer.begin(), "This sentence must be longer enough and will be moved to second position");
+
+    buffer.emplace(salloc, buffer.begin(), buffer[0]);
+
+    REQUIRE(buffer[0] == "This sentence must be longer enough and will be moved to second position");
+    REQUIRE(buffer[1] == "This sentence must be longer enough and will be moved to second position");
+    REQUIRE(buffer[2] == "This sentence must be longer enough and will be moved to third position");
+    REQUIRE(buffer[3] == "This sentence must be longer enough and will be moved to last position");
+
+    buffer.dispose(salloc);
 }
 
 #include "../include/lv_cpp/struct.hpp"

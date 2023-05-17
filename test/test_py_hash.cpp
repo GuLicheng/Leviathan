@@ -116,7 +116,7 @@ struct checked_allocator2
 
     void deallocate(T* ptr, size_t n) 
     {
-        std::destroy_at(ptr);
+        // std::destroy_at(ptr);
         // memset(ptr, 0, n * sizeof(T));
         track_dealloc(ptr);
         return std::allocator<T>().deallocate(ptr, n);
@@ -159,6 +159,8 @@ struct checked_allocator2
 
     void track_dealloc(void* ptr)
     {
+        auto state = m_state.get();
+        ++state->m_num_deallocs;
         if (m_state->m_owned.erase(ptr) != 1)
         {
             std::cout << *this;

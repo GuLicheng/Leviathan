@@ -1,5 +1,7 @@
 #pragma once
 
+#include <catch2/catch_all.hpp>
+
 #include <memory>
 #include <utility>
 #include <set>
@@ -9,9 +11,9 @@
 #include <compare>
 #include <functional>
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-
 
 template <typename T>
 struct tracked 
@@ -94,7 +96,13 @@ enum alloc_spec
 struct alloc_state 
 {
     size_t m_num_allocs = 0;
+    size_t m_num_deallocs = 0;
     std::set<void*> m_owned;
+
+    ~alloc_state() 
+    {
+        REQUIRE(m_num_allocs == m_num_deallocs);
+    }
 };
 
 template <bool B>
@@ -147,7 +155,6 @@ struct checked_allocator
 
     void deallocate(T* ptr, size_t n) 
     {
-        std::destroy_at(ptr);
         // memset(ptr, 0, n * sizeof(T));
         track_dealloc(ptr);
         return std::allocator<T>().deallocate(ptr, n);
@@ -159,6 +166,8 @@ struct checked_allocator
     }
 
     size_t num_allocs() const { return m_state->m_num_allocs; }
+
+    size_t num_deallocs() const { return m_state->m_num_deallocs; }
 
     void swap(checked_allocator& other)
     {
@@ -190,6 +199,8 @@ struct checked_allocator
 
     void track_dealloc(void* ptr)
     {
+        auto state = m_state.get();
+        ++state->m_num_deallocs;
         if (m_state->m_owned.erase(ptr) != 1)
         {
             std::cout << *this;

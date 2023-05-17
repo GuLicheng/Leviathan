@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <utility>
 #include <memory>
+#include <tuple> // for std::tuple_element
 
 #include <assert.h>
 
@@ -19,6 +20,7 @@ namespace leviathan::collections
     {
         /**
          * @brief Traits key_type from typelist.
+         * @param T any type specialize std::tuple_element
          * @return T for set<T> and const T for set<const T>.
         */
         template <typename T> 
@@ -26,6 +28,7 @@ namespace leviathan::collections
 
         /**
          * @brief Traits value_type from typelist.
+         * @param T any type specialize std::tuple_element
          * @return T for set<T> and const T for set<const T>.
         */
         template <typename T> 
@@ -48,6 +51,7 @@ namespace leviathan::collections
     {
         /**
          * @brief Traits key_type from typelist.
+         * @param T any type specialize std::tuple_element
          * @return K for map<K, V> and const K for map<const K, V>.
         */
         template <typename T> 
@@ -55,7 +59,7 @@ namespace leviathan::collections
 
         /**
          * @brief Traits value_type from typelist.
-         * 
+         * @param T any type specialize std::tuple_element
          * @return std::pair<const K, V> for map<K, V>.
          *  and std::pair<const K, V> for map<const K, V>.
         */

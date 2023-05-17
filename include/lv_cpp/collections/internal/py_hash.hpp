@@ -593,7 +593,7 @@ namespace leviathan::collections
         {
         }
 
-        hash_table(const allocator_type alloc) : hash_table(hasher(), key_equal(), alloc) { }
+        hash_table(const allocator_type& alloc) : hash_table(hasher(), key_equal(), alloc) { }
 
         hash_table(const hash_table& rhs, const allocator_type& alloc) 
             : hash_table(rhs.m_hash, rhs.m_ke, alloc)
@@ -637,7 +637,7 @@ namespace leviathan::collections
         { }
 
         hash_table(hash_table&& rhs) noexcept(IsNothrowMoveConstruct)
-            : m_hash(std::move(rhs.m_hash)),  m_ke(std::move(rhs.m_ke)), m_alloc(std::move(rhs.m_alloc))
+            : m_hash(std::move(rhs.m_hash)), m_ke(std::move(rhs.m_ke)), m_alloc(std::move(rhs.m_alloc))
         {
             move_impl_and_reset_other(rhs);
         }
@@ -859,7 +859,7 @@ namespace leviathan::collections
         size_type erase(const key_type& x)
         { return remove_by_key(x); }
 
-        template< class K >
+        template <typename K>
             requires (IsTransparent && 
                 !std::is_convertible_v<iterator, K> && 
                 !std::is_convertible_v<const_iterator, K>)

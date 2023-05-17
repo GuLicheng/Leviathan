@@ -1,19 +1,33 @@
 #include <iostream>
 #include <utility>
+#include <lv_cpp/meta/template_info.hpp>
 
-#include <lv_cpp/ranges/ranges.hpp>
-#include <unordered_set>
-#include <set>
 #include <format>
+#include <optional>
+#include <lv_cpp/collections/internal/buffer.hpp>
 #include <vector>
+#include <memory>
+#include <scoped_allocator>
+#include <unordered_set>
 
 int main(int argc, char const *argv[])
 {
+    using StringAllocator = std::allocator<std::string>;
+    leviathan::collections::buffer<std::string, StringAllocator> buffer;
 
-    int i = 0;
-    const int* pa = &i;
-    const int* pb = &i;
-    
-    auto c = pa - pb;
+    StringAllocator salloc;
+
+    buffer.emplace(salloc, buffer.begin(), "This sentence must be longer enough and will be moved to last position");
+    buffer.emplace(salloc, buffer.begin(), "This sentence must be longer enough and will be moved to third position");
+    buffer.emplace(salloc, buffer.begin(), "This sentence must be longer enough and will be moved to second position");
+
+    buffer.emplace(salloc, buffer.begin(), buffer[0]);
+
+
+    assert(buffer[0] == "This sentence must be longer enough and will be moved to second position");
+    assert(buffer[1] == "This sentence must be longer enough and will be moved to second position");
+
+    buffer.dispose(salloc);
+
     return 0;
 }

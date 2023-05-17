@@ -24,7 +24,7 @@ namespace leviathan::collections
 
         buffer() = default;
 
-        buffer(const buffer&) = delete;
+        buffer(const buffer&) = default; 
 
         buffer(Allocator& allocator, size_t size)
         {
@@ -255,13 +255,29 @@ namespace leviathan::collections
             }
             else
             {
+                // Something in args... could alias one of the elements of the container.
+                // For instance: 
+                //      buffer.insert(allocator, buffer.begin(), buffer[0]);
+                // We cannot access the correct buffer[0] since 
+                // the buffer[0] is already moved to buffer[1]. So
+                // we store the value and then move to the position.
+                alignas(T) unsigned char raw[sizeof(T)];
+                T* val_ptr = reinterpret_cast<T*>(&raw);
+                std::allocator_traits<Allocator>::construct(allocator, val_ptr, (Args&&) args...);
+                auto deleter = [&](T* r) {
+                    std::allocator_traits<Allocator>::destroy(allocator, r);
+                };
+                std::unique_ptr<T, decltype(deleter)> guard(val_ptr, deleter);
+
+
                 T* dest = m_start + dist;
 
                 // What if an exception is thrown when moving?
                 std::allocator_traits<Allocator>::construct(allocator, m_finish, std::move(*(m_finish - 1)));
                 std::move_backward(dest, m_finish - 1, m_finish);
                 std::allocator_traits<Allocator>::destroy(allocator, dest);
-                std::allocator_traits<Allocator>::construct(allocator, dest, (Args&&) args...);
+                // std::allocator_traits<Allocator>::construct(allocator, dest, (Args&&) args...);
+                std::allocator_traits<Allocator>::construct(allocator, dest, std::move(*val_ptr));
                 ++m_finish;
                 return dest;
             }
@@ -273,11 +289,16 @@ namespace leviathan::collections
             std::allocator_traits<Allocator>::destroy(allocator, --m_finish);
         }
 
-        constexpr void swap(buffer& other)
+        constexpr void swap(buffer& other) noexcept
         {
             std::swap(m_start, other.m_start);
             std::swap(m_finish, other.m_finish);
             std::swap(m_end_of_storage, other.m_end_of_storage);
+        }
+
+        constexpr friend void swap(buffer& lhs, buffer& rhs) noexcept
+        {
+            lhs.swap(rhs);
         }
 
         void expand_unchecked_capacity(Allocator& allocator, size_t n)
