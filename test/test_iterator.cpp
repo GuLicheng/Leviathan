@@ -36,8 +36,8 @@ TEST_CASE("move iterator return itself")
 {
     int* ptr = nullptr;
 
-    auto move_it1 = std::make_move_iterator(ptr);
-    auto move_it2 = std::make_move_iterator(move_it1);
+    auto move_it1 = leviathan::make_move_iterator_if_noexcept(ptr);
+    auto move_it2 = leviathan::make_move_iterator_if_noexcept(move_it1);
 
     using T1 = decltype(move_it1);
     using T2 = decltype(move_it2);
@@ -48,7 +48,11 @@ TEST_CASE("move iterator return itself")
 
 TEST_CASE("const pointer")
 {
-    // const int* ptr = nullptr;
+    const int* cptr = nullptr;
 
-    // auto move_it = std::make_const_iterator
+    auto move_it = std::make_move_iterator(cptr);
+
+    using T = std::iter_reference_t<decltype(move_it)>;
+
+    REQUIRE(std::is_same_v<T, const int&&>);
 }
