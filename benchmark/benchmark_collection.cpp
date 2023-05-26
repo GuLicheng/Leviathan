@@ -4,6 +4,7 @@
 #include <lv_cpp/collections/internal/avl_tree.hpp>
 #include <lv_cpp/collections/internal/rbtree.hpp>
 #include <lv_cpp/collections/internal/py_hash.hpp>
+#include <lv_cpp/collections/internal/sorted_list.hpp>
 
 
 #include <catch2/catch_all.hpp>
@@ -14,6 +15,7 @@ using SkipList = leviathan::collections::skip_set<int>;
 using AvlTree = leviathan::collections::avl_set<int>;
 using RBTree = leviathan::collections::rb_set<int>;
 using PyHashTable = leviathan::collections::hash_set<int>;
+using PySortedList = leviathan::collections::sorted_set<int>;
 
 using STLHashTable = std::unordered_set<int>;
 using STLRBTree = std::set<int>;
@@ -41,6 +43,10 @@ TEST_CASE("duplicate_collections_random_insert")
         return leviathan::random_insert_test<RBTree>();
     };
 
+    BENCHMARK("py_sorted_list random_insert")
+    {
+        return leviathan::random_insert_test<PySortedList>();
+    };
 
     // --------------------- UnOrdered Collections ---------------------
     BENCHMARK("py_hash random_insert")
@@ -77,6 +83,10 @@ TEST_CASE("duplicate_collections_ascend_insert")
         return leviathan::ascending_insert_test<RBTree>();
     };
 
+    BENCHMARK("py_sorted_list ascend_insert")
+    {
+        return leviathan::ascending_insert_test<PySortedList>();
+    };
 
     // --------------------- UnOrdered Collections ---------------------
     BENCHMARK("py_hash ascend_insert")
@@ -113,6 +123,10 @@ TEST_CASE("duplicate_collections_descend_insert")
         return leviathan::descending_insert_test<RBTree>();
     };
 
+    BENCHMARK("py_sorted_list descend_insert")
+    {
+        return leviathan::descending_insert_test<PySortedList>();
+    };
 
     // --------------------- UnOrdered Collections ---------------------
     BENCHMARK("py_hash descend_insert")

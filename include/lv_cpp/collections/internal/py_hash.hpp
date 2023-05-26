@@ -285,6 +285,7 @@ namespace leviathan::collections
 
         using iterator = hash_iterator<false>;
         using const_iterator = hash_iterator<true>;
+        // using const_iterator = std::const_iterator<iterator>; 
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -815,19 +816,21 @@ namespace leviathan::collections
             }
             else
             {
-                // We construct value on stack and try to move it.
-                alignas(value_type) unsigned char raw[sizeof(value_type)];
-                value_type* slot = reinterpret_cast<value_type*>(&raw);
-                slot_allocator alloc { m_alloc };
+                // // We construct value on stack and try to move it.
+                // alignas(value_type) unsigned char raw[sizeof(value_type)];
+                // value_type* slot = reinterpret_cast<value_type*>(&raw);
+                // slot_allocator alloc { m_alloc };
 
-                // Whether the value is move successfully, the destructor should be invoked. 
-                // ~unique_ptr will destroy the object constructed.
-                auto deleter = [&](value_type* p) {
-                    slot_alloc_traits::destroy(alloc, p);
-                };
-                std::unique_ptr<value_type, decltype(deleter)> _ { slot, deleter };
-                slot_alloc_traits::construct(alloc, slot, (Args&&) args...);
-                auto [idx, exist] = insert_impl(std::move(*slot));
+                // // Whether the value is move successfully, the destructor should be invoked. 
+                // // ~unique_ptr will destroy the object constructed.
+                // auto deleter = [&](value_type* p) {
+                //     slot_alloc_traits::destroy(alloc, p);
+                // };
+                // std::unique_ptr<value_type, decltype(deleter)> _ { slot, deleter };
+                // slot_alloc_traits::construct(alloc, slot, (Args&&) args...);
+                // auto [idx, exist] = insert_impl(std::move(*slot));
+                value_handle<value_type, allocator_type> handle(m_alloc, (Args&&) args...);
+                auto [idx, exist] = insert_impl(*handle);
                 return { iterator(this, idx), !exist };
             }
         }

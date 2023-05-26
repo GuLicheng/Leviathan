@@ -47,5 +47,31 @@ namespace leviathan
         }
     }
 
+    template <typename T>
+    struct is_reverse_iterator : std::false_type { };
+
+    template <typename T>
+    struct is_reverse_iterator<std::reverse_iterator<T>> : std::true_type { };
+
+    template <typename T>
+    inline constexpr bool is_reverse_iterator_v = is_reverse_iterator<T>::value;
+
+    /**
+     * @brief Same as std::make_reverse_iterator but if 
+     * the it is already a reverse_iterator, return it.base().
+    */
+    template <typename Iterator>
+    auto make_reverse_iterator(Iterator it)
+    {
+        if constexpr (is_reverse_iterator_v<Iterator>)
+        {
+            return it.base();
+        }
+        else         
+        {
+            return std::make_reverse_iterator(std::move(it));
+        }
+    }
+
 } // namespace leviathan
 

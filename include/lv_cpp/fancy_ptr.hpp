@@ -212,7 +212,8 @@ public:
     void deallocate(pointer ptr, size_t n) {
         std::allocator<T> alloc;
         // std::to_address(ptr) instead of ptr.operator-> in C++20
-        std::allocator_traits<std::allocator<T>>::deallocate(alloc, ptr.operator->(), n*sizeof(T));
+        // std::allocator_traits<std::allocator<T>>::deallocate(alloc, ptr.operator->(), n*sizeof(T));
+        std::allocator_traits<std::allocator<T>>::deallocate(alloc, std::to_address(ptr), n*sizeof(T));
     }
 
     bool operator==(const TrivialAllocator &) const { return true; }

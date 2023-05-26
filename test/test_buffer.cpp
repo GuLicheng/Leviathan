@@ -41,7 +41,7 @@ TEST_CASE("test_constructor_with_capacity")
     leviathan::collections::buffer<int, AllocatorT> buffer(allocator, 24);
 
     REQUIRE(buffer.size() == 0);
-    REQUIRE(buffer.capacity() == 24);
+    REQUIRE(buffer.capacity() == 32);
 
     buffer.dispose(allocator);
 }
@@ -302,6 +302,17 @@ TEST_CASE("insert_element_from_self")
     REQUIRE(buffer[3] == "This sentence must be longer enough and will be moved to last position");
 
     buffer.dispose(salloc);
+}
+
+TEST_CASE("initializer_list")
+{
+    leviathan::collections::buffer<int, AllocatorT> buffer(allocator, { 1, 2, 3 });
+    REQUIRE(buffer.size() == 3);
+    REQUIRE(buffer.capacity() == 4);
+    REQUIRE(buffer[0] == 1);
+    REQUIRE(buffer[1] == 2);
+    REQUIRE(buffer[2] == 3);
+    buffer.dispose(allocator);
 }
 
 #include "../include/lv_cpp/struct.hpp"

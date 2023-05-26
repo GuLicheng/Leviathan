@@ -1,7 +1,10 @@
 #pragma once
 
+#include "common.hpp"
+
 #include <memory>
 #include <algorithm>
+#include <initializer_list>
 #include <assert.h>
 
 namespace leviathan::collections
@@ -15,22 +18,36 @@ namespace leviathan::collections
     template <typename T, typename Allocator>
     struct buffer
     {
-        T* m_start = nullptr;
-        T* m_finish = nullptr;
-        T* m_end_of_storage = nullptr;
+        using allocator_type = Allocator;
+        using value_type = T;
 
-        using iterator = T*;
-        using const_iterator = const T*;
+        using pointer = typename std::allocator_traits<allocator_type>::pointer;
+        using const_pointer = typename std::allocator_traits<allocator_type>::const_pointer;
+
+        using iterator = pointer;
+        using const_iterator = const_pointer;
+
+        pointer m_start = nullptr;
+        pointer m_finish = nullptr;
+        pointer m_end_of_storage = nullptr;
 
         buffer() = default;
 
         buffer(const buffer&) = default; 
 
+        buffer(Allocator& allocator, std::initializer_list<T> il) 
+            : buffer(allocator, il.size())
+        {
+            for (const auto& value : il)
+                std::allocator_traits<Allocator>::construct(allocator, m_finish++, value);
+        }
+
         buffer(Allocator& allocator, size_t size)
         {
-            m_start = (T*)std::allocator_traits<Allocator>::allocate(allocator, size);
+            const auto sz = std::bit_ceil(size);
+            m_start = std::allocator_traits<Allocator>::allocate(allocator, sz);
             m_finish = m_start;
-            m_end_of_storage = m_start + size;
+            m_end_of_storage = m_start + sz;
         }
 
         constexpr iterator begin()
@@ -155,6 +172,12 @@ namespace leviathan::collections
             return m_finish;
         }
 
+        // template <typename Range>
+        // constexpr iterator insert_range(Allocator& allocator, const_iterator pos, Range&& r)
+        // {
+        //     return insert(allocator, pos, std::ranges::begin(r), std::ranges::end(r));
+        // }
+
         template <typename InputIterator>
         constexpr iterator insert(Allocator& allocator, const_iterator pos, InputIterator first, InputIterator last)
         {
@@ -235,7 +258,7 @@ namespace leviathan::collections
         }
 
         template <typename... Args>
-        T* emplace(Allocator& allocator, const T* position, Args&&... args) 
+        iterator emplace(Allocator& allocator, const_pointer position, Args&&... args) 
         {
             assert(m_start <= position && position <= m_finish && "invalid position");
             
@@ -261,23 +284,15 @@ namespace leviathan::collections
                 // We cannot access the correct buffer[0] since 
                 // the buffer[0] is already moved to buffer[1]. So
                 // we store the value and then move to the position.
-                alignas(T) unsigned char raw[sizeof(T)];
-                T* val_ptr = reinterpret_cast<T*>(&raw);
-                std::allocator_traits<Allocator>::construct(allocator, val_ptr, (Args&&) args...);
-                auto deleter = [&](T* r) {
-                    std::allocator_traits<Allocator>::destroy(allocator, r);
-                };
-                std::unique_ptr<T, decltype(deleter)> guard(val_ptr, deleter);
+                value_handle<T, Allocator> handle(allocator, (Args&&) args...);
 
-
-                T* dest = m_start + dist;
+                auto dest = m_start + dist;
 
                 // What if an exception is thrown when moving?
                 std::allocator_traits<Allocator>::construct(allocator, m_finish, std::move(*(m_finish - 1)));
                 std::move_backward(dest, m_finish - 1, m_finish);
                 std::allocator_traits<Allocator>::destroy(allocator, dest);
-                // std::allocator_traits<Allocator>::construct(allocator, dest, (Args&&) args...);
-                std::allocator_traits<Allocator>::construct(allocator, dest, std::move(*val_ptr));
+                std::allocator_traits<Allocator>::construct(allocator, dest, *handle);
                 ++m_finish;
                 return dest;
             }

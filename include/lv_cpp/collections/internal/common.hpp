@@ -3,7 +3,8 @@
 #include <type_traits>
 #include <utility>
 #include <memory>
-#include <tuple> // for std::tuple_element
+#include <tuple>        
+#include <optional>
 
 #include <assert.h>
 
@@ -36,7 +37,7 @@ namespace leviathan::collections
 
         // For set<T>, the key_type is value_type.
         template <typename T>
-        constexpr auto&& operator()(T&& x) const 
+        static constexpr auto&& operator()(T&& x)  
         { return (T&&)x; }
     };
 
@@ -72,7 +73,7 @@ namespace leviathan::collections
          * @return x.first
         */
         template <typename T>
-        constexpr auto&& operator()(T&& x) const 
+        static constexpr auto&& operator()(T&& x)  
         { return std::get<0>((T&&)x); }
     };
 
@@ -95,7 +96,7 @@ namespace leviathan::collections
          * https://en.cppreference.com/w/cpp/language/template_argument_deduction
          * There are some overloads in lookup member functions.
          * E.g.
-         * iterator find(const Key& key);
+         * iterator find(const key_type& key);
          * template <typename K> iterator find(const K& key);
          * This meta helper can reduce the number from 2 to 1.
          * 
@@ -152,19 +153,16 @@ namespace leviathan::collections
          * @param T Target type.
          * @param alloc Allocator.
          * @param n number of elements.
-         * @return Address of memory.
+         * @return Pointer of allocator rebound to T.
          * @exception Any exception that Alloc will throw.
         */
         template <typename T, typename Alloc>
-        T* allocate(Alloc& alloc, std::size_t n)
+        auto allocate(Alloc& alloc, std::size_t n)
         {
             using alloc_traits = typename std::allocator_traits<Alloc>::template rebind_traits<T>;
             using alloc_type = typename std::allocator_traits<Alloc>::template rebind_alloc<T>;
-            alloc_type a{ alloc };
-            // The alloc_traits::allocate will return alloc_traits::pointer, please
-            // make sure it can behavior as a raw pointer.
-            T* addr = alloc_traits::allocate(a, n); 
-            return addr;
+            alloc_type a(alloc);
+            return alloc_traits::allocate(a, n); 
         }
 
         /**
@@ -172,19 +170,69 @@ namespace leviathan::collections
          * 
          * Automatically rebind Alloc to Alloc<T>.
          * @param alloc Allocator.
-         * @param p Address that will be deallocated.
+         * @param p Allocator::pointer that point the address to be deallocated. 
          * @param n number of elements.
         */
-        template <typename Alloc, typename T>
-        void deallocate(Alloc& alloc, T* p, std::size_t n)
+        template <typename Alloc, typename Pointer>
+        void deallocate(Alloc& alloc, Pointer p, std::size_t n)
         {
-            assert(p && "p should not be nullptr");
-            using alloc_traits = typename std::allocator_traits<Alloc>::template rebind_traits<T>;
-            using alloc_type = typename std::allocator_traits<Alloc>::template rebind_alloc<T>;
-            alloc_type a{ alloc };
+            using value_type = typename std::pointer_traits<Pointer>::element_type;
+            assert(p != nullptr && "p should not be nullptr");
+            using alloc_traits = typename std::allocator_traits<Alloc>::template rebind_traits<value_type>;
+            using alloc_type = typename std::allocator_traits<Alloc>::template rebind_alloc<value_type>;
+            alloc_type a(alloc);
             alloc_traits::deallocate(a, p, n); 
         }
     }
+
+    /**
+     * @brief A helper class use allocator construct value in construction
+     *  and destroy in destruction.
+     * 
+     * Sometimes we have to construct the value with args... first such as
+     * 1. std::set::emplace since we need compare with a complete value.
+     * 2. std::vector::emplace since the arg may alias elements of container.
+     * 
+     * E.g.
+     *  template <typename... Args>
+     *  void emplace(Args&&... args) {
+     *      value_handle<T, Alloc> handle(alloc, (Args&&)args...);
+     *      insert(*handle);
+     *  }
+    */
+    template <typename T, typename Allocator>
+    struct value_handle
+    {
+        static_assert(std::is_same_v<T, std::remove_cvref_t<T>>);
+        static_assert(std::is_same_v<Allocator, std::remove_cvref_t<Allocator>>);
+
+        using allocator_type = Allocator;
+        using alloc_traits = std::allocator_traits<allocator_type>;
+        using pointer = T*;
+        using value_type = T;
+
+        template <typename... Args>
+        value_handle(const allocator_type& alloc, Args&&... args)
+            : m_alloc(alloc)
+        {
+            alloc_traits::construct(m_alloc, reinterpret_cast<T*>(&m_raw), (Args&&) args...);
+        }
+
+        value_handle(const value_handle&) = delete;
+        value_handle(value_handle&&) = delete;
+
+        ~value_handle()
+        {
+            alloc_traits::destroy(m_alloc, reinterpret_cast<T*>(&m_raw));
+        }
+
+        value_type&& operator*() 
+        { return std::move(*reinterpret_cast<T*>(&m_raw)); }
+
+        allocator_type m_alloc;
+        alignas(T) unsigned char m_raw[sizeof(T)];
+    };
+
 }
 
 
