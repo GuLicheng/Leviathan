@@ -153,7 +153,7 @@ namespace leviathan::collections
 		{ return { this, 0 }; }
 		
 		iterator end()  
-		{ return { this, buckets_ref().size() }; }
+		{ return { this, buckets_size() }; }
 
 		const_iterator begin() const  
 		{ return const_cast<self_type&>(*this).begin(); }
@@ -283,13 +283,17 @@ namespace leviathan::collections
         void clear()
         { clear_buckets(); }
 
+        size_t buckets_size() const
+        { return buckets_ref().size(); }
+
+
     private:
     // public:
 
         void clear_buckets()
         {
             // Call dtor for each inner_bucket.
-            for (int i = 0; i < buckets_ref().size(); ++i)
+            for (int i = 0; i < buckets_size(); ++i)
             {
                 buckets_ref()[i].dispose(m_alloc);
             }
@@ -337,7 +341,7 @@ namespace leviathan::collections
             assert(buckets_ref()[pos].size() && "bucket will not be empty!");
 
             // If there is only one bucket, shrink
-            if (buckets_ref()[pos].size() < TruckSize / 2 && buckets_ref().size() > 1)
+            if (buckets_ref()[pos].size() < TruckSize / 2 && buckets_size() > 1)
             {
                 if (pos == 0) pos++;
 
@@ -402,7 +406,7 @@ namespace leviathan::collections
 
             if (bucket == buckets_ref().cend())
             {
-                return { buckets_ref().size(), 0 };
+                return { buckets_size(), 0 };
             }
 
             auto iter = std::ranges::lower_bound(*bucket, k, compare_ref(), KeyOfValue());
@@ -447,14 +451,14 @@ namespace leviathan::collections
 			bool succeed;
 			std::size_t out_idx, in_idx;
 
-			if (buckets_ref().size())
+			if (buckets_size())
 			{
 				auto [i, j] = find_item_by_key(KeyOfValue()(val));
-				if (i == buckets_ref().size())
+				if (i == buckets_size())
 				{
 					// insert last position
 					buckets_ref().back().emplace_back(m_alloc, (U&&) val);
-					i = buckets_ref().size() - 1;
+					i = buckets_size() - 1;
 					j = buckets_ref().back().size() - 1;
 					succeed = true;
 				}
@@ -499,7 +503,7 @@ namespace leviathan::collections
 		iterator lower_bound_impl(const K& val) 
 		{
 			auto [i, j] = find_item_by_key(val);
-			return i == buckets_ref().size() ? end() : iterator(this, i, j);
+			return i == buckets_size() ? end() : iterator(this, i, j);
 		}
 
 		// template <typename K>

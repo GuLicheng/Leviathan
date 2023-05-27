@@ -11,9 +11,23 @@ using sorted_list_with_truck = leviathan::collections::sorted_list<
     TruckSize
 >;
 
-TEST_CASE("sorted_list_insert")
-{
+#include "lv_cpp/struct.hpp"
 
+TEST_CASE("elements destroy")
+{
+    using T = Int32<>;
+    {
+        sorted_list_with_truck<T, 2> sl;
+        sl.emplace(0);
+        sl.emplace(1);
+        sl.emplace(2);
+        sl.emplace(3);
+        sl.emplace(4);
+        sl.emplace(5);
+        sl.emplace(6);
+        sl.emplace(7);
+    }
+    REQUIRE(T::total_construct() == T::total_destruct());
 }
 
 #include "test_random_int.hpp"
@@ -23,3 +37,5 @@ TEST_CASE("data structure is correct", "[insert][contains][erase]")
     using SortedListT = ::leviathan::collections::sorted_set<int>;
     ::leviathan::test::test_set_is_correct<SortedListT, true>();
 }
+
+
