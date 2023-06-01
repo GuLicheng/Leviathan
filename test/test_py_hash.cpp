@@ -2,10 +2,10 @@
 
 #include <catch2/catch_all.hpp>
 
-#include <lv_cpp/collections/internal/py_hash.hpp>
-#include <lv_cpp/struct.hpp>
-#include <lv_cpp/record_allocator.hpp>
-#include <lv_cpp/fancy_ptr.hpp>
+#include <leviathan/collections/internal/py_hash.hpp>
+#include <leviathan/struct.hpp>
+#include <leviathan/record_allocator.hpp>
+#include <leviathan/fancy_ptr.hpp>
 
 #include <algorithm>
 #include <string>
@@ -56,6 +56,12 @@ TEST_CASE("exception thrown in constructor", "[emplace][exception]")
 
 }
 
+TEST_CASE("hash map")
+{
+    ::leviathan::collections::hash_map<int, std::string> hm;
+    hm.emplace(0, "Hello");
+    REQUIRE(hm[0] == "Hello");
+}
 
 #include "test_random_int.hpp"
 

@@ -1,5 +1,5 @@
-#include <lv_cpp/config_parser/json/json.hpp>
-#include <lv_cpp/utils/timer.hpp>
+#include <leviathan/config_parser/json/json.hpp>
+#include <leviathan/utils/timer.hpp>
 #include <algorithm>
 using namespace leviathan::json;
 
@@ -7,7 +7,7 @@ int main()
 {
 	system("chcp 65001");
 
-	const char* json_path = R"(D:\Library\Leviathan\include\lv_cpp\config_parser\config\test.json)";
+	const char* json_path = R"(D:\Library\Leviathan\include\leviathan\config_parser\config\test.json)";
 	std::fstream file{ json_path };
 	std::string buf{ std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>() };
 	json_reader j{ std::move(buf) };

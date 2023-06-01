@@ -9,7 +9,7 @@
 #include <random>
 #include <algorithm>
 
-#include <lv_cpp/collections/internal/buffer.hpp>
+#include <leviathan/collections/internal/buffer.hpp>
 // #include <catch2/catch_all.hpp>
 #include <catch2/catch_test_macros.hpp>
 
@@ -20,7 +20,7 @@ AllocatorT allocator;
 
 TEST_CASE("test_default_constructor")
 {
-    leviathan::collections::buffer<int, AllocatorT> buffer;
+    leviathan::collections::buffer<int> buffer;
     
     REQUIRE(buffer.empty());
     REQUIRE(buffer.size() == 0);
@@ -38,7 +38,7 @@ TEST_CASE("test_default_constructor")
 
 TEST_CASE("test_constructor_with_capacity")
 {
-    leviathan::collections::buffer<int, AllocatorT> buffer(allocator, 24);
+    leviathan::collections::buffer<int> buffer(allocator, 24);
 
     REQUIRE(buffer.size() == 0);
     REQUIRE(buffer.capacity() == 32);
@@ -48,7 +48,7 @@ TEST_CASE("test_constructor_with_capacity")
 
 TEST_CASE("buffer_reverse")
 {
-    leviathan::collections::buffer<int, AllocatorT> buffer;
+    leviathan::collections::buffer<int> buffer;
 
     REQUIRE(buffer.size() == 0);
     REQUIRE(buffer.capacity() == 0);
@@ -73,7 +73,7 @@ TEST_CASE("buffer_reverse")
 
 TEST_CASE("emplace_back_and_pop_back")
 {
-    leviathan::collections::buffer<int, AllocatorT> buffer;
+    leviathan::collections::buffer<int> buffer;
 
     for (int i = 0; i < 10; ++i)
     {
@@ -104,11 +104,11 @@ TEST_CASE("emplace_back_and_pop_back")
 
 TEST_CASE("iterator")
 {
-    using TBuffer = leviathan::collections::buffer<int, AllocatorT>;
+    using TBuffer = leviathan::collections::buffer<int>;
 
     REQUIRE(std::ranges::contiguous_range<TBuffer>);
 
-    leviathan::collections::buffer<int, AllocatorT> buffer;
+    leviathan::collections::buffer<int> buffer;
 
     for (int i = 0; i < 10; ++i)
     {
@@ -131,7 +131,7 @@ TEST_CASE("insert")
 
     StringAlloc salloc;
 
-    leviathan::collections::buffer<std::string, StringAlloc> buffer;
+    leviathan::collections::buffer<std::string> buffer;
 
     buffer.emplace(salloc, buffer.end(), "David");
 
@@ -155,7 +155,7 @@ TEST_CASE("insert")
 
 TEST_CASE("erase_element")
 {
-    leviathan::collections::buffer<int, AllocatorT> buffer;
+    leviathan::collections::buffer<int> buffer;
 
     for (int i = 0; i < 10; ++i)
     {
@@ -172,7 +172,7 @@ TEST_CASE("erase_element")
 
     REQUIRE(buffer.size() == 8);
 
-    REQUIRE(std::ranges::contiguous_range<leviathan::collections::buffer<int, AllocatorT>>);
+    REQUIRE(std::ranges::contiguous_range<leviathan::collections::buffer<int>>);
 
     auto ilist = { 1, 2, 3, 4, 5, 6, 7, 8 };
 
@@ -183,7 +183,7 @@ TEST_CASE("erase_element")
 
 TEST_CASE("erase_range")
 {
-    leviathan::collections::buffer<int, AllocatorT> buffer;
+    leviathan::collections::buffer<int> buffer;
 
     for (int i = 0; i < 10; ++i)
     {
@@ -213,7 +213,7 @@ TEST_CASE("erase_range")
 
 TEST_CASE("insert_range")
 {
-    leviathan::collections::buffer<int, AllocatorT> buffer;
+    leviathan::collections::buffer<int> buffer;
 
     // Insert empty range
     std::initializer_list<int> empty_list{};
@@ -264,7 +264,7 @@ TEST_CASE("random_insert")
 {
     std::random_device rd;
     std::vector<int> numbers;
-    leviathan::collections::buffer<int, AllocatorT> buffer;
+    leviathan::collections::buffer<int> buffer;
     
     for (int i = 0; i < 100'000; ++i)
     {
@@ -286,7 +286,7 @@ TEST_CASE("random_insert")
 TEST_CASE("insert_element_from_self")
 {
     using StringAllocator = std::allocator<std::string>;
-    leviathan::collections::buffer<std::string, StringAllocator> buffer;
+    leviathan::collections::buffer<std::string> buffer;
 
     StringAllocator salloc;
 
@@ -296,6 +296,7 @@ TEST_CASE("insert_element_from_self")
 
     buffer.emplace(salloc, buffer.begin(), buffer[0]);
 
+    REQUIRE(buffer.size() == 4);
     REQUIRE(buffer[0] == "This sentence must be longer enough and will be moved to second position");
     REQUIRE(buffer[1] == "This sentence must be longer enough and will be moved to second position");
     REQUIRE(buffer[2] == "This sentence must be longer enough and will be moved to third position");
@@ -304,9 +305,31 @@ TEST_CASE("insert_element_from_self")
     buffer.dispose(salloc);
 }
 
+TEST_CASE("emplace_back_element_from_self")
+{
+    using StringAllocator = std::allocator<std::string>;
+    leviathan::collections::buffer<std::string> buffer;
+
+    StringAllocator salloc;
+
+    buffer.emplace_back(salloc, "This sentence must be longer enough.");
+
+    buffer.emplace_back(salloc, buffer.front());
+    buffer.emplace_back(salloc, buffer.front());
+    buffer.emplace_back(salloc, buffer.front());
+
+    REQUIRE(buffer.size() == 4);
+    REQUIRE(buffer[0] == "This sentence must be longer enough.");
+    REQUIRE(buffer[1] == "This sentence must be longer enough.");
+    REQUIRE(buffer[2] == "This sentence must be longer enough.");
+    REQUIRE(buffer[3] == "This sentence must be longer enough.");
+
+    buffer.dispose(salloc);
+}
+
 TEST_CASE("initializer_list")
 {
-    leviathan::collections::buffer<int, AllocatorT> buffer(allocator, { 1, 2, 3 });
+    leviathan::collections::buffer<int> buffer(allocator, { 1, 2, 3 });
     REQUIRE(buffer.size() == 3);
     REQUIRE(buffer.capacity() == 4);
     REQUIRE(buffer[0] == 1);
@@ -315,7 +338,7 @@ TEST_CASE("initializer_list")
     buffer.dispose(allocator);
 }
 
-#include "../include/lv_cpp/struct.hpp"
+#include "leviathan/struct.hpp"
 
 TEST_CASE("exception")
 {
@@ -323,7 +346,7 @@ TEST_CASE("exception")
     {
         std::allocator<T> alloc;
 
-        leviathan::collections::buffer<T, std::allocator<T>> buffer(alloc, 1);
+        leviathan::collections::buffer<T> buffer(alloc, 1);
 
         REQUIRE(std::is_nothrow_move_constructible_v<T> == false);
         REQUIRE(!T::Moveable);
@@ -353,7 +376,7 @@ TEST_CASE("exception")
 TEST_CASE("pmr::allocator")
 {
     using PmrAllocator = std::pmr::polymorphic_allocator<int>;
-    using Buffer = leviathan::collections::buffer<int, PmrAllocator>;
+    using Buffer = leviathan::collections::buffer<int>;
 
     Buffer buffer;
 

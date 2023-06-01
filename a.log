@@ -1,0 +1,9 @@
+2023-06-01-03:19 LEVEL-INFO: This is a testing. with [file = D:\Library\Leviathan\main.cpp, line = 17
+2023-06-01-03:19 LEVEL-WARNING: This is a warning. with [file = D:\Library\Leviathan\main.cpp, line = 19
+2023-06-01-03:19 LEVEL-ERROR: This is an error. with [file = D:\Library\Leviathan\main.cpp, line = 21
+2023-06-01-09:00 LEVEL-INFO: This is a testing. with [file = D:\Library\Leviathan\main.cpp, line = 17
+2023-06-01-09:00 LEVEL-WARNING: This is a warning. with [file = D:\Library\Leviathan\main.cpp, line = 19
+2023-06-01-09:00 LEVEL-ERROR: This is an error. with [file = D:\Library\Leviathan\main.cpp, line = 21
+2023-06-01-09:07 LEVEL-INFO: This is a testing. with [file = D:\Library\Leviathan\leviathan\logging\logger.cpp, line = 17
+2023-06-01-09:07 LEVEL-WARNING: This is a warning. with [file = D:\Library\Leviathan\leviathan\logging\logger.cpp, line = 19
+2023-06-01-09:07 LEVEL-ERROR: This is an error. with [file = D:\Library\Leviathan\leviathan\logging\logger.cpp, line = 21

@@ -1,6 +1,6 @@
 #include <vector>
 #include <iostream>
-#include <lv_cpp/thread_pool.hpp>
+#include <leviathan/thread_pool.hpp>
 
 using namespace leviathan;
 // g++ -std=c++20 -s -Wall -Wextra -pthread .\test\src\thread_pool.cpp -o a 

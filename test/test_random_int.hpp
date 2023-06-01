@@ -10,7 +10,13 @@
 
 namespace leviathan::test
 {
-    template <typename SetType, bool IsOrdered>
+    enum struct test_mode
+    {
+        InsertOnly,
+        All
+    };
+
+    template <typename SetType, bool IsOrdered, test_mode Mode = test_mode::All>
     void test_set_is_correct()
     {
 
@@ -33,6 +39,9 @@ namespace leviathan::test
         for (auto value : vec)
         {
             auto op = rd() % 3;
+
+            if constexpr (Mode == test_mode::InsertOnly)
+                op = 0;
 
             switch (op)
             {

@@ -5,7 +5,7 @@
 #include <random>
 #include <algorithm>
 
-#include <lv_cpp/collections/internal/buffer.hpp>
+#include <leviathan/collections/internal/buffer.hpp>
 #include <catch2/catch_all.hpp>
 // #include <catch2/catch_test_macros.hpp>
 
@@ -44,7 +44,7 @@ TEST_CASE("benchmark insert at first")
 
     BENCHMARK_ADVANCED("buffer")(Catch::Benchmark::Chronometer meter) {
         meter.measure([]{
-            leviathan::collections::buffer<int, AllocatorT> buffer;
+            leviathan::collections::buffer<int> buffer;
             AllocatorT alloc;
             RAII guard([&](){ buffer.dispose(alloc); });
             buffer.reserve(alloc, N);
@@ -73,7 +73,7 @@ TEST_CASE("benchmark emplace_back")
 
     BENCHMARK_ADVANCED("buffer")(Catch::Benchmark::Chronometer meter) {
         meter.measure([]{
-            leviathan::collections::buffer<int, AllocatorT> buffer;
+            leviathan::collections::buffer<int> buffer;
             AllocatorT alloc;
             buffer.reserve(alloc, N);
             RAII guard([&](){ buffer.dispose(alloc); });

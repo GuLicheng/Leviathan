@@ -1,10 +1,10 @@
 #include "random_range.hpp"
 
-#include <lv_cpp/collections/internal/skip_list.hpp>
-#include <lv_cpp/collections/internal/avl_tree.hpp>
-#include <lv_cpp/collections/internal/rbtree.hpp>
-#include <lv_cpp/collections/internal/py_hash.hpp>
-#include <lv_cpp/collections/internal/sorted_list.hpp>
+#include <leviathan/collections/internal/skip_list.hpp>
+#include <leviathan/collections/internal/avl_tree.hpp>
+#include <leviathan/collections/internal/rbtree.hpp>
+#include <leviathan/collections/internal/py_hash.hpp>
+#include <leviathan/collections/internal/sorted_list.hpp>
 
 
 #include <catch2/catch_all.hpp>
@@ -148,8 +148,9 @@ TEST_CASE("duplicate_collections_random_search")
     PyHashTable ph;
     STLHashTable stlhash;
     STLRBTree stlrb;
+    PySortedList pysl;
 
-    leviathan::random_insert(sl, avl, rb, ph, stlhash, stlrb);
+    leviathan::random_insert(sl, avl, rb, ph, stlhash, stlrb, pysl);
 
     // --------------------- Ordered Collections ---------------------
     BENCHMARK("skip_list search")
@@ -172,6 +173,11 @@ TEST_CASE("duplicate_collections_random_search")
         return leviathan::search_test(stlrb);
     };
 
+    BENCHMARK("py_sorted_list search")
+    {
+        return leviathan::search_test(pysl);
+    };
+
     // --------------------- UnOrdered Collections ---------------------
     BENCHMARK("pyhash search")
     {
@@ -192,8 +198,9 @@ TEST_CASE("duplicate_collections_random_remove")
     PyHashTable ph;
     STLHashTable stlhash;
     STLRBTree stlrb;
+    PySortedList pysl;
 
-    leviathan::random_insert(sl, avl, rb, ph, stlhash, stlrb);
+    leviathan::random_insert(sl, avl, rb, ph, stlhash, stlrb, pysl);
 
     // --------------------- Ordered Collections ---------------------
     BENCHMARK("skip_list remove")
@@ -216,6 +223,11 @@ TEST_CASE("duplicate_collections_random_remove")
         return leviathan::remove_test(stlrb);
     };
 
+    BENCHMARK("py_sorted_list remove")
+    {
+        return leviathan::remove_test(pysl);
+    };
+
     // --------------------- UnOrdered Collections ---------------------
     BENCHMARK("pyhash remove")
     {
@@ -226,4 +238,54 @@ TEST_CASE("duplicate_collections_random_remove")
     {
         return leviathan::remove_test(stlhash);
     };
+}
+
+TEST_CASE("duplicate_collections_random_insert_string")
+{
+    using StrSkipList = leviathan::collections::skip_set<std::string>;
+    using StrAvlTree = leviathan::collections::avl_set<std::string>;
+    using StrRBTree = leviathan::collections::rb_set<std::string>;
+    using StrPyHashTable = leviathan::collections::hash_set<std::string>;
+    using StrPySortedList = leviathan::collections::sorted_set<std::string>;
+
+    using StrSTLHashTable = std::unordered_set<std::string>;
+    using StrSTLRBTree = std::set<std::string>;
+
+    // --------------------- Ordered Collections ---------------------
+    BENCHMARK("skip_list random_insert")
+    {
+        return leviathan::random_insert_string_test<StrSkipList>();
+    };
+
+    BENCHMARK("std::set/rbtree random_insert")
+    {
+        return leviathan::random_insert_string_test<StrSTLRBTree>();
+    };
+
+    BENCHMARK("avl_tree random_insert")
+    {
+        return leviathan::random_insert_string_test<StrAvlTree>();
+    };
+
+    BENCHMARK("rb_tree random_insert")
+    {
+        return leviathan::random_insert_string_test<StrRBTree>();
+    };
+
+    BENCHMARK("py_sorted_list random_insert")
+    {
+        return leviathan::random_insert_string_test<StrPySortedList>();
+    };
+
+    // --------------------- UnOrdered Collections ---------------------
+    BENCHMARK("py_hash random_insert")
+    {
+        return leviathan::random_insert_string_test<StrPyHashTable>();
+    };
+
+    BENCHMARK("std::unordered_set random_insert")
+    {
+        return leviathan::random_insert_string_test<StrSTLHashTable>();
+    };
+
 }

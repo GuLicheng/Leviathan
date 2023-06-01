@@ -2,8 +2,8 @@
 #include <string>
 #include <concepts>
 // #include "base.hpp"
-#include <lv_cpp/callable_container.hpp>
-#include <lv_cpp/struct.hpp>
+#include <leviathan/callable_container.hpp>
+#include <leviathan/struct.hpp>
 #include <catch2/catch_all.hpp>
 
 class Sum

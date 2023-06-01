@@ -1,6 +1,6 @@
-#include <lv_cpp/config_parser/INI.hpp>
-#include <lv_cpp/io/console.hpp>
-#include <lv_cpp/utils/timer.hpp>
+#include <leviathan/config_parser/INI.hpp>
+#include <leviathan/io/console.hpp>
+#include <leviathan/utils/timer.hpp>
 #include <iostream>
 
 constexpr const char* path = R"(D:\Library\Leviathan\rulesmo.ini)";

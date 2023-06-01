@@ -1,6 +1,6 @@
 #define CATCH_CONFIG_MAIN
 
-#include <lv_cpp/collections/internal/skip_list.hpp>
+#include <leviathan/collections/internal/skip_list.hpp>
 #include <catch2/catch_all.hpp>
 
 using namespace leviathan::collections;
@@ -96,9 +96,9 @@ TEST_CASE("data structure is correct", "[insert][contains][erase]")
 // #include "except_allocator.hpp"
 // #include "fancy_ptr.hpp"
 
-#include <lv_cpp/struct.hpp>
-#include <lv_cpp/fancy_ptr.hpp>
-#include <lv_cpp/record_allocator.hpp>
+#include <leviathan/struct.hpp>
+#include <leviathan/fancy_ptr.hpp>
+#include <leviathan/record_allocator.hpp>
 
 TEST_CASE("fancy pointer")
 {

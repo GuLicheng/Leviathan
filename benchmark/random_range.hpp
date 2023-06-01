@@ -3,7 +3,7 @@
 #include <random>
 #include <fstream>
 #include <algorithm>
-
+#include <string>
 #include <assert.h>
 
 namespace leviathan
@@ -24,6 +24,27 @@ namespace leviathan
             std::vector<std::string> ret;
             std::copy(std::istream_iterator<std::string>{fs}, std::istream_iterator<std::string>{}, std::back_inserter(ret));
             return ret;
+        }
+
+        static std::vector<std::string> random_string(int num = 100'000, int strmin = 0, int strmax = 100)
+        {
+            std::vector<std::string> strs;
+            strs.reserve(num);
+            auto str_generator = [=]() {
+                return std::string(rd() % strmax + strmin, 'a');
+            };
+            std::generate_n(std::back_inserter(strs), num, str_generator);
+            return strs;
+        }
+
+        static std::vector<std::string> random_long_string(int num = 100'000)
+        {
+            return random_string(num, 20);
+        }
+
+        static std::vector<std::string> random_short_string(int num = 100'000)
+        {
+            return random_string(num, 0, 15);
         }
 
         std::vector<int> random_range_int()
@@ -94,6 +115,7 @@ namespace leviathan
         inline auto ascending = random_generator.random_ascending();
         inline auto descending = random_generator.random_descending(); 
         inline auto random_int = random_generator.random_range_int(); 
+        inline auto strs = random_range::random_string();
     }
 
     inline namespace search
@@ -104,6 +126,14 @@ namespace leviathan
     inline namespace removing
     {
         inline auto remove = random_generator.random_range_int();
+    }
+
+    template <typename Set>
+    auto random_insert_string_test()
+    {
+        Set s;
+        for (const auto& val : insertion::strs) s.insert(val);
+        return s.size();
     }
 
     template <typename Set>
