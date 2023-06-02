@@ -14,6 +14,11 @@ namespace leviathan::logging
 {
     class default_handler : public basic_handler
     {
+    public:
+
+        void set_formatter(std::unique_ptr<basic_formatter> fmt)
+        { m_formatter = std::move(fmt); }
+
     protected:
 
         bool is_valid_record(const record& rd) 
@@ -32,10 +37,14 @@ namespace leviathan::logging
     {
     public:
 
-        console_handler(std::string name = "console") 
+        console_handler(std::string_view name) 
+            : console_handler(name, make_formatter<default_formatter>()) 
+        { }
+
+        console_handler(std::string_view name, std::unique_ptr<basic_formatter> fmt)
         {
             m_name = std::move(name);
-            m_formatter = make_formatter<default_formatter>();
+            m_formatter = std::move(fmt);
         }
 
         void do_handle(const record& rd) override
@@ -52,7 +61,7 @@ namespace leviathan::logging
     {
     public:
     
-        file_handler(const char* name, const char* filename)
+        file_handler(std::string_view name, std::string_view filename)
         {
             m_name = name;
             m_filename = filename;

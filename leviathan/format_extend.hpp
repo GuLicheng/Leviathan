@@ -1,31 +1,20 @@
-#ifndef __FORMAT_EXTEND_HPP__
-#define __FORMAT_EXTEND_HPP__
-
-
-#include <leviathan/tuples/tuple_base.hpp>
+#pragma once
 
 #include <iostream>
 #include <ranges>
 #include <tuple>
-
-
-#define TINY_BUFFER_SIZE 16
+#include <format>
 
 template <typename Container>
-concept ContainerChecker = requires (const Container &c)
+concept constable_range = requires (const Container &c)
 {
 	// not support std::generator
 	std::ranges::begin(c);
 	std::ranges::end(c);
 };
-// tuple - like
-template <typename Tuple>
-concept TupleChecker = !ContainerChecker<Tuple> && leviathan::tuple::tuple_like<Tuple>;
 
-#ifdef __lib_format
-#include <format>
 
-template <ContainerChecker Ranges, typename CharT>
+template <constable_range Ranges, typename CharT>
 struct std::formatter<Ranges, CharT>
 {
 	// accept a context and return it's iterator
@@ -42,14 +31,12 @@ struct std::formatter<Ranges, CharT>
 			{
 				iter = ',', iter = ' ';
 			}
-			// iter = std::format_to(format_context.out(), fmt, *vec_iter);
 			iter = std::vformat_to(format_context.out(), fmt, std::make_format_args(*vec_iter));
 		}
 		iter = ']';
 		return iter;
 	}
-	// Accept a context and return it's iterator
-	// std::basic_format_parse_context<OutIter, CharT>
+
 	constexpr auto parse(auto& context)
 	{
 		m_fmt[m_buffer_len++] = '{';
@@ -68,78 +55,9 @@ struct std::formatter<Ranges, CharT>
 		return iter;
 	}
 private:
-	CharT m_fmt[TINY_BUFFER_SIZE];  // tiny buffer to store args
+	CharT m_fmt[16];  // tiny buffer to store args
 	size_t m_buffer_len = 0;
 };
 
-template <TupleChecker Tuple, typename CharT>
-struct std::formatter<Tuple, CharT> 
-{
-	constexpr static auto size = std::tuple_size_v<Tuple>;
-
-	constexpr auto format(const Tuple& t, auto& format_context)
-	{
-		auto __print_tuple = [&]<size_t... Idx>(std::index_sequence<Idx...>)
-		{
-			auto iter = std::format_to(format_context.out(), "{}", '(');
-
-			auto write = [&]<size_t Index>()
-			{
-				if constexpr (Index != 0)
-					iter = ',', iter = ' ';
-				const auto index = Index < m_len ? Index : m_len;
-				std::basic_string_view<CharT> fmt{ m_fmts[index], m_fmts[index] + m_buffers_len[index] };
-				iter = std::format_to(format_context.out(), fmt, std::get<Index>(t));
-			};
-
-			(write.operator() < Idx > (), ...);
-
-			iter = ')';
-			return iter;
-		};
-		return __print_tuple(std::make_index_sequence<size>());
-	}
-
-	constexpr auto parse(auto& context)
-	{
-		auto iter = context.begin();
-		auto end = context.end();
-		m_fmts[0][m_buffers_len[m_len]++] = '{';
-		if (iter == end || *iter == '}')
-		{
-			m_fmts[0][m_buffers_len[m_len]++] = '}';
-			return iter;
-		}
-		m_fmts[0][m_buffers_len[m_len]++] = ':';
-		for (; iter != end && *iter != '}'; ++iter)
-		{
-			if (*iter == '|')
-			{
-				m_fmts[m_len][m_buffers_len[m_len]++] = '}';
-				m_len++;
-				m_fmts[m_len][m_buffers_len[m_len]++] = '{';
-				m_fmts[m_len][m_buffers_len[m_len]++] = ':';
-			}
-			else 
-			{
-				m_fmts[m_len][m_buffers_len[m_len]++] = *iter;
-			}
-		}
-		m_fmts[m_len][m_buffers_len[m_len]++] = '}';
-		return iter;
-	}
-
-	CharT m_fmts[size][TINY_BUFFER_SIZE];
-	size_t m_buffers_len[size] = {};
-	size_t m_len = 0;  // last format context
-
-};
-
-#undef TINY_BUFFER_SIZE
-
-#else
-
-#endif
 
 
-#endif

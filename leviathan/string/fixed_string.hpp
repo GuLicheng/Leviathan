@@ -2,18 +2,16 @@
 
 #include <cstddef>
 #include <algorithm>
-#include <compare> // std::string_ordering
-#include <functional> // std::hash
+#include <compare>      // std::string_ordering
+#include <functional>   // std::hash
+#include <format>
 #include <iostream>
 
 namespace leviathan 
 {
-
     template <size_t N, typename CharT, typename Traits = std::char_traits<CharT>>
-    class basic_fixed_string
+    struct basic_fixed_string
     {
-    public:
-
         using value_type = CharT;
         using pointer = value_type*;
         using const_pointer = const value_type*;
@@ -51,8 +49,7 @@ namespace leviathan
         constexpr auto operator<=>(const basic_fixed_string<K, CharT, Traits>& rhs) const noexcept
         { return sv() <=> rhs.sv(); }
 
-        // clang: the return type selected from == function for rewritten != shoule be boolean
-        // auto is OK for gcc
+        // Support compare for strings with different length.
         template <size_t K>
         constexpr bool operator==(const basic_fixed_string<K, CharT, Traits>& rhs) const noexcept
         { 
@@ -104,8 +101,7 @@ namespace leviathan
 
         constexpr const value_type* c_str() const noexcept { return m_data; }
 
-    public:
-        CharT m_data[N + 1];
+        CharT m_data[N + 1]; // literal operator requires m_data must be public now.
     };
 
     template <size_t N, typename CharT>
@@ -138,18 +134,44 @@ namespace leviathan
 
 } // namespace leviathan
 
-
+// Implement std::hash and std::formatter for basic_fixed_string.
 namespace std
 {
     template <size_t N, typename CharT, typename Traits>
-    struct hash<::leviathan::basic_fixed_string<N, CharT, Traits>>
+    struct hash<leviathan::basic_fixed_string<N, CharT, Traits>>
     {
-        constexpr size_t operator()(const ::leviathan::basic_fixed_string<N, CharT, Traits>& x) const noexcept 
+        constexpr size_t 
+        operator()(const ::leviathan::basic_fixed_string<N, CharT, Traits>& x) const noexcept 
         { return x.hash_code(); }
+    };
+
+    template <size_t N, typename CharT, typename Traits>
+    struct formatter<leviathan::basic_fixed_string<N, CharT, Traits>, CharT>
+        : formatter<basic_string_view<CharT, Traits>>
+    {
+        formatter() = default;
+
+        using base = formatter<basic_string_view<CharT, Traits>>;
+
+        template <typename Out>
+	    typename basic_format_context<Out, CharT>::iterator
+	    format(const leviathan::basic_fixed_string<N, CharT, Traits>& fs, basic_format_context<Out, CharT>& fc) const
+        { return base::format(fs.sv(), fc); }
+
+        constexpr typename basic_format_parse_context<CharT>::iterator
+        parse(basic_format_parse_context<CharT>& context)
+        { return base::parse(context); }
     };
 }
 
-
-
+// We let follow literal operator in global namespace just for convenient.
+// std::cout << "{}-{}-{:5d}"_fs("Hello", "World", 2);
+template <leviathan::basic_fixed_string FixedString> 
+constexpr auto operator ""_fs() 
+{
+    return []<typename... Args>(Args&&... args) static {
+        return std::vformat(FixedString.sv(), std::make_format_args((Args&&) args...));
+    };
+}
 
 

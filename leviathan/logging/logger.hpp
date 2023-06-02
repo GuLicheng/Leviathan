@@ -51,6 +51,15 @@ namespace leviathan::logging
         void critical(format_string_with_source_location fmt, Args&&... args) 
         { log(level::Critical, fmt.m_value, fmt.m_sl, (Args&&) args...); }
 
+        void add_handler(std::unique_ptr<basic_handler> h)
+        {
+            m_handlers.emplace_back(std::move(h));
+        }
+
+        void set_level(level lv) { m_level = lv; }
+
+    private:
+
         void write()
         {
             auto invalid_records = m_records | std::views::filter([this](const auto& r) {
@@ -62,15 +71,6 @@ namespace leviathan::logging
                 [](auto&& hr) { hr.first->do_handle(hr.second); }
             );
         }
-
-        void add_handler(std::unique_ptr<basic_handler> h)
-        {
-            m_handlers.emplace_back(std::move(h));
-        }
-
-        void set_level(level lv) { m_level = lv; }
-
-    private:
 
         template <typename... Args>
         void log(level lv, std::string_view fmt, std::source_location sl, Args&&... args) 
@@ -91,6 +91,9 @@ namespace leviathan::logging
             */
             auto message = std::vformat(fmt, std::make_format_args(args...));
             m_records.emplace_back(std::move(message), lv, clock_type::now(), sl);
+            // Write immediately or latter? If not immediately, some error happened
+            // and process terminated, how can we write the rest message? RAII?
+            write(); 
         }
 
         std::string m_name;
@@ -99,18 +102,17 @@ namespace leviathan::logging
         std::vector<record> m_records;
     };
 
-    class logger_manager
-    {
-        logger_manager();
+    // class logger_manager
+    // {
+    //     logger_manager();
 
-        std::unique_ptr<logger> get_logger(std::string name);
+    //     std::unique_ptr<logger> get_logger(std::string name);
 
+    // private:
 
-    private:
+    //     std::mutex m_mutex;
 
-        std::mutex m_mutex;
-
-    };  
+    // };  
 
 } // logger 
 

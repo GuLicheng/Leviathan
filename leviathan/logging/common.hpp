@@ -77,59 +77,39 @@ namespace leviathan::logging
         
         virtual void do_handle(const record&) = 0;
 
+        virtual ~basic_handler() = default;
+
     };
 
-    template <typename Target, typename Source, typename... Args>
-    std::unique_ptr<Target> make(Args&&... args)
+    /**
+     * @brief Component factory.
+     * 
+     * Return std::unique_ptr<Target> point to Source. 
+     * 
+     * @param Target target type.
+     * @param Source origin type.
+    */
+    template <typename Target, typename Source = Target>
+    struct factory
     {
         static_assert(std::is_base_of_v<Target, Source>);
-        return std::make_unique<Source>((Args&&) args...);
-    }
+
+        template <typename... Args>
+        static std::unique_ptr<Target> make(Args&&... args)
+        { return std::make_unique<Source>((Args&&) args...); }
+    };
 
     template <typename Handler, typename... Args>
     auto make_handler(Args&&... args)
-    {
-        return make<basic_handler, Handler>((Args&&) args...);
-    }
+    { return factory<basic_handler, Handler>::make((Args&&) args...); }
 
     template <typename Formatter, typename... Args>
     auto make_formatter(Args&&... args)   
-    {
-        return make<basic_formatter, Formatter>((Args&&) args...);
-    }
+    { return factory<basic_formatter, Formatter>::make((Args&&) args...); }
 
     template <typename Filter, typename... Args>
     auto make_filter(Args&&... args)   
-    {
-        return make<basic_filter, Filter>((Args&&) args...);
-    }
+    { return factory<basic_filter, Filter>::make((Args&&) args...); }
     
-    template <typename T, typename... Args>
-    auto make_component(Args&&... args)
-    {
-        constexpr auto is_handler = std::is_base_of_v<basic_handler, T>;
-        constexpr auto is_filter = std::is_base_of_v<basic_filter, T>;
-        constexpr auto is_formatter = std::is_base_of_v<basic_formatter, T>;
-
-        static_assert(is_handler + is_filter + is_formatter == 1);
-
-        if constexpr (is_handler)
-        {
-            return make_handler((Args&&) args...);
-        }
-        else if constexpr (is_filter)
-        {
-            return make_filter((Args&&) args...);
-        }
-        else if constexpr (is_formatter)
-        {
-            return make_formatter((Args&&) args...);
-        }
-        else
-        {
-            std::unreachable();
-        }
-    }
-
 } 
 
