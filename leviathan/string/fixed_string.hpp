@@ -4,8 +4,9 @@
 #include <algorithm>
 #include <compare>      // std::string_ordering
 #include <functional>   // std::hash
-#include <format>
-#include <iostream>
+#include <format>       // std::formatter
+#include <iterator>
+#include <array>
 
 namespace leviathan 
 {
@@ -164,14 +165,19 @@ namespace std
     };
 }
 
-// We let follow literal operator in global namespace just for convenient.
-// std::cout << "{}-{}-{:5d}"_fs("Hello", "World", 2);
-template <leviathan::basic_fixed_string FixedString> 
-constexpr auto operator ""_fs() 
+namespace leviathan::literals
 {
-    return []<typename... Args>(Args&&... args) static {
-        return std::vformat(FixedString.sv(), std::make_format_args((Args&&) args...));
-    };
+    // std::cout << "{}-{}-{:5d}"_fs("Hello", "World", 2);
+    template <basic_fixed_string FixedString> 
+    constexpr auto operator ""_fs() 
+    {
+        return []<typename... Args>(Args&&... args) static {
+            return std::vformat(FixedString.sv(), std::make_format_args((Args&&) args...));
+        };
+    }
 }
+
+// We let follow literal operator in global namespace just for convenient.
+using namespace leviathan::literals;
 
 

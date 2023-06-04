@@ -8,7 +8,14 @@ namespace leviathan::logging
     {
     public:
         
-        bool do_filter(const record& r) override { return true; }
+        default_filter(std::string_view name = "default_filter")
+            : m_name(name) { }
+
+        bool do_filter(const record&) override { return true; }
+
+    private:
+
+        std::string m_name;
 
     };
 

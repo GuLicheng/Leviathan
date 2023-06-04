@@ -13,7 +13,7 @@
 
 namespace leviathan::logging
 {
-    class logger
+    class logger : public std::enable_shared_from_this<logger>
     {
         struct format_string_with_source_location
         {
@@ -52,9 +52,7 @@ namespace leviathan::logging
         { log(level::Critical, fmt.m_value, fmt.m_sl, (Args&&) args...); }
 
         void add_handler(std::unique_ptr<basic_handler> h)
-        {
-            m_handlers.emplace_back(std::move(h));
-        }
+        { m_handlers.emplace_back(std::move(h)); }
 
         void set_level(level lv) { m_level = lv; }
 
@@ -66,6 +64,7 @@ namespace leviathan::logging
                 return r.m_level >= m_level;
             });
 
+            // cartesian_product is much slower than for-loop
             std::ranges::for_each(
                 std::views::cartesian_product(m_handlers, invalid_records),
                 [](auto&& hr) { hr.first->do_handle(hr.second); }
@@ -104,9 +103,11 @@ namespace leviathan::logging
 
     // class logger_manager
     // {
-    //     logger_manager();
+    //     logger_manager() = default;
 
-    //     std::unique_ptr<logger> get_logger(std::string name);
+    //     std::shared_ptr<logger> get_logger(std::string name = "root")
+    //     {
+    //     }
 
     // private:
 

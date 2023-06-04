@@ -1,8 +1,9 @@
+#include <iostream>
 #include "logger.hpp"
 
 namespace logging = leviathan::logging;
 
-int main(int argc, char const *argv[])
+int main()
 {
     const char* path = "D:\\Library\\Leviathan\\a.log";
 
@@ -12,7 +13,8 @@ int main(int argc, char const *argv[])
 
     auto file_handler = logging::factory<logging::file_handler>::make("file", path);
 
-    file_handler->set_formatter(logging::make_formatter<logging::null_formatter>());
+    file_handler->set_formatter(logging::make_formatter<logging::pattern_formatter>
+        ("pattern_formatter", "Time: %(time) - %(level) : %(message) %(file)%(line)."));
 
     auto console_handler = logging::make_handler<logging::console_handler>("console");
 

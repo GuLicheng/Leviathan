@@ -111,5 +111,9 @@ namespace leviathan::logging
     auto make_filter(Args&&... args)   
     { return factory<basic_filter, Filter>::make((Args&&) args...); }
     
+    template <typename T, typename Deleter>
+    std::shared_ptr<T> unique_to_shared(std::unique_ptr<T, Deleter> unique)
+    { return std::move(unique); }
+
 } 
 

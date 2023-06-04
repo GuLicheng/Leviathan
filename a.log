@@ -1,36 +1,30 @@
-nullnullnullnullnullnullnull
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
-null
+2023-06-03 14:18:27.607426000 : WARNING - This is a warning.
+2023-06-03 14:18:27.607426000 : WARNING - This is a warning.
+2023-06-03 14:18:27.608201200 : ERROR - This is an error.
+2023-06-03 14:18:27.607426000 : WARNING - This is a warning.
+2023-06-03 14:18:27.608201200 : ERROR - This is an error.
+2023-06-03 14:18:27.609301600 : CRITICAL - This is a fatal message.
+Time: 2023-06-03 14:32:47.802628100 - WARNING : This is a warning. D:\Library\Leviathan\leviathan\logging\logger.cpp28.
+Time: 2023-06-03 14:32:47.802628100 - WARNING : This is a warning. D:\Library\Leviathan\leviathan\logging\logger.cpp28.
+Time: 2023-06-03 14:32:47.803240800 - ERROR : This is an error. D:\Library\Leviathan\leviathan\logging\logger.cpp30.
+Time: 2023-06-03 14:32:47.802628100 - WARNING : This is a warning. D:\Library\Leviathan\leviathan\logging\logger.cpp28.
+Time: 2023-06-03 14:32:47.803240800 - ERROR : This is an error. D:\Library\Leviathan\leviathan\logging\logger.cpp30.
+Time: 2023-06-03 14:32:47.804303000 - CRITICAL : This is a fatal message. D:\Library\Leviathan\leviathan\logging\logger.cpp32.
+Time: 2023-06-04 03:07:26.514374400 - WARNING : This is a warning. D:\Library\Leviathan\leviathan\logging\logger.cpp29.
+Time: 2023-06-04 03:07:26.514374400 - WARNING : This is a warning. D:\Library\Leviathan\leviathan\logging\logger.cpp29.
+Time: 2023-06-04 03:07:26.515096000 - ERROR : This is an error. D:\Library\Leviathan\leviathan\logging\logger.cpp31.
+Time: 2023-06-04 03:07:26.514374400 - WARNING : This is a warning. D:\Library\Leviathan\leviathan\logging\logger.cpp29.
+Time: 2023-06-04 03:07:26.515096000 - ERROR : This is an error. D:\Library\Leviathan\leviathan\logging\logger.cpp31.
+Time: 2023-06-04 03:07:26.516150000 - CRITICAL : This is a fatal message. D:\Library\Leviathan\leviathan\logging\logger.cpp33.
+Time: 2023-06-04 03:07:50.353741000 - WARNING : This is a warning. D:\Library\Leviathan\leviathan\logging\logger.cpp29.
+Time: 2023-06-04 03:07:50.353741000 - WARNING : This is a warning. D:\Library\Leviathan\leviathan\logging\logger.cpp29.
+Time: 2023-06-04 03:07:50.354443300 - ERROR : This is an error. D:\Library\Leviathan\leviathan\logging\logger.cpp31.
+Time: 2023-06-04 03:07:50.353741000 - WARNING : This is a warning. D:\Library\Leviathan\leviathan\logging\logger.cpp29.
+Time: 2023-06-04 03:07:50.354443300 - ERROR : This is an error. D:\Library\Leviathan\leviathan\logging\logger.cpp31.
+Time: 2023-06-04 03:07:50.355603400 - CRITICAL : This is a fatal message. D:\Library\Leviathan\leviathan\logging\logger.cpp33.
+Time: 2023-06-04 03:07:58.170865300 - WARNING : This is a warning. D:\Library\Leviathan\leviathan\logging\logger.cpp29.
+Time: 2023-06-04 03:07:58.170865300 - WARNING : This is a warning. D:\Library\Leviathan\leviathan\logging\logger.cpp29.
+Time: 2023-06-04 03:07:58.171501000 - ERROR : This is an error. D:\Library\Leviathan\leviathan\logging\logger.cpp31.
+Time: 2023-06-04 03:07:58.170865300 - WARNING : This is a warning. D:\Library\Leviathan\leviathan\logging\logger.cpp29.
+Time: 2023-06-04 03:07:58.171501000 - ERROR : This is an error. D:\Library\Leviathan\leviathan\logging\logger.cpp31.
+Time: 2023-06-04 03:07:58.172360400 - CRITICAL : This is a fatal message. D:\Library\Leviathan\leviathan\logging\logger.cpp33.
