@@ -50,7 +50,7 @@ namespace leviathan
         constexpr auto operator<=>(const basic_fixed_string<K, CharT, Traits>& rhs) const noexcept
         { return sv() <=> rhs.sv(); }
 
-        // Support compare for strings with different length.
+        // Support comparison for strings with different length.
         template <size_t K>
         constexpr bool operator==(const basic_fixed_string<K, CharT, Traits>& rhs) const noexcept
         { 
@@ -109,12 +109,10 @@ namespace leviathan
     basic_fixed_string(const CharT (&str)[N]) -> basic_fixed_string<N - 1, CharT>; 
     // char[N] is different from const char* with n characters
 
-
     // Early GCC versions that support cNTTP were not able to deduce size_t parameter
     // of basic_fixed_string when fixed_string and other typedef were just type aliases.
     template <size_t N> using fixed_string = basic_fixed_string<N, char>;
     template <size_t N> using fixed_wstring = basic_fixed_string<N, wchar_t>;
-
 
     // helper meta
     template <basic_fixed_string... FixedStrings>
