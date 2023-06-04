@@ -52,3 +52,40 @@ TEST_CASE("structured binding")
     REQUIRE(name == "Alice");
     REQUIRE(age == 5);
 }
+
+TEST_CASE("reorder automatically")
+{
+    using NameField = leviathan::field<"name", std::string>;
+    using AgeField = leviathan::field<"age", int>;
+
+    using Struct = leviathan::named_tuple<
+        NameField,
+        AgeField
+    >;
+
+    Struct s("age"_arg = 5, "name"_arg = "Alice");
+
+    REQUIRE(s["name"_arg] == "Alice");
+    REQUIRE(s["age"_arg] == 5);
+}
+
+TEST_CASE("move test")
+{
+    struct MoveOnly 
+    {
+        MoveOnly() = default;
+        MoveOnly(MoveOnly&&) = default;
+        MoveOnly(const MoveOnly&) = delete;
+    };
+
+    using Field1 = leviathan::field<"moveonly", MoveOnly>;
+    using Field2 = leviathan::field<"int", int>;
+
+    using MoveOnlyStruct = leviathan::named_tuple<Field1, Field2>;
+
+    // Adjust arguments
+    MoveOnlyStruct s("int"_arg = 1, "moveonly"_arg = MoveOnly());
+
+    REQUIRE(s["int"_arg] == 1);
+}
+

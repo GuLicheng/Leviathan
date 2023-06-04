@@ -57,6 +57,8 @@ namespace leviathan::logging
 
         virtual std::string do_format(const record&) = 0;
 
+        virtual std::string_view get_name() const = 0;
+
         virtual ~basic_formatter() = default;
 
     };
@@ -67,6 +69,8 @@ namespace leviathan::logging
 
         virtual bool do_filter(const record&) = 0;
 
+        virtual std::string_view get_name() const = 0;
+
         virtual ~basic_filter() = default;
 
     };
@@ -76,6 +80,8 @@ namespace leviathan::logging
     public:
         
         virtual void do_handle(const record&) = 0;
+
+        virtual std::string_view get_name() const = 0;
 
         virtual ~basic_handler() = default;
 

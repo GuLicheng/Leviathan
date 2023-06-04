@@ -54,14 +54,30 @@ namespace leviathan::logging
         void add_handler(std::unique_ptr<basic_handler> h)
         { m_handlers.emplace_back(std::move(h)); }
 
+        void remove_handler(std::string_view name)
+        {
+            // What if there are more one handler match the result?
+           auto it = std::ranges::find_if(m_handlers, [=](const auto& f) {
+                return f->get_name() == name;
+            });
+            if (it != m_handlers.end())
+                m_handlers.erase(it);
+        }
+
         void set_level(level lv) { m_level = lv; }
+
+        void set_filter(std::unique_ptr<basic_filter> f)
+        { m_filter = std::move(f); }
 
     private:
 
         void write()
         {
             auto invalid_records = m_records | std::views::filter([this](const auto& r) {
-                return r.m_level >= m_level;
+                bool level_ok = r.m_level >= m_level;
+                if (m_filter)
+                    level_ok = level_ok && m_filter->do_filter(r);
+                return level_ok;
             });
 
             // cartesian_product is much slower than for-loop
@@ -99,21 +115,11 @@ namespace leviathan::logging
         level m_level;
         std::vector<std::unique_ptr<basic_handler>> m_handlers;
         std::vector<record> m_records;
+        std::unique_ptr<basic_filter> m_filter;
     };
-
-    // class logger_manager
-    // {
-    //     logger_manager() = default;
-
-    //     std::shared_ptr<logger> get_logger(std::string name = "root")
-    //     {
-    //     }
-
-    // private:
-
-    //     std::mutex m_mutex;
-
-    // };  
+    
+    // TODO
+    class logger_manager;
 
 } // logger 
 

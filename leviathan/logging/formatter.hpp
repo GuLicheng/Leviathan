@@ -14,30 +14,6 @@ namespace leviathan::logging
         using std::logic_error::logic_error;
     };
 
-    class default_formatter : public basic_formatter
-    {
-    public:
-
-        explicit default_formatter(std::string_view name = "default_formatter", 
-            bool newline = true) : m_name(name), m_newline(newline) { }
-
-        std::string do_format(const record& r) override 
-        { 
-            auto message = std::format(
-                "{0:%F}-{0:%R} LEVEL-{1}: {2} with [file = {3}, line = {4}", 
-                r.m_tp, level_to_string(r.m_level), r.m_message, r.m_sl.file_name(), r.m_sl.line());
-
-            if (m_newline) message += '\n';
-            return message; 
-        }
-
-    private:
-
-        std::string m_name;
-        bool m_newline;
-
-    };
-
     class pattern_formatter : public basic_formatter
     {
         constexpr static std::string_view default_pattern = "%(time) : %(level) - %(message)";
@@ -61,6 +37,9 @@ namespace leviathan::logging
                 message += '\n';
             return message; 
         }
+
+        std::string_view get_name() const override
+        { return m_name; }
 
         explicit pattern_formatter(std::string name = "pattern_formatter", 
             std::string_view pattern = default_pattern, bool newline = true)
@@ -114,7 +93,7 @@ namespace leviathan::logging
                         return;
                     }
                 }
-                throw logging_formatter_error("Expected one of keyword in (message|time|level)");
+                throw logging_formatter_error("Expected one of keyword in (message|time|level|line|file)");
             }
 
             bool parse_keyword(std::string_view keyword)
@@ -154,6 +133,14 @@ namespace leviathan::logging
         std::string m_name;
         std::string m_pattern;
         bool m_newline;
+    };
+
+    class default_formatter : public pattern_formatter
+    {
+    public:
+
+        default_formatter() : pattern_formatter("default") { }
+
     };
 
     // For debugging

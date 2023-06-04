@@ -1,3 +1,4 @@
+#pragma once
 
 #include <leviathan/string/fixed_string.hpp>
 #include <stdint.h>
@@ -55,11 +56,19 @@ namespace leviathan
         template <typename T>
         constexpr auto operator=(T t) const 
         { return tag_value<Tag, T>{ .value = std::move(t)}; }
-
     };
 
     template <basic_fixed_string Tag>
-    inline constexpr auto arg = arg_t<Tag>{ };
+    inline constexpr auto arg = arg_t<Tag> { };
+
+    template <typename T>
+    struct is_arg : std::false_type { };
+
+    template <auto S>
+    struct is_arg<arg_t<S>> : std::true_type { };
+
+    template <typename T>
+    inline constexpr bool is_arg_v = is_arg<T>::value;
 
     /**
      * @brief Member field of named_tuple.
@@ -86,7 +95,7 @@ namespace leviathan
          * @param R Return type. Using auto is OK, but offer R may faster for compiler-time.
         */
         template <typename R, typename... Fields, typename... TagValues>
-        constexpr auto adjust_parameters(TagValues... tvs)
+        constexpr auto adjust_arguments(TagValues... tvs)
         {
             constexpr auto size = sizeof...(TagValues);  
             auto params = std::forward_as_tuple(tvs...); // save params
@@ -101,7 +110,6 @@ namespace leviathan
             return R(do_search.template operator()<Fields>()...);
         }
     }
-
 
     template <typename... Fields>
     class named_tuple
@@ -119,16 +127,16 @@ namespace leviathan
 
         template <typename... TagValues>
         constexpr named_tuple(TagValues... tvs)
-            : val(detail::adjust_parameters<tuple_type, Fields...>(std::move(tvs)...)) 
+            : val(detail::adjust_arguments<tuple_type, Fields...>(std::move(tvs)...)) 
         {
             // avoid error name
             static_assert((tag_list.template contains<TagValues::tag()> && ...), "Unknown Tag");
         }
         constexpr named_tuple() = default;
         constexpr named_tuple(const named_tuple&) = default; // FIX ME
-        constexpr named_tuple(named_tuple&&) noexcept(true) = default; // FIX ME
+        constexpr named_tuple(named_tuple&&) = default; // FIX ME
         constexpr named_tuple& operator=(const named_tuple&) = default; // FIX ME
-        constexpr named_tuple& operator=(named_tuple&&) noexcept(true) = default; // FIX ME
+        constexpr named_tuple& operator=(named_tuple&&) = default; // FIX ME
 
         template <typename CharT>
         friend std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const named_tuple& rhs)
@@ -159,6 +167,7 @@ namespace leviathan
         auto& get_with() const { return std::get<N>(val); }
 
         template <typename T>
+            requires (is_arg_v<T>)
         constexpr decltype(auto) operator[](T) const
         {
             constexpr auto tag = T::tag();
@@ -166,6 +175,7 @@ namespace leviathan
         }
 
         template <typename T>
+            requires (is_arg_v<T>)
         constexpr decltype(auto) operator[](T) 
         {
             constexpr auto tag = T::tag();
