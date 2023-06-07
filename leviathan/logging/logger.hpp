@@ -9,6 +9,7 @@
 #include <optional>
 #include <ranges>
 #include <mutex>
+#include <map>
 #include <assert.h>
 
 namespace leviathan::logging
@@ -118,8 +119,23 @@ namespace leviathan::logging
         std::unique_ptr<basic_filter> m_filter;
     };
     
-    // TODO
-    class logger_manager;
+    class logger_manager 
+    {
+    public:
+
+        inline static logger_manager* instance = nullptr;
+
+        static std::shared_ptr<logger> get_root() 
+        {
+            static logger root("root");
+            return root.shared_from_this();
+        }
+
+    private:
+
+        std::map<std::string_view, std::shared_ptr<logger>> m_loggers;
+
+    };
 
 } // logger 
 

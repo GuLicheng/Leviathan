@@ -127,7 +127,7 @@ namespace leviathan
 
         template <typename... TagValues>
         constexpr named_tuple(TagValues... tvs)
-            : val(detail::adjust_arguments<tuple_type, Fields...>(std::move(tvs)...)) 
+            : m_val(detail::adjust_arguments<tuple_type, Fields...>(std::move(tvs)...)) 
         {
             // avoid error name
             static_assert((tag_list.template contains<TagValues::tag()> && ...), "Unknown Tag");
@@ -150,21 +150,21 @@ namespace leviathan
         auto& get_with() 
         {
             constexpr auto index = tag_list.template index_of<Tag>;
-            return std::get<index>(val);
+            return std::get<index>(m_val);
         }
 
         template <basic_fixed_string Tag>
         auto& get_with() const
         {
             constexpr auto index = tag_list.template index_of<Tag>;
-            return std::get<index>(val);
+            return std::get<index>(m_val);
         }
 
         template <size_t N>
-        auto& get_with() { return std::get<N>(val); }
+        auto& get_with() { return std::get<N>(m_val); }
 
         template <size_t N>
-        auto& get_with() const { return std::get<N>(val); }
+        auto& get_with() const { return std::get<N>(m_val); }
 
         template <typename T>
             requires (is_arg_v<T>)
@@ -182,9 +182,14 @@ namespace leviathan
             return get_with<tag>();
         }
 
+        tuple_type& get_tuple() & { return m_val; }
+        const tuple_type& get_tuple() const& { return m_val; }
+        tuple_type&& get_tuple() && { return std::move(m_val); }
+        const tuple_type&& get_tuple() const&& { return std::move(m_val); }
+
     private:
     
-        tuple_type val; // store values
+        tuple_type m_val; // store values
 
     };
 
