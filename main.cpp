@@ -1,15 +1,12 @@
 #include <leviathan/string/lexical_cast.hpp>
-
-
+#include <leviathan/string/opt.hpp>
 
 
 int main(int argc, char const *argv[])
 {
-    std::string s = "12345";
 
-    std::string_view sv = s;
-
-    // constexpr auto ok = std::convertible_to<std::string, std::string_view>;
+    static_assert(!leviathan::string::string_viewable<int>);
+    static_assert(leviathan::string::string_viewable<std::string>);
 
     return 0;
 }
