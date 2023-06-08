@@ -56,3 +56,11 @@ TEST_CASE("fixed_basic_string")
     using T = ::leviathan::basic_fixed_string<15, char>; // "[Hello World !]";
     test_string<T>();
 }
+
+TEST_CASE("convert to string_view")
+{
+    leviathan::fixed_string s = "HelloWorld";
+
+    std::string_view sv = static_cast<std::string_view>(s);
+    REQUIRE(sv == "HelloWorld");
+}

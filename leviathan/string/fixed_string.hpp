@@ -46,6 +46,9 @@ namespace leviathan
         constexpr string_view_type sv() const 
         { return { begin(), end() }; }
 
+        constexpr explicit operator string_view_type() const
+        { return sv(); }
+
         template <size_t K>
         constexpr auto operator<=>(const basic_fixed_string<K, CharT, Traits>& rhs) const noexcept
         { return sv() <=> rhs.sv(); }

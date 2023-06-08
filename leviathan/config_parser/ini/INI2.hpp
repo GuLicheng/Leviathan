@@ -105,7 +105,7 @@ private:
             | std::views::split('\n')
             | std::views::transform(GetSectionOrEntryContext)
             | std::views::filter(std::ranges::size)
-            | leviathan::ranges::chunk_by(ChunkSectionAndEntries)  // std::views::chunk_by
+            | std::views::chunk_by(ChunkSectionAndEntries)  // std::views::chunk_by
             | std::views::transform(ParseOneSectionAndEntriesChunkToResultValueType);
         //  | std::views::to<...>(); 
 

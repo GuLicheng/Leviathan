@@ -2,7 +2,6 @@
 
 namespace leviathan
 {
-
     consteval bool is_utf8() 
     {
         constexpr unsigned char micro[] = "\u00B5";
