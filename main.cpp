@@ -2,13 +2,13 @@
 
 int main()
 {
-    using namespace leviathan::ini;
+    using namespace leviathan::config::ini;
 
-    auto result = parse_configuration(R"(D:\Library\Leviathan\leviathan\config_parser\config\RA2.ini)");
+    // auto result = parse_configuration(R"(D:\Library\Leviathan\leviathan\config_parser\config\RA2.ini)");
 
-    result.display();
+    // result.display();
 
-    configuration writer(result);
+    // configuration writer(result);
 
 }
 
