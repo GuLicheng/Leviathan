@@ -1,36 +1,29 @@
-#include <string>
-#include <concepts>
+#include <leviathan/string/lexical_cast.hpp>
+#include <string_view>
 
-template <typename From, typename To> 
-struct lexical_cast;
-
-template <typename From, typename To>
-    requires std::same_as<From, std::string> && std::is_arithmetic_v<To>
-struct lexical_cast<From, To>
+namespace leviathan::config_parser
 {
-    To operator()(const From& src)
+    /**
+     * @brief This value is used for storing the string of parser.
+     * 
+     * @param T The storage type of parser, maybe string or string_view.
+    */
+    template <typename T>
+    struct basic_value
     {
-        if constexpr (std::integral<To>)
-            return (To)std::stoll(src);
-        else
-            return (To)std::stod(src);
-    }
-};
+        T m_value;
+
+        template <typename U>
+        auto cast() const
+        {   
+            return leviathan::string::lexical_cast<U>(m_value);
+        }   
+    };
+
+    using value = basic_value<std::string_view>;
+}
 
 
-template <typename T>
-class config_value
-{
-    T m_value;
-
-
-    template <typename U>
-    constexpr U as() const 
-    {
-        return lexical_cast<T, U>()(m_value);
-    }
-
-};
 
 
 

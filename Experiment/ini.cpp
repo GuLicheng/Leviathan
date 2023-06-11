@@ -1,4 +1,4 @@
-#include <leviathan/ranges/ranges.hpp>
+#include <ranges>
 #include <unordered_map>
 #include <iostream>
 #include <fstream>
@@ -41,7 +41,7 @@ inline constexpr auto IsEntry = [](auto str) {
 };
 
 inline constexpr auto ChunkSectionAndEntries = [](auto l, auto r) {
-    return (IsSection(l) && IsEntry(r)) || (IsEntry(l) && IsEntry(r));
+    return (IsSection(l) && IsEntr  y(r)) || (IsEntry(l) && IsEntry(r));
 };
 
 inline constexpr auto SplitEntryToKeyValue = [](auto line) {
@@ -105,7 +105,7 @@ private:
             | std::views::split('\n')
             | std::views::transform(GetSectionOrEntryContext)
             | std::views::filter(std::ranges::size)
-            | std::views::chunk_by(ChunkSectionAndEntries)  // std::views::chunk_by
+            | std::views::chunk_by(ChunkSectionAndEntries)  
             | std::views::transform(ParseOneSectionAndEntriesChunkToResultValueType);
         //  | std::views::to<...>(); 
 
@@ -165,19 +165,13 @@ private:
 
 
 
-// int main()
-// {
-//     SimpleInIReader reader { "a.ini" };
+int main()
+{
+    SimpleInIReader reader { "a.ini" };
 
-//     SimpleInIWriter writer { reader };
+    SimpleInIWriter writer { reader };
 
-//     writer["Boris"]["Cost"] = "1500";
+    writer["Boris"]["Cost"] = "1500";
 
-//     writer.Write(std::cout);
-// }
-
-
-
-
-
-
+    writer.Write(std::cout);
+}

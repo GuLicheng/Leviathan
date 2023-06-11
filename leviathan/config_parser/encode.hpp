@@ -8,7 +8,7 @@ namespace leviathan
         return sizeof(micro) == 3 && micro[0] == 0xC2 && micro[1] == 0xB5;
     }
 
-    unsigned decode_unicode_from_char(const char* p)
+    constexpr unsigned decode_unicode_from_char(const char* p)
     {
         auto to_digit = [](char ch) -> unsigned
         {

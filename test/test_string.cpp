@@ -1,4 +1,6 @@
 #include <leviathan/string/lexical_cast.hpp>
+#include <leviathan/string/fixed_string.hpp>
+#include <leviathan/string/string_extend.hpp>
 #include <catch2/catch_all.hpp>
 
 TEST_CASE("lexical cast from std::string to integer")
@@ -51,4 +53,13 @@ TEST_CASE("lexical cast from leviathan::fixed_string to unsigned integer")
 
     REQUIRE(i.has_value());
     REQUIRE(*i == 12345);
+}
+
+TEST_CASE("lexical cast from self to self")
+{
+    std::string_view s = "12345";
+
+    auto i = leviathan::string::lexical_cast<std::string_view>(s);
+
+    REQUIRE(i == "12345");
 }

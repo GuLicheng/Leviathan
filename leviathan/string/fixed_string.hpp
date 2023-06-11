@@ -1,3 +1,4 @@
+// https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0259r0.pdf
 #pragma once
 
 #include <cstddef>
@@ -28,14 +29,27 @@ namespace leviathan
 
         static constexpr auto npos = string_view_type::npos;
 
-        constexpr auto size() const noexcept 
+        constexpr size_t size() const noexcept 
         { return N; }
         
-        constexpr auto length() const noexcept 
+        constexpr size_t length() const noexcept 
         { return N; }
         
         constexpr bool empty() const noexcept 
         { return size() == 0; }
+
+        constexpr size_t capacity() const noexcept
+        { return N; }
+
+        constexpr size_t max_size() const noexcept
+        { return N; }
+
+        constexpr basic_fixed_string() = default;
+
+        constexpr basic_fixed_string(const basic_fixed_string& str) noexcept
+        {
+            Traits::copy(m_data, str.m_data, N + 1);
+        }
 
         constexpr basic_fixed_string(const CharT (&str)[N + 1]) noexcept
         {
@@ -43,10 +57,20 @@ namespace leviathan
             Traits::copy(m_data, str, N + 1);
         }
 
-        constexpr string_view_type sv() const 
+        constexpr basic_fixed_string& operator=(const basic_fixed_string& str) noexcept
+        {
+            Traits::copy(m_data, str.m_data, N + 1);
+        }
+
+        constexpr basic_fixed_string& operator=(const CharT (&str)[N + 1]) noexcept
+        {
+            Traits::copy(m_data, str, N + 1);
+        }
+
+        constexpr string_view_type sv() const noexcept
         { return { begin(), end() }; }
 
-        constexpr explicit operator string_view_type() const
+        constexpr explicit operator string_view_type() const noexcept
         { return sv(); }
 
         template <size_t K>
@@ -71,6 +95,8 @@ namespace leviathan
         constexpr value_type* data() noexcept { return m_data; }
         constexpr const value_type* data() const noexcept { return m_data; }
 
+        constexpr const value_type* c_str() const noexcept { return m_data; }
+
         constexpr value_type& operator[](size_type pos) noexcept { return m_data[pos]; }
         constexpr const value_type& operator[](size_type pos) const noexcept { return m_data[pos]; }
 
@@ -80,8 +106,19 @@ namespace leviathan
         constexpr reference back() noexcept { return *(end() - 1); }
         constexpr const_reference back() const noexcept { return *(end() - 1); }
 
-        constexpr value_type& at(size_type pos) { if (pos >= size()) throw std::out_of_range{""}; return m_data[pos]; }    
-        constexpr const value_type& at(size_type pos) const { if (pos >= size()) throw std::out_of_range{""}; return m_data[pos]; }    
+        constexpr value_type& at(size_type pos) 
+        { 
+            if (pos >= size()) 
+                throw std::out_of_range("index out of boundary"); 
+            return m_data[pos]; 
+        }    
+
+        constexpr const value_type& at(size_type pos) const 
+        { 
+            if (pos >= size()) 
+                throw std::out_of_range("index out of boundary"); 
+            return m_data[pos]; 
+        }    
 
         constexpr iterator begin() noexcept { return m_data; }
         constexpr iterator end() noexcept { return m_data + N; }
@@ -102,8 +139,6 @@ namespace leviathan
         constexpr const_reverse_iterator rcend() const noexcept { return std::make_reverse_iterator(begin()); }
 
         constexpr std::size_t hash_code() const noexcept { return std::hash<string_view_type>()(sv()); }
-
-        constexpr const value_type* c_str() const noexcept { return m_data; }
 
         CharT m_data[N + 1]; // literal operator requires m_data must be public now.
     };
@@ -176,6 +211,22 @@ namespace leviathan::literals
             return std::vformat(FixedString.sv(), std::make_format_args((Args&&) args...));
         };
     }
+}
+
+#include "lexical_cast.hpp"
+
+namespace leviathan::string
+{
+    // Same as string_view
+    template <arithmetic Target, size_t N>
+    struct lexical_cast_t<Target, fixed_string<N>> 
+    {
+        template <typename... Args>
+        constexpr static auto operator()(const fixed_string<N>& s, Args... args) 
+        {
+            return lexical_cast_t<Target, std::string_view>()(s.sv(), args...);
+        }
+    };
 }
 
 // We let follow literal operator in global namespace just for convenient.
