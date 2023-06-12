@@ -1,10 +1,3 @@
-import logging
+import configparser, json
 
-logging.getLogger()
-
-"""
-%(time)-%(level)d : %(message)s
-
-
-
-"""
+parser = configparser.ConfigParser()

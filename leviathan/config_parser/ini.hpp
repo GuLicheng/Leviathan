@@ -26,6 +26,8 @@ namespace leviathan::config::ini
     using std::string_view;
     using std::string;
     using leviathan::string::trim;
+    using leviathan::string::ltrim;
+    using leviathan::string::rtrim;
 
     template <typename K, typename V>
     using hashmap = std::unordered_map<
@@ -40,17 +42,13 @@ namespace leviathan::config::ini
     {
         inline constexpr const char nl = '\n';
 
-        inline constexpr const char* comment = ";"; 
+        inline constexpr const char* comment = ";#"; 
 
         inline constexpr const char eq = '=';
 
-        inline constexpr const char left = '[';     // left section
+        inline constexpr const char lbracket = '[';     // left section
 
-        inline constexpr const char right = ']';    // right section
-
-        inline constexpr auto trim_white_space = [](string_view line) static {
-            return trim(line);
-        };
+        inline constexpr const char rbracket = ']';    // right section
 
         inline constexpr auto get_section_or_entry_context = [](auto line) static {
 
@@ -60,18 +58,15 @@ namespace leviathan::config::ini
 
             auto end_of_line = str.find_first_of(comment);  // find comment
 
-            if (end_of_line == str.npos)
-                end_of_line = str.size();
+            auto new_line = str.substr(0, end_of_line); // remove comment
 
-            auto new_line = string_view(std::ranges::begin(str), end_of_line);
-
-            auto line_after_trimming = trim_white_space(new_line);
+            auto line_after_trimming = trim(new_line);
 
             return line_after_trimming;
         };
 
         inline constexpr auto is_section = [](auto context) static {
-            return context.front() == left;
+            return context.front() == lbracket;
         };
 
         inline constexpr auto is_entry = [](auto context) static {
@@ -93,7 +88,7 @@ namespace leviathan::config::ini
 
             auto value = context.substr(equal + 1);
 
-            return std::make_pair(trim(key), trim(value));
+            return std::make_pair(rtrim(key), ltrim(value));
         };
 
         inline constexpr auto map_entries_to_dict = [](auto lines) static {
@@ -107,6 +102,7 @@ namespace leviathan::config::ini
 
         inline constexpr auto to_section = [](auto lines) static {
             auto section = *lines.begin();
+            assert(section.front() == lbracket && section.back() == rbracket && "each section should started with '[' and end with ']'");
             auto entries = map_entries_to_dict(lines | std::views::drop(1));
             return std::make_pair(
                 section.substr(1, section.size() - 2),
@@ -173,6 +169,23 @@ namespace leviathan::config::ini
         configuration(const read_only_configuration& config)
         {
             copy_result_from_config(config);
+        }
+
+        template <typename T>
+        void set_value(string section, string key, const T& value)
+        {
+            m_sections[std::move(section)][std::move(key)] = std::format("{}", value);
+        }
+
+        void display() const
+        {
+            for (const auto& [section, entries] : m_sections)
+            {
+                std::cout << std::format("[{}]\n", section);
+                for (auto [k, v] : entries)
+                    std::cout << std::format("{}={}\n", k, v);
+                std::cout << '\n';
+            }
         }
 
     private:

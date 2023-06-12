@@ -43,19 +43,34 @@ namespace leviathan::string
 
     };
  
-    constexpr std::string_view trim(std::string_view sv)
+    constexpr const char* whitespace_delimiters = " \t\n\r\f\v";
+
+    constexpr std::string_view ltrim(std::string_view sv, std::string_view delimiters = whitespace_delimiters)
     {
-        auto left = sv.find_first_not_of(" \r\n\t");
-        if (left == sv.npos) // all space
-            return { sv.end(), sv.end() };
-        auto right = sv.find_last_not_of(" \r\n\t");
-        return { sv.begin() + left, sv.begin() + right + 1 };
+        auto left = sv.find_first_not_of(delimiters);
+        return sv.substr(left == sv.npos ? sv.size() : left);
     }
 
-    std::string_view trim(const std::string& s)
+    constexpr std::string_view rtrim(std::string_view sv, std::string_view delimiters = whitespace_delimiters)
+    {
+        auto right = sv.find_last_not_of(delimiters);
+        return sv.substr(0, right + 1);
+    }
+
+    constexpr std::string_view trim(std::string_view sv, std::string_view delimiters = whitespace_delimiters)
+    {
+        return rtrim(ltrim(sv, delimiters), delimiters);
+        // auto left = sv.find_first_not_of(whitespace_delimiters);
+        // if (left == sv.npos) // all space
+        //     return { sv.end(), sv.end() };
+        // auto right = sv.find_last_not_of(whitespace_delimiters);
+        // return { sv.begin() + left, sv.begin() + right + 1 };
+    }
+
+    std::string_view trim(const std::string& s, std::string_view delimiters = whitespace_delimiters)
     {
         std::string_view sv = s;
-        return trim(sv);        
+        return trim(sv, delimiters);        
     }
 
     template <typename Pred>
