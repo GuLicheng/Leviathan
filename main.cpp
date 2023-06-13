@@ -1,4 +1,5 @@
 #include <iostream>
+#include <spanstream>
 #include <leviathan/config_parser/json.hpp>
 
 namespace json = leviathan::config::json;

@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <algorithm>
 #include <type_traits>
 #include <expected>
@@ -33,8 +33,7 @@ namespace leviathan::config::json
         illegal_root,
     };
 
-    constexpr const char* error_infos[]
-    {
+    inline constexpr const char* error_infos[] = {
         "ok",
         "end of file error",
         "uninitialized",
@@ -52,19 +51,20 @@ namespace leviathan::config::json
         return error_infos[static_cast<int>(ec)];
     }
 
-    class json_value;
-
-    using json_number = double;
-    using json_string = std::string;
-    using json_boolean = bool;
-    using json_null = std::nullptr_t;   // This may not suitable.
-    using json_array = std::vector<json_value>;
-    using json_object = std::map<json_string, json_value>;
-
     using std::string_view;
     using std::string;
     using leviathan::string::arithmetic;
     using leviathan::string::whitespace_delimiters;
+    using leviathan::string::string_hash_keyequal;
+
+    class json_value;
+
+    using json_number = double;
+    using json_string = string;
+    using json_boolean = bool;
+    using json_null = std::nullptr_t;   // This may not suitable.
+    using json_array = std::vector<json_value>;
+    using json_object = std::unordered_map<json_string, json_value, string_hash_keyequal, string_hash_keyequal>;
 
     namespace detail
     {
@@ -79,7 +79,6 @@ namespace leviathan::config::json
         concept json_value_able = contains_v<
             T, json_number, json_string, json_boolean, json_null, json_array, json_object, error_code>;
     }
-
 
     class json_value
     {
@@ -97,20 +96,15 @@ namespace leviathan::config::json
 
     public:
 
+        json_value() : m_data(error_code::uninitialized) { }
+
         explicit operator bool() const
         {
-            return is_valid();
+            return m_data.index() < std::variant_size_v<value_type> - 1;
         }
-
-        json_value() : m_data(error_code::uninitialized) { }
 
         template <detail::json_value_able T>
         json_value(T&& t) : m_data((T&&) t) { }
-
-        bool is_valid() const
-        { 
-            return m_data.index() < std::variant_size_v<value_type> - 1;
-        }
 
         template <typename T>
         T& cast_unchecked() &
@@ -182,6 +176,7 @@ namespace leviathan::config::json
         json_value parse_array_or_object()
         {
             skip_whitespace();
+
             if (m_cur.empty())
             {
                 return return_with_error_code(error_code::eof_error);
@@ -213,7 +208,7 @@ namespace leviathan::config::json
                 {
                     auto value = parse_value();
 
-                    if (!value.is_valid())
+                    if (!value)
                     {
                         return return_with_error_code(error_code::illegal_array);
                     }
@@ -296,7 +291,7 @@ namespace leviathan::config::json
                 {
                     auto key = parse_string();
 
-                    if (!key.is_valid())
+                    if (!key)
                     {
                         return return_with_error_code(error_code::illegal_object);
                     }
@@ -310,7 +305,7 @@ namespace leviathan::config::json
 
                     auto value = parse_value();
 
-                    if (!value.is_valid())
+                    if (!value)
                     {
                         return return_with_error_code(error_code::illegal_object);
                     }
@@ -433,7 +428,7 @@ namespace leviathan::config::json
     {
         std::fstream ifs(filename, std::ios_base::in | std::ios_base::binary);
         
-        std::string context = std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+        string context = string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
 
         return parser(std::move(context))();
     }
@@ -525,16 +520,6 @@ namespace leviathan::config::json
                 os << "\" : ";
                 json_serialize(os, it->second, padding + 1);
             }
-            // for (std::size_t i = 0; i < object.m_val.size(); ++i)
-            // {
-            //     if (i != 0) os << ",\n";
-            //     // json_serialize(os, object.m_val[i], padding + 1);
-            //     json_padding(os, padding_character, padding);
-            //     os << " \"";
-            //     os << entry.m_key;
-            //     os << "\" : ";
-            //     json_serialize(os, entry.m_val, padding + 1);
-            // }
             os << '\n';
             json_padding(os, padding_character, padding);
             os << '}';
