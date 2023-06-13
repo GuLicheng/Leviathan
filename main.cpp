@@ -1,23 +1,33 @@
-#include<leviathan/config_parser/ini.hpp>
+#include <iostream>
+#include <leviathan/config_parser/json.hpp>
 
-int main()
+namespace json = leviathan::config::json;
+
+int main(int argc, char const *argv[])
 {
-    using namespace leviathan::config::ini;
+    json::json_value value1 = json::make(3);
+    json::json_value value2 = json::make(true);
+    json::json_value value3 = json::make("HelloWorld");
 
-    auto result = parse_configuration(R"(D:\Library\Leviathan\leviathan\config_parser\config\RA2.ini)");
+    const char* path = R"(D:\Library\Leviathan\a.json)";
 
-    result.display();
+    auto value = json::parse_json(path);
 
-    configuration writer(result);
+    if (!value)
+    {
+        std::cout << json::report_error(value.cast_unchecked<json::error_code>());
+    }
+    else
+    {
+        json::detail::json_serialize(std::cout, value, 0);
+    }
 
-    writer.set_value("Boris", "Cost", 1500);
-    writer.set_value("Boris", "Name", "Boris");
+    std::cout << "\nOk\n";
 
-    writer.display();
-
+    return 0;
 }
 
 
-
+ 
 
 

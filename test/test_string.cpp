@@ -128,3 +128,13 @@ TEST_CASE("trim2")
     REQUIRE(trim(sv3) == answer1);
 }
 }
+
+TEST_CASE("replace")
+{
+    std::string s = "0123456789-0123456789-0123456789";
+    s = leviathan::string::replace(std::move(s), "012", "210");
+    REQUIRE(s == "2103456789-2103456789-2103456789");
+
+    s = "";
+    REQUIRE(leviathan::string::replace(s, "012", "321") == "");
+}

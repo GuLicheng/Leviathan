@@ -1,4 +1,4 @@
-#include <leviathan/string/lexical_cast.hpp>
+#include <leviathan/string/string_extend.hpp>
 #include <string_view>
 #include <optional>
 
@@ -10,16 +10,17 @@ namespace leviathan::config
      * @param T The storage type of parser, maybe string or string_view.
     */
     template <typename T>
-    struct basic_item
+    struct basic_item : std::optional<T>
     {
-        std::optional<T> m_value;
+
+        using std::optional<T>::optional;
 
         template <typename U>
         std::optional<U> cast() const
         {
-            if (!m_value)
+            if (!*this)
                 return std::nullopt;
-            return leviathan::string::lexical_cast<U>(*m_value);
+            return leviathan::string::lexical_cast<U>(**this);
         }
 
     };

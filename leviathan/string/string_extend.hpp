@@ -2,14 +2,15 @@
 
 #include <string>
 #include <string_view>
+#include <concepts>
+#include <optional>
+#include <charconv>
 
 namespace leviathan::string
 {
     template <typename T>
-    concept string_viewable = requires (const T& t) 
-    {
-        static_cast<std::string_view>(t);
-    };
+    concept string_viewable = std::is_convertible_v<const T&, std::string_view> 
+        && !std::is_convertible_v<const T&, const char*>;
 
     // This overload participates in overload resolution only if 
     // Hash::is_transparent and KeyEqual::is_transparent are valid and each denotes a type
@@ -43,7 +44,13 @@ namespace leviathan::string
 
     };
  
-    constexpr const char* whitespace_delimiters = " \t\n\r\f\v";
+    /**
+     * ' '  space    
+     * '\t' horizontal tab
+     * '\r' carriage return
+     * '\n' linefeed
+    */
+    inline constexpr const char* whitespace_delimiters = " \t\n\r";
 
     constexpr std::string_view ltrim(std::string_view sv, std::string_view delimiters = whitespace_delimiters)
     {
@@ -89,12 +96,20 @@ namespace leviathan::string
         return { sv.begin(), iter };
     }
 
+    std::string replace(std::string str, std::string_view from, std::string_view to)
+    {
+        size_t pos = 0;
+        while ((pos = str.find(from, pos)) != str.npos)
+        {
+            str.replace(pos, from.size(), to);
+            pos += to.size();
+        }
+        return str;
+    }
+
 }
 
 #include "lexical_cast.hpp"
-#include <concepts>
-#include <optional>
-#include <charconv>
 
 namespace leviathan::string
 {

@@ -62,8 +62,6 @@ namespace leviathan::json
         return json_error_info[static_cast<int>(ec)];
     }
 
-    // string、number、object、array、(true、false)、null
-
     // declaration 
     struct json_boolean;
     struct json_array;

@@ -5,6 +5,7 @@
 #include "item.hpp"
 
 #include <leviathan/string/string_extend.hpp>
+#include <leviathan/meta/template_info.hpp>
 
 #include <algorithm>
 #include <unordered_map>
@@ -40,7 +41,7 @@ namespace leviathan::config::ini
     // We define some helper function here
     namespace detail
     {
-        inline constexpr const char nl = '\n';
+        inline constexpr const char linefeed = '\n';
 
         inline constexpr const char* comment = ";#"; 
 
@@ -51,6 +52,8 @@ namespace leviathan::config::ini
         inline constexpr const char rbracket = ']';    // right section
 
         inline constexpr auto get_section_or_entry_context = [](auto line) static {
+
+            // line is std::subrange<std::string::iterator, std::string::iterator, std::ranges::subrange::sized>
 
             // for empty line or line just with comments, return "".
 
@@ -136,7 +139,7 @@ namespace leviathan::config::ini
             }
         }
 
-        std::optional<item> get_value(string_view section, string_view key) const
+        item get_value(string_view section, string_view key) const
         {
             // check section
             auto it1 = m_sections.find(section);
@@ -148,9 +151,7 @@ namespace leviathan::config::ini
             if (it2 == it1->second.end())
                 return std::nullopt;
 
-            return item {
-                .m_value = it2->second
-            };
+            return it2->second;
         }
 
     private:
@@ -177,14 +178,29 @@ namespace leviathan::config::ini
             m_sections[std::move(section)][std::move(key)] = std::format("{}", value);
         }
 
-        void display() const
+        item get_value(string_view section, string_view key) const
+        {
+            // check section
+            auto it1 = m_sections.find(section);
+            if (it1 == m_sections.end())
+                return std::nullopt;
+            
+            // check key
+            auto it2 = it1->second.find(key);
+            if (it2 == it1->second.end())
+                return std::nullopt;
+
+            return it2->second;
+        }
+
+        void save(std::ostream& os) const
         {
             for (const auto& [section, entries] : m_sections)
             {
-                std::cout << std::format("[{}]\n", section);
+                os << std::format("[{}]\n", section);
                 for (auto [k, v] : entries)
-                    std::cout << std::format("{}={}\n", k, v);
-                std::cout << '\n';
+                    os << std::format("{}={}\n", k, v);
+                os << '\n';
             }
         }
 
@@ -213,7 +229,7 @@ namespace leviathan::config::ini
         auto context = std::make_unique<string>(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
 
         auto sections = *context
-            | std::views::split(detail::nl)
+            | std::views::split(detail::linefeed)
             | std::views::transform(detail::get_section_or_entry_context)
             | std::views::filter(std::ranges::size)
             | std::views::chunk_by(detail::chunk_section_and_entries)  
