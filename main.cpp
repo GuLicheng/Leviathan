@@ -2,6 +2,9 @@
 #include <spanstream>
 #include <leviathan/config_parser/json.hpp>
 
+#include <functional>
+#include <ranges>
+
 namespace json = leviathan::config::json;
 
 int main(int argc, char const *argv[])

@@ -4,6 +4,7 @@
 
 #include "encode.hpp"
 
+#include <memory>
 #include <iterator>
 #include <fstream>
 #include <variant>
@@ -31,6 +32,7 @@ namespace leviathan::config::json
         illegal_literal,
         illegal_boolean,
         illegal_root,
+        unknown_character,
     };
 
     inline constexpr const char* error_infos[] = {
@@ -44,6 +46,7 @@ namespace leviathan::config::json
         "illegal_literal",
         "illegal_boolean",
         "illegal_root",
+        "unknown_character",
     };
 
     constexpr const char* report_error(error_code ec)
@@ -78,6 +81,21 @@ namespace leviathan::config::json
         template <typename T>
         concept json_value_able = contains_v<
             T, json_number, json_string, json_boolean, json_null, json_array, json_object, error_code>;
+
+        template <typename T>
+        struct save_memory : std::type_identity<T> { };
+
+        template <typename T>
+            requires (sizeof(T) > 8)
+        struct save_memory<T> : std::type_identity<std::unique_ptr<T>> { };
+
+        template <typename T>
+        using save_memory_t = typename save_memory<T>::type;
+
+        static_assert(std::is_same_v<std::unique_ptr<json_string>, save_memory_t<json_string>>);
+        static_assert(std::is_same_v<std::unique_ptr<json_array>, save_memory_t<json_array>>);
+        static_assert(std::is_same_v<std::unique_ptr<json_object>, save_memory_t<json_object>>);
+
     }
 
     class json_value
@@ -92,6 +110,7 @@ namespace leviathan::config::json
                 json_object,
                 error_code>;  // If some errors happen, return error_code.
 
+        // Each value_type occupy 72 bytes in x64, is pointer(16 bytes) be better?
         value_type m_data;   
 
     public:
@@ -118,6 +137,8 @@ namespace leviathan::config::json
             return std::move(*std::get_if<T>(&m_data));
         }
     };
+
+    constexpr auto value_size = sizeof(json_value);
 
     template <typename T>
     json_value make(T&& t) 
@@ -200,6 +221,7 @@ namespace leviathan::config::json
 
             if (current() == ']')
             {
+                advance_unchecked(1); // eat ']'
                 return arr;
             }   
             else 
@@ -259,9 +281,6 @@ namespace leviathan::config::json
 
         bool compare_literal_and_advance(string_view literal)
         {
-            // current context: "fa"
-            // literal context: "false"
-
             // compare, string_view::substr will check length automatically.
             if (m_cur.compare(0, literal.size(), literal) != 0)
             {
@@ -389,7 +408,33 @@ namespace leviathan::config::json
 
         json_value parse_number()
         {
-            return return_with_error_code(error_code::illegal_number);
+            char ch = current();
+
+            // We use std::from_chars to help us parse number.
+            // This if-else is not necessary, but we want use two 
+            // to distinct the tow error cases.
+            if (ch == '-' || isdigit(ch))
+            {
+                auto startptr = m_cur.data();
+
+                while (m_cur.size() && valid_number_character(current()))
+                {
+                    advance_unchecked(1);
+                }
+
+                auto endptr = m_cur.data();
+
+                if (double value; std::from_chars(startptr, endptr, value, std::chars_format::general).ec == std::errc())
+                {
+                    return value;
+                }    
+
+                return return_with_error_code(error_code::illegal_number);
+            }
+            else
+            {
+                return return_with_error_code(error_code::unknown_character);
+            }
         }
 
         // Whitespace is consist of (' ', '\r', '\n', '\t').
@@ -397,6 +442,23 @@ namespace leviathan::config::json
         {
             auto idx = m_cur.find_first_not_of(whitespace_delimiters);
             m_cur.remove_prefix(idx == m_cur.npos ? m_cur.size() : idx);
+        }
+
+        static bool valid_number_character(char ch)
+        {
+            if (isdigit(ch))
+            {
+                return true;
+            }
+            switch (ch)
+            {
+                case '-':
+                case '+':
+                case '.':
+                case 'e':
+                case 'E': return true;
+                default: return false;
+            }
         }
 
         void advance_unchecked(size_t n)
