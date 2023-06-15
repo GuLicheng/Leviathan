@@ -1,12 +1,11 @@
 #pragma once
 
 #include <leviathan/string/string_extend.hpp>
-
-#include "encode.hpp"
+#include <leviathan/config_parser/item.hpp>
+#include <leviathan/config_parser/common.hpp>
+#include <leviathan/config_parser/encode.hpp>
 
 #include <memory>
-#include <iterator>
-#include <fstream>
 #include <variant>
 #include <string>
 #include <vector>
@@ -14,9 +13,6 @@
 #include <unordered_map>
 #include <algorithm>
 #include <type_traits>
-#include <expected>
-
-#include <assert.h>
 
 namespace leviathan::config::json
 {
@@ -69,93 +65,74 @@ namespace leviathan::config::json
     using json_array = std::vector<json_value>;
     using json_object = std::unordered_map<json_string, json_value, string_hash_keyequal, string_hash_keyequal>;
 
-    namespace detail
-    {
-        // see leviathan::meta::should_be
-        template <typename T, typename... Ts>
-        struct contains : std::disjunction<std::is_same<std::remove_cvref_t<T>, Ts>...> { };
+    template <typename T>
+    struct to_unique_ptr : store_ptr<std::unique_ptr<T>, is_large_than_raw_pointer> { };
 
-        template <typename T, typename... Ts>
-        inline constexpr bool contains_v = contains<T, Ts...>::value;
+    using binder = config::bind<std::variant>::with<
+        json_null,
+        json_boolean,
+        json_number,
+        json_string,
+        json_array,
+        json_object,
+        error_code  // If some errors happen, return error_code.
+    >;
 
-        template <typename T>
-        concept json_value_able = contains_v<
-            T, json_number, json_string, json_boolean, json_null, json_array, json_object, error_code>;
+    using binder2 = binder::transform<to_unique_ptr>::type;
 
-        template <typename T>
-        struct save_memory : std::type_identity<T> { };
-
-        template <typename T>
-            requires (sizeof(T) > 8)
-        struct save_memory<T> : std::type_identity<std::unique_ptr<T>> { };
-
-        template <typename T>
-        using save_memory_t = typename save_memory<T>::type;
-
-        static_assert(std::is_same_v<std::unique_ptr<json_string>, save_memory_t<json_string>>);
-        static_assert(std::is_same_v<std::unique_ptr<json_array>, save_memory_t<json_array>>);
-        static_assert(std::is_same_v<std::unique_ptr<json_object>, save_memory_t<json_object>>);
-
-    }
+    template <typename T>
+    concept json_value_able = binder2::contains<T>;
 
     class json_value
     {
     public:
-        using value_type = std::variant<
-                json_null,
-                json_boolean,
-                json_number,
-                json_string,
-                json_array,
-                json_object,
-                error_code>;  // If some errors happen, return error_code.
 
-        // Each value_type occupy 72 bytes in x64, is pointer(16 bytes) be better?
+        using value_type = binder2::type;
+
         value_type m_data;   
 
     public:
 
         json_value() : m_data(error_code::uninitialized) { }
 
+        template <json_value_able T>
+        json_value(T t) : m_data(std::move(t)) { }
+
         explicit operator bool() const
         {
             return m_data.index() < std::variant_size_v<value_type> - 1;
         }
 
-        template <detail::json_value_able T>
-        json_value(T&& t) : m_data((T&&) t) { }
-
         template <typename T>
-        T& cast_unchecked() &
+        T* cast_unchecked() 
         {
-            return *std::get_if<T>(&m_data);
-        }
-    
-        template <typename T>
-        T&& cast_unchecked() &&
-        {
-            return std::move(*std::get_if<T>(&m_data));
+            if constexpr (!is_large_than_raw_pointer<T>::value)
+                return std::get_if<T>(&m_data);
+            else 
+                return (*std::get_if<typename to_unique_ptr<T>::type>(&m_data)).get();
         }
     };
 
-    constexpr auto value_size = sizeof(json_value);
+    json_value make(json_string str)
+    { return std::make_unique<json_string>(std::move(str)); }
 
-    template <typename T>
-    json_value make(T&& t) 
-    {
-        using U = std::remove_cvref_t<T>;
-        if constexpr (std::is_same_v<U, bool>)
-            return t;
-        else if constexpr (arithmetic<U>)
-            return json_number(t);
-        else
-            return (T&&)t;
-    }
+    json_value make(json_array arr)
+    { return std::make_unique<json_array>(std::move(arr)); }
+
+    json_value make(json_object arr)
+    { return std::make_unique<json_object>(std::move(arr)); }
+
+    json_value make(arithmetic auto num)
+    { return json_number(num); }
+
+    json_value make(json_boolean b)
+    { return b; }
+
+    json_value make(error_code ec)
+    { return ec; }
 
     json_value make(const char* str)
-    {
-        return json_string(str);
-    }  
+    { return std::make_unique<json_string>(str); }  
 
     // https://www.json.org/json-en.html
     class parser
@@ -191,7 +168,6 @@ namespace leviathan::config::json
                 case '"': return parse_string();
                 default: return parse_number();
             }
-
         }
 
         json_value parse_array_or_object()
@@ -222,7 +198,7 @@ namespace leviathan::config::json
             if (current() == ']')
             {
                 advance_unchecked(1); // eat ']'
-                return arr;
+                return make(std::move(arr));
             }   
             else 
             {
@@ -242,7 +218,7 @@ namespace leviathan::config::json
                     if (current() == ']')
                     {
                         advance_unchecked(1); // eat ']'
-                        return arr;
+                        return make(std::move(arr));
                     }
 
                     if (!match_and_advance(','))
@@ -299,7 +275,7 @@ namespace leviathan::config::json
             if (current() == '}')
             {
                 advance_unchecked(1); // eat '}'
-                return json_object();
+                return make(json_object());
             }
             else if (current() == '\"')
             {
@@ -318,7 +294,9 @@ namespace leviathan::config::json
                     skip_whitespace();
 
                     if (!match_and_advance(':'))
+                    {
                         return return_with_error_code(error_code::illegal_object);
+                    }
                     
                     skip_whitespace();
 
@@ -329,14 +307,14 @@ namespace leviathan::config::json
                         return return_with_error_code(error_code::illegal_object);
                     }
 
-                    obj.emplace(std::move(key).cast_unchecked<json_string>(), std::move(value));
+                    obj.emplace(std::move(*key.cast_unchecked<json_string>()), std::move(value));
 
                     skip_whitespace();
 
                     if (current() == '}')
                     {
                         advance_unchecked(1); // eat '}'
-                        return obj;
+                        return make(std::move(obj));
                     }
 
                     if (!match_and_advance(','))
@@ -366,7 +344,7 @@ namespace leviathan::config::json
                 if (ch == '"')
                 {
                     advance_unchecked(1); // eat '"'
-                    return s;
+                    return make(std::move(s));
                 }
 
                 if (ch == '\\')
@@ -411,7 +389,7 @@ namespace leviathan::config::json
             char ch = current();
 
             // We use std::from_chars to help us parse number.
-            // This if-else is not necessary, but we want use two 
+            // This if-else branch is not necessary, but we want use it 
             // to distinct the tow error cases.
             if (ch == '-' || isdigit(ch))
             {
@@ -462,24 +440,20 @@ namespace leviathan::config::json
         }
 
         void advance_unchecked(size_t n)
-        {
-            m_cur.remove_prefix(n);
-        }
+        { m_cur.remove_prefix(n); }
 
         char current() const
-        {
-            return m_cur[0];
-        }
+        { return m_cur[0]; }
 
         json_value return_with_error_code(error_code err)
-        {
-            return err;
-        }
+        { return err;}
 
         bool match_and_advance(char ch)
         {
             if (m_cur.empty())
+            {
                 return false;
+            }
             bool result = current() == ch;
             advance_unchecked(1);
             return result;
@@ -487,13 +461,7 @@ namespace leviathan::config::json
     };
 
     json_value parse_json(const char* filename)
-    {
-        std::fstream ifs(filename, std::ios_base::in | std::ios_base::binary);
-        
-        string context = string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
-
-        return parser(std::move(context))();
-    }
+    { return parser(read_file_contents(filename))(); }
 
     namespace detail
     {
@@ -506,7 +474,7 @@ namespace leviathan::config::json
         inline constexpr const char* padding_character = " ";
 
         template <typename OStream>
-        void json_serialize(OStream& os, const json_array& arr, int padding);
+        void json_serialize(OStream& os, const std::unique_ptr<json_array>& arr, int padding);
 
         template <typename OStream>
         void json_serialize(OStream& os, const json_boolean& boolean, int padding);
@@ -515,10 +483,10 @@ namespace leviathan::config::json
         void json_serialize(OStream& os, const json_number& number, int padding);
 
         template <typename OStream>
-        void json_serialize(OStream& os, const json_string& string, int padding);
+        void json_serialize(OStream& os, const std::unique_ptr<json_string>& string, int padding);
 
         template <typename OStream>
-        void json_serialize(OStream& os, const json_object& object, int padding);
+        void json_serialize(OStream& os, const std::unique_ptr<json_object>& object, int padding);
 
         template <typename OStream>
         void json_serialize(OStream& os, const json_null& null, int padding);
@@ -534,15 +502,17 @@ namespace leviathan::config::json
         }
 
         template <typename OStream>
-        void json_serialize(OStream& os, const json_string& string, int padding)
+        void json_serialize(OStream& os, const std::unique_ptr<json_string>& stringptr, int padding)
         {
+            auto& string = *stringptr;
             json_padding(os, padding_character, padding);
             os << '"' << string << '"';
         }
 
         template <typename OStream>
-        void json_serialize(OStream& os, const json_array& array, int padding)
+        void json_serialize(OStream& os, const std::unique_ptr<json_array>& arrayptr, int padding)
         {
+            auto& array = *arrayptr;
             os << "[\n";
             for (std::size_t i = 0; i < array.size(); ++i)
             {
@@ -569,8 +539,9 @@ namespace leviathan::config::json
         }
 
         template <typename OStream>
-        void json_serialize(OStream& os, const json_object& object, int padding)
+        void json_serialize(OStream& os, const std::unique_ptr<json_object>& objectptr, int padding)
         {
+            auto& object = *objectptr;
             json_padding(os, padding_character, padding);
             os << "{\n";
             for (auto it = object.begin(); it != object.end(); ++it)
