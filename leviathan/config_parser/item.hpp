@@ -13,7 +13,6 @@ namespace leviathan::config
     template <typename T>
     struct basic_item : std::optional<T>
     {
-
         using std::optional<T>::optional;
 
         template <typename U>
@@ -23,7 +22,6 @@ namespace leviathan::config
                 return std::nullopt;
             return leviathan::string::lexical_cast<U>(**this);
         }
-
     };
 
     using item = basic_item<std::string_view>;

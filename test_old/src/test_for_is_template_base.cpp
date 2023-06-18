@@ -16,18 +16,18 @@ template <template <typename...> typename BaseTemplateClass, typename DerivedIns
 constexpr auto is_instance_base_of = is_instance_base_of<BaseTemplateClass, DerivedInstance>::value;
 
 
-template <template <typename ...> typename B, typename T, typename = std::void_t<>>
-struct is_derived : std::false_type
-{
-};
+// template <template <typename ...> typename B, typename T, typename = std::void_t<>>
+// struct is_derived : std::false_type
+// {
+// };
 
-template <template <typename ...> typename B, typename T>
-struct is_derived <B, T, std::void_t<decltype([]<typename... Args>(B<Args...>*) {}(std::declval<T*>())) >> : std::true_type
-{
-};
+// template <template <typename ...> typename B, typename T>
+// struct is_derived <B, T, std::void_t<decltype([]<typename... Args>(B<Args...>*) {}(std::declval<T*>())) >> : std::true_type
+// {
+// };
 
 template <template <typename ...> typename Base, typename T>
-inline constexpr auto is_derived_v = is_derived<T, Base>::value;
+inline constexpr auto is_derived_v = is_derived<Base, T>::value;
 
 template <typename... Args>
 struct base

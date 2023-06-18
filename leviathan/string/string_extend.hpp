@@ -9,8 +9,10 @@
 namespace leviathan::string
 {
     template <typename T>
-    concept string_viewable = std::is_convertible_v<const T&, std::string_view> 
-        && !std::is_convertible_v<const T&, const char*>;
+    concept string_viewable = std::is_convertible_v<const T&, std::string_view>;
+
+    template <typename T>
+    concept string_view_like = string_viewable<T> && !std::is_convertible_v<const T&, const char*>;
 
     // This overload participates in overload resolution only if 
     // Hash::is_transparent and KeyEqual::is_transparent are valid and each denotes a type

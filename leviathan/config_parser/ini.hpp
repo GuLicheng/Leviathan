@@ -139,7 +139,7 @@ namespace leviathan::config::ini
             }
         }
 
-        item get_value(string_view section, string_view key) const
+        item operator[](string_view section, string_view key) const
         {
             // check section
             auto it1 = m_sections.find(section);
@@ -152,6 +152,20 @@ namespace leviathan::config::ini
                 return std::nullopt;
 
             return it2->second;
+        }
+
+        size_t section_count() const
+        { return m_sections.size(); }
+
+        size_t entry_count(std::string_view section) const
+        {
+            auto it = m_sections.find(section);
+            return it == m_sections.end() ? 0 : it->second.size();
+        }
+
+        bool has_section(std::string_view section) const
+        {
+            return m_sections.count(section);
         }
 
     private:
@@ -170,6 +184,11 @@ namespace leviathan::config::ini
         configuration(const read_only_configuration& config)
         {
             copy_result_from_config(config);
+        }
+
+        string& operator[](string section, string key)
+        {
+            return m_sections[std::move(section)][std::move(key)];
         }
 
         template <typename T>

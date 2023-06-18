@@ -14,11 +14,13 @@
 #include <algorithm>
 #include <type_traits>
 
+#include <assert.h>
+
 namespace leviathan::config::json
 {
     enum class error_code
     {
-        ok,
+        // ok,
         eof_error,
         uninitialized,
         illegal_string,
@@ -28,11 +30,12 @@ namespace leviathan::config::json
         illegal_literal,
         illegal_boolean,
         illegal_root,
+        illegal_unicode,
         unknown_character,
     };
 
     inline constexpr const char* error_infos[] = {
-        "ok",
+        // "ok",
         "end of file error",
         "uninitialized",
         "illegal_string",
@@ -42,6 +45,7 @@ namespace leviathan::config::json
         "illegal_literal",
         "illegal_boolean",
         "illegal_root",
+        "illegal_unicode",
         "unknown_character",
     };
 
@@ -55,6 +59,7 @@ namespace leviathan::config::json
     using leviathan::string::arithmetic;
     using leviathan::string::whitespace_delimiters;
     using leviathan::string::string_hash_keyequal;
+    using leviathan::string::string_viewable;
 
     class json_value;
 
@@ -64,6 +69,33 @@ namespace leviathan::config::json
     using json_null = std::nullptr_t;   // This may not suitable.
     using json_array = std::vector<json_value>;
     using json_object = std::unordered_map<json_string, json_value, string_hash_keyequal, string_hash_keyequal>;
+
+    constexpr std::array<bool, 256> valid_unicode_character = [](){
+        
+        std::array<bool, 256> table;
+        
+        table.fill(false);
+
+        for (int i = '0'; i <= '9'; ++i) table[i] = true;
+        for (int i = 'a'; i <= 'f'; ++i) table[i] = true;
+        for (int i = 'A'; i <= 'F'; ++i) table[i] = true;
+
+        return table;
+    }();
+
+    bool is_unicode(string_view code)
+    {
+        if (code.size() != 4)
+        {
+            return false;
+        }
+
+        return valid_unicode_character[code[0]]
+            && valid_unicode_character[code[1]]
+            && valid_unicode_character[code[2]]
+            && valid_unicode_character[code[3]];
+
+    }
 
     template <typename T>
     struct to_unique_ptr : store_ptr<std::unique_ptr<T>, is_large_than_raw_pointer> { };
@@ -98,10 +130,53 @@ namespace leviathan::config::json
         template <json_value_able T>
         json_value(T t) : m_data(std::move(t)) { }
 
-        explicit operator bool() const
+        template <string_viewable... Svs>
+        json_value& operator[](const Svs&... svs) 
         {
-            return m_data.index() < std::variant_size_v<value_type> - 1;
+            string_view views[] = { string_view(svs)... };
+
+            json_value* target = this;
+
+            json_object default_object = json_object();
+
+            for (auto sv : views)
+            {
+                auto obj = target->cast_unchecked<json_object>();
+                assert(obj && "Json value shoule be json_object");
+                auto it = obj->try_emplace(json_string(sv), std::make_unique<json_object>(json_object()));
+                target = &(it.first->second);
+            }
+
+            return *target;
         }
+
+        template <typename T>
+        bool is() const
+        {
+            using U = typename to_unique_ptr<T>::type; 
+            return std::holds_alternative<U>(m_data); 
+        }
+
+        bool is_number() const
+        { return is<json_number>(); }
+        
+        bool is_boolean() const
+        { return is<json_boolean>(); }
+
+        bool is_null() const
+        { return is<json_null>(); }
+
+        bool is_array() const
+        { return is<json_array>(); }
+
+        bool is_object() const
+        { return is<json_object>(); }
+
+        bool is_string() const
+        { return is<json_string>(); }
+
+        explicit operator bool() const
+        { return m_data.index() < std::variant_size_v<value_type> - 1; }
 
         template <typename T>
         T* cast_unchecked() 
@@ -119,8 +194,8 @@ namespace leviathan::config::json
     json_value make(json_array arr)
     { return std::make_unique<json_array>(std::move(arr)); }
 
-    json_value make(json_object arr)
-    { return std::make_unique<json_object>(std::move(arr)); }
+    json_value make(json_object obj)
+    { return std::make_unique<json_object>(std::move(obj)); }
 
     json_value make(arithmetic auto num)
     { return json_number(num); }
@@ -367,9 +442,14 @@ namespace leviathan::config::json
                         case 'r': s += '\r'; break;   // carriage return
                         case 't': s += '\t'; break;   // horizontal tab
                         case 'u': {
+                            if (!is_unicode(m_cur.substr(1, 4)))
+                            {
+                                return return_with_error_code(error_code::illegal_unicode);
+                            }
                             unsigned unicode = decode_unicode_from_char(m_cur.data() + 1); // skip 'u'
                             encode_unicode_to_utf8(std::back_inserter(s), unicode);
                             advance_unchecked(4);
+                            break;
                         }   // 4 hex digits
                         default: return return_with_error_code(error_code::illegal_string);
                     }

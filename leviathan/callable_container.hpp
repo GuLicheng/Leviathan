@@ -5,7 +5,8 @@
 //////////////////////////////////////////////////////////////////////////////////////
 
 #include <leviathan/meta/core.hpp>
-#include <leviathan/string/opt.hpp>
+// #include <leviathan/string/opt.hpp>
+#include <leviathan/string/string_extend.hpp>
 
 #include <memory>
 #include <any>
@@ -151,7 +152,7 @@ private:
     std::unordered_map<
         std::string, 
         std::function<void(std::any)>, 
-        leviathan::string_hash, 
-        leviathan::string_key_equal> m_maps;
+        leviathan::string::string_hash_keyequal, 
+        leviathan::string::string_hash_keyequal> m_maps;
 };
 

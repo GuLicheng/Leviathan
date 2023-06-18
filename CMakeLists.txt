@@ -40,4 +40,8 @@ if(LEVIATHAN_BUILD_LOGGING STREQUAL "ON")
     add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/logging)
 endif()
 
-
+set(LEVIATHAN_BUILD_CONFIG_PARSER ON)
+if (LEVIATHAN_BUILD_CONFIG_PARSER STREQUAL "ON")
+    message(STATUS "Build config parsers")
+    add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/config_parser)
+endif()

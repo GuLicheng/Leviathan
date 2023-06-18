@@ -13,7 +13,7 @@ int main(int argc, char const *argv[])
     json::json_value value3 = json::make("HelloWorld");
     json::json_value value4 = json::make(json::json_array());
     json::json_value value5 = json::make(json::json_object());
-    json::json_value value6 = json::make(json::error_code::ok);
+    json::json_value value6 = json::make(json::error_code::uninitialized);
 
     const char* path = R"(D:\Library\Leviathan\a.json)";
 
@@ -30,6 +30,9 @@ int main(int argc, char const *argv[])
 
     std::cout << "\nOk\n";
 
+    json::detail::json_serialize(std::cout, value["BORIS", "Cost"], 0);
+    json::detail::json_serialize(std::cout, value["BORIS", "Name"], 0);
+    json::detail::json_serialize(std::cout, value["BORIS", "Hero"], 0);
 
     return 0;
 }
