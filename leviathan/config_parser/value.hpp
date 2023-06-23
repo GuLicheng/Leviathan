@@ -1,7 +1,7 @@
 #include <leviathan/string/string_extend.hpp>
+#include <leviathan/config_parser/optional.hpp>
 
 #include <string_view>
-#include <optional>
 
 namespace leviathan::config
 {
@@ -11,15 +11,15 @@ namespace leviathan::config
      * @param T The storage type of parser, maybe string or string_view.
     */
     template <typename T>
-    struct basic_item : std::optional<T>
+    struct basic_item : optional<T>
     {
-        using std::optional<T>::optional;
+        using optional<T>::optional;
 
         template <typename U>
-        std::optional<U> cast() const
+        constexpr optional<U> cast() const
         {
             if (!*this)
-                return std::nullopt;
+                return nullopt;
             return leviathan::string::lexical_cast<U>(**this);
         }
     };
@@ -86,6 +86,8 @@ namespace leviathan::config
             }();
         };
     };
+
+
 }
 
 

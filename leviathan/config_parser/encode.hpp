@@ -26,7 +26,7 @@ namespace leviathan::config
     //     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     // };
 
-    constexpr std::array<int, 256> digit_values = []() {
+    inline constexpr std::array<int, 256> digit_values = []() {
 
         std::array<int, 256> values;
 

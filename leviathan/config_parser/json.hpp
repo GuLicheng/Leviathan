@@ -1,10 +1,11 @@
 #pragma once
 
 #include <leviathan/string/string_extend.hpp>
-#include <leviathan/config_parser/item.hpp>
+#include <leviathan/config_parser/value.hpp>
 #include <leviathan/config_parser/common.hpp>
 #include <leviathan/config_parser/encode.hpp>
 
+#include <utility>
 #include <memory>
 #include <variant>
 #include <string>
@@ -70,7 +71,13 @@ namespace leviathan::config::json
     using json_array = std::vector<json_value>;
     using json_object = std::unordered_map<json_string, json_value, string_hash_keyequal, string_hash_keyequal>;
 
-    constexpr std::array<bool, 256> valid_unicode_character = [](){
+    struct bad_json_value_access : std::exception
+    {
+        const char* what() const noexcept override
+        { return "bad_json_value_access"; }
+    };
+
+    inline constexpr std::array<bool, 256> valid_unicode_character = [](){
         
         std::array<bool, 256> table;
         
@@ -83,7 +90,7 @@ namespace leviathan::config::json
         return table;
     }();
 
-    bool is_unicode(string_view code)
+    constexpr bool is_unicode(string_view code)
     {
         if (code.size() != 4)
         {
@@ -94,7 +101,6 @@ namespace leviathan::config::json
             && valid_unicode_character[code[1]]
             && valid_unicode_character[code[2]]
             && valid_unicode_character[code[3]];
-
     }
 
     template <typename T>
@@ -123,6 +129,31 @@ namespace leviathan::config::json
 
         value_type m_data;   
 
+        template <typename T>
+        bool is() const
+        {
+            using U = typename to_unique_ptr<T>::type; 
+            return std::holds_alternative<U>(m_data); 
+        }
+
+        template <typename T, bool NoThrow = true>
+        T& as() 
+        {
+            if constexpr (!NoThrow)
+            {
+                if (!is<T>())
+                    throw bad_json_value_access();
+                return as<T, NoThrow>();
+            }
+            else
+            {
+                if constexpr (!is_large_than_raw_pointer<T>::value)
+                    return *std::get_if<T>(&m_data);
+                else 
+                    return *(*std::get_if<typename to_unique_ptr<T>::type>(&m_data)).get();
+            }
+        }
+
     public:
 
         json_value() : m_data(error_code::uninitialized) { }
@@ -141,20 +172,12 @@ namespace leviathan::config::json
 
             for (auto sv : views)
             {
-                auto obj = target->cast_unchecked<json_object>();
-                assert(obj && "Json value shoule be json_object");
-                auto it = obj->try_emplace(json_string(sv), std::make_unique<json_object>(json_object()));
+                auto& obj = target->cast_unchecked<json_object>();
+                auto it = obj.try_emplace(json_string(sv), std::make_unique<json_object>(json_object()));
                 target = &(it.first->second);
             }
 
             return *target;
-        }
-
-        template <typename T>
-        bool is() const
-        {
-            using U = typename to_unique_ptr<T>::type; 
-            return std::holds_alternative<U>(m_data); 
         }
 
         bool is_number() const
@@ -179,12 +202,13 @@ namespace leviathan::config::json
         { return m_data.index() < std::variant_size_v<value_type> - 1; }
 
         template <typename T>
-        T* cast_unchecked() 
+        T& cast_unchecked() 
         {
-            if constexpr (!is_large_than_raw_pointer<T>::value)
-                return std::get_if<T>(&m_data);
-            else 
-                return (*std::get_if<typename to_unique_ptr<T>::type>(&m_data)).get();
+            return as<T>();
+            // if constexpr (!is_large_than_raw_pointer<T>::value)
+            //     return *std::get_if<T>(&m_data);
+            // else 
+            //     return *(*std::get_if<typename to_unique_ptr<T>::type>(&m_data)).get();
         }
     };
 
@@ -382,7 +406,7 @@ namespace leviathan::config::json
                         return return_with_error_code(error_code::illegal_object);
                     }
 
-                    obj.emplace(std::move(*key.cast_unchecked<json_string>()), std::move(value));
+                    obj.emplace(std::move(key.cast_unchecked<json_string>()), std::move(value));
 
                     skip_whitespace();
 
@@ -644,7 +668,9 @@ namespace leviathan::config::json
             std::visit([&os, padding]<typename T>(const T& t)
             {
                 if constexpr (std::is_same_v<T, error_code>)
-                    throw 0;
+                {
+                    std::unreachable();
+                }
                 json_serialize(os, t, padding);
             }, value.m_data);
         }

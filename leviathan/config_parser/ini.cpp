@@ -1,3 +1,4 @@
+#include <sstream>
 #include <leviathan/config_parser/ini.hpp>
 #include <catch2/catch_all.hpp>
 
@@ -95,6 +96,39 @@ TEST_CASE("empty file")
     auto ini = parse_configuration_by_context(std::move(context));
 
     REQUIRE(ini.section_count() == 0);
+}
+
+TEST_CASE("Mental Omega 3.3.6")
+{
+    auto ini = parse_configuration(R"(D:\Library\Leviathan\leviathan\config_parser\config\RA2.ini)");
+
+    REQUIRE(ini.section_count() == 4725);
+
+    REQUIRE(ini["General", "Name"] == "Mental Omega 3.3.6 --- Official Rules of Engagement");
+    REQUIRE(ini["General", "RepairRate"] == ".03");
+    REQUIRE(ini["General", "RepairPercent"] == "10%");
+    REQUIRE(ini["General", "SmallVisceroid"] == "");
+    REQUIRE(ini["General", "LargeVisceroid"] == "");
+    REQUIRE(ini["General", "AIIonCannonConYardValue"] == "60,60,60");
+    
+    REQUIRE(ini.entry_count("AircraftTypes") == 51);
+
+    REQUIRE(ini["BuildingTypes", "0"] == "GACNST");
+
+    REQUIRE(ini["CABORS" ,"TechLevel"] == "-1");
+    REQUIRE(ini["CABORS" ,"Strength"] == "500");
+    REQUIRE(ini["BORISWHE" ,"Verses"] == "220%,210%,110%,70%,60%,50%,0%,0%,0%,100%,100%");
+    REQUIRE(ini["BORISWHE" ,"Versus.libra"] == "105%");
+}
+
+TEST_CASE("writer")
+{
+    configuration writer;
+
+    std::stringstream ss;
+
+
+
 }
 
 // int main()

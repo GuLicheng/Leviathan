@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "item.hpp"
-
+#include <leviathan/config_parser/value.hpp>
 #include <leviathan/string/string_extend.hpp>
 #include <leviathan/meta/template_info.hpp>
 
@@ -144,12 +143,12 @@ namespace leviathan::config::ini
             // check section
             auto it1 = m_sections.find(section);
             if (it1 == m_sections.end())
-                return std::nullopt;
+                return nullopt;
             
             // check key
             auto it2 = it1->second.find(key);
             if (it2 == it1->second.end())
-                return std::nullopt;
+                return nullopt;
 
             return it2->second;
         }
@@ -181,6 +180,8 @@ namespace leviathan::config::ini
     
     public:
 
+        configuration() = default;
+
         configuration(const read_only_configuration& config)
         {
             copy_result_from_config(config);
@@ -202,12 +203,12 @@ namespace leviathan::config::ini
             // check section
             auto it1 = m_sections.find(section);
             if (it1 == m_sections.end())
-                return std::nullopt;
+                return nullopt;
             
             // check key
             auto it2 = it1->second.find(key);
             if (it2 == it1->second.end())
-                return std::nullopt;
+                return nullopt;
 
             return it2->second;
         }
