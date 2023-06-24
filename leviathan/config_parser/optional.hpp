@@ -35,7 +35,7 @@ namespace leviathan::config
     template <typename T>
     class optional<T&>
     {
-        static_assert(std::is_lvalue_reference_v<T>);
+    public:
 
         typedef T& value_type;
         typedef T& reference_type;
@@ -51,7 +51,7 @@ namespace leviathan::config
 
         template <typename R> 
             requires (!is_optional_v<std::decay_t<R>>)
-        constexpr optional(R&& r) 
+        constexpr optional(R&& r) : m_ref(std::addressof(r))
         {
             assert(std::is_lvalue_reference_v<R> && "Unless R is an lvalue reference, the program is ill-formed");
         }
@@ -87,7 +87,7 @@ namespace leviathan::config
 
         template <typename U> 
             requires (std::is_convertible_v<U&, T&>) 
-        constexpr optional& operator=( const optional<U&>& rhs)
+        constexpr optional& operator=(const optional<U&>& rhs)
         {
             m_ref = rhs.m_ref;
             return *this;
@@ -115,39 +115,39 @@ namespace leviathan::config
 
         constexpr T& operator*() const
         {            
-            assert(m_ref && "ref should not be nullptr");
+            // assert(m_ref && "ref should not be nullptr");
             return *m_ref;
         }
 
-        constexpr T* operator ->() const
+        constexpr T* operator->() const
         { return m_ref; }
 
         constexpr T& value() const&
         { return m_ref ? *m_ref : throw bad_optional_access(); }
 
-        template <typename R> 
-        constexpr T& value_or(R&& r ) const
-        {
-            if (*this)
-                return **this;
-            return r;
-        }
+        // template <typename R> 
+        // constexpr T& value_or(R&& r) const
+        // {
+        //     if (*this)
+        //         return **this;
+        //     return r;
+        // }
 
-        template <typename F> 
-        constexpr T& value_or_eval(F f) const
-        {
-            if (*this)
-                return **this;
-            return f();
-        }
+        // template <typename F> 
+        // constexpr T& value_or_eval(F f) const
+        // {
+        //     if (*this)
+        //         return **this;
+        //     return f();
+        // }
 
-        template <typename F> 
-        constexpr auto map(F f) const -> optional<decltype(f(**this))>
-        {
-            if (*this)
-                return f(**this);
-            return nullopt;
-        }
+        // template <typename F> 
+        // constexpr auto map(F f) const -> optional<decltype(f(**this))>
+        // {
+        //     if (*this)
+        //         return f(**this);
+        //     return nullopt;
+        // }
 
         // template <typename F> auto flat_map(F f) const;
 

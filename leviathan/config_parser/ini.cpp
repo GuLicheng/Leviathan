@@ -121,15 +121,6 @@ TEST_CASE("Mental Omega 3.3.6")
     REQUIRE(ini["BORISWHE" ,"Versus.libra"] == "105%");
 }
 
-TEST_CASE("writer")
-{
-    configuration writer;
-
-    std::stringstream ss;
-
-
-
-}
 
 // int main()
 // {

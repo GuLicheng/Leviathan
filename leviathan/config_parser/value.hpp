@@ -55,15 +55,20 @@ namespace leviathan::config
         using type = std::conditional_t<value, element_type*, element_type>;
     };
 
-    template <typename T>
-    struct is_large_than_raw_pointer : std::bool_constant<(sizeof(T) > 8)> { };
-
-    template <typename T>
-    struct to_raw_pointer : store_ptr<T*, is_large_than_raw_pointer> { };
-
-    // template <typename T>
-    // struct to_unique_ptr : config::store_ptr<std::unique_ptr<T>, config::is_large_than_raw_pointer> { };
-
+    /**
+     * @brief A simple helper for adjust type for some scripts value.
+     * 
+     * E.g.
+     *  template <typename T> struct use_pointer : std::bool_constant<(sizeof(T) > 16)> { };
+     *  template <typename T> struct to_raw_pointer : store_ptr<T*, use_pointer> { };
+     * 
+     *  using binder = config::bind<std::variant>::with<small_object, large_object>; => 
+     *  using binder2 = binder::transform<to_raw_pointer>::type;
+     *  using storage = typename binder2::type;
+     * 
+     * The small object will store as a value and large object will 
+     * store as a pointer.(std::variant<small_object, large_object*>) 
+    */
     template <template <typename...> typename Container>
     struct bind
     {
@@ -78,7 +83,7 @@ namespace leviathan::config
                 using type = bind<Container>::with<typename Fn<Ts>::type...>;
             };
 
-            // Used as constraint in construction
+            // Used as constraint in construction.
             template <typename T>
             constexpr static bool contains = [](){
                 auto sum = (false || ... || std::is_same_v<T, Ts>);
@@ -86,7 +91,6 @@ namespace leviathan::config
             }();
         };
     };
-
 
 }
 

@@ -1,10 +1,7 @@
-#include <stdfloat>
-#include <cstdint>
-#include <concepts>
-#include <iostream>
-
-#include <leviathan/config_parser/optional.hpp>
 #include <leviathan/config_parser/json.hpp>
+
+#include <iostream>
+#include <functional>
 
 namespace json = leviathan::config::json;
 
@@ -33,9 +30,10 @@ int main(int argc, char const *argv[])
     }
 
     std::cout << "\nOk\n";
-    // json::detail::json_serialize(std::cout, value["BORIS", "Cost"], 0);
-    // json::detail::json_serialize(std::cout, value["BORIS", "Name"], 0);
-    // json::detail::json_serialize(std::cout, value["BORIS", "Hero"], 0);
+
+    json::detail::json_serialize(std::cout, value["BORIS", "Cost"], 0);
+    json::detail::json_serialize(std::cout, value["BORIS", "Name"], 0);
+    json::detail::json_serialize(std::cout, value["BORIS", "Hero"], 0);
 
     return 0;
 }

@@ -64,13 +64,99 @@ namespace leviathan::config::json
 
     class json_value;
 
-    using json_number = double;
+    // using json_number = double;
+
+    // std::variant<int64_t, uint64_t, double>
+    class json_number
+    {
+        enum struct number_type 
+        {
+            SignedIntegral,
+            UnsignedIntegral,
+            FloatingPoint,
+        };
+
+        union 
+        {
+            double m_f;
+            int64_t m_i;
+            uint64_t m_u;
+        };
+
+        number_type m_type;
+
+        template <typename T>
+        T as() const
+        {
+            switch (m_type)
+            {
+                case number_type::FloatingPoint: return static_cast<T>(m_f);
+                case number_type::SignedIntegral: return static_cast<T>(m_i);
+                case number_type::UnsignedIntegral: return static_cast<T>(m_u);
+                default: std::unreachable();
+            }
+        }
+
+    public:
+
+        json_number() = delete;
+
+        explicit json_number(std::signed_integral auto i) : m_i(i), m_type(number_type::SignedIntegral) { }
+
+        explicit json_number(std::floating_point auto f) : m_f(f), m_type(number_type::FloatingPoint) { }
+
+        explicit json_number(std::unsigned_integral auto u) : m_u(u), m_type(number_type::UnsignedIntegral) { }
+
+        bool is_signed_integral() const
+        { return m_type == number_type::SignedIntegral; }
+
+        bool is_unsigned_integral() const
+        { return m_type == number_type::UnsignedIntegral; }
+
+        bool is_integral() const
+        { return m_type != number_type::FloatingPoint; }
+
+        bool is_floating() const
+        { return m_type == number_type::FloatingPoint; }
+
+        double as_floating() const  
+        { return static_cast<double>(*this); }
+
+        uint64_t as_unsigned_integral() const
+        { return static_cast<uint64_t>(*this); }
+
+        int64_t as_signed_integral() const
+        { return static_cast<int64_t>(*this); }
+
+        explicit operator double() const
+        { return as<double>(); }
+
+        explicit operator int64_t() const
+        { return as<int64_t>(); }
+
+        explicit operator uint64_t() const
+        { return as<uint64_t>(); }
+
+        template <typename Char, typename Traits>
+        friend std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, const json_number& x)
+        {
+            if (x.is_floating())
+                os << x.as_floating();
+            else if (x.is_signed_integral())
+                os << x.as_signed_integral();
+            else
+                os << x.as_unsigned_integral();
+            return os;
+        }
+    };
+
     using json_string = string;
     using json_boolean = bool;
     using json_null = std::nullptr_t;   // This may not suitable.
     using json_array = std::vector<json_value>;
     using json_object = std::unordered_map<json_string, json_value, string_hash_keyequal, string_hash_keyequal>;
 
+    // I think error code is a better choice compared with exception.
     struct bad_json_value_access : std::exception
     {
         const char* what() const noexcept override
@@ -104,7 +190,10 @@ namespace leviathan::config::json
     }
 
     template <typename T>
-    struct to_unique_ptr : store_ptr<std::unique_ptr<T>, is_large_than_raw_pointer> { };
+    struct use_pointer : std::bool_constant<(sizeof(T) > 16)> { };
+
+    template <typename T>
+    struct to_unique_ptr : store_ptr<std::unique_ptr<T>, use_pointer> { };
 
     using binder = config::bind<std::variant>::with<
         json_null,
@@ -147,7 +236,7 @@ namespace leviathan::config::json
             }
             else
             {
-                if constexpr (!is_large_than_raw_pointer<T>::value)
+                if constexpr (!use_pointer<T>::value)
                     return *std::get_if<T>(&m_data);
                 else 
                     return *(*std::get_if<typename to_unique_ptr<T>::type>(&m_data)).get();
@@ -508,7 +597,7 @@ namespace leviathan::config::json
 
                 if (double value; std::from_chars(startptr, endptr, value, std::chars_format::general).ec == std::errc())
                 {
-                    return value;
+                    return json_number(value);
                 }    
 
                 return return_with_error_code(error_code::illegal_number);
