@@ -1,7 +1,10 @@
 #pragma once
 
+#include "optional.hpp"
+
 #include <fstream>
 #include <string>
+#include <cstdint>
 
 namespace leviathan::config
 {
@@ -22,5 +25,40 @@ namespace leviathan::config
             ifs.read(&contents[0], contents.size());
         }
         return contents;
+    }
+}
+
+namespace leviathan::config
+{
+    inline optional<int64_t> string_to_integer(const std::string& str, int base = 10)
+    {
+        int& err = errno;
+        const char* ptr = str.c_str();
+        char* end_ptr;
+        err = 0;
+
+        const auto ans = ::strtoll(ptr, &end_ptr, base);
+
+        if (ptr == end_ptr || err == ERANGE)
+        {
+            return nullopt;
+        }
+        return ans;
+    }
+
+    inline optional<double> string_to_floating(const std::string& str)
+    {
+        int& err = errno;
+        const char* ptr = str.c_str();
+        char* end_ptr;
+        err = 0;
+
+        const auto ans = ::strtod(ptr, &end_ptr);
+
+        if (ptr == end_ptr || err == ERANGE)
+        {
+            return nullopt;
+        }
+        return ans;
     }
 }

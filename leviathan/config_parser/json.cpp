@@ -15,6 +15,8 @@ TEST_CASE("json_make")
     json::json_value value5 = json::make(json::json_object());
     json::json_value value6 = json::make(json::error_code::uninitialized);
     json::json_value value7 = json::make(json::json_null());
+    json::json_value value8 = json::make(3ull);
+    json::json_value value9 = json::make(3.14);
 
     REQUIRE(value1.is_number());
     REQUIRE(value1.is_integral());
@@ -24,6 +26,8 @@ TEST_CASE("json_make")
     REQUIRE(value5.is_object());
     REQUIRE(!value6);
     REQUIRE(value7.is_null());
+    REQUIRE(value8.is_number());
+    REQUIRE(value9.is_number());
 
     REQUIRE(value1.as_number().value().as_signed_integral() == 3);
     REQUIRE(value2.as_boolean().value() == true);
@@ -31,33 +35,16 @@ TEST_CASE("json_make")
     REQUIRE(value4.as_array().value().empty());
     REQUIRE(value5.as_object().value().empty());
     // REQUIRE(value7.as_null().value() == json::json_null());
-}
-
-TEST_CASE("started with object and array")
-{
-    std::string context1[] = { R"({ "type": "object" })", R"([ "array" ])" };
-    std::string context2[] = { R"(123)", R"("string")", R"(null)", R"(true)", R"(false)" };
-
-    for (auto c : context1)
-    {
-        auto value = json::parser(std::move(c))();
-        REQUIRE(value);
-    }
-
-    for (auto c : context2)
-    {
-        auto value = json::parser(std::move(c))();
-        REQUIRE(value.ec() == json::error_code::illegal_root);
-    }
+    REQUIRE(value8.as_number().value().is_unsigned_integral());
+    REQUIRE(value9.as_number().value().is_floating());
 }
 
 TEST_CASE("error unicode")
 {
     std::string error_unicodes[] = {
-        R"(["\u"])",       // no digit
-        R"(["\u621"])",    // less than 4 digits
-        R"(["\uxyzw"])",   // not a hex-digit
-        R"(["\u"])",
+        R"("\u")",       // no digit
+        R"("\u621")",    // less than 4 digits
+        R"("\uxyzw")",   // not a hex-digit
     };
 
     for (auto c : error_unicodes)
@@ -65,8 +52,48 @@ TEST_CASE("error unicode")
         auto value = json::parser(std::move(c))();
         REQUIRE(value.ec() == json::error_code::illegal_unicode);
     }
-
 }
+
+TEST_CASE("number")
+{
+    std::string numbers[] = {
+        R"(123)",     // integer
+        R"(-1)",      // integer
+        R"(3.14)",    // double
+        R"(2.7e18)",  // double
+    };
+
+    auto check = [](std::string s, int mode) {
+        auto root = json::parser(std::move(s))();
+        REQUIRE(root);
+        switch (mode)
+        {
+            case 1: return root.as_number()->is_unsigned_integral();
+            case 2: return root.as_number()->is_signed_integral();
+            case 3: return root.as_number()->is_floating();
+            default: return false;
+        }
+    };
+
+    REQUIRE(check(numbers[0], 2));
+    REQUIRE(check(numbers[1], 2));
+    REQUIRE(check(numbers[2], 3));
+    REQUIRE(check(numbers[3], 3));
+
+    std::string error_numbers[] = {
+        R"(2.7e18e)",
+        R"(2..7e18e)",
+        R"(2e.7e18e)",
+    };
+
+    for (auto c : error_numbers)
+    {
+        auto value = json::parser(std::move(c))();
+        REQUIRE(value.ec() == json::error_code::illegal_number);
+    }
+}
+
+
 
 // int main(int argc, char const *argv[])
 // {

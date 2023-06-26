@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <algorithm>
 #include <type_traits>
 
@@ -30,7 +30,6 @@ namespace leviathan::config::json
         illegal_number,
         illegal_literal,
         illegal_boolean,
-        illegal_root,
         illegal_unicode,
         unknown_character,
     };
@@ -45,7 +44,6 @@ namespace leviathan::config::json
         "illegal_number",
         "illegal_literal",
         "illegal_boolean",
-        "illegal_root",
         "illegal_unicode",
         "unknown_character",
     };
@@ -163,7 +161,7 @@ namespace leviathan::config::json
     using json_boolean = bool;
     using json_null = std::nullptr_t;   // This may not suitable. The value of json_null is unique, the index in std::variant is enough to indicate it.
     using json_array = std::vector<json_value>;
-    using json_object = std::map<json_string, json_value, std::less<>>;
+    using json_object = std::unordered_map<json_string, json_value, string_hash_keyequal, string_hash_keyequal>;
 
     // I think error code is a better choice compared with exception.
     // But return std::optional<std::reference_wrapper<json_value>> may cause grammatical noise.
@@ -376,8 +374,7 @@ namespace leviathan::config::json
     
         json_value operator()() &&
         {
-            // Json should started with array or object.
-            return parse_array_or_object();
+            return parse_value();
         }
 
     private:
@@ -395,23 +392,6 @@ namespace leviathan::config::json
                 case '{': return parse_object();
                 case '"': return parse_string();
                 default: return parse_number();
-            }
-        }
-
-        json_value parse_array_or_object()
-        {
-            skip_whitespace();
-
-            if (m_cur.empty())
-            {
-                return return_with_error_code(error_code::eof_error);
-            }
-
-            switch (current())
-            {
-                case '[': return parse_array();
-                case '{': return parse_object();
-                default: return return_with_error_code(error_code::illegal_root);
             }
         }
 
@@ -697,13 +677,19 @@ namespace leviathan::config::json
 
                 auto endptr = m_cur.data();
 
+                auto check_result = [](std::from_chars_result result, const char* endptr) {
+                    return result.ec == std::errc() && result.ptr == endptr;
+                };
+
                 // Try parse as integral first.
-                if (json_number::int_type value; std::from_chars(startptr, endptr, value).ec == std::errc())
+                if (json_number::int_type value; check_result(std::from_chars(startptr, endptr, value), endptr))
                 {
                     return json_number(value);
                 }  
 
-                if (double value; std::from_chars(startptr, endptr, value, std::chars_format::general).ec == std::errc())
+                // TODO: try parse as unsigned integral second.
+
+                if (json_number::float_type value; check_result(std::from_chars(startptr, endptr, value, std::chars_format::general), endptr))
                 {
                     return json_number(value);
                 }    
