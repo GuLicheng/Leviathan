@@ -14,13 +14,23 @@ TEST_CASE("json_make")
     json::json_value value4 = json::make(json::json_array());
     json::json_value value5 = json::make(json::json_object());
     json::json_value value6 = json::make(json::error_code::uninitialized);
+    json::json_value value7 = json::make(json::json_null());
 
     REQUIRE(value1.is_number());
+    REQUIRE(value1.is_integral());
     REQUIRE(value2.is_boolean());
     REQUIRE(value3.is_string());
     REQUIRE(value4.is_array());
     REQUIRE(value5.is_object());
     REQUIRE(!value6);
+    REQUIRE(value7.is_null());
+
+    REQUIRE(value1.as_number().value().as_signed_integral() == 3);
+    REQUIRE(value2.as_boolean().value() == true);
+    REQUIRE(value3.as_string().value() == "HelloWorld");
+    REQUIRE(value4.as_array().value().empty());
+    REQUIRE(value5.as_object().value().empty());
+    REQUIRE(value7.as_null().value() == json::json_null());
 }
 
 TEST_CASE("started with object and array")

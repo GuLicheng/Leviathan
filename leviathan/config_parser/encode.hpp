@@ -45,6 +45,11 @@ namespace leviathan::config
         return sizeof(micro) == 3 && micro[0] == 0xC2 && micro[1] == 0xB5;
     }
 
+    /**
+     * @brief Decode unicode from C-style string. 
+     * 
+     * @param p The string to be decoded, please make sure that the p has at least 4 bytes.
+    */
     constexpr unsigned decode_unicode_from_char(const char* p)
     {
         auto to_digit = [](char ch) -> unsigned
@@ -63,6 +68,12 @@ namespace leviathan::config
         return i;
     }
 
+    /**
+     * @brief Encode codepoint to char-array.
+     * 
+     * @return Position after encoding codepoint, if the codepoint is invalid, the
+     *  iter will not increased.
+    */
     template <typename InputIterator>
     InputIterator encode_unicode_to_utf8(InputIterator iter, const unsigned codepoint)
     {

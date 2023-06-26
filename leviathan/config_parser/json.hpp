@@ -69,6 +69,14 @@ namespace leviathan::config::json
     // std::variant<int64_t, uint64_t, double>
     class json_number
     {
+    public:
+
+        using int_type = int64_t;
+        using uint_type = uint64_t;
+        using float_type = double;
+
+    private:
+
         enum struct number_type 
         {
             SignedIntegral,
@@ -79,8 +87,8 @@ namespace leviathan::config::json
         union 
         {
             double m_f;
-            int64_t m_i;
-            uint64_t m_u;
+            int_type m_i;
+            uint_type m_u;
         };
 
         number_type m_type;
@@ -152,11 +160,12 @@ namespace leviathan::config::json
 
     using json_string = string;
     using json_boolean = bool;
-    using json_null = std::nullptr_t;   // This may not suitable.
+    using json_null = std::nullptr_t;   // This may not suitable. The value of json_null is unique, the index in std::variant is enough to indicate it.
     using json_array = std::vector<json_value>;
     using json_object = std::unordered_map<json_string, json_value, string_hash_keyequal, string_hash_keyequal>;
 
     // I think error code is a better choice compared with exception.
+    // But return std::optional<std::reference_wrapper<json_value>> may cause grammatical noise.
     struct bad_json_value_access : std::exception
     {
         const char* what() const noexcept override
@@ -243,6 +252,20 @@ namespace leviathan::config::json
             }
         }
 
+        template <typename T, bool NoThrow = true>
+        const T& as() const
+        { return const_cast<json_value&>(*this).as<T>(); }
+
+        template <typename T>
+        optional<T&> try_as()
+        {
+            if (!is<T>())
+            {
+                return nullopt;
+            }
+            return as<T>();
+        }
+
     public:
 
         json_value() : m_data(error_code::uninitialized) { }
@@ -269,6 +292,12 @@ namespace leviathan::config::json
             return *target;
         }
 
+        bool is_integral() const
+        {
+            return is<json_number>() 
+                && as<json_number>().is_integral();
+        }
+
         bool is_number() const
         { return is<json_number>(); }
         
@@ -290,6 +319,24 @@ namespace leviathan::config::json
         explicit operator bool() const
         { return m_data.index() < std::variant_size_v<value_type> - 1; }
 
+        optional<json_number&> as_number()
+        { return try_as<json_number>(); }
+
+        optional<json_boolean&> as_boolean()
+        { return try_as<json_boolean>(); }
+
+        optional<json_null&> as_null() 
+        { return try_as<json_null>(); }
+
+        optional<json_array&> as_array()
+        { return try_as<json_array>(); }
+
+        optional<json_object&> as_object()
+        { return try_as<json_object>(); }
+
+        optional<json_string&> as_string()
+        { return try_as<json_string>(); }
+
         template <typename T>
         T& cast_unchecked() 
         {
@@ -300,6 +347,9 @@ namespace leviathan::config::json
             //     return *(*std::get_if<typename to_unique_ptr<T>::type>(&m_data)).get();
         }
     };
+
+    json_value make(json_null)
+    { return json_null(); }
 
     json_value make(json_string str)
     { return std::make_unique<json_string>(std::move(str)); }
@@ -555,12 +605,25 @@ namespace leviathan::config::json
                         case 'r': s += '\r'; break;   // carriage return
                         case 't': s += '\t'; break;   // horizontal tab
                         case 'u': {
+
+                            // The unicode is consist of 4-hex digits and each digit
+                            // is one of [0-9a-fA-F].
                             if (!is_unicode(m_cur.substr(1, 4)))
                             {
                                 return return_with_error_code(error_code::illegal_unicode);
                             }
                             unsigned unicode = decode_unicode_from_char(m_cur.data() + 1); // skip 'u'
+                            auto old_size = s.size();
                             encode_unicode_to_utf8(std::back_inserter(s), unicode);
+                            auto new_size = s.size(); 
+
+                            if (old_size == new_size)
+                            {
+                                // If the unicode is invalid, the `encode_unicode_to_utf8`
+                                // will not encode codepoint.
+                                return return_with_error_code(error_code::illegal_unicode);
+                            }
+
                             advance_unchecked(4);
                             break;
                         }   // 4 hex digits
@@ -594,6 +657,12 @@ namespace leviathan::config::json
                 }
 
                 auto endptr = m_cur.data();
+
+                // Try parse as integral first.
+                if (json_number::int_type value; std::from_chars(startptr, endptr, value).ec == std::errc())
+                {
+                    return json_number(value);
+                }  
 
                 if (double value; std::from_chars(startptr, endptr, value, std::chars_format::general).ec == std::errc())
                 {
