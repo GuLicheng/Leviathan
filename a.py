@@ -1,5 +1,7 @@
-import configparser
-import xml.etree.ElementTree as ET
+import json
 
-parser = configparser.ConfigParser()
-root = ET.parse("a.xml")
+# value = json.loads(open("a.json").read())
+value = json.loads("""[  "\uD834\uDD1E𝄞" ]""")
+
+print(value)
+

@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <unordered_map>
+#include <map>
 #include <algorithm>
 #include <type_traits>
 
@@ -21,7 +21,7 @@ namespace leviathan::config::json
 {
     enum class error_code
     {
-        // ok,
+        ok,
         eof_error,
         uninitialized,
         illegal_string,
@@ -36,7 +36,7 @@ namespace leviathan::config::json
     };
 
     inline constexpr const char* error_infos[] = {
-        // "ok",
+        "ok",
         "end of file error",
         "uninitialized",
         "illegal_string",
@@ -158,11 +158,12 @@ namespace leviathan::config::json
         }
     };
 
+
     using json_string = string;
     using json_boolean = bool;
     using json_null = std::nullptr_t;   // This may not suitable. The value of json_null is unique, the index in std::variant is enough to indicate it.
     using json_array = std::vector<json_value>;
-    using json_object = std::unordered_map<json_string, json_value, string_hash_keyequal, string_hash_keyequal>;
+    using json_object = std::map<json_string, json_value, std::less<>>;
 
     // I think error code is a better choice compared with exception.
     // But return std::optional<std::reference_wrapper<json_value>> may cause grammatical noise.
@@ -172,30 +173,16 @@ namespace leviathan::config::json
         { return "bad_json_value_access"; }
     };
 
-    inline constexpr std::array<bool, 256> valid_unicode_character = [](){
-        
-        std::array<bool, 256> table;
-        
-        table.fill(false);
-
-        for (int i = '0'; i <= '9'; ++i) table[i] = true;
-        for (int i = 'a'; i <= 'f'; ++i) table[i] = true;
-        for (int i = 'A'; i <= 'F'; ++i) table[i] = true;
-
-        return table;
-    }();
-
     constexpr bool is_unicode(string_view code)
     {
         if (code.size() != 4)
         {
             return false;
         }
-
-        return valid_unicode_character[code[0]]
-            && valid_unicode_character[code[1]]
-            && valid_unicode_character[code[2]]
-            && valid_unicode_character[code[3]];
+        return isxdigit(code[0])
+            && isxdigit(code[1])
+            && isxdigit(code[2])
+            && isxdigit(code[3]);
     }
 
     template <typename T>
@@ -318,6 +305,9 @@ namespace leviathan::config::json
 
         explicit operator bool() const
         { return m_data.index() < std::variant_size_v<value_type> - 1; }
+
+        error_code ec() const
+        { return std::holds_alternative<error_code>(m_data) ? std::get<error_code>(m_data) : error_code::ok; }
 
         optional<json_number&> as_number()
         { return try_as<json_number>(); }
@@ -446,7 +436,8 @@ namespace leviathan::config::json
 
                     if (!value)
                     {
-                        return return_with_error_code(error_code::illegal_array);
+                        // return return_with_error_code(error_code::illegal_array);
+                        return value; 
                     }
 
                     arr.emplace_back(std::move(value));
@@ -526,7 +517,8 @@ namespace leviathan::config::json
 
                     if (!key)
                     {
-                        return return_with_error_code(error_code::illegal_object);
+                        // return return_with_error_code(error_code::illegal_object);
+                        return key;
                     }
 
                     skip_whitespace();
@@ -542,7 +534,8 @@ namespace leviathan::config::json
 
                     if (!value)
                     {
-                        return return_with_error_code(error_code::illegal_object);
+                        // return return_with_error_code(error_code::illegal_object);
+                        return value;
                     }
 
                     obj.emplace(std::move(key.cast_unchecked<json_string>()), std::move(value));
@@ -605,26 +598,72 @@ namespace leviathan::config::json
                         case 'r': s += '\r'; break;   // carriage return
                         case 't': s += '\t'; break;   // horizontal tab
                         case 'u': {
+                            // https://codebrowser.dev/llvm/llvm/lib/Support/JSON.cpp.html#_ZN4llvm4json12_GLOBAL__N_110encodeUtf8EjRNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+                            auto parse_4_hex = [this](string_view sv) -> optional<uint16_t> {
+                                if (!is_unicode(sv))
+                                {
+                                    return nullopt;
+                                }
+                                auto res = decode_unicode_from_char(sv.data());  
+                                advance_unchecked(4);
+                                return res;
+                            };
 
-                            // The unicode is consist of 4-hex digits and each digit
-                            // is one of [0-9a-fA-F].
-                            if (!is_unicode(m_cur.substr(1, 4)))
+                            // Invalid UTF is not a JSON error (RFC 8529§8.2). It gets replaced by U+FFFD.
+                            auto invalid = [&] { s.append({'\xef', '\xbf', '\xbd'}); };
+
+                            uint16_t first;
+
+                            if (auto op = parse_4_hex(m_cur.substr(1, 4)); !op)
                             {
                                 return return_with_error_code(error_code::illegal_unicode);
                             }
-                            unsigned unicode = decode_unicode_from_char(m_cur.data() + 1); // skip 'u'
-                            auto old_size = s.size();
-                            encode_unicode_to_utf8(std::back_inserter(s), unicode);
-                            auto new_size = s.size(); 
-
-                            if (old_size == new_size)
+                            else
                             {
-                                // If the unicode is invalid, the `encode_unicode_to_utf8`
-                                // will not encode codepoint.
-                                return return_with_error_code(error_code::illegal_unicode);
+                                first = *op;
                             }
 
-                            advance_unchecked(4);
+                            while (true)
+                            {
+                                // basic multilingual plane, BMP(U+0000 - U+FFFF)
+                                if (first < 0xD800 || first >= 0xE000) [[likely]] 
+                                {
+                                    encode_unicode_to_utf8(std::back_inserter(s), first);
+                                    break;
+                                }
+                                if (first >= 0xDC00) [[unlikely]] 
+                                {
+                                    invalid();
+                                    break;
+                                }
+                                if (m_cur.size() < 2 + 1 || peek(1) != '\\' || peek(2) != 'u') [[unlikely]] 
+                                {
+                                    invalid();
+                                    break;
+                                }
+                                advance_unchecked(2); // skip "\u"
+
+                                uint16_t second;
+
+                                if (auto op = parse_4_hex(m_cur.substr(1, 4)); !op)
+                                {
+                                    return return_with_error_code(error_code::illegal_unicode);
+                                }
+                                else
+                                {
+                                    second = *op;
+                                }
+
+                                if (second < 0xDC || second >= 0xE000) [[unlikely]]
+                                {
+                                    invalid();
+                                    first = second;
+                                    continue;
+                                }
+                                uint32_t codepoint = 0x10000 | ((first - 0xD800) << 10) | (second - 0xDC00);
+                                encode_unicode_to_utf8(std::back_inserter(s), codepoint);
+                                break;
+                            }
                             break;
                         }   // 4 hex digits
                         default: return return_with_error_code(error_code::illegal_string);
@@ -705,7 +744,10 @@ namespace leviathan::config::json
         { m_cur.remove_prefix(n); }
 
         char current() const
-        { return m_cur[0]; }
+        { return peek(0); }
+
+        char peek(int n) const
+        { return m_cur[n]; }
 
         json_value return_with_error_code(error_code err)
         { return err;}

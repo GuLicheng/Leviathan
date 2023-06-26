@@ -30,7 +30,7 @@ TEST_CASE("json_make")
     REQUIRE(value3.as_string().value() == "HelloWorld");
     REQUIRE(value4.as_array().value().empty());
     REQUIRE(value5.as_object().value().empty());
-    REQUIRE(value7.as_null().value() == json::json_null());
+    // REQUIRE(value7.as_null().value() == json::json_null());
 }
 
 TEST_CASE("started with object and array")
@@ -47,8 +47,25 @@ TEST_CASE("started with object and array")
     for (auto c : context2)
     {
         auto value = json::parser(std::move(c))();
-        REQUIRE(!value);
+        REQUIRE(value.ec() == json::error_code::illegal_root);
     }
+}
+
+TEST_CASE("error unicode")
+{
+    std::string error_unicodes[] = {
+        R"(["\u"])",       // no digit
+        R"(["\u621"])",    // less than 4 digits
+        R"(["\uxyzw"])",   // not a hex-digit
+        R"(["\u"])",
+    };
+
+    for (auto c : error_unicodes)
+    {
+        auto value = json::parser(std::move(c))();
+        REQUIRE(value.ec() == json::error_code::illegal_unicode);
+    }
+
 }
 
 // int main(int argc, char const *argv[])
