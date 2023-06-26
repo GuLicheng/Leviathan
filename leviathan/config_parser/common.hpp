@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <cstdint>
+#include <concepts>
 
 namespace leviathan::config
 {
@@ -30,35 +31,23 @@ namespace leviathan::config
 
 namespace leviathan::config
 {
-    inline optional<int64_t> string_to_integer(const std::string& str, int base = 10)
+    template <std::integral I>
+    constexpr optional<I> from_chars_to_optional(const char* startptr, const char* endptr, int base = 10)
     {
-        int& err = errno;
-        const char* ptr = str.c_str();
-        char* end_ptr;
-        err = 0;
-
-        const auto ans = ::strtoll(ptr, &end_ptr, base);
-
-        if (ptr == end_ptr || err == ERANGE)
-        {
-            return nullopt;
-        }
-        return ans;
+        I value;
+        auto result = std::from_chars(startptr, endptr, value, base);
+        if (result.ec == std::errc() && result.ptr == endptr)
+            return value;
+        return nullopt;
     }
 
-    inline optional<double> string_to_floating(const std::string& str)
+    template <std::floating_point F>
+    constexpr optional<F> from_chars_to_optional(const char* startptr, const char* endptr, std::chars_format fmt = std::chars_format::general)
     {
-        int& err = errno;
-        const char* ptr = str.c_str();
-        char* end_ptr;
-        err = 0;
-
-        const auto ans = ::strtod(ptr, &end_ptr);
-
-        if (ptr == end_ptr || err == ERANGE)
-        {
-            return nullopt;
-        }
-        return ans;
+        F value;
+        auto result = std::from_chars(startptr, endptr, value, fmt);
+        if (result.ec == std::errc() && result.ptr == endptr)
+            return value;
+        return nullopt;
     }
 }

@@ -682,16 +682,17 @@ namespace leviathan::config::json
                 };
 
                 // Try parse as integral first.
-                if (json_number::int_type value; check_result(std::from_chars(startptr, endptr, value), endptr))
+                if (auto value = from_chars_to_optional<json_number::int_type>(startptr, endptr); value)
                 {
-                    return json_number(value);
-                }  
+                    return json_number(*value);
+                }
 
                 // TODO: try parse as unsigned integral second.
 
-                if (json_number::float_type value; check_result(std::from_chars(startptr, endptr, value, std::chars_format::general), endptr))
+                // Try parse as floating last.
+                if (auto value = from_chars_to_optional<json_number::float_type>(startptr, endptr); value)
                 {
-                    return json_number(value);
+                    return json_number(*value);
                 }    
 
                 return return_with_error_code(error_code::illegal_number);
