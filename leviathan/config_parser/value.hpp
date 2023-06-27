@@ -13,6 +13,8 @@ namespace leviathan::config
     template <typename T>
     struct basic_item : optional<T>
     {
+        static_assert(std::is_same_v<T, std::remove_cvref_t<T>>, "T should not be reference.");
+
         using optional<T>::optional;
 
         template <typename U>

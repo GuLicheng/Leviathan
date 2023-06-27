@@ -121,7 +121,9 @@ namespace leviathan::string
     {
         constexpr static std::optional<I> operator()(std::string_view s, int base = 10) 
         {
-            if (I value; std::from_chars(s.begin(), s.end(), value, base).ec == std::errc())
+            I value;
+            auto result = std::from_chars(s.begin(), s.end(), value, base);
+            if (result.ec == std::errc() && result.ptr == s.end())
                 return value;
             return std::nullopt;
         }
@@ -133,7 +135,9 @@ namespace leviathan::string
     {
         constexpr static std::optional<F> operator()(std::string_view s, std::chars_format fmt = std::chars_format::general) 
         {
-            if (F value; std::from_chars(s.begin(), s.end(), value, fmt).ec == std::errc())
+            F value;
+            auto result = std::from_chars(s.begin(), s.end(), value, fmt);
+            if (result.ec == std::errc() && result.ptr == s.end())
                 return value;
             return std::nullopt;
         }

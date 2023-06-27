@@ -3,7 +3,6 @@
 #include <leviathan/string/string_extend.hpp>
 #include <leviathan/config_parser/value.hpp>
 #include <leviathan/config_parser/common.hpp>
-#include <leviathan/config_parser/encode.hpp>
 
 #include <utility>
 #include <memory>
@@ -125,23 +124,23 @@ namespace leviathan::config::json
         bool is_floating() const
         { return m_type == number_type::FloatingPoint; }
 
-        double as_floating() const  
-        { return static_cast<double>(*this); }
+        float_type as_floating() const  
+        { return static_cast<float_type>(*this); }
 
-        uint64_t as_unsigned_integral() const
-        { return static_cast<uint64_t>(*this); }
+        uint_type as_unsigned_integral() const
+        { return static_cast<uint_type>(*this); }
 
-        int64_t as_signed_integral() const
-        { return static_cast<int64_t>(*this); }
+        int_type as_signed_integral() const
+        { return static_cast<int_type>(*this); }
 
-        explicit operator double() const
-        { return as<double>(); }
+        explicit operator float_type() const
+        { return as<float_type>(); }
 
-        explicit operator int64_t() const
-        { return as<int64_t>(); }
+        explicit operator int_type() const
+        { return as<int_type>(); }
 
-        explicit operator uint64_t() const
-        { return as<uint64_t>(); }
+        explicit operator uint_type() const
+        { return as<uint_type>(); }
 
         template <typename Char, typename Traits>
         friend std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, const json_number& x)
