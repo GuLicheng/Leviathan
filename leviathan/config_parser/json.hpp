@@ -803,12 +803,12 @@ namespace leviathan::config::json
         template <typename OStream>
         void json_serialize(OStream& os, const std::unique_ptr<json_array>& arrayptr, int padding)
         {
-            auto& array = *arrayptr;
+            auto& arr = *arrayptr;
             os << "[\n";
-            for (std::size_t i = 0; i < array.size(); ++i)
+            for (std::size_t i = 0; i < arr.size(); ++i)
             {
                 if (i != 0) os << ", ";
-                json_serialize(os, array[i], padding + 1);
+                json_serialize(os, arr[i], padding + 1);
             }
             os << '\n';
             json_padding(os, padding_character, padding);

@@ -39,7 +39,7 @@ TEST_CASE("json_make")
     REQUIRE(value9.as_number().value().is_floating());
 }
 
-TEST_CASE("error unicode")
+TEST_CASE("unicode")
 {
     std::string error_unicodes[] = {
         R"("\u")",       // no digit
@@ -93,7 +93,45 @@ TEST_CASE("number")
     }
 }
 
+TEST_CASE("string")
+{
+    std::string s = R"""(
+        {
+            "empty string" : "",
+            "simple string": "HelloWorld!",
+            "Chinese": "\u6211\u7231\u5317\u4eac\u5929\u5b89\u95e8",
+            "whitespace": "\r\t\n "
+        }
+    )""";
 
+    auto root = json::parser(s)();
+
+    REQUIRE(root.is_object());
+
+    auto check_value = [&](const char* key, const char* target) {
+        auto& value = root.as_object()->operator[](key);
+        return value.as_string().value() == target;
+    };
+
+    REQUIRE(check_value("empty string", ""));
+    REQUIRE(check_value("simple string", "HelloWorld!"));
+    // REQUIRE(check_value("Chinese", "𝄞我爱北京天安门𝄞")); // GBK cannot response 𝄞, you can print it in screen.
+    REQUIRE(check_value("whitespace", "\r\t\n "));
+}
+
+TEST_CASE("literal")
+{
+    std::string s = R"""(
+        [true, false, null]
+    )""";
+
+    auto value = json::parser(s)();
+
+    REQUIRE(value.is_array());
+    REQUIRE(value.as_array()->at(0).as_boolean().value() == true);
+    REQUIRE(value.as_array()->at(1).as_boolean().value() == false);
+    REQUIRE(value.as_array()->at(2).is_null());
+}
 
 // int main(int argc, char const *argv[])
 // {
