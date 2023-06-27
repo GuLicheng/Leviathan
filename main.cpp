@@ -1,41 +1,23 @@
-#include <leviathan/config_parser/json.hpp>
-
-
-#include <iostream>
-#include <functional>
-
-namespace json = leviathan::config::json;
-
+#include <leviathan/checked_allocator.hpp>
 
 int main(int argc, char const *argv[])
 {
-	system("chcp 65001");
 
-    json::json_value value1 = json::make(3);
-    json::json_value value2 = json::make(true);
-    json::json_value value3 = json::make("HelloWorld");
-    json::json_value value4 = json::make(json::json_array());
-    json::json_value value5 = json::make(json::json_object());
-    json::json_value value6 = json::make(json::error_code::uninitialized);
+    leviathan::alloc::checked_allocator<int> alloc(1);
 
-    const char* path = R"(D:\Library\Leviathan\a.json)";
+    auto ptr = alloc.allocate(5);
 
-    auto value = json::parse_json(path);
-
-    if (!value)
+    for (int i = 0; i < 5; ++i)
     {
-        std::cout << json::report_error(value.cast_unchecked<json::error_code>());
-    }
-    else
-    {
-        json::detail::json_serialize(std::cout, value, 0);
+        // ptr[i] = i;
+        alloc.construct(ptr + i, i);
+        std::cout << ptr[i] << ' ';
+        alloc.destroy(ptr + i);
     }
 
-    std::cout << "\nOk\n";
+    alloc.deallocate(ptr, 5);
 
-    // json::detail::json_serialize(std::cout, value["BORIS", "Cost"], 0);
-    // json::detail::json_serialize(std::cout, value["BORIS", "Name"], 0);
-    // json::detail::json_serialize(std::cout, value["BORIS", "Hero"], 0);
+    std::cout << '\n' << alloc << '\n';
 
     return 0;
 }
