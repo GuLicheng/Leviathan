@@ -1,4 +1,5 @@
 #include <leviathan/collections/static_vector.hpp>
+#include <algorithm>
 #include <catch2/catch_all.hpp>
 
 using leviathan::collections::static_vector;
