@@ -43,4 +43,38 @@ TEST_CASE("ctor")
     REQUIRE(std::ranges::equal(v7, v5));
 }
 
+TEST_CASE("insert and emplace")
+{
+    static_vector<int, 8> v1;
+    v1.insert(v1.begin(), -1);
+    REQUIRE(v1.size() == 1);
+    REQUIRE(v1[0 == -1]);
 
+
+    v1.emplace(v1.begin(), 0);
+    v1.emplace_back(-2);
+
+    REQUIRE(v1.size() == 3);
+    REQUIRE(v1.front() == 0);
+    REQUIRE(v1.back() == -2);
+
+    v1.pop_back();
+    v1.pop_back();
+    v1.pop_back();
+
+    REQUIRE(v1.empty());
+}
+
+TEST_CASE("erase")
+{
+    static_vector<int, 8> v1 = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
+    v1.erase(v1.begin(), v1.begin() + 5);
+
+    v1.erase(--v1.end());
+
+    REQUIRE(v1.size() == 2);
+    REQUIRE(v1[0] == 5);
+    REQUIRE(v1[1] == 6);
+
+}

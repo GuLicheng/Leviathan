@@ -17,6 +17,12 @@ namespace leviathan::collections
     /**
      * @brief A variable-size array container with fixed capacity.
      * 
+     *  We use std::vector with stack_allocator as our underlying implement. We call
+     *  std::vector::reverse(N) in constructor to make sure the static_vector has enough room.
+     *  And C++ requires follow operations will not change the std::vector capacity:
+     *  - std::vector::resize(n) if n is not greater than capacity
+     *  - std::vector::clear 
+     * 
      * @param T The type of element that will be stored.
      * @param N The maximum number of elements static_vector can store, fixed at compile time.
     */
@@ -40,8 +46,8 @@ namespace leviathan::collections
         using const_reference = const value_type&;
         using size_type = size_t;
         using difference_type = std::make_signed_t<size_type>;
-        using iterator = pointer;  
-        using const_iterator = const_pointer; 
+        using iterator = typename storage::iterator;              // This may not suitable.
+        using const_iterator = typename storage::const_iterator;  // This may not suitable.
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -126,13 +132,13 @@ namespace leviathan::collections
         // 5.4, destruction
         // We may not satisfy the remark that
         // the destructor shall be trivial if is_trivially_copyable_v<T> && is_default_constructible_v<T> is true.
-        ~static_vector() = default;
+        constexpr ~static_vector() = default;
 
         // iterators
-        constexpr iterator begin() { return data(); }
-        constexpr const_iterator begin() const { return data(); }
-        constexpr iterator end() { return data() + size(); }
-        constexpr const_iterator end() const { return data() + size(); }
+        constexpr iterator begin() { return m_vec.begin(); }
+        constexpr const_iterator begin() const { return m_vec.begin(); }
+        constexpr iterator end() { return m_vec.end(); }
+        constexpr const_iterator end() const { return m_vec.end(); }
         constexpr reverse_iterator rbegin() { return end(); }
         constexpr const_reverse_iterator rbegin() const { return end(); }
         constexpr reverse_iterator rend() { return begin(); }
@@ -145,11 +151,14 @@ namespace leviathan::collections
         // 5.5, size/capacity:
         constexpr bool empty() const { return m_vec.empty(); }
         constexpr size_type size() const { return m_vec.size(); }
-        static constexpr size_type max_size() { return N; }
-        static constexpr size_type capacity() { return N; }
+        static consteval size_type max_size() { return N; }
+        static consteval size_type capacity() { return N; }
 
         constexpr void resize(size_type sz) 
         { 
+            // Vector capacity is never reduced when resizing to smaller size 
+            // because that would invalidate all iterators, rather than only the ones 
+            // that would be invalidated by the equivalent sequence of pop_back() calls.
             check_overflow(sz);
             m_vec.resize(sz); 
         }
@@ -169,6 +178,8 @@ namespace leviathan::collections
         constexpr const_reference back() const { return m_vec.back(); }
         constexpr T* data() { return m_vec.data(); }
         constexpr const T* data() const { return m_vec.data(); }
+        constexpr reference at(size_type n) { return m_vec.at(n); }
+        constexpr const_reference at(size_type n) const { return m_vec.at(n); }
 
         // 5.7, modifiers:
         constexpr iterator insert(const_iterator position, const value_type& x)
@@ -217,9 +228,9 @@ namespace leviathan::collections
             m_vec.clear();
         }
 
-        constexpr void swap(static_vector& x)
-        noexcept(std::is_nothrow_swappable_v<value_type>)
-        { m_vec.swap(x); }
+        // constexpr void swap(static_vector& x)
+        // noexcept(std::is_nothrow_swappable_v<value_type>)
+        // { m_vec.swap(x); }
     };
 
 
@@ -235,6 +246,8 @@ namespace leviathan::collections
         // constexpr bool operator>(const static_vector<T, N>& a, const static_vector<T, N>& b);
         // template <typename T, size_t N>
         // constexpr bool operator>=(const static_vector<T, N>& a, const static_vector<T, N>& b);
+        // template <typename T, size_t N>
+        // constexpr auto operator<=>(const static_vector<T, N>& a, const static_vector<T, N>& b);
 
         // // 5.8, specialized algorithms:
         // template <typename T, size_t N>

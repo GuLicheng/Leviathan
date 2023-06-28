@@ -50,7 +50,7 @@ namespace leviathan::alloc
         constexpr void deallocate(void* p, size_t n)
         { }
 
-        constexpr size_t max_size() const 
+        static consteval size_t max_size()  
         { return N; }
 
         constexpr friend bool operator==(const stack_allocator& lhs, const stack_allocator& rhs) noexcept
