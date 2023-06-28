@@ -83,7 +83,7 @@ namespace leviathan::config::json
 
         union 
         {
-            double m_f;
+            float_type m_f;
             int_type m_i;
             uint_type m_u;
         };
@@ -676,10 +676,6 @@ namespace leviathan::config::json
 
                 auto endptr = m_cur.data();
 
-                auto check_result = [](std::from_chars_result result, const char* endptr) {
-                    return result.ec == std::errc() && result.ptr == endptr;
-                };
-
                 // Try parse as integral first.
                 if (auto value = from_chars_to_optional<json_number::int_type>(startptr, endptr); value)
                 {
@@ -705,25 +701,42 @@ namespace leviathan::config::json
         // Whitespace is consist of (' ', '\r', '\n', '\t').
         void skip_whitespace()
         {
-            auto idx = m_cur.find_first_not_of(whitespace_delimiters);
-            m_cur.remove_prefix(idx == m_cur.npos ? m_cur.size() : idx);
+            // auto idx = m_cur.find_first_not_of(whitespace_delimiters);
+            // m_cur.remove_prefix(idx == m_cur.npos ? m_cur.size() : idx);
+            auto is_whitespace = [](int ch) { return whitespaces[ch]; };
+            for (; m_cur.size() && is_whitespace(current()); advance_unchecked(1));
         }
 
         static bool valid_number_character(char ch)
         {
-            if (isdigit(ch))
-            {
-                return true;
-            }
-            switch (ch)
-            {
-                case '-':
-                case '+':
-                case '.':
-                case 'e':
-                case 'E': return true;
-                default: return false;
-            }
+            static std::array<int, 256> valid_characters = [](){
+
+                std::array<int, 256> table;
+                
+                for (int i = '0'; i <= '9'; ++i) table[i] = 1;
+                for (int i = 'a'; i <= 'z'; ++i) table[i] = 1;
+                for (int i = 'A'; i <= 'Z'; ++i) table[i] = 1;
+
+                for (int ch : std::string_view("-+.eE")) table[ch] = 1;
+
+                return table;
+            }();
+            
+            return valid_characters[ch];
+
+            // if (isdigit(ch))
+            // {
+            //     return true;
+            // }
+            // switch (ch)
+            // {
+            //     case '-':
+            //     case '+':
+            //     case '.':
+            //     case 'e':
+            //     case 'E': return true;
+            //     default: return false;
+            // }
         }
 
         void advance_unchecked(size_t n)

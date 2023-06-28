@@ -1,6 +1,7 @@
 #pragma once
 
 #include <leviathan/config_parser/optional.hpp>
+#include <leviathan/config_parser/table.hpp>
 
 #include <array>
 #include <fstream>
@@ -58,19 +59,6 @@ namespace leviathan::config
 
 namespace leviathan::config
 {
-    inline constexpr std::array<int, 256> digit_values = []() {
-
-        std::array<int, 256> values;
-
-        values.fill(-1);
-
-        for (int i = 0; i < 10; ++i) values['0' + i] = i;        // 0 - 9
-        for (int i = 0; i < 26; ++i) values['a' + i] = i + 10;   // a - z
-        for (int i = 0; i < 26; ++i) values['A' + i] = i + 10;   // A - z
-
-        return values;
-    }();
-
     consteval bool is_utf8() 
     {
         constexpr unsigned char micro[] = "\u00B5";

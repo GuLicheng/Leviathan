@@ -3,6 +3,7 @@
 #pragma once
 
 #include <leviathan/config_parser/value.hpp>
+#include <leviathan/config_parser/common.hpp>
 #include <leviathan/string/string_extend.hpp>
 #include <leviathan/meta/template_info.hpp>
 
@@ -246,7 +247,8 @@ namespace leviathan::config::ini
     {
         std::fstream ifs(filename, std::ios_base::in | std::ios_base::binary);
         
-        auto context = std::make_unique<string>(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+        // auto context = std::make_unique<string>(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+        auto context = std::make_unique<string>(read_file_contents(filename));
 
         auto sections = *context
             | std::views::split(detail::linefeed)
