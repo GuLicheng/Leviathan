@@ -5,3 +5,5 @@ target_link_libraries(ini PRIVATE Catch2::Catch2WithMain)
 add_executable(json ${CMAKE_SOURCE_DIR}/leviathan/config_parser/json.cpp)
 target_link_libraries(json PRIVATE Catch2::Catch2WithMain)
 
+add_executable(toml ${CMAKE_SOURCE_DIR}/leviathan/config_parser/toml.cpp)
+target_link_libraries(toml PRIVATE Catch2::Catch2WithMain)

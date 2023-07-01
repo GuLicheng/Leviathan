@@ -29,35 +29,6 @@ namespace leviathan::config
     using item = basic_item<std::string_view>;
 
     /**
-     * @brief A helper meta for checking whether use pointer.
-     * 
-     * We often use union to store variables, but some variables may occupy much
-     * bytes(std::string/std::map). For these types we can store pointer.
-     * 
-     * @param Pointer Pointer type.
-     * @param Fn Used for judging.
-    */
-    template <typename Pointer, template <typename> typename Fn>
-    struct store_ptr 
-    {
-        using element_type = typename std::pointer_traits<Pointer>::element_type;
-        
-        constexpr static bool value = Fn<element_type>::value;
-
-        using type = std::conditional_t<value, Pointer, element_type>;
-    };
-
-    template <typename T, template <typename> typename Fn>
-    struct store_ptr<T*, Fn>
-    {
-        using element_type = T;
-        
-        constexpr static bool value = Fn<element_type>::value;
-
-        using type = std::conditional_t<value, element_type*, element_type>;
-    };
-
-    /**
      * @brief A simple helper for adjust type for some scripts value.
      * 
      * E.g.
@@ -65,7 +36,7 @@ namespace leviathan::config
      *  template <typename T> struct to_raw_pointer : store_ptr<T*, use_pointer> { };
      * 
      *  using binder = config::bind<std::variant>::with<small_object, large_object>; => 
-     *  using binder2 = binder::transform<to_raw_pointer>::type;
+     *  using binder2 = typename binder::transform<to_raw_pointer>::type;
      *  using storage = typename binder2::type;
      * 
      * The small object will store as a value and large object will 
@@ -92,6 +63,42 @@ namespace leviathan::config
                 return sum;
             }();
         };
+    };
+
+    template <template <typename...> typename Variant, typename Fn, typename... Ts>
+    class value_base
+    {
+    protected:
+    
+        template <typename T>
+        struct mapped
+        {
+            using type = std::invoke_result_t<Fn, T>;
+
+            static_assert(std::is_same_v<type, std::remove_cvref_t<type>>);
+        };
+
+        template <typename T>
+        struct declaration
+        {
+            constexpr static bool value = (false || ... || std::is_same_v<T, Ts>);
+        };
+
+        template <typename T>
+        struct storage
+        {
+            constexpr static bool value = (false || ... || std::is_same_v<T, typename mapped<Ts>::type>);
+        };
+
+        using value_type = Variant<typename mapped<Ts>::type...>;
+
+        value_type m_data;
+
+    public:
+
+        template <typename Arg>
+            requires (declaration<Arg>::value)
+        constexpr value_base(Arg arg) : m_data(Fn()(std::move(arg))) { }
     };
 
 }

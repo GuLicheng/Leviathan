@@ -228,33 +228,56 @@ namespace leviathan::collections
             m_vec.clear();
         }
 
-        // constexpr void swap(static_vector& x)
-        // noexcept(std::is_nothrow_swappable_v<value_type>)
-        // { m_vec.swap(x); }
+        constexpr void swap(static_vector& x) noexcept(std::is_nothrow_swappable_v<value_type>)
+        { 
+            auto small = this, large = &x;
+            if (small->size() > large->size())
+            {
+                std::swap(small, large);
+            }    
+
+            auto common = small->size();
+
+            // Swap common
+            std::swap_ranges(small->begin(), small->end(), large->begin());
+
+            // Move rest
+            std::move(large->begin() + common, large->end(), std::back_inserter(*small));
+            large->erase(large->begin() + common, large->end());
+        }
+    
+        constexpr friend bool operator==(const static_vector& a, const static_vector& b)
+        { return a.m_vec == b.m_vec; }
+
+        // constexpr friend bool operator!=(const static_vector& a, const static_vector& b)
+    
+        constexpr friend bool operator<(const static_vector& a, const static_vector& b)
+        { return a.m_vec < b.m_vec; }
+
+        constexpr friend bool operator<=(const static_vector& a, const static_vector& b)
+        { return a.m_vec <= b.m_vec; }
+
+        constexpr friend bool operator>(const static_vector& a, const static_vector& b)
+        { return a.m_vec > b.m_vec; }
+
+        constexpr friend bool operator>=(const static_vector& a, const static_vector& b)
+        { return a.m_vec >= b.m_vec; }
+
+        constexpr friend auto operator<=>(const static_vector& a, const static_vector& b)
+        { return a.m_vec <=> b.m_vec; };
+
     };
-
-
-        // template <typename T, size_t N>
-        // constexpr bool operator==(const static_vector<T, N>& a, const static_vector<T, N>& b);
-        // template <typename T, size_t N>
-        // constexpr bool operator!=(const static_vector<T, N>& a, const static_vector<T, N>& b);
-        // template <typename T, size_t N>
-        // constexpr bool operator<(const static_vector<T, N>& a, const static_vector<T, N>& b);
-        // template <typename T, size_t N>
-        // constexpr bool operator<=(const static_vector<T, N>& a, const static_vector<T, N>& b);
-        // template <typename T, size_t N>
-        // constexpr bool operator>(const static_vector<T, N>& a, const static_vector<T, N>& b);
-        // template <typename T, size_t N>
-        // constexpr bool operator>=(const static_vector<T, N>& a, const static_vector<T, N>& b);
-        // template <typename T, size_t N>
-        // constexpr auto operator<=>(const static_vector<T, N>& a, const static_vector<T, N>& b);
-
-        // // 5.8, specialized algorithms:
-        // template <typename T, size_t N>
-        // constexpr void swap(static_vector<T, N>& x, static_vector<T, N>& y)
-        // noexcept(noexcept(x.swap(y)));
-
 
 } // namespace leviathan::collections
 
 
+namespace std
+{
+    // 5.8, specialized algorithms:
+    template <typename T, size_t N>
+    constexpr void swap(leviathan::collections::static_vector<T, N>& x, leviathan::collections::static_vector<T, N>& y)
+    noexcept(noexcept(x.swap(y)))
+    {
+        x.swap(y);
+    }
+} // namespace std

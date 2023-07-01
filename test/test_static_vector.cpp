@@ -79,3 +79,65 @@ TEST_CASE("erase")
     REQUIRE(v1[1] == 6);
 
 }
+
+TEST_CASE("swap")
+{
+    static_vector<int, 8> v1, v2;
+
+    SECTION("swap sequences with difference size")
+    {
+
+        v1.emplace_back(0);
+        v1.emplace_back(1);
+        v1.emplace_back(2);
+        v1.emplace_back(3);
+
+        v2.emplace_back(-1);
+        v2.emplace_back(-2);
+
+        v1.swap(v2);
+
+        REQUIRE(v1.size() == 2);
+        REQUIRE(v2.size() == 4);
+
+        auto il1 = { 0, 1, 2, 3 }, il2 = { -1, -2 };
+        REQUIRE(std::ranges::equal(v1, il2));
+        REQUIRE(std::ranges::equal(v2, il1));
+    }
+
+    SECTION("swap sequences with same size")
+    {
+        v1.emplace_back(-1);
+        v2.emplace_back(1);
+
+        v1.swap(v2);
+
+        REQUIRE(v1.size() == v2.size());
+        REQUIRE(v1.front() == 1);
+        REQUIRE(v2.front() == -1);
+    }
+
+}
+
+TEST_CASE("compare")
+{
+    static_vector<int, 8> v1, v2, v3;
+
+    v1.emplace_back(0);
+    v1.emplace_back(1);
+    v1.emplace_back(2);
+
+    v2.emplace_back(0);
+    v2.emplace_back(1);
+    v2.emplace_back(2);
+
+    v3.emplace_back(0);
+
+    REQUIRE(v1 == v2);
+    REQUIRE(v1 != v3);
+    REQUIRE(v3 < v1);
+    REQUIRE(v3 <= v1);
+    REQUIRE(v1 > v3);
+    REQUIRE(v1 >= v3);
+}
+

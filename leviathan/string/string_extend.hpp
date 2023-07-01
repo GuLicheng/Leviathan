@@ -17,12 +17,12 @@ namespace leviathan::string
     // This overload participates in overload resolution only if 
     // Hash::is_transparent and KeyEqual::is_transparent are valid and each denotes a type
     // https://en.cppreference.com/w/cpp/container/unordered_map/find
-    struct string_hash_keyequal
+    struct string_hash_key_equal
     {
         using is_transparent = void;
 
         template <string_viewable Lhs, string_viewable Rhs>
-        constexpr static bool operator()(const Lhs& l, const Rhs& r)  
+        constexpr bool operator()(const Lhs& l, const Rhs& r) const
         {
             std::string_view sl = static_cast<std::string_view>(l);
             std::string_view sr = static_cast<std::string_view>(r);
@@ -30,7 +30,7 @@ namespace leviathan::string
         }
 
         template <string_viewable Str>
-        constexpr static bool operator()(const Str& s)  
+        constexpr bool operator()(const Str& s) const
         {
             std::string_view sv = static_cast<std::string_view>(s);
             return hash_impl(sv);
@@ -98,7 +98,7 @@ namespace leviathan::string
         return { sv.begin(), iter };
     }
 
-    std::string replace(std::string str, std::string_view from, std::string_view to)
+    inline std::string replace(std::string str, std::string_view from, std::string_view to)
     {
         size_t pos = 0;
         while ((pos = str.find(from, pos)) != str.npos)
@@ -108,7 +108,6 @@ namespace leviathan::string
         }
         return str;
     }
-
 }
 
 #include "lexical_cast.hpp"

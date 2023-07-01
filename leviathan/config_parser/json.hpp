@@ -1,3 +1,4 @@
+// https://www.json.org/json-en.html
 #pragma once
 
 #include <leviathan/string/string_extend.hpp>
@@ -18,6 +19,13 @@
 
 namespace leviathan::config::json
 {
+    using std::string_view;
+    using std::string;
+    using leviathan::string::arithmetic;
+    // using leviathan::string::whitespace_delimiters;
+    using leviathan::string::string_hash_key_equal;
+    using leviathan::string::string_viewable;
+
     enum class error_code
     {
         ok,
@@ -52,16 +60,22 @@ namespace leviathan::config::json
         return error_infos[static_cast<int>(ec)];
     }
 
-    using std::string_view;
-    using std::string;
-    using leviathan::string::arithmetic;
-    using leviathan::string::whitespace_delimiters;
-    using leviathan::string::string_hash_keyequal;
-    using leviathan::string::string_viewable;
+    namespace detail
+    {
+        constexpr bool is_unicode(string_view code)
+        {
+            if (code.size() != 4)
+            {
+                return false;
+            }
+            return isxdigit(code[0])
+                && isxdigit(code[1])
+                && isxdigit(code[2])
+                && isxdigit(code[3]);
+        }
+    }
 
     class json_value;
-
-    // using json_number = double;
 
     // std::variant<int64_t, uint64_t, double>
     class json_number
@@ -155,12 +169,11 @@ namespace leviathan::config::json
         }
     };
 
-
     using json_string = string;
     using json_boolean = bool;
     using json_null = std::nullptr_t;   // This may not suitable. The value of json_null is unique, the index in std::variant is enough to indicate it.
     using json_array = std::vector<json_value>;
-    using json_object = std::unordered_map<json_string, json_value, string_hash_keyequal, string_hash_keyequal>;
+    using json_object = std::unordered_map<json_string, json_value, string_hash_key_equal, string_hash_key_equal>;
 
     // I think error code is a better choice compared with exception.
     // But return std::optional<std::reference_wrapper<json_value>> may cause grammatical noise.
@@ -170,25 +183,43 @@ namespace leviathan::config::json
         { return "bad_json_value_access"; }
     };
 
-    constexpr bool is_unicode(string_view code)
+    template <typename T>
+    struct use_pointer 
     {
-        if (code.size() != 4)
+        constexpr static bool value = sizeof(T) > 16;
+
+        using type = std::conditional_t<value, std::unique_ptr<T>, T>;
+    };
+
+    struct to_unique_ptr
+    {
+        template <typename T>
+        constexpr auto operator()(T&& t) const
         {
-            return false;
+            using U = std::remove_cvref_t<T>;
+            if constexpr (use_pointer<U>::value)
+            {
+                return std::make_unique<U>((T&&)t);
+            }
+            else
+            {
+                return t;
+            }
         }
-        return isxdigit(code[0])
-            && isxdigit(code[1])
-            && isxdigit(code[2])
-            && isxdigit(code[3]);
-    }
+    };
 
-    template <typename T>
-    struct use_pointer : std::bool_constant<(sizeof(T) > 16)> { };
+    static_assert(!use_pointer<json_null>::value);
+    static_assert(!use_pointer<json_boolean>::value);
+    static_assert(!use_pointer<json_number>::value);
+    static_assert(!use_pointer<error_code>::value);
 
-    template <typename T>
-    struct to_unique_ptr : store_ptr<std::unique_ptr<T>, use_pointer> { };
+    static_assert(use_pointer<json_string>::value);
+    static_assert(use_pointer<json_array>::value);
+    static_assert(use_pointer<json_object>::value);
 
-    using binder = config::bind<std::variant>::with<
+    using json_value_base = value_base<
+        std::variant, 
+        to_unique_ptr, 
         json_null,
         json_boolean,
         json_number,
@@ -198,23 +229,16 @@ namespace leviathan::config::json
         error_code  // If some errors happen, return error_code.
     >;
 
-    using binder2 = binder::transform<to_unique_ptr>::type;
-
-    template <typename T>
-    concept json_value_able = binder2::contains<T>;
-
-    class json_value
+    class json_value : public json_value_base
     {
     public:
 
-        using value_type = binder2::type;
-
-        value_type m_data;   
+        using typename json_value_base::value_type;
 
         template <typename T>
         bool is() const
         {
-            using U = typename to_unique_ptr<T>::type; 
+            using U = typename use_pointer<T>::type;
             return std::holds_alternative<U>(m_data); 
         }
 
@@ -230,9 +254,14 @@ namespace leviathan::config::json
             else
             {
                 if constexpr (!use_pointer<T>::value)
+                {
                     return *std::get_if<T>(&m_data);
+                }
                 else 
-                    return *(*std::get_if<typename to_unique_ptr<T>::type>(&m_data)).get();
+                {
+                    using U = typename use_pointer<T>::type;
+                    return *(*std::get_if<U>(&m_data)).get();
+                }
             }
         }
 
@@ -252,10 +281,15 @@ namespace leviathan::config::json
 
     public:
 
-        json_value() : m_data(error_code::uninitialized) { }
+        using json_value_base::json_value_base;
+        using json_value_base::operator=;
 
-        template <json_value_able T>
-        json_value(T t) : m_data(std::move(t)) { }
+        json_value() : json_value_base(error_code::uninitialized) { }
+
+        // json_value() : m_data(error_code::uninitialized) { }
+
+        // template <json_value_able T>
+        // json_value(T t) : m_data(std::move(t)) { }
 
         template <string_viewable... Svs>
         json_value& operator[](const Svs&... svs) 
@@ -269,7 +303,7 @@ namespace leviathan::config::json
             for (auto sv : views)
             {
                 auto& obj = target->cast_unchecked<json_object>();
-                auto it = obj.try_emplace(json_string(sv), std::make_unique<json_object>(json_object()));
+                auto it = obj.try_emplace(json_string(sv), json_object());
                 target = &(it.first->second);
             }
 
@@ -304,7 +338,10 @@ namespace leviathan::config::json
         { return m_data.index() < std::variant_size_v<value_type> - 1; }
 
         error_code ec() const
-        { return std::holds_alternative<error_code>(m_data) ? std::get<error_code>(m_data) : error_code::ok; }
+        { 
+            auto code = std::get_if<error_code>(&m_data);
+            return code ? *code : error_code::ok;
+        }
 
         optional<json_number&> as_number()
         { return try_as<json_number>(); }
@@ -328,10 +365,6 @@ namespace leviathan::config::json
         T& cast_unchecked() 
         {
             return as<T>();
-            // if constexpr (!is_large_than_raw_pointer<T>::value)
-            //     return *std::get_if<T>(&m_data);
-            // else 
-            //     return *(*std::get_if<typename to_unique_ptr<T>::type>(&m_data)).get();
         }
     };
 
@@ -339,13 +372,13 @@ namespace leviathan::config::json
     { return json_null(); }
 
     json_value make(json_string str)
-    { return std::make_unique<json_string>(std::move(str)); }
+    { return str; }
 
     json_value make(json_array arr)
-    { return std::make_unique<json_array>(std::move(arr)); }
+    { return arr; }
 
     json_value make(json_object obj)
-    { return std::make_unique<json_object>(std::move(obj)); }
+    { return obj; }
 
     json_value make(arithmetic auto num)
     { return json_number(num); }
@@ -357,13 +390,11 @@ namespace leviathan::config::json
     { return ec; }
 
     json_value make(const char* str)
-    { return std::make_unique<json_string>(str); }  
+    { return json_string(str); }  
 
-    // https://www.json.org/json-en.html
     class parser
     {
         string m_context;
-
         string_view m_cur;
 
     public:
@@ -579,11 +610,11 @@ namespace leviathan::config::json
                         case 'u': {
                             // https://codebrowser.dev/llvm/llvm/lib/Support/JSON.cpp.html#_ZN4llvm4json12_GLOBAL__N_110encodeUtf8EjRNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
                             auto parse_4_hex = [this](string_view sv) -> optional<uint16_t> {
-                                if (!is_unicode(sv))
+                                if (!detail::is_unicode(sv))
                                 {
                                     return nullopt;
                                 }
-                                auto res = decode_unicode_from_char(sv.data());  
+                                auto res = decode_unicode_from_char<4>(sv.data());  
                                 advance_unchecked(4);
                                 return res;
                             };
@@ -703,25 +734,37 @@ namespace leviathan::config::json
         {
             // auto idx = m_cur.find_first_not_of(whitespace_delimiters);
             // m_cur.remove_prefix(idx == m_cur.npos ? m_cur.size() : idx);
-            auto is_whitespace = [](int ch) { return whitespaces[ch]; };
+
+            struct whitespace_config
+            {
+                constexpr int operator()(size_t i) const
+                {
+                    [[assume(i < 128)]];
+                    constexpr std::string_view sv = " \r\n\t";
+                    return sv.contains(i);
+                }
+            };
+
+            static auto whitespaces = make_character_table(whitespace_config());
+
+            auto is_whitespace = [](char ch) { return whitespaces[ch]; };
             for (; m_cur.size() && is_whitespace(current()); advance_unchecked(1));
         }
 
         static bool valid_number_character(char ch)
         {
-            static std::array<int, 256> valid_characters = [](){
+            struct valid_character_config
+            {
+                int operator()(size_t x) const
+                {
+                    [[assume(x < 128)]];  
+                    constexpr std::string_view sv = "-+.eE";
+                    return isdigit(x) || sv.contains(x); // x is less than 128 and it can convert to char.
+                }
+            };
 
-                std::array<int, 256> table;
-                
-                for (int i = '0'; i <= '9'; ++i) table[i] = 1;
-                for (int i = 'a'; i <= 'z'; ++i) table[i] = 1;
-                for (int i = 'A'; i <= 'Z'; ++i) table[i] = 1;
+            static auto valid_characters = make_character_table(valid_character_config());
 
-                for (int ch : std::string_view("-+.eE")) table[ch] = 1;
-
-                return table;
-            }();
-            
             return valid_characters[ch];
 
             // if (isdigit(ch))

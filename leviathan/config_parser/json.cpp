@@ -61,6 +61,7 @@ TEST_CASE("number")
         R"(-1)",      // integer
         R"(3.14)",    // double
         R"(2.7e18)",  // double
+        R"(-0.1)",    // double
     };
 
     auto check = [](std::string s, int mode) {
@@ -79,6 +80,7 @@ TEST_CASE("number")
     REQUIRE(check(numbers[1], 2));
     REQUIRE(check(numbers[2], 3));
     REQUIRE(check(numbers[3], 3));
+    REQUIRE(check(numbers[4], 3));
 
     std::string error_numbers[] = {
         R"(2.7e18e)",
@@ -131,6 +133,113 @@ TEST_CASE("literal")
     REQUIRE(value.as_array()->at(0).as_boolean().value() == true);
     REQUIRE(value.as_array()->at(1).as_boolean().value() == false);
     REQUIRE(value.as_array()->at(2).is_null());
+}
+
+TEST_CASE("annotation")
+{
+    const char* file = R"(D:\Library\Leviathan\leviathan\config_parser\config\annotation.json)";
+
+    auto root = json::parse_json(file);
+
+    REQUIRE(root);
+
+    REQUIRE(root.is_object());
+
+    auto& object = root.as_object().value()["00000_FV.json"].as_object().value();
+
+    std::string keys[] = {
+        "annotation",
+        "annotation-tags",
+        "feedback",
+        "image_channels",
+        "image_height",
+        "image_width",
+        "job_batch_id",
+        "status",  
+    };
+
+    for (const auto& key : keys)
+    {
+        REQUIRE(object.contains(key));
+    }
+
+    REQUIRE(object["feedback"].is_null());
+
+    auto check_number = [&](const char* name, int value) {
+        REQUIRE(object[name].is_number());
+        REQUIRE(object[name].as_number().value().as_signed_integral() == value);
+    };
+
+    check_number("image_channels", 3);
+    check_number("image_height", 966);
+    check_number("image_width", 1280);
+    check_number("job_batch_id", 34314);
+    check_number("job_id", 212425942);
+
+    REQUIRE(object["status"].is_string());
+    REQUIRE(object["status"].as_string().value() == "finished");
+
+    REQUIRE(object["annotation-tags"].is_array());
+    auto& annotags = object["annotation-tags"].as_array().value();
+
+    std::ranges::sort(annotags, {}, [](auto& value) {
+        return value.as_string().value();
+    });
+
+    std::string tags[] = {
+        "green_strip",
+        "ego_vehicle",
+        "bus",
+        "car",
+        "movable_object",
+        "person",
+        "construction",
+        "grouped_pedestrian_and_animals",
+        "traffic_sign",
+        "unknown_traffic_light",
+        "traffic_light_red",
+        "pole",
+        "construction",
+        "lane_marking",
+        "road_surface",
+        "curb",
+        "free_space",
+        "sky",
+        "nature",
+        "fence"
+    };
+
+    std::ranges::sort(tags);
+
+    REQUIRE(annotags.size() == std::ranges::size(tags));
+
+    for (size_t i = 0; i < annotags.size(); ++i)
+    {
+        REQUIRE(annotags[i].as_string().value() == tags[i]);
+    }
+
+    REQUIRE(object["annotation"].is_array());
+    auto& anno = object["annotation"].as_array().value();
+
+    int id = 0;
+
+    for (auto& val : anno)
+    {
+        if (val.is_object())
+        {
+            id += val.as_object().value().count("id");
+        }
+    }
+
+    REQUIRE(id == 106);
+}
+
+TEST_CASE("multi-dim operator[]")
+{
+    auto obj = json::make(json::json_object());
+
+    obj["Hello", "World"];
+
 }
 
 // int main(int argc, char const *argv[])

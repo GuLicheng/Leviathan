@@ -41,7 +41,8 @@ namespace leviathan::config::ini
     // We define some helper function here
     namespace detail
     {
-        inline constexpr const char linefeed = '\n';
+        // inline constexpr const char linefeed = '\n';
+        inline constexpr std::string_view linefeed = "\n";
 
         inline constexpr const char* comment = ";#"; 
 
