@@ -72,9 +72,11 @@ namespace leviathan::config::toml
     template <typename T>
     struct use_pointer 
     {
+        static_assert(std::is_same_v<T, std::remove_cvref_t<T>>);
+
         constexpr static bool value = sizeof(T) > 16;
 
-        using type = std::conditional_t<value, std::unique_ptr<T>, T>;
+        using type = std::conditional_t<value, std::shared_ptr<T>, T>;
     };
 
     struct to_shared_ptr
@@ -103,6 +105,12 @@ namespace leviathan::config::toml
     using toml_array = std::vector<toml_value>;
     using toml_table = std::unordered_map<toml_string, toml_value, string_hash_key_equal, string_hash_key_equal>;
 
+    // Since the static array cannot be table array, we can add a bool tag in 
+    // toml_array to distinct the array and table array. However, we want to
+    // avoid creating wheel, so we use another type toml_array_table which
+    // is same as toml_array but can add toml_table when parsing.
+    using toml_table_array = std::vector<toml_table>;
+
     using toml_value_base = value_base<
         std::variant, 
         to_shared_ptr,
@@ -124,6 +132,54 @@ namespace leviathan::config::toml
         using toml_value_base::toml_value_base;
         using toml_value_base::operator=;
 
+        template <typename T>
+        bool is() const
+        {
+            using U = typename mapped<T>::type;
+            return std::holds_alternative<U>(m_data);
+        }
+
+        template <typename T>
+        T& as()
+        {
+            if constexpr (is_mapped<T>)
+            {
+                auto& fancy_ptr = std::get<typename mapped<T>::type>(m_data);
+                return *std::to_address(fancy_ptr);
+            }
+            else
+            {
+                return std::get<T>(m_data);
+            }
+        }
+
+        template <typename T>
+        T* as_ptr()
+        {
+            auto ptr = std::get_if<typename mapped<T>::type>(m_data);
+            return ptr ? std::to_address(ptr) : nullptr;
+        }
+
+        toml_table& as_table() 
+        { return as<toml_table>(); }
+        
+        toml_array& as_array() 
+        { return as<toml_array>(); }
+        
+        toml_boolean& as_boolean()
+        { return as<toml_boolean>(); }
+
+        toml_integer& as_integer()
+        { return as<toml_integer>(); }
+
+        toml_string& as_string()
+        { return as<toml_string>(); }
+
+        toml_float& as_float()
+        { return as<toml_float>(); }
+
+        toml_data_time& as_data_time()
+        { return as<toml_data_time>(); }
     };
 
     namespace detail
@@ -140,11 +196,16 @@ namespace leviathan::config::toml
             }
         };
 
-        std::vector<string> split_keys(string_view key)
+        /**
+         * @brief Split key by '.'.
+         * 
+         * @return Result of split. The result will not be empty.
+        */
+        inline std::vector<string_view> split_keys(string_view key)
         {
             assert(key.size());
 
-            std::vector<string> result;
+            std::vector<string_view> result;
 
             static auto table = make_character_table(config());
 
@@ -230,18 +291,37 @@ namespace leviathan::config::toml
                 }
             }
         }
-
     }
 
     class parser
     {
-        string m_context;
-        std::vector<std::string_view> m_lines;
-        std::vector<std::string_view>::iterator m_lineit;
-        string_view m_line; // current line for parsing.
-        toml_table m_global;
+        /**
+         * After parsing an entry, we must known the type of current root.
+         * If current root is:
+         * 
+         * - toml_table(m_cur_array is nullptr): we add
+         *   this entry to m_cur_table. 
+         * 
+         * - table array(m_cur_array is not nullptr): we add
+         *   this entry to m_cur_table first and when parsing next table, we try
+         *   append m_cur_table to m_cur_table.
+        */
+        struct table_root
+        {
+            toml_table* m_cur_table = nullptr;              // For singe table.
+            toml_array* m_cur_array = nullptr;              // For table array.
+        };
+
+        string m_context;                                   // Save origin string.
+        std::vector<std::string_view> m_lines;              // Split origin string line by line.
+        std::vector<std::string_view>::iterator m_lineit;   // Current line.
+        string_view m_line;                                 // Current line for parsing. For simplicity, we use string_view to replace iterator/pointer. 
+        toml_table m_global;                                // Toml root table.
+        table_root m_cur_root;                              // Current table root(section).
 
         static constexpr string_view linefeed = "\n";
+
+        inline static const toml_table empty_table;         // For try_emplace
 
     public:
 
@@ -270,33 +350,31 @@ namespace leviathan::config::toml
             // Every line may ends with \r\n on Windows.
             // We replace all \r\n to \n, this is not efficient but simple.
             m_context = leviathan::string::replace(std::move(m_context), "\r\n", "\n");
+
+            // Directly set 
+            // std::ranges::split_view<std::ranges::ref_view<std::string>, std::string_view>
+            // as a field may be better.
             for (auto line : m_context | std::views::split(linefeed))
             {
                 m_lines.emplace_back(line);
             }
         }
 
-        /**
-         * @brief Return next non-empty line
-         * 
-         * @return Empty line if parse over, otherwise next line context after ltrim.
-        */
-        string_view getline()
+        bool getline()
         {
-            if (m_lineit == m_lines.end())  
+            if (m_lineit == m_lines.end())
             {
-                return "";
+                return false;
             }
-            return string_view(*m_lineit++);
+            m_line = *m_lineit++;
+            return true;
         }
 
         void parse()
         {
-            while (1)
+            while (getline())
             {
-                auto line = getline();
-
-                m_line = ltrim(line);
+                m_line = ltrim(m_line);
 
                 // Empty line or just commit.
                 if (m_line.empty() || m_line.front() == '#')
@@ -308,6 +386,7 @@ namespace leviathan::config::toml
                 if (m_line.front() == '[')
                 {
                     // [table] or [[table_array]]
+                    // Maybe we should merge current root
                     parse_table_or_table_array();
                 }
                 else
@@ -320,16 +399,27 @@ namespace leviathan::config::toml
 
         void parse_entry()
         {
+            skip_whitespace();
+
+            assert(m_line.size());
+
+            if (m_line.front() == '=')
+            {
+                throw_toml_parse_error("Empty Key.");
+            }
+
             // parse key
             parse_key();
 
-            // match '='
-            m_line = ltrim(m_line);
+            skip_whitespace();
 
-            if (m_line.empty() || m_line.front() != '=')
+            // match '='
+            if (!match_and_advance('='))
             {
-                throw_toml_parse_error("");
+                throw_toml_parse_error("Expected '=' after key.");
             }
+
+            skip_whitespace();
 
             // parse value
             parse_value();
@@ -343,6 +433,11 @@ namespace leviathan::config::toml
 
             advance_unchecked(1); // eat [
 
+            if (m_line.empty())
+            {
+                throw_toml_parse_error("Unexpected end of table.");
+            }
+
             if (current() == '[')
             {
                 parse_table_array();
@@ -353,50 +448,134 @@ namespace leviathan::config::toml
             }
         }
 
-        void parse_table()
-        {
-
-        }
-
-        static std::vector<string> split_keys(string_view key)
-        {
-            struct config
-            {
-                int operator()(size_t x) const
-                {
-                    [[assume(x < 256)]];
-                    static string_view sv = R"(_-. '")";
-                    return isalnum(x) || sv.contains(x);
-                }
-            };
-
-            static auto table = make_character_table(config());
-
-            for (size_t i = 0; i < key.size(); ++i)
-            {
-                
-            }
-
-        }
-
         void parse_table_array()
         {
-            advance_unchecked(1); // eat '['
+            advance_unchecked(1); // eat '['.
 
-            auto head = 0;
-            auto tail = m_line.find_first_of("]]");
-            if (tail == m_line.npos)
+            const auto idx = m_line.find_first_not_of("]");
+
+            if (idx == m_line.npos)
             {
-                throw_toml_parse_error("");
+                throw_toml_parse_error("Unexpected end of table array");
             }
 
-            auto table_name = m_line.substr(0, tail);
+            auto table_name = m_line.substr(0, idx);
 
+            try_create_table_array(table_name);
+
+            m_line.remove_prefix(idx + 1); // remove table name and ']'.
+
+            if (m_line.empty() || m_line.front() != ']')
+            {
+                throw_toml_parse_error("Unexpected end of table array");
+            }
+
+            advance_unchecked(1); // eat second ']'.
+
+            consume_whitespace_and_comment();
+        }
+
+        void parse_table()
+        {
+            advance_unchecked(1); // eat '['.
+
+            const auto idx = m_line.find_first_not_of(']');
+
+            if (idx == m_line.npos)
+            {
+                throw_toml_parse_error("Unexpected end of table.");
+            }
+
+            auto table_name = m_line.substr(0, idx);
+
+            try_create_single_table(table_name);
+
+            m_line.remove_prefix(idx + 1); // remove table name and ']'.
+
+            consume_whitespace_and_comment();
+        }
+
+        void try_create_table_array(string_view table_name)
+        {
+            auto keys = detail::split_keys(table_name);
+
+            toml_table* root = &m_global;
+
+            bool ok = false;   // Check whether all keys are already exist.
+
+            for (auto key : keys)
+            {
+                assert(root);
+                auto [it, succeed] = root->try_emplace(toml_string(key), empty_table);
+                ok = ok || succeed;
+                root = it->second.as_ptr<toml_table>();
+            }
+
+            if (!ok)
+            {
+                throw_toml_parse_error("Redefinition table.");
+            }
+
+            m_cur_root.m_cur_table = root;
+            m_cur_root.m_cur_array = nullptr;
+        }
+
+        void try_create_single_table(string_view table_name)
+        {
+            auto keys = detail::split_keys(table_name);
+
+            toml_table* root = &m_global;
+
+            bool ok = false;   // Check whether all keys are already exist.
+
+            for (auto key : keys)
+            {
+                assert(root);
+                auto [it, succeed] = root->try_emplace(toml_string(key), empty_table);
+                
+                if (!succeed && !it->second.is<toml_table>())
+                {
+                    /**
+                     * [x]
+                     * y = 1
+                     * 
+                     * [x.y] // error, x.y is integer.
+                     * 
+                    */
+                    throw_toml_parse_error("Table conflict.");
+                }
+
+                ok = ok || succeed;
+                root = it->second.as_ptr<toml_table>();
+            }
+
+            if (!ok)
+            {
+                throw_toml_parse_error("Redefinition table.");
+            }
+
+            m_cur_root.m_cur_table = root;
+            m_cur_root.m_cur_array = nullptr;
+        }
+
+        /**
+         * @brief Remove the blank and commit of current line.
+         *  After removing, the m_line should be empty. This
+         *  function is just for handing error case, and ignore 
+         *  it will not cause parse error.
+        */
+        void consume_whitespace_and_comment()
+        {
+            m_line = ltrim(m_line);
+            if (m_line.size() && m_line.front() != '#')
+            {
+                throw_toml_parse_error("Unknown character.");
+            }
+            m_line = "";
         }
 
         void parse_key()
         {
-
             struct raw_character_config
             {
                 int operator()(size_t x) const
@@ -404,47 +583,22 @@ namespace leviathan::config::toml
                     return isalnum(x) || x == '_' || x == '-';
                 }
             };
-            
+
             static auto raw_characters = make_character_table(raw_character_config());
 
-            std::vector<std::string> keys;
-
-            if (current() == '"')
-            {
-                // quoted keys
-                advance_unchecked(1);
-                
-            }
-            else if (current() == '\'')
-            {
-
-            }
-            else
-            {
-                // bare key
-                while (1)
-                {
-                    auto head = m_line.begin();
-                    auto tail = std::find_if(m_line.begin(), m_line.end(), [](auto ch) {
-                        return raw_characters[ch];
-                    });
-                }
-
-
-
-            }
+            throw_toml_parse_error("Not implement");
         }
 
-        // void match_and_advance(char ch)
-        // {
-        //     if (m_cur.empty())
-        //     {
-        //         return false;
-        //     }
-        //     bool result = current() == ch;
-        //     advance_unchecked(1);
-        //     return result;
-        // }
+        bool match_and_advance(char ch)
+        {
+            if (m_line.empty())
+            {
+                return false;
+            }
+            bool result = current() == ch;
+            advance_unchecked(1);
+            return result;
+        }
 
         void skip_whitespace()
         {

@@ -79,6 +79,9 @@ namespace leviathan::config
         };
 
         template <typename T>
+        static constexpr bool is_mapped = !(std::is_same_v<T, typename mapped<T>::type>);
+
+        template <typename T>
         struct declaration
         {
             constexpr static bool value = (false || ... || std::is_same_v<T, Ts>);

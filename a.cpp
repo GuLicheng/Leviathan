@@ -21,6 +21,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <limits>
 
 #if __cplusplus > 201103L
 #define CPPTOML_DEPRECATED(reason) [[deprecated(reason)]]
@@ -2051,13 +2052,7 @@ class parser
 
             if (curr_table->contains(part))
             {
-#if !defined(__PGI)
                 auto b = curr_table->get(part);
-#else
-                // Workaround for PGI compiler
-                std::shared_ptr<base> b = curr_table->get(part);
-#endif
-
                 // if this is the end of the table array name, add an
                 // element to the table array that we just looked up,
                 // provided it was not declared inline

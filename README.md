@@ -2,5 +2,3 @@
 ## Leviathan
 you can test as example
 
-## ISSUE
-string_extend -> lexical_cast -> I/F

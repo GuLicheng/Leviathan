@@ -96,11 +96,11 @@ namespace leviathan::config::json
 
         enum struct number_type 
         {
-            SignedIntegral,
-            UnsignedIntegral,
-            FloatingPoint,
-        };
-
+            signed_integer,
+            unsigned_integer,
+            floating,
+        } m_type;
+        
         union 
         {
             float_type m_f;
@@ -108,16 +108,14 @@ namespace leviathan::config::json
             uint_type m_u;
         };
 
-        number_type m_type;
-
         template <typename T>
         T as() const
         {
             switch (m_type)
             {
-                case number_type::FloatingPoint: return static_cast<T>(m_f);
-                case number_type::SignedIntegral: return static_cast<T>(m_i);
-                case number_type::UnsignedIntegral: return static_cast<T>(m_u);
+                case number_type::floating: return static_cast<T>(m_f);
+                case number_type::signed_integer: return static_cast<T>(m_i);
+                case number_type::unsigned_integer: return static_cast<T>(m_u);
                 default: std::unreachable();
             }
         }
@@ -126,23 +124,23 @@ namespace leviathan::config::json
 
         json_number() = delete;
 
-        explicit json_number(std::signed_integral auto i) : m_i(i), m_type(number_type::SignedIntegral) { }
+        explicit json_number(std::signed_integral auto i) : m_i(i), m_type(number_type::signed_integer) { }
 
-        explicit json_number(std::floating_point auto f) : m_f(f), m_type(number_type::FloatingPoint) { }
+        explicit json_number(std::floating_point auto f) : m_f(f), m_type(number_type::floating) { }
 
-        explicit json_number(std::unsigned_integral auto u) : m_u(u), m_type(number_type::UnsignedIntegral) { }
+        explicit json_number(std::unsigned_integral auto u) : m_u(u), m_type(number_type::unsigned_integer) { }
 
         bool is_signed_integral() const
-        { return m_type == number_type::SignedIntegral; }
+        { return m_type == number_type::signed_integer; }
 
         bool is_unsigned_integral() const
-        { return m_type == number_type::UnsignedIntegral; }
+        { return m_type == number_type::unsigned_integer; }
 
         bool is_integral() const
-        { return m_type != number_type::FloatingPoint; }
+        { return m_type != number_type::floating; }
 
         bool is_floating() const
-        { return m_type == number_type::FloatingPoint; }
+        { return m_type == number_type::floating; }
 
         float_type as_floating() const  
         { return static_cast<float_type>(*this); }
@@ -175,9 +173,12 @@ namespace leviathan::config::json
         }
     };
 
+    // Empty class maybe better. The value of json_null is unique, 
+    // the index in std::variant is enough to indicate it.
+    using json_null = std::nullptr_t;   
+
     using json_string = string;
     using json_boolean = bool;
-    using json_null = std::nullptr_t;   // This may not suitable. The value of json_null is unique, the index in std::variant is enough to indicate it.
     using json_array = std::vector<json_value>;
     using json_object = std::unordered_map<json_string, json_value, string_hash_key_equal, string_hash_key_equal>;
 
@@ -185,9 +186,16 @@ namespace leviathan::config::json
     struct use_pointer 
     {
         constexpr static bool value = sizeof(T) > 16;
-
-        using type = std::conditional_t<value, std::unique_ptr<T>, T>;
     };
+
+    static_assert(!use_pointer<json_null>::value);
+    static_assert(!use_pointer<json_boolean>::value);
+    static_assert(!use_pointer<json_number>::value);
+    static_assert(!use_pointer<error_code>::value);
+
+    static_assert(use_pointer<json_string>::value);
+    static_assert(use_pointer<json_array>::value);
+    static_assert(use_pointer<json_object>::value);
 
     struct to_unique_ptr
     {
@@ -205,15 +213,6 @@ namespace leviathan::config::json
             }
         }
     };
-
-    static_assert(!use_pointer<json_null>::value);
-    static_assert(!use_pointer<json_boolean>::value);
-    static_assert(!use_pointer<json_number>::value);
-    static_assert(!use_pointer<error_code>::value);
-
-    static_assert(use_pointer<json_string>::value);
-    static_assert(use_pointer<json_array>::value);
-    static_assert(use_pointer<json_object>::value);
 
     using json_value_base = value_base<
         std::variant, 
@@ -237,7 +236,7 @@ namespace leviathan::config::json
         template <typename T>
         bool is() const
         {
-            using U = typename use_pointer<T>::type;
+            using U = typename mapped<T>::type;
             return std::holds_alternative<U>(m_data); 
         }
 
@@ -252,13 +251,13 @@ namespace leviathan::config::json
             }
             else
             {
-                if constexpr (!use_pointer<T>::value)
+                if constexpr (!is_mapped<T>)
                 {
                     return *std::get_if<T>(&m_data);
                 }
                 else 
                 {
-                    using U = typename use_pointer<T>::type;
+                    using U = typename mapped<T>::type;
                     return *(*std::get_if<U>(&m_data)).get();
                 }
             }
