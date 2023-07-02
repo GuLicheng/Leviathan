@@ -152,7 +152,7 @@ private:
     std::unordered_map<
         std::string, 
         std::function<void(std::any)>, 
-        leviathan::string::string_hash_keyequal, 
-        leviathan::string::string_hash_keyequal> m_maps;
+        leviathan::string::string_hash_key_equal, 
+        leviathan::string::string_hash_key_equal> m_maps;
 };
 

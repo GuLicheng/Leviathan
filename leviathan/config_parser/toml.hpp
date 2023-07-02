@@ -67,7 +67,6 @@ namespace leviathan::config::toml
 
         int m_hour_offset = 0;
         int m_minute_offset = 0;
-
     };
 
     template <typename T>
@@ -238,6 +237,7 @@ namespace leviathan::config::toml
     {
         string m_context;
         std::vector<std::string_view> m_lines;
+        std::vector<std::string_view>::iterator m_lineit;
         string_view m_line; // current line for parsing.
         toml_table m_global;
 
@@ -257,8 +257,7 @@ namespace leviathan::config::toml
                 // std::cout << std::format("line = ({}) and last char is ({})\n", line, line.back());
             }
             parse();
-            // return std::make_shared<toml_table>(std::move(m_global));
-            return std::move(m_global);
+            return toml_value(std::move(m_global));
         }
 
     private:
@@ -284,13 +283,19 @@ namespace leviathan::config::toml
         */
         string_view getline()
         {
-
+            if (m_lineit == m_lines.end())  
+            {
+                return "";
+            }
+            return string_view(*m_lineit++);
         }
 
         void parse()
         {
-            for (auto line : m_lines)
+            while (1)
             {
+                auto line = getline();
+
                 m_line = ltrim(line);
 
                 // Empty line or just commit.

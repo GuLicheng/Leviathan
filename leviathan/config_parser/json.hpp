@@ -60,6 +60,12 @@ namespace leviathan::config::json
         return error_infos[static_cast<int>(ec)];
     }
 
+    struct bad_json_value_access : std::exception
+    {
+        const char* what() const noexcept override
+        { return "bad_json_value_access"; }
+    };
+
     namespace detail
     {
         constexpr bool is_unicode(string_view code)
@@ -175,14 +181,6 @@ namespace leviathan::config::json
     using json_array = std::vector<json_value>;
     using json_object = std::unordered_map<json_string, json_value, string_hash_key_equal, string_hash_key_equal>;
 
-    // I think error code is a better choice compared with exception.
-    // But return std::optional<std::reference_wrapper<json_value>> may cause grammatical noise.
-    struct bad_json_value_access : std::exception
-    {
-        const char* what() const noexcept override
-        { return "bad_json_value_access"; }
-    };
-
     template <typename T>
     struct use_pointer 
     {
@@ -229,6 +227,7 @@ namespace leviathan::config::json
         error_code  // If some errors happen, return error_code.
     >;
 
+    // Clang will complain incomplete type but GCC and MSVC are OK.
     class json_value : public json_value_base
     {
     public:
@@ -281,15 +280,10 @@ namespace leviathan::config::json
 
     public:
 
-        using json_value_base::json_value_base;
-        using json_value_base::operator=;
-
         json_value() : json_value_base(error_code::uninitialized) { }
 
-        // json_value() : m_data(error_code::uninitialized) { }
-
-        // template <json_value_able T>
-        // json_value(T t) : m_data(std::move(t)) { }
+        using json_value_base::json_value_base;
+        using json_value_base::operator=;
 
         template <string_viewable... Svs>
         json_value& operator[](const Svs&... svs) 
@@ -436,7 +430,7 @@ namespace leviathan::config::json
             if (current() == ']')
             {
                 advance_unchecked(1); // eat ']'
-                return make(std::move(arr));
+                return json_value(std::move(arr));
             }   
             else 
             {
@@ -457,7 +451,7 @@ namespace leviathan::config::json
                     if (current() == ']')
                     {
                         advance_unchecked(1); // eat ']'
-                        return make(std::move(arr));
+                        return json_value(std::move(arr));
                     }
 
                     if (!match_and_advance(','))
@@ -514,7 +508,7 @@ namespace leviathan::config::json
             if (current() == '}')
             {
                 advance_unchecked(1); // eat '}'
-                return make(json_object());
+                return json_value(json_object());
             }
             else if (current() == '\"')
             {
@@ -555,7 +549,7 @@ namespace leviathan::config::json
                     if (current() == '}')
                     {
                         advance_unchecked(1); // eat '}'
-                        return make(std::move(obj));
+                        return json_value(std::move(obj));
                     }
 
                     if (!match_and_advance(','))
@@ -585,7 +579,7 @@ namespace leviathan::config::json
                 if (ch == '"')
                 {
                     advance_unchecked(1); // eat '"'
-                    return make(std::move(s));
+                    return json_value(std::move(s));
                 }
 
                 if (ch == '\\')

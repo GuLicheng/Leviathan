@@ -34,8 +34,8 @@ namespace leviathan::config::ini
     using hashmap = std::unordered_map<
         K, 
         V, 
-        leviathan::string::string_hash_keyequal,
-        leviathan::string::string_hash_keyequal
+        leviathan::string::string_hash_key_equal,
+        leviathan::string::string_hash_key_equal
     >;
 
     // We define some helper function here
