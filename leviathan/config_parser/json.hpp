@@ -38,6 +38,8 @@ namespace leviathan::config::json
         illegal_literal,
         illegal_boolean,
         illegal_unicode,
+        error_payload,
+        multi_value,
         unknown_character,
     };
 
@@ -52,6 +54,8 @@ namespace leviathan::config::json
         "illegal_literal",
         "illegal_boolean",
         "illegal_unicode",
+        "error_payload",
+        "multi_value",
         "unknown_character",
     };
 
@@ -403,14 +407,47 @@ namespace leviathan::config::json
     
         json_value operator()() &&
         {
-            return parse_value();
+            // "A JSON payload should be an object or array, not a string."
+            // return parse_array_or_object();
+            auto root = parse_value();
+
+            if (!root)
+            {
+                return root;
+            }
+
+            skip_whitespace();
+
+            if (m_cur.empty())
+            {
+                return root;
+            }
+
+            return return_with_error_code(error_code::multi_value);
         }
 
     private:
 
+        json_value parse_array_or_object()
+        {
+            skip_whitespace();
+
+            switch (current())
+            {
+                case '{': return parse_object();
+                case '[': return parse_array();
+                default: return return_with_error_code(error_code::error_payload);
+            }
+        }
+
         json_value parse_value()
         {
             skip_whitespace(); // necessary?
+
+            if (m_cur.empty())
+            {
+                return return_with_error_code(error_code::eof_error);
+            }
 
             switch (current())
             {
@@ -711,16 +748,29 @@ namespace leviathan::config::json
 
                 auto endptr = m_cur.data();
 
-                // Try parse as integral first.
-                if (auto value = from_chars_to_optional<json_number::int_type>(startptr, endptr); value)
+                // Since leading zeroes and 0x, 0b, 0o is not permitted, so if 
+                // a number started with 0, we assume it is a floating number.
+                if (startptr[0] != '0')
                 {
-                    return json_number(*value);
-                }
+                    // Try parse as integral first.
+                    if (auto value = from_chars_to_optional<json_number::int_type>(startptr, endptr); value)
+                    {
+                        return json_number(*value);
+                    }
 
-                // Try parse as unsigned integral second.
-                if (auto value = from_chars_to_optional<json_number::uint_type>(startptr, endptr); value)
+                    // Try parse as unsigned integral second.
+                    if (auto value = from_chars_to_optional<json_number::uint_type>(startptr, endptr); value)
+                    {
+                        return json_number(*value);
+                    }
+                }
+                else if (startptr + 1 == endptr) // "0"
                 {
-                    return json_number(*value);
+                    return json_number(0);
+                } 
+                else if (startptr[1] != '.') // Only "0." is allowed
+                {
+                    return return_with_error_code(error_code::illegal_number);
                 }
 
                 // Try parse as floating last.

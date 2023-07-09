@@ -51,7 +51,7 @@ TEST_CASE("unicode")
     for (auto c : error_unicodes)
     {
         auto value = json::parser(std::move(c))();
-        REQUIRE(value.ec() == json::error_code::illegal_unicode);
+        REQUIRE(!value);
     }
 }
 
@@ -280,6 +280,54 @@ TEST_CASE("multi-dim operator[]")
 
     obj["Hello", "World"];
 
+}
+
+TEST_CASE("failed cases")
+{
+    auto check = [](std::string s) {
+        auto root = json::load(s);
+        REQUIRE(!root);
+    };
+
+    // check(R"("A JSON payload should be an object or array, not a string.")");
+    check(R"(["Unclosed array")");
+    check(R"({unquoted_key: "keys must be quoted"})");
+    check(R"(["extra comma",])");
+    check(R"(["double extra comma",,])");
+    check(R"([   , "<-- missing value"])");
+    check(R"(["Comma after the close"],)");
+    check(R"(["Extra close"]])");
+    check(R"({"Extra comma": true,})");
+    check(R"(["Extra close"]])");
+    check(R"({"Extra value after close": true} "misplaced quoted value")");
+    check(R"({"Illegal expression": 1 + 2})");
+    check(R"({"Illegal invocation": alert()})");
+    check(R"({"Numbers cannot have leading zeroes": 013})");
+    check(R"({"Numbers cannot be hex": 0x14})");
+    check(R"(["Illegal backslash escape: \x15"])");
+    check(R"([\naked])");
+    check(R"(["Illegal backslash escape: \017"])");
+    // check(R"([[[[[[[[[[[[[[[[[[[["Too deep"]]]]]]]]]]]]]]]]]]]])");
+    check(R"({"Missing colon" null})");
+    check(R"({"Double colon":: null})");
+    check(R"({"Comma instead of colon", null})");       
+    check(R"(["Colon instead of comma": false])");
+    check(R"(["Bad value", truth])");
+    check(R"(['single quote'])");
+    check(R"([0e])");
+    check(R"([0e+])");
+    check(R"([0e+-1])");
+    check(R"({"Comma instead if closing brace": true,)");
+    check(R"(["mismatch"})");
+}
+
+TEST_CASE("pass1")
+{
+    const char* path = R"(D:\Library\Leviathan\leviathan\config_parser\data\json\passa1.json)";
+
+    auto root = json::parse_json(path);
+
+    REQUIRE(root);
 }
 
 // bool json_value_equal(const json::json_value& x, const json::json_value& y)
