@@ -1,10 +1,11 @@
 #include <leviathan/config_parser/json.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <numeric>
 #include <iostream>
 #include <functional>
 
-namespace json = leviathan::config::json;
+namespace json = leviathan::json;
 
 TEST_CASE("json_make")
 {
@@ -29,13 +30,13 @@ TEST_CASE("json_make")
     REQUIRE(value8.is_number());
     REQUIRE(value9.is_number());
 
-    REQUIRE(value1.as_number().value().as_signed_integral() == 3);
+    REQUIRE(value1.as_number().value().as_signed_integer() == 3);
     REQUIRE(value2.as_boolean().value() == true);
     REQUIRE(value3.as_string().value() == "HelloWorld");
     REQUIRE(value4.as_array().value().empty());
     REQUIRE(value5.as_object().value().empty());
     // REQUIRE(value7.as_null().value() == json::json_null());
-    REQUIRE(value8.as_number().value().is_unsigned_integral());
+    REQUIRE(value8.as_number().value().is_unsigned_integer());
     REQUIRE(value9.as_number().value().is_floating());
 }
 
@@ -64,23 +65,50 @@ TEST_CASE("number")
         R"(-0.1)",    // double
     };
 
-    auto check = [](std::string s, int mode) {
+    auto check = []<typename T>(std::string s, T expected) {
         auto root = json::parser(std::move(s))();
         REQUIRE(root);
-        switch (mode)
+
+        if constexpr (std::signed_integral<T>)
         {
-            case 1: return root.as_number()->is_unsigned_integral();
-            case 2: return root.as_number()->is_signed_integral();
-            case 3: return root.as_number()->is_floating();
-            default: return false;
+            return root.as_number()->is_signed_integer() 
+                && root.as_number()->as_signed_integer() == expected;
+        }
+        else if constexpr (std::unsigned_integral<T>)
+        {
+            return root.as_number()->is_unsigned_integer() 
+                && root.as_number()->as_unsigned_integer() == expected;
+        }
+        else if constexpr (std::floating_point<T>)
+        {
+            static_assert(std::is_same_v<double, T>);
+            return root.as_number()->is_floating()
+                && (std::abs(root.as_number()->as_floating() - expected) < 1e-7); 
+        }
+        else
+        {
+            return false;
         }
     };
 
-    REQUIRE(check(numbers[0], 2));
-    REQUIRE(check(numbers[1], 2));
-    REQUIRE(check(numbers[2], 3));
-    REQUIRE(check(numbers[3], 3));
-    REQUIRE(check(numbers[4], 3));
+    REQUIRE(check(numbers[0], 123));
+    REQUIRE(check(numbers[1], -1));
+    REQUIRE(check(numbers[2], 3.14));
+    REQUIRE(check(numbers[3], 2.7e18));
+    REQUIRE(check(numbers[4], -0.1));
+
+    REQUIRE(check("2147483647", 2147483647));
+    REQUIRE(check("-2147483648", -2147483648));
+    REQUIRE(check("4294967295", 4294967295));
+    REQUIRE(check("18446744073709551615", std::size_t(-1)));
+    REQUIRE(check("0", 0));
+    REQUIRE(check("1", 1));
+    REQUIRE(check("1.2345678", 1.2345678));
+    REQUIRE(check("0.12345678e7", 1234567.8));
+    REQUIRE(check("19000000000000000001", 1.9e+19));
+    REQUIRE(check("-9300000000000000001", -9.3e+18));
+    // REQUIRE(check("1e+9999", std::numeric_limits<double>::infinity()));
+    // REQUIRE(check("-1e+9999", -std::numeric_limits<double>::infinity()));
 
     std::string error_numbers[] = {
         R"(2.7e18e)",
@@ -97,28 +125,40 @@ TEST_CASE("number")
 
 TEST_CASE("string")
 {
-    std::string s = R"""(
+    SECTION("valid")
+    {
+        auto check_value = [&](const char* key, const char* target) {
+            std::string s = key;
+            auto root = json::load(s);
+            REQUIRE(root);
+            return root.is_string() && root.as_string().value() == target;
+        };
+
+        auto src1 = R"("!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~")";
+        auto src2 = R"(!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~)";
+        REQUIRE(check_value(src1, src2));
+        REQUIRE(check_value(R"("http:\/\/jsoncpp.sourceforge.net\/")", "http://jsoncpp.sourceforge.net/"));
+        REQUIRE(check_value(R"("\"abc\\def\"")", R"("abc\def")"));
+        REQUIRE(check_value(R"("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\")", R"(\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\)"));
+        REQUIRE(check_value(R"("\u0061")", "a"));
+        REQUIRE(check_value(R"("\u00A2")", "¢"));
+        REQUIRE(check_value(R"("\u20AC")", "€"));
+        REQUIRE(check_value(R"("\uD834\uDD1E")", "𝄞"));
+        REQUIRE(check_value(R"("Zażółć gęślą jaźń")", "Zażółć gęślą jaźń"));
+    }
+
+    SECTION("invalid")
+    {
+        std::string strs[] = {
+            R"('//this is bad JSON.')",
+        };
+
+        for (auto c : strs)
         {
-            "empty string" : "",
-            "simple string": "HelloWorld!",
-            "Chinese": "\u6211\u7231\u5317\u4eac\u5929\u5b89\u95e8",
-            "whitespace": "\r\t\n "
+            auto value = json::parser(std::move(c))();
+            REQUIRE(!value);
         }
-    )""";
-
-    auto root = json::parser(s)();
-
-    REQUIRE(root.is_object());
-
-    auto check_value = [&](const char* key, const char* target) {
-        auto& value = root.as_object()->operator[](key);
-        return value.as_string().value() == target;
-    };
-
-    REQUIRE(check_value("empty string", ""));
-    REQUIRE(check_value("simple string", "HelloWorld!"));
-    // REQUIRE(check_value("Chinese", "𝄞我爱北京天安门𝄞")); // GBK cannot response 𝄞, you can print it in screen.
-    REQUIRE(check_value("whitespace", "\r\t\n "));
+    }
 }
 
 TEST_CASE("literal")
@@ -137,7 +177,7 @@ TEST_CASE("literal")
 
 TEST_CASE("annotation")
 {
-    const char* file = R"(D:\Library\Leviathan\leviathan\config_parser\config\annotation.json)";
+    const char* file = R"(D:\Library\Leviathan\leviathan\config_parser\data\json\annotation.json)";
 
     auto root = json::parse_json(file);
 
@@ -167,7 +207,7 @@ TEST_CASE("annotation")
 
     auto check_number = [&](const char* name, int value) {
         REQUIRE(object[name].is_number());
-        REQUIRE(object[name].as_number().value().as_signed_integral() == value);
+        REQUIRE(object[name].as_number().value().as_signed_integer() == value);
     };
 
     check_number("image_channels", 3);
@@ -241,6 +281,87 @@ TEST_CASE("multi-dim operator[]")
     obj["Hello", "World"];
 
 }
+
+// bool json_value_equal(const json::json_value& x, const json::json_value& y)
+// {
+//     if (x.data().index() != y.data().index())
+//     {
+//         return false;
+//     }
+
+//     if (x.is_null())
+//     {
+//         return true;
+//     }
+
+//     if (x.is_boolean())
+//     {
+//         return x.as<json::json_boolean>() == y.as<json::json_boolean>();
+//     }
+
+//     if (x.is_number())
+//     {
+//         return x.as<json::json_number>() == y.as<json::json_number>();
+//     }
+
+//     if (x.is_string())
+//     {
+//         return x.as<json::json_string>() == y.as<json::json_string>();
+//     }
+
+//     if (x.is_array())
+//     {
+//         auto& ax = x.as<json::json_array>();
+//         auto& ay = y.as<json::json_array>();
+//         return std::ranges::equal(ax, ay);
+//     }
+
+//     if (x.is_object())
+//     {
+//         auto& xo = x.as<json::json_object>();
+//         auto& yo = y.as<json::json_object>();
+//         return std::ranges::equal(xo, yo);
+//     }
+
+//     throw "Unreachable";
+// }
+
+// TEST_CASE("legacy array")
+// {
+//     SECTION("valid")
+//     {
+//         auto do_test = []<typename... Ts>(std::string context, Ts&&... ts) {
+            
+//             auto root1 = json::load(std::move(context));
+
+//             REQUIRE(root1);
+
+//             json::json_value values[] = { json::make((Ts&&)ts...) };
+
+//             json::json_array arr;
+            
+//             for (auto& val : values)
+//             {
+//                 arr.emplace_back(std::move(val));
+//             }
+
+//             json::json_value root2 = json::make(std::move(arr));
+
+//             REQUIRE(json_value_equal(root1, root2));
+//         };
+//     }
+// }
+
+
+
+
+
+
+
+
+
+
+
 
 // int main(int argc, char const *argv[])
 // {

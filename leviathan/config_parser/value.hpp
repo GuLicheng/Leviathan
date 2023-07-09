@@ -1,6 +1,10 @@
-#include <leviathan/string/string_extend.hpp>
+#pragma once
+
+// #include <leviathan/string/string_extend.hpp>
 #include <leviathan/config_parser/optional.hpp>
 
+#include <variant>
+#include <memory>
 #include <string_view>
 
 namespace leviathan::config
@@ -20,52 +24,16 @@ namespace leviathan::config
         template <typename U>
         constexpr optional<U> cast() const
         {
-            if (!*this)
-                return nullopt;
-            return leviathan::string::lexical_cast<U>(**this);
+            throw 0;
+            // if (!*this)
+            //     return nullopt;
+            // return leviathan::string::lexical_cast<U>(**this);
         }
     };
 
     using item = basic_item<std::string_view>;
 
-    /**
-     * @brief A simple helper for adjust type for some scripts value.
-     * 
-     * E.g.
-     *  template <typename T> struct use_pointer : std::bool_constant<(sizeof(T) > 16)> { };
-     *  template <typename T> struct to_raw_pointer : store_ptr<T*, use_pointer> { };
-     * 
-     *  using binder = config::bind<std::variant>::with<small_object, large_object>; => 
-     *  using binder2 = typename binder::transform<to_raw_pointer>::type;
-     *  using storage = typename binder2::type;
-     * 
-     * The small object will store as a value and large object will 
-     * store as a pointer.(std::variant<small_object, large_object*>) 
-    */
-    template <template <typename...> typename Container>
-    struct bind
-    {
-        template <typename... Ts>
-        struct with
-        {
-            using type = Container<Ts...>;
-
-            template <template <typename> typename Fn>
-            struct transform
-            {
-                using type = bind<Container>::with<typename Fn<Ts>::type...>;
-            };
-
-            // Used as constraint in construction.
-            template <typename T>
-            constexpr static bool contains = [](){
-                auto sum = (false || ... || std::is_same_v<T, Ts>);
-                return sum;
-            }();
-        };
-    };
-
-    template <template <typename...> typename Variant, typename Fn, typename... Ts>
+    template <typename Fn, typename... Ts>
     class value_base
     {
     protected:
@@ -93,7 +61,7 @@ namespace leviathan::config
             constexpr static bool value = (false || ... || std::is_same_v<T, typename mapped<Ts>::type>);
         };
 
-        using value_type = Variant<typename mapped<Ts>::type...>;
+        using value_type = std::variant<typename mapped<Ts>::type...>;
 
         value_type m_data;
 
@@ -102,7 +70,23 @@ namespace leviathan::config
         template <typename Arg>
             requires (declaration<Arg>::value)
         constexpr value_base(Arg arg) : m_data(Fn()(std::move(arg))) { }
+
+        template <typename T>
+        constexpr bool is() const
+        {
+            using U = typename mapped<T>::type;
+            return std::holds_alternative<U>(m_data); 
+        }
     };
+
+    template <typename T, template <typename...> typename Primary>
+    struct is_specialization_of : std::false_type { };
+
+    template <template <typename...> typename Primary, typename... Args>
+    struct is_specialization_of<Primary<Args...>, Primary> : std::true_type { };
+
+    template <typename T, template <typename...> typename Primary>
+    inline constexpr bool is_specialization_of_v = is_specialization_of<T, Primary>::value;
 
 }
 

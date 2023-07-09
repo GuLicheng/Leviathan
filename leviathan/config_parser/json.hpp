@@ -1,9 +1,8 @@
 // https://www.json.org/json-en.html
 #pragma once
 
-#include <leviathan/string/string_extend.hpp>
-#include <leviathan/config_parser/value.hpp>
-#include <leviathan/config_parser/common.hpp>
+#include "value.hpp"
+#include "common.hpp"
 
 #include <utility>
 #include <memory>
@@ -11,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <compare>
 #include <unordered_map>
 #include <algorithm>
 #include <type_traits>
@@ -21,10 +21,10 @@ namespace leviathan::config::json
 {
     using std::string_view;
     using std::string;
-    using leviathan::string::arithmetic;
+    // using leviathan::string::arithmetic;
     // using leviathan::string::whitespace_delimiters;
-    using leviathan::string::string_hash_key_equal;
-    using leviathan::string::string_viewable;
+    // using leviathan::string::string_hash_key_equal;
+    // using leviathan::string::string_viewable;
 
     enum class error_code
     {
@@ -130,10 +130,10 @@ namespace leviathan::config::json
 
         explicit json_number(std::unsigned_integral auto u) : m_u(u), m_type(number_type::unsigned_integer) { }
 
-        bool is_signed_integral() const
+        bool is_signed_integer() const
         { return m_type == number_type::signed_integer; }
 
-        bool is_unsigned_integral() const
+        bool is_unsigned_integer() const
         { return m_type == number_type::unsigned_integer; }
 
         bool is_integral() const
@@ -145,10 +145,10 @@ namespace leviathan::config::json
         float_type as_floating() const  
         { return static_cast<float_type>(*this); }
 
-        uint_type as_unsigned_integral() const
+        uint_type as_unsigned_integer() const
         { return static_cast<uint_type>(*this); }
 
-        int_type as_signed_integral() const
+        int_type as_signed_integer() const
         { return static_cast<int_type>(*this); }
 
         explicit operator float_type() const
@@ -160,15 +160,32 @@ namespace leviathan::config::json
         explicit operator uint_type() const
         { return as<uint_type>(); }
 
+        friend bool operator==(const json_number& x, const json_number& y) 
+        {
+            if (x.m_type != y.m_type)
+            {
+                return false;
+            }
+            
+            using enum json_number::number_type;
+
+            switch (x.m_type)
+            {
+                case floating: return std::abs(x.as_floating() - y.as_floating()) < 1e-5; // Is Ok?
+                case signed_integer: return x.as_signed_integer() == y.as_signed_integer();
+                case unsigned_integer: return x.as_unsigned_integer() == y.as_unsigned_integer();
+            }
+        }
+
         template <typename Char, typename Traits>
         friend std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, const json_number& x)
         {
             if (x.is_floating())
                 os << x.as_floating();
-            else if (x.is_signed_integral())
-                os << x.as_signed_integral();
+            else if (x.is_signed_integer())
+                os << x.as_signed_integer();
             else
-                os << x.as_unsigned_integral();
+                os << x.as_unsigned_integer();
             return os;
         }
     };
@@ -182,28 +199,13 @@ namespace leviathan::config::json
     using json_array = std::vector<json_value>;
     using json_object = std::unordered_map<json_string, json_value, string_hash_key_equal, string_hash_key_equal>;
 
-    template <typename T>
-    struct use_pointer 
-    {
-        constexpr static bool value = sizeof(T) > 16;
-    };
-
-    static_assert(!use_pointer<json_null>::value);
-    static_assert(!use_pointer<json_boolean>::value);
-    static_assert(!use_pointer<json_number>::value);
-    static_assert(!use_pointer<error_code>::value);
-
-    static_assert(use_pointer<json_string>::value);
-    static_assert(use_pointer<json_array>::value);
-    static_assert(use_pointer<json_object>::value);
-
-    struct to_unique_ptr
+    struct to_pointer
     {
         template <typename T>
         constexpr auto operator()(T&& t) const
         {
             using U = std::remove_cvref_t<T>;
-            if constexpr (use_pointer<U>::value)
+            if constexpr (sizeof(T) > 16)
             {
                 return std::make_unique<U>((T&&)t);
             }
@@ -215,8 +217,7 @@ namespace leviathan::config::json
     };
 
     using json_value_base = value_base<
-        std::variant, 
-        to_unique_ptr, 
+        to_pointer, 
         json_null,
         json_boolean,
         json_number,
@@ -233,39 +234,22 @@ namespace leviathan::config::json
 
         using typename json_value_base::value_type;
 
+        auto& data() 
+        { return m_data; }
+
+        auto& data() const
+        { return m_data; }
+
         template <typename T>
-        bool is() const
+        T* as_ptr()
         {
             using U = typename mapped<T>::type;
-            return std::holds_alternative<U>(m_data); 
-        }
-
-        template <typename T, bool NoThrow = true>
-        T& as() 
-        {
-            if constexpr (!NoThrow)
-            {
-                if (!is<T>())
-                    throw bad_json_value_access();
-                return as<T, NoThrow>();
-            }
+            auto ptr = std::get_if<U>(&m_data);
+            if constexpr (is_mapped<T>)
+                return ptr ? std::to_address(*ptr) : nullptr;
             else
-            {
-                if constexpr (!is_mapped<T>)
-                {
-                    return *std::get_if<T>(&m_data);
-                }
-                else 
-                {
-                    using U = typename mapped<T>::type;
-                    return *(*std::get_if<U>(&m_data)).get();
-                }
-            }
+                return ptr;
         }
-
-        template <typename T, bool NoThrow = true>
-        const T& as() const
-        { return const_cast<json_value&>(*this).as<T>(); }
 
         template <typename T>
         optional<T&> try_as()
@@ -295,13 +279,40 @@ namespace leviathan::config::json
 
             for (auto sv : views)
             {
-                auto& obj = target->cast_unchecked<json_object>();
+                auto& obj = target->as<json_object>();
                 auto it = obj.try_emplace(json_string(sv), json_object());
                 target = &(it.first->second);
             }
 
             return *target;
         }
+
+        template <typename T, bool NoThrow = true>
+        T& as() 
+        {
+            if constexpr (!NoThrow)
+            {
+                if (!is<T>())
+                    throw bad_json_value_access();
+                return as<T, NoThrow>();
+            }
+            else
+            {
+                if constexpr (!is_mapped<T>)
+                {
+                    return *std::get_if<T>(&m_data);
+                }
+                else 
+                {
+                    using U = typename mapped<T>::type;
+                    return *(*std::get_if<U>(&m_data)).get();
+                }
+            }
+        }
+
+        template <typename T, bool NoThrow = true>
+        const T& as() const
+        { return const_cast<json_value&>(*this).as<T>(); }
 
         bool is_integral() const
         {
@@ -353,12 +364,7 @@ namespace leviathan::config::json
 
         optional<json_string&> as_string()
         { return try_as<json_string>(); }
-
-        template <typename T>
-        T& cast_unchecked() 
-        {
-            return as<T>();
-        }
+        
     };
 
     json_value make(json_null)
@@ -433,7 +439,7 @@ namespace leviathan::config::json
             }   
             else 
             {
-                while (true)
+                while (1)
                 {
                     auto value = parse_value();
 
@@ -514,7 +520,7 @@ namespace leviathan::config::json
                 // parse key-value pair
                 json_object obj;
 
-                while (true) 
+                while (1) 
                 {
                     auto key = parse_string();
 
@@ -541,7 +547,7 @@ namespace leviathan::config::json
                         return value;
                     }
 
-                    obj.emplace(std::move(key.cast_unchecked<json_string>()), std::move(value));
+                    obj.emplace(std::move(*key.as_ptr<json_string>()), std::move(value));
 
                     skip_whitespace();
 
@@ -571,8 +577,13 @@ namespace leviathan::config::json
 
             json_string s;
 
-            while (true)
+            while (1)
             {
+                if (m_cur.empty())
+                {
+                    return return_with_error_code(error_code::illegal_string);
+                }
+
                 char ch = current();
 
                 if (ch == '"')
@@ -603,7 +614,7 @@ namespace leviathan::config::json
                         case 'u': {
                             // https://codebrowser.dev/llvm/llvm/lib/Support/JSON.cpp.html#_ZN4llvm4json12_GLOBAL__N_110encodeUtf8EjRNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
                             auto parse_4_hex = [this](string_view sv) -> optional<uint16_t> {
-                                if (!detail::is_unicode(sv))
+                                if (sv.size() < 4 || !is_unicode<4>(sv.data()))
                                 {
                                     return nullopt;
                                 }
@@ -626,7 +637,7 @@ namespace leviathan::config::json
                                 first = *op;
                             }
 
-                            while (true)
+                            while (1)
                             {
                                 // basic multilingual plane, BMP(U+0000 - U+FFFF)
                                 if (first < 0xD800 || first >= 0xE000) [[likely]] 
@@ -706,7 +717,11 @@ namespace leviathan::config::json
                     return json_number(*value);
                 }
 
-                // TODO: try parse as unsigned integral second.
+                // Try parse as unsigned integral second.
+                if (auto value = from_chars_to_optional<json_number::uint_type>(startptr, endptr); value)
+                {
+                    return json_number(*value);
+                }
 
                 // Try parse as floating last.
                 if (auto value = from_chars_to_optional<json_number::float_type>(startptr, endptr); value)
@@ -801,6 +816,9 @@ namespace leviathan::config::json
 
     json_value parse_json(const char* filename)
     { return parser(read_file_contents(filename))(); }
+
+    json_value load(string s)
+    { return parser(std::move(s))(); }
 
     namespace detail
     {
@@ -907,11 +925,14 @@ namespace leviathan::config::json
                     std::unreachable();
                 }
                 json_serialize(os, t, padding);
-            }, value.m_data);
+            }, value.data());
         }
 
     } // namespace detail
 
-
 } // namespace leviathan::config::json
 
+namespace leviathan::json
+{
+    using namespace ::leviathan::config::json;
+}

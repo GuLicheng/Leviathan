@@ -1,0 +1,7 @@
+[array]
+1 = []
+2 = [ true ]
+3 = [ true, ]
+4 = [ "Hello", "World" ]
+
+[[array.1]]

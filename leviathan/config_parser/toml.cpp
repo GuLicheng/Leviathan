@@ -6,6 +6,12 @@ TEST_CASE("test split key")
 {
     auto check = [](std::string_view key, auto... svs) {
         
+        auto idx = key.find('=');
+
+        REQUIRE(idx != key.npos);
+
+        key = key.substr(0, idx);
+
         auto res = leviathan::config::toml::detail::split_keys(key);
 
         std::string_view keys[] = { svs... };
@@ -13,7 +19,7 @@ TEST_CASE("test split key")
         REQUIRE(std::ranges::equal(res, keys));
     };
 
-    SECTION("invalid input")
+    SECTION("valid input")
     {
         check(R"(name = "Orange")", "name");
         check(R"(physical.color = "orange")", "physical", "color");

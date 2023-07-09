@@ -1,8 +1,8 @@
 #pragma once
-#include <leviathan/meta/template_info.hpp>
-#include <iostream>
-#include <leviathan/config_parser/optional.hpp>
 
+#include "optional.hpp"
+
+#include <iostream>
 #include <array>
 #include <fstream>
 #include <string>
@@ -11,7 +11,6 @@
 #include <charconv>
 
 #include <ctype.h>
-
 
 namespace leviathan::config
 {
@@ -172,6 +171,38 @@ namespace leviathan::config
     }
 
     /**
+     * @brief Check whether code is valid(each character should 
+     *  be xdigit.
+     * 
+     * @param p Unicode sequence to be encoded, please make sure that the p has at least N bytes.
+     * @param N Length of unicode, 4 for \u and 8 for \U.
+    */
+    template <size_t N>   
+    constexpr bool is_unicode(const char* p)
+    {
+        static_assert(N == 4 || N == 8);
+
+        if constexpr (N == 4)
+        {
+            return isxdigit(p[0])
+                && isxdigit(p[1])
+                && isxdigit(p[2])
+                && isxdigit(p[3]);
+        }
+        else
+        {
+            return isxdigit(p[0])
+                && isxdigit(p[1])
+                && isxdigit(p[2])
+                && isxdigit(p[3])
+                && isxdigit(p[4])
+                && isxdigit(p[5])
+                && isxdigit(p[6])
+                && isxdigit(p[7]);
+        }
+    }
+
+    /**
      * @brief Encode codepoint to char-array.
      * 
      * @return Position after encoding codepoint, if the codepoint is invalid, the
@@ -238,3 +269,76 @@ namespace leviathan::config
     }
 }
 
+namespace leviathan::config
+{
+    template <typename T>
+    concept arithmetic = std::is_arithmetic_v<T>;
+
+    template <typename T>
+    concept string_viewable = std::is_convertible_v<const T&, std::string_view>;
+
+    template <typename T>
+    concept string_view_like = string_viewable<T> && !std::is_convertible_v<const T&, const char*>;
+
+    struct string_hash_key_equal
+    {
+        using is_transparent = void;
+
+        template <string_viewable Lhs, string_viewable Rhs>
+        constexpr bool operator()(const Lhs& l, const Rhs& r) const
+        {
+            std::string_view sl = static_cast<std::string_view>(l);
+            std::string_view sr = static_cast<std::string_view>(r);
+            return compare_impl(sl, sr);
+        }
+
+        template <string_viewable Str>
+        constexpr bool operator()(const Str& s) const
+        {
+            std::string_view sv = static_cast<std::string_view>(s);
+            return hash_impl(sv);
+        }
+
+    private:
+
+        constexpr static bool compare_impl(std::string_view lhs, std::string_view rhs)
+        { return lhs == rhs; }  
+
+        constexpr static size_t hash_impl(std::string_view sv)
+        { return std::hash<std::string_view>()(sv); }
+    };
+ 
+    inline constexpr const char* whitespace_delimiters = " \t\n\r";
+
+    constexpr std::string_view ltrim(std::string_view sv, std::string_view delimiters = whitespace_delimiters)
+    {
+        auto left = sv.find_first_not_of(delimiters);
+        return sv.substr(left == sv.npos ? sv.size() : left);
+    }
+
+    constexpr std::string_view rtrim(std::string_view sv, std::string_view delimiters = whitespace_delimiters)
+    {
+        auto right = sv.find_last_not_of(delimiters);
+        return sv.substr(0, right + 1);
+    }
+
+    constexpr std::string_view trim(std::string_view sv, std::string_view delimiters = whitespace_delimiters)
+    { return rtrim(ltrim(sv, delimiters), delimiters); }
+
+    std::string_view trim(const std::string& s, std::string_view delimiters = whitespace_delimiters)
+    {
+        std::string_view sv = s;
+        return trim(sv, delimiters);        
+    }
+
+    inline std::string replace(std::string str, std::string_view from, std::string_view to)
+    {
+        size_t pos = 0;
+        while ((pos = str.find(from, pos)) != str.npos)
+        {
+            str.replace(pos, from.size(), to);
+            pos += to.size();
+        }
+        return str;
+    }
+}
