@@ -176,7 +176,6 @@ namespace leviathan::config::json
 
     // The std::shared_ptr may cause memory leak for cycling reference
     // and the raw pointer may free memory twice for cycling reference.
-    // Although std::unique_ptr is much 
     using to_pointer = to_unique_ptr_if_large_than<16>;
 
     using json_value_base = value_base<

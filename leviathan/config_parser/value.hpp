@@ -1,7 +1,6 @@
 #pragma once
 
-// #include <leviathan/string/string_extend.hpp>
-#include <leviathan/config_parser/optional.hpp>
+#include "optional.hpp"
 
 #include <variant>
 #include <memory>

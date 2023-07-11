@@ -19,21 +19,6 @@ namespace leviathan::config::json
     using std::string_view;
     using std::string;
 
-    namespace detail
-    {
-        constexpr bool is_unicode(string_view code)
-        {
-            if (code.size() != 4)
-            {
-                return false;
-            }
-            return isxdigit(code[0])
-                && isxdigit(code[1])
-                && isxdigit(code[2])
-                && isxdigit(code[3]);
-        }
-    }
-
     class parser
     {
         string m_context;
@@ -46,7 +31,7 @@ namespace leviathan::config::json
     
         json_value operator()() &&
         {
-            // "A JSON payload should be an object or array, not a string."
+            // "A JSON payload should be an object or array."
             // return parse_array_or_object();
             auto root = parse_value();
 
