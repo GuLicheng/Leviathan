@@ -217,6 +217,27 @@ namespace leviathan::config::toml
         { return as<toml_data_time>(); }
     };
 
+    toml_value make(std::integral auto num)
+    { return toml_integer(num); }
+
+    toml_value make(std::floating_point auto num)
+    { return toml_float(num); }
+
+    toml_value make(bool b)
+    { return toml_boolean(b); }
+
+    toml_value make(toml_array array)
+    { return toml_value(std::move(array)); }
+
+    toml_value make(toml_table table)
+    { return toml_value(std::move(table)); }
+
+    toml_value make(toml_string str)
+    { return toml_value(std::move(str)); }
+
+    toml_value make(toml_data_time datatime)
+    { throw "NotImplement"; }
+
     namespace detail
     {
         struct config

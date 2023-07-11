@@ -51,7 +51,7 @@ namespace leviathan::config
 
                 ja.reserve(arr.size());
 
-                std::ranges::transform(arr, std::back_inserter(ja), *this);
+                std::transform(arr.begin(), arr.end(), std::back_inserter(ja), *this);
 
                 return json_value(std::move(ja));
             }
@@ -72,11 +72,10 @@ namespace leviathan::config
             {
                 json::json_object obj;
 
-                for (const auto& [k, v] : tt)
-                {
-                    obj.emplace(k, this->operator()(v));
-                }
-
+                std::for_each(tt.begin(), tt.end(), [&, this](const auto& pa) {
+                    obj.emplace(pa.first, this->operator()(pa.second));
+                });
+                
                 return obj;
             }
         };

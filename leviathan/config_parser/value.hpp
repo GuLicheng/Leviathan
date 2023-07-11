@@ -79,6 +79,24 @@ namespace leviathan::config
         }
     };
 
+    template <size_t N>
+    struct to_unique_ptr_if_large_than
+    {
+        template <typename T>
+        constexpr auto operator()(T&& t) const
+        {
+            using U = std::remove_cvref_t<T>;
+            if constexpr (sizeof(T) > N)
+            {
+                return std::make_unique<U>((T&&)t);
+            }
+            else
+            {
+                return t;
+            }
+        }
+    };
+
     template <typename T, template <typename...> typename Primary>
     struct is_specialization_of : std::false_type { };
 

@@ -20,7 +20,7 @@ TEST_CASE("json_make")
     json::json_value value9 = json::make(3.14);
 
     REQUIRE(value1.is_number());
-    REQUIRE(value1.is_integral());
+    REQUIRE(value1.is_integer());
     REQUIRE(value2.is_boolean());
     REQUIRE(value3.is_string());
     REQUIRE(value4.is_array());
@@ -35,7 +35,7 @@ TEST_CASE("json_make")
     REQUIRE(value3.as_string().value() == "HelloWorld");
     REQUIRE(value4.as_array().value().empty());
     REQUIRE(value5.as_object().value().empty());
-    // REQUIRE(value7.as_null().value() == json::json_null());
+    REQUIRE(value7.as_null().value() == json::json_null());
     REQUIRE(value8.as_number().value().is_unsigned_integer());
     REQUIRE(value9.as_number().value().is_floating());
 }
@@ -329,85 +329,6 @@ TEST_CASE("pass1")
 
     REQUIRE(root);
 }
-
-// bool json_value_equal(const json::json_value& x, const json::json_value& y)
-// {
-//     if (x.data().index() != y.data().index())
-//     {
-//         return false;
-//     }
-
-//     if (x.is_null())
-//     {
-//         return true;
-//     }
-
-//     if (x.is_boolean())
-//     {
-//         return x.as<json::json_boolean>() == y.as<json::json_boolean>();
-//     }
-
-//     if (x.is_number())
-//     {
-//         return x.as<json::json_number>() == y.as<json::json_number>();
-//     }
-
-//     if (x.is_string())
-//     {
-//         return x.as<json::json_string>() == y.as<json::json_string>();
-//     }
-
-//     if (x.is_array())
-//     {
-//         auto& ax = x.as<json::json_array>();
-//         auto& ay = y.as<json::json_array>();
-//         return std::ranges::equal(ax, ay);
-//     }
-
-//     if (x.is_object())
-//     {
-//         auto& xo = x.as<json::json_object>();
-//         auto& yo = y.as<json::json_object>();
-//         return std::ranges::equal(xo, yo);
-//     }
-
-//     throw "Unreachable";
-// }
-
-// TEST_CASE("legacy array")
-// {
-//     SECTION("valid")
-//     {
-//         auto do_test = []<typename... Ts>(std::string context, Ts&&... ts) {
-            
-//             auto root1 = json::load(std::move(context));
-
-//             REQUIRE(root1);
-
-//             json::json_value values[] = { json::make((Ts&&)ts...) };
-
-//             json::json_array arr;
-            
-//             for (auto& val : values)
-//             {
-//                 arr.emplace_back(std::move(val));
-//             }
-
-//             json::json_value root2 = json::make(std::move(arr));
-
-//             REQUIRE(json_value_equal(root1, root2));
-//         };
-//     }
-// }
-
-
-
-
-
-
-
-
-
 
 
 

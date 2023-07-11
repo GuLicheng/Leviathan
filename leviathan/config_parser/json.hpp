@@ -21,10 +21,6 @@ namespace leviathan::config::json
 {
     using std::string_view;
     using std::string;
-    // using leviathan::string::arithmetic;
-    // using leviathan::string::whitespace_delimiters;
-    // using leviathan::string::string_hash_key_equal;
-    // using leviathan::string::string_viewable;
 
     enum class error_code
     {
@@ -140,7 +136,7 @@ namespace leviathan::config::json
         bool is_unsigned_integer() const
         { return m_type == number_type::unsigned_integer; }
 
-        bool is_integral() const
+        bool is_integer() const
         { return m_type != number_type::floating; }
 
         bool is_floating() const
@@ -203,22 +199,10 @@ namespace leviathan::config::json
     using json_array = std::vector<json_value>;
     using json_object = std::unordered_map<json_string, json_value, string_hash_key_equal, string_hash_key_equal>;
 
-    struct to_pointer
-    {
-        template <typename T>
-        constexpr auto operator()(T&& t) const
-        {
-            using U = std::remove_cvref_t<T>;
-            if constexpr (sizeof(T) > 16)
-            {
-                return std::make_unique<U>((T&&)t);
-            }
-            else
-            {
-                return t;
-            }
-        }
-    };
+    // The std::shared_ptr may cause memory leak for cycling reference
+    // and the raw pointer may free memory twice for cycling reference.
+    // Although std::unique_ptr is much 
+    using to_pointer = to_unique_ptr_if_large_than<16>;
 
     using json_value_base = value_base<
         to_pointer, 
@@ -243,17 +227,6 @@ namespace leviathan::config::json
 
         auto& data() const
         { return m_data; }
-
-        template <typename T>
-        T* as_ptr()
-        {
-            using U = typename mapped<T>::type;
-            auto ptr = std::get_if<U>(&m_data);
-            if constexpr (is_mapped<T>)
-                return ptr ? std::to_address(*ptr) : nullptr;
-            else
-                return ptr;
-        }
 
         template <typename T>
         optional<T&> try_as()
@@ -291,6 +264,17 @@ namespace leviathan::config::json
             return *target;
         }
 
+        template <typename T>
+        T* as_ptr()
+        {
+            using U = typename mapped<T>::type;
+            auto ptr = std::get_if<U>(&m_data);
+            if constexpr (is_mapped<T>)
+                return ptr ? std::to_address(*ptr) : nullptr;
+            else
+                return ptr;
+        }
+
         template <typename T, bool NoThrow = true>
         T& as() 
         {
@@ -318,10 +302,10 @@ namespace leviathan::config::json
         const T& as() const
         { return const_cast<json_value&>(*this).as<T>(); }
 
-        bool is_integral() const
+        bool is_integer() const
         {
             return is<json_number>() 
-                && as<json_number>().is_integral();
+                && as<json_number>().is_integer();
         }
 
         bool is_number() const
