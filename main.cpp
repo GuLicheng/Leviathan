@@ -1,27 +1,17 @@
-#include <array>
-#include <utility>
+#include <leviathan/config_parser/json.hpp>
+#include <leviathan/config_parser/toml.hpp>
+#include <leviathan/config_parser//convert.hpp>
 
-enum class ApplicationEvents{E1, E2, EMAX};
-
-template<ApplicationEvents>
-void function(){}
-
-template<std::size_t... N>
-constexpr auto testing(std::index_sequence<N...> indecs)
+int main(int argc, char const *argv[])
 {
-    constexpr auto arrays = std::array<void(*)(void), indecs.size()>{+[]
-    {
+    const char* filename = R"(D:\Library\Leviathan\a.toml)";
 
-        constexpr auto value = static_cast<ApplicationEvents>(N);
-        [](){function<value>();}();
+    auto toml_root = leviathan::toml::parse_toml(filename);
 
-    }...};
-    return arrays;
-}
+    auto json_root = leviathan::toml2json(toml_root);
 
+    leviathan::json::detail::json_serialize(std::cout, json_root, 0);
 
-int main()
-{
-    testing(std::make_index_sequence<100>{});
     return 0;
 }
+

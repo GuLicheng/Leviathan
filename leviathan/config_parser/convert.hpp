@@ -1,8 +1,7 @@
 #pragma once
 
 #include "toml.hpp"
-#include "json.hpp"
-#include "value.hpp"
+#include "json_value.hpp"
 
 #include <leviathan/meta/template_info.hpp>
 
