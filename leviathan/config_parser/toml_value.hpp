@@ -23,7 +23,7 @@ namespace leviathan::config::toml
     };
 
     template <typename... Args>
-    void throw_toml_parse_error(std::string_view fmt, Args&&... args)
+    [[noreturn]] void throw_toml_parse_error(std::string_view fmt, Args&&... args)
     {
         auto msg = std::vformat(fmt, std::make_format_args((Args&&) args...));
         throw toml_parse_error(msg);
@@ -46,22 +46,7 @@ namespace leviathan::config::toml
         int m_minute_offset = 0;
     };
 
-    struct to_pointer
-    {
-        template <typename T>
-        constexpr auto operator()(T&& t) const
-        {
-            using U = std::remove_cvref_t<T>;
-            if constexpr (sizeof(T) > 16)
-            {
-                return std::make_unique<U>((T&&)t);
-            }
-            else
-            {
-                return t;
-            }
-        }
-    };
+    using to_pointer = to_unique_ptr_if_large_than<16>;
 
     class toml_value;
 
@@ -99,7 +84,6 @@ namespace leviathan::config::toml
                     return x.data().index() == idx;
                 });
             }
-
         };
     }
 

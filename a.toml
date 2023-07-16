@@ -1,6 +1,8 @@
-[array]
+[table1 . "Table2" . 'Table3']
 1 = []
 2 = [ true ]
 3 = [ true, ]
 4 = [ "Hello", "World" ]
 
+[Boris]
+hero = true

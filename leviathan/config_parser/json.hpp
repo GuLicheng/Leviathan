@@ -4,6 +4,7 @@
 #include "json_value.hpp"
 #include "common.hpp"
 
+#include <sstream>
 #include <utility>
 #include <string>
 #include <iostream>
@@ -11,7 +12,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <type_traits>
-
+#include <format>
 #include <assert.h>
 
 namespace leviathan::config::json
@@ -496,113 +497,87 @@ namespace leviathan::config::json
 
     namespace detail
     {
-        template <typename OStream, typename Character>
-        void json_padding(OStream& os, Character character, int count)
+        struct dump_helper
         {
-            for (int i = 0; i < count; ++i)
-                os << character;
-        }
-        inline constexpr const char* padding_character = " ";
+            constexpr static const char* padding_character = " ";
 
-        template <typename OStream>
-        void json_serialize(OStream& os, const std::unique_ptr<json_array>& arr, int padding);
-
-        template <typename OStream>
-        void json_serialize(OStream& os, const json_boolean& boolean, int padding);
-
-        template <typename OStream>
-        void json_serialize(OStream& os, const json_number& number, int padding);
-
-        template <typename OStream>
-        void json_serialize(OStream& os, const std::unique_ptr<json_string>& string, int padding);
-
-        template <typename OStream>
-        void json_serialize(OStream& os, const std::unique_ptr<json_object>& object, int padding);
-
-        template <typename OStream>
-        void json_serialize(OStream& os, const json_null& null, int padding);
-
-        template <typename OStream>
-        void json_serialize(OStream& os, const json_value& arr, int padding);
-
-        template <typename OStream>
-        void json_serialize(OStream& os, const json_number& number, int padding)
-        {
-            json_padding(os, padding_character, padding);
-            os << number;
-        }
-
-        template <typename OStream>
-        void json_serialize(OStream& os, const std::unique_ptr<json_string>& stringptr, int padding)
-        {
-            auto& string = *stringptr;
-            json_padding(os, padding_character, padding);
-            os << '"' << string << '"';
-        }
-
-        template <typename OStream>
-        void json_serialize(OStream& os, const std::unique_ptr<json_array>& arrayptr, int padding)
-        {
-            auto& arr = *arrayptr;
-            os << "[\n";
-            for (std::size_t i = 0; i < arr.size(); ++i)
+            template <typename OStream, typename Character>
+            static void json_padding(OStream& os, Character character, int count)
             {
-                if (i != 0) os << ", ";
-                json_serialize(os, arr[i], padding + 1);
+                for (int i = 0; i < count; ++i)
+                    os << character;
             }
-            os << '\n';
-            json_padding(os, padding_character, padding);
-            os << ']';
-        }
 
-        template <typename OStream>
-        void json_serialize(OStream& os, const json_boolean& boolean, int padding)
-        {
-            json_padding(os, padding_character, padding);
-            os << (boolean ? "true" : "false");
-        }
+            template <typename OStream>
+            void operator()(OStream& os, const json_number& number, int padding) const
+            { os << number; }
 
-        template <typename OStream>
-        void json_serialize(OStream& os, const json_null&, int padding)
-        {
-            json_padding(os, padding_character, padding);
-            os << "null";
-        }
-
-        template <typename OStream>
-        void json_serialize(OStream& os, const std::unique_ptr<json_object>& objectptr, int padding)
-        {
-            auto& object = *objectptr;
-            json_padding(os, padding_character, padding);
-            os << "{\n";
-            for (auto it = object.begin(); it != object.end(); ++it)
+            template <typename OStream>
+            void operator()(OStream& os, const std::unique_ptr<json_string>& stringptr, int padding) const
             {
-                if (it != object.begin()) os << ",\n";
-                json_padding(os, padding_character, padding);
-                os << " \"";
-                os << it->first;
-                os << "\" : ";
-                json_serialize(os, it->second, padding + 1);
+                auto& string = *stringptr;
+                os << '"' << string << '"';
             }
-            os << '\n';
-            json_padding(os, padding_character, padding);
-            os << '}';
-        }
 
-        template <typename OStream>
-        void json_serialize(OStream& os, const json_value& value, int padding)
-        {
-            std::visit([&os, padding]<typename T>(const T& t)
+            template <typename OStream>
+            void operator()(OStream& os, const std::unique_ptr<json_array>& arrayptr, int padding) const
             {
-                if constexpr (std::is_same_v<T, error_code>)
+                auto& arr = *arrayptr;
+                os << "[";
+                for (std::size_t i = 0; i < arr.size(); ++i)
                 {
-                    std::unreachable();
+                    if (i != 0) os << ", ";
+                    this->operator()(os, arr[i], 0);
                 }
-                json_serialize(os, t, padding);
-            }, value.data());
-        }
+                os << ']';
+            }
 
+            template <typename OStream>
+            void operator()(OStream& os, const json_boolean& boolean, int padding) const
+            { os << (boolean ? "true" : "false"); }
+
+            template <typename OStream>
+            void operator()(OStream& os, const json_null&, int padding) const
+            { os << "null"; }
+
+            template <typename OStream>
+            void operator()(OStream& os, const std::unique_ptr<json_object>& objectptr, int padding) const
+            {
+                auto& object = *objectptr;
+                os << "{\n";
+                for (auto it = object.begin(); it != object.end(); ++it)
+                {
+                    if (it != object.begin()) os << ",\n";
+                    json_padding(os, padding_character, padding);
+                    os << std::format(R"("{}" : )", it->first);
+                    this->operator()(os, it->second, padding + 1);
+                }
+                os << '\n';
+                json_padding(os, padding_character, padding);
+                os << '}';
+            }
+
+            template <typename OStream>
+            void operator()(OStream& os, const json_value& value, int padding) const
+            {
+                std::visit([&os, padding, this]<typename T>(const T& t)
+                {
+                    if constexpr (std::is_same_v<T, error_code>)
+                    {
+                        std::unreachable();
+                    }
+                    this->operator()(os, t, padding);
+                }, value.data());
+            }
+        };
     } // namespace detail
+
+    string dump(const json_value& val)
+    {
+        std::stringstream ss;
+        detail::dump_helper()(ss, val, 0);
+        return ss.str();
+    }
 
 } // namespace leviathan::config::json
 
