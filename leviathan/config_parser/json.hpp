@@ -468,6 +468,7 @@ namespace leviathan::config::json
         void advance_unchecked(size_t n)
         { m_cur.remove_prefix(n); }
 
+        // What if we directly add a '\0'(or some other special characters) as sentinel at the end of context?
         char current() const
         { return peek(0); }
 

@@ -21,6 +21,7 @@
 #include <variant>
 #include <ranges>
 #include <chrono>
+#include <limits>
 #include <format>
 
 namespace leviathan::config::toml
@@ -419,37 +420,96 @@ namespace leviathan::config::toml
                 case 'f': return parse_false();
                 case '"': return parse_basic_string();
                 case '\'': return parse_literal_string();
-                default: return parse_number_or_data_time_or_string();
+                default: return parse_number_or_data_time();
             }
         }
 
-        toml_value parse_number_or_data_time_or_string()
+        toml_value parse_number_or_data_time()
         {
-            auto idx = m_line.find(" \n#");
+            static string_view valid_first_char = "+-0123456789in";
 
-            // 1979-05-27 07:32:00Z RFC 3339
-            if (m_line.substr(0, idx).contains('-'))
+            if (!valid_first_char.contains(current()))
             {
-                idx = m_line.find(" \n#", idx + 1);
+                throw_toml_parse_error("Unknown characters");
             }
 
-            m_line = m_line.substr(0, idx);
-
-            if (m_line.compare("0b"))
+            enum struct value_kind
             {
+                unknown,
+                error, 
+                inf,
+                nan,
+                number,
+                floating_or_data_time,
+                floating,
+                data_time,
+            };
 
-            }
-
-            if (m_line.compare("0x"))
+            struct value_character_config
             {
+                using type = value_kind;
 
-            }
+                value_kind operator()(size_t x) const
+                {
+                    if (isdigit(x))
+                    {
+                        return value_kind::unknown;
+                    }
 
-            if (m_line.compare("0o"))
+                    switch (x)
+                    {
+                        case 'i': return value_kind::inf;
+                        case 'n': return value_kind::nan;
+                        case '+': 
+                        case '_': 
+                        case '-': return value_kind::number;
+                        case 'e':
+                        case 'E': return value_kind::floating;
+                        case ' ':
+                        case 'T':
+                        case 'Z': return value_kind::data_time;
+                        case '.': return value_kind::floating_or_data_time;
+                        default: return value_kind::error;
+                    }
+                }
+            };
+
+            static string_view sv = "=\n,]}";
+
+            auto startptr = m_line.data();
+
+            for (; m_line.size() && !sv.contains(current()); advance_unchecked(1));
+
+            auto endptr = m_line.data();
+
+            auto context = rtrim(string_view(startptr, endptr));
+
+            auto contains_characters = [](string_view c, const char* strs) {
+                return c.find_first_of(strs) != c.npos;
+            };
+
+            auto ch = context.front();
+
+            if (ch == '+' || ch == '-') 
             {
-
+                // Only integer and floating can started with "+-".
+                // Integer may contains '_', so we must remove the '_' first.
             }
-
+            else if (ch == 'i' || ch == 'n') 
+            {
+                // i -> inf, n -> nan.
+                auto value = from_chars_to_optional<double>(context.begin(), context.end());
+                
+                if (!value)
+                {
+                    throw_toml_parse_error("Error floating number.");
+                }
+                return toml_float(*value);
+            }
+            else
+            {
+                // Try parse as integer first, then fall back to double, and last to data time.   
+            }
         }
 
         toml_value parse_true()

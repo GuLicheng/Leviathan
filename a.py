@@ -1,10 +1,6 @@
 import json, toml
 
-context = """
-    name = 
-"""
-
-toml.load()
+value = toml.load("a.toml")
 
 print(value)
 

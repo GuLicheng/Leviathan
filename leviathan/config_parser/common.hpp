@@ -70,7 +70,7 @@ namespace leviathan::config
      * 
      * @param Config A struct or class contains follows:
      *  - typename Config::type  value_type of table if present, otherwise int.
-     *  - Config::value          capacity of table if present, otherwise 128.
+     *  - Config::value          capacity of table if present, otherwise 256.
      *  - Config::operator()     generate number sequence, the sequence is between [0, value).
      * 
      *  The Config::operator() accept a size_t variable as input and return a 
@@ -92,7 +92,7 @@ namespace leviathan::config
             if constexpr (requires { Config::value; })
                 return Config::value;
             else
-                return 128;
+                return 256;
         }();
 
         static_assert(std::is_integral_v<value_type> && "Only support integral");

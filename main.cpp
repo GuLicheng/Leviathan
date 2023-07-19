@@ -10,7 +10,28 @@ int main(int argc, char const *argv[])
 
     auto json_root = leviathan::toml2json(toml_root);
 
-    leviathan::json::detail::json_serialize(std::cout, json_root, 0);
+    std::cout << leviathan::json::dump(json_root) << '\n';
+
+    const char* s1 = "nan";
+    const char* s2 = "0.7";
+    const char* s3 = "7.";
+
+    auto print = [](const char* str) {
+        std::string_view sv = str;
+        auto op = leviathan::config::from_chars_to_optional<double>(sv.begin(), sv.end(), std::chars_format::general);
+        if (!op)
+        {
+            std::cout << "not a double\n";
+        }
+        else
+        {
+            std::cout << *op << '\n';
+        }
+    };
+
+    print(s1);
+    print(s2);
+    print(s3);
 
     return 0;
 }
