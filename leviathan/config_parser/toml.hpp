@@ -146,6 +146,144 @@ namespace leviathan::config::toml
                 }
             }
         }
+    
+        /**
+         * @brief This class offer some utils helper functions.
+        */
+        struct parser_helper
+        {
+            static optional<string> remove_underscore(string_view sv)
+            {
+                string s;
+
+                if (sv.front() == '_' || sv.back() == '_')
+                {
+                    // throw_toml_parse_error("underscore cannot appear at begin or end.");
+                    return nullopt;
+                }
+
+                struct underscore_config
+                {
+                    int operator()(size_t x) const
+                    {
+                        [[assume(x < 256)]];
+                        static string_view sv = "0123456789abcdefABCDEF";
+                        return sv.contains(x);
+                    }
+                };
+
+                static auto table = make_character_table(underscore_config());
+
+                for (size_t i = 0; i < sv.size(); ++i)
+                {
+                    auto ch = sv[i];
+                    if (ch == '_')
+                    {
+                        if (!table[sv[i - 1]] || !table[sv[i + 1]])
+                        {
+                            // throw_toml_parse_error("Underscore should between two number.");
+                            return nullopt;
+                        }
+                    }
+                    else
+                    {
+                        s += ch;
+                    }
+                }
+                return s;
+            }
+
+            static optional<toml_value> parse_toml_integer(string_view sv)
+            {
+                auto s = remove_underscore(sv);
+
+                if (!s)
+                {
+                    return nullopt;
+                }
+
+                sv = *s;  // Replace sv with s which is removed underscore.
+
+                int base = 10;
+
+                if (sv.size() > 1 && sv.front() == '0')
+                {
+                    switch (sv[1])
+                    {
+                        case 'x':
+                        case 'X': base = 16; break;
+                        case 'o':
+                        case 'O': base = 8; break;
+                        case 'b':
+                        case 'B': base = 2; break;
+                        default: return nullopt;  
+                    }
+                    sv.remove_prefix(2);
+                }
+
+                if (auto op = from_chars_to_optional<toml_integer>(sv, base); op)
+                {
+                    return *op;
+                }
+                return nullopt;
+            }
+
+            static optional<toml_value> parse_toml_float(string_view sv)
+            {
+                auto s = remove_underscore(sv);
+
+                if (!s)
+                {
+                    return nullopt;
+                }
+
+                sv = *s;  // Replace sv with s which is removed underscore.
+
+                // .7 or 7. is not permitted.
+                if (sv.front() == '.' || sv.back() == '.')
+                {
+                    return nullopt;
+                }
+
+                int sign = [ch = sv.front()]() {
+                    switch (ch) 
+                    {
+                        case '+': return 1;
+                        case '-': return -1;
+                        default: return 0;
+                    }
+                }();
+
+                if (sign == 0)
+                {
+                    // "nan" and "inf" is valid for std::from_chars
+                    if (auto op = from_chars_to_optional<toml_float>(sv); op) 
+                    {
+                        return *op;
+                    }
+                    return nullopt;
+                }
+
+                sv.remove_prefix(1); // eat '+' or '-'
+
+                if (sv.front() == '.')
+                {
+                    // +.7 is also not permitted.
+                    return nullopt;
+                }
+
+                if (auto op = from_chars_to_optional<toml_float>(sv); op) 
+                {
+                    return *op * sign;
+                }
+                return nullopt;
+            }
+
+            static optional<toml_date_time> parse_toml_date_time(string_view sv)
+            {
+                return nullopt;
+            }
+        };
     }
 
     class parser
@@ -420,96 +558,73 @@ namespace leviathan::config::toml
                 case 'f': return parse_false();
                 case '"': return parse_basic_string();
                 case '\'': return parse_literal_string();
-                default: return parse_number_or_data_time();
+                default: return parse_number_or_date_time();
             }
         }
 
-        toml_value parse_number_or_data_time()
+        toml_value parse_number_or_date_time()
         {
-            static string_view valid_first_char = "+-0123456789in";
+            static string_view sv = " \n]},=";
 
-            if (!valid_first_char.contains(current()))
+            auto idx = sv.find_first_of(sv);
+
+            auto context = m_line.substr(0, idx);
+
+            // Datetime must contains '-' or ':',
+            if (context.contains("-:"))
             {
-                throw_toml_parse_error("Unknown characters");
-            }
-
-            enum struct value_kind
-            {
-                unknown,
-                error, 
-                inf,
-                nan,
-                number,
-                floating_or_data_time,
-                floating,
-                data_time,
-            };
-
-            struct value_character_config
-            {
-                using type = value_kind;
-
-                value_kind operator()(size_t x) const
+                if (idx != sv.npos && *context.end() == ' ')
                 {
-                    if (isdigit(x))
-                    {
-                        return value_kind::unknown;
-                    }
-
-                    switch (x)
-                    {
-                        case 'i': return value_kind::inf;
-                        case 'n': return value_kind::nan;
-                        case '+': 
-                        case '_': 
-                        case '-': return value_kind::number;
-                        case 'e':
-                        case 'E': return value_kind::floating;
-                        case ' ':
-                        case 'T':
-                        case 'Z': return value_kind::data_time;
-                        case '.': return value_kind::floating_or_data_time;
-                        default: return value_kind::error;
-                    }
+                    idx = m_line.find_first_of(sv, idx);
+                    context = m_line.substr(0, idx);
                 }
-            };
-
-            static string_view sv = "=\n,]}";
-
-            auto startptr = m_line.data();
-
-            for (; m_line.size() && !sv.contains(current()); advance_unchecked(1));
-
-            auto endptr = m_line.data();
-
-            auto context = rtrim(string_view(startptr, endptr));
-
-            auto contains_characters = [](string_view c, const char* strs) {
-                return c.find_first_of(strs) != c.npos;
-            };
-
-            auto ch = context.front();
-
-            if (ch == '+' || ch == '-') 
-            {
-                // Only integer and floating can started with "+-".
-                // Integer may contains '_', so we must remove the '_' first.
-            }
-            else if (ch == 'i' || ch == 'n') 
-            {
-                // i -> inf, n -> nan.
-                auto value = from_chars_to_optional<double>(context.begin(), context.end());
-                
-                if (!value)
+                auto op = detail::parser_helper::parse_toml_date_time(context);
+                if (!op)
                 {
-                    throw_toml_parse_error("Error floating number.");
+                    throw_toml_parse_error("Parse datetime error.");
                 }
-                return toml_float(*value);
+                advance_unchecked(context.size());
+                return *op;
             }
-            else
+            
+            // Try parse as integer first
+            if (auto op = detail::parser_helper::parse_toml_integer(context); op)
             {
-                // Try parse as integer first, then fall back to double, and last to data time.   
+                advance_unchecked(context.size());
+                return std::move(*op);
             }
+
+            // Then fallback to floating.
+            if (auto op = detail::parser_helper::parse_toml_float(context); op)
+            {
+                advance_unchecked(context.size());
+                return std::move(*op);
+            }
+
+            throw_toml_parse_error("Invalid toml value.");
+        }
+
+        toml_value parse_date_time(string_view context)
+        {
+            throw_toml_parse_error("Not implemented");
+        }
+
+        toml_value parse_inf()
+        {
+            if (!compare_literal_and_advance("inf"))
+            {
+                throw_toml_parse_error("Parse inf error.");
+            }
+            return std::numeric_limits<double>::infinity();
+        }
+
+        toml_value parse_nan()
+        {
+            if (!compare_literal_and_advance("inf"))
+            {
+                throw_toml_parse_error("Parse inf error.");
+            }
+            return std::numeric_limits<double>::quiet_NaN();
         }
 
         toml_value parse_true()
@@ -663,6 +778,11 @@ namespace leviathan::config::toml
 
                     auto value = parse_value();
 
+                    if (arr.size() && value.index() != arr.front().index())
+                    {
+                        throw_toml_parse_error("Elements in array must share same type.");
+                    }
+
                     arr.emplace_back(std::move(value));
 
                     skip_whitespace_and_empty_line();
@@ -671,18 +791,11 @@ namespace leviathan::config::toml
                     {
                         throw_toml_parse_error("Unexpected end of array.");
                     }
-
                     if (current() == ']')
                     {
                         advance_unchecked(1);
-
-                        if (!arr.is_all_same_type())
-                        {   
-                            throw_toml_parse_error("Elements in array must share same type.");
-                        }
                         return toml_value(std::move(arr));
                     }
-
                     if (current() == ',')
                     {
                         advance_unchecked(1); // eat ,
@@ -776,7 +889,7 @@ namespace leviathan::config::toml
             {
                 constexpr int operator()(size_t i) const
                 {
-                    [[assume(i < 128)]];
+                    [[assume(i < 256)]];
                     constexpr std::string_view sv = " \r\n\t";
                     return sv.contains(i);
                 }
@@ -823,6 +936,7 @@ namespace leviathan::config::toml
 
         void advance_unchecked(size_t n)
         { m_line.remove_prefix(n); }
+
     };
 
     toml_value load(string context)

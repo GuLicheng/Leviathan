@@ -1,6 +1,6 @@
 #pragma once
 
-#include "toml.hpp"
+#include "toml_value.hpp"
 #include "json_value.hpp"
 
 #include <leviathan/meta/template_info.hpp>
@@ -58,7 +58,7 @@ namespace leviathan::config
             json_value operator()(const toml::toml_string& str) const
             { return json::json_string(str); }
 
-            json_value operator()(const toml::toml_data_time& str) const
+            json_value operator()(const toml::toml_date_time& str) const
             { throw std::runtime_error("DataTime is not implemented"); }
 
             json_value operator()(const toml::toml_float& num) const
@@ -80,8 +80,8 @@ namespace leviathan::config
         };
     }
 
-    json::json_value toml2json(const toml::toml_value& tl)
-    { return detail::convert_helper()(tl); }
+    json::json_value toml2json(const toml::toml_value& tv)
+    { return detail::convert_helper()(tv); }
 }
 
 namespace leviathan

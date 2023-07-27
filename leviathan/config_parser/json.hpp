@@ -422,7 +422,7 @@ namespace leviathan::config::json
             {
                 constexpr int operator()(size_t i) const
                 {
-                    [[assume(i < 128)]];
+                    [[assume(i < 256)]];
                     constexpr std::string_view sv = " \r\n\t";
                     return sv.contains(i);
                 }
@@ -440,7 +440,7 @@ namespace leviathan::config::json
             {
                 int operator()(size_t x) const
                 {
-                    [[assume(x < 128)]];  
+                    [[assume(x < 256)]];  
                     constexpr std::string_view sv = "-+.eE";
                     return isdigit(x) || sv.contains(x); // x is less than 128 and it can convert to char.
                 }

@@ -1,6 +1,6 @@
 #include <leviathan/config_parser/json.hpp>
 #include <leviathan/config_parser/toml.hpp>
-#include <leviathan/config_parser//convert.hpp>
+#include <leviathan/config_parser/convert.hpp>
 
 int main(int argc, char const *argv[])
 {
@@ -12,13 +12,13 @@ int main(int argc, char const *argv[])
 
     std::cout << leviathan::json::dump(json_root) << '\n';
 
-    const char* s1 = "nan";
-    const char* s2 = "0.7";
-    const char* s3 = "7.";
+    const char* s1 = "-0.1";
+    const char* s2 = "inf";
+    const char* s3 = "nan";
 
     auto print = [](const char* str) {
         std::string_view sv = str;
-        auto op = leviathan::config::from_chars_to_optional<double>(sv.begin(), sv.end(), std::chars_format::general);
+        auto op = leviathan::config::from_chars_to_optional<double>(sv.begin(), sv.end());
         if (!op)
         {
             std::cout << "not a double\n";

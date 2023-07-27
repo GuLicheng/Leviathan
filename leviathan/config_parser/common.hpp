@@ -55,6 +55,20 @@ namespace leviathan::config
             return value;
         return nullopt;
     }
+
+    template <typename T, typename... Args>
+    constexpr optional<T> from_chars_to_optional(const std::string& s, Args... args)
+    {
+        return from_chars_to_optional<T>(
+            s.data(), s.data() + s.size(), args...);
+    }
+
+    template <typename T, typename... Args>
+    constexpr optional<T> from_chars_to_optional(std::string_view sv, Args... args)
+    {
+        return from_chars_to_optional<T>(
+            sv.begin(), sv.end(), args...);
+    }
 }
 
 namespace leviathan::config
@@ -95,7 +109,7 @@ namespace leviathan::config
                 return 256;
         }();
 
-        static_assert(std::is_integral_v<value_type> && "Only support integral");
+        static_assert(std::is_integral_v<value_type> || std::is_enum_v<value_type>);
         static_assert(count <= 256);
 
         using return_type = std::invoke_result_t<Config, size_t>;

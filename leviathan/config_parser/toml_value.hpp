@@ -31,7 +31,7 @@ namespace leviathan::config::toml
 
     // Can we use std::chrono directly?
     // YYYY-MM-DDTHH:MM:SS.XXXX+HH:MM
-    struct toml_data_time
+    struct toml_date_time
     {
         int m_year = 0;
         int m_month = 0;
@@ -72,18 +72,6 @@ namespace leviathan::config::toml
 
             bool is_array() const
             { return m_locked; }
-
-            bool is_all_same_type() const
-            {
-                if (this->empty())
-                {
-                    return true;
-                }
-                const auto idx = this->front().data().index();
-                return std::ranges::all_of(*this, [=](const auto& x) {
-                    return x.data().index() == idx;
-                });
-            }
         };
     }
 
@@ -109,7 +97,7 @@ namespace leviathan::config::toml
         toml_string,
         toml_array, 
         toml_table,
-        toml_data_time
+        toml_date_time
     >;
 
     class toml_value : public toml_value_base
@@ -126,6 +114,9 @@ namespace leviathan::config::toml
         
         auto& data() const 
         { return m_data; }
+
+        auto index() const  
+        { return m_data.index(); }
 
         template <typename T>
         T& as()
@@ -171,8 +162,8 @@ namespace leviathan::config::toml
         toml_float& as_float()
         { return as<toml_float>(); }
 
-        toml_data_time& as_data_time()
-        { return as<toml_data_time>(); }
+        toml_date_time& as_date_time()
+        { return as<toml_date_time>(); }
     };
 
     toml_value make(std::integral auto num)
@@ -193,7 +184,7 @@ namespace leviathan::config::toml
     toml_value make(toml_string str)
     { return toml_value(std::move(str)); }
 
-    toml_value make(toml_data_time datatime)
+    toml_value make(toml_date_time datatime)
     { throw "NotImplement"; }
 
 } // namespace leviathan::config::toml
