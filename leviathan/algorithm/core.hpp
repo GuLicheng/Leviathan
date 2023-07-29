@@ -1,10 +1,8 @@
 #pragma once
 
 
-#include "sort.hpp"
+#include "tim_sort.hpp"
 #include "combination.hpp"
-#include "pair_wise_transform.hpp"
-
 
 namespace leviathan
 {
@@ -33,7 +31,5 @@ namespace leviathan
         }
 
         return result;
-
     }
-
 }

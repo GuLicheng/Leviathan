@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "basic_sort.hpp"
+
 #include <algorithm>
 #include <functional>
 
@@ -43,7 +45,7 @@ namespace leviathan::detail
     constexpr T min_run_length(T n) 
     {
         T r = 0;      
-        while (n >= tim_sort_threshold) 
+        while (n >= detail::tim_sort_threshold) 
         {
             r |= (n & 1);
             n >>= 1;
@@ -115,7 +117,7 @@ namespace leviathan
     template <typename I, typename Comp = std::less<>>
     constexpr void tim_sort(I first, I last, Comp comp = {})
     {
-        if (last - first < tim_sort_threshold)
+        if (last - first < detail::tim_sort_threshold)
             return insertion_sort(first, last, comp);
 
         auto iter = first; 

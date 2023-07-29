@@ -24,4 +24,6 @@ namespace leviathan::ranges
             return (*this)(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj));
         }
     };
+
+    inline constexpr tim_sort_fn tim_sort{};
 }
