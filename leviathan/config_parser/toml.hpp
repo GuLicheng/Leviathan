@@ -204,6 +204,11 @@ namespace leviathan::config::toml
 
                 sv = *s;  // Replace sv with s which is removed underscore.
 
+                if (sv.front() == '+') // from_chars cannot parse '+'
+                {
+                    sv.remove_prefix(1);
+                }
+
                 int base = 10;
 
                 if (sv.size() > 1 && sv.front() == '0')
@@ -564,14 +569,14 @@ namespace leviathan::config::toml
 
         toml_value parse_number_or_date_time()
         {
-            static string_view sv = " \n]},=";
+            static string_view sv = " \n,]}";
 
-            auto idx = sv.find_first_of(sv);
+            auto idx = m_line.find_first_of(sv);
 
             auto context = m_line.substr(0, idx);
 
             // Datetime must contains '-' or ':',
-            if (context.contains("-:"))
+            if (context.contains(':') || (context.contains('-') && context.front() != '-'))
             {
                 if (idx != sv.npos && *context.end() == ' ')
                 {
@@ -811,7 +816,64 @@ namespace leviathan::config::toml
 
         toml_value parse_inline_table()
         {
-            throw_toml_parse_error("Not Implement.");
+            advance_unchecked(1); // eat '{'.
+
+            skip_whitespace();
+
+            if (m_line.empty())
+            {
+                throw_toml_parse_error("Unexpected end of inline table.");
+            }
+            else
+            {
+                toml_table table;
+
+                while (1)
+                {
+                    if (current() == '}')
+                    {
+                        advance_unchecked(1); // eat ']'
+                        return toml_value(std::move(table));
+                    }
+
+                    if (m_line.front() == '=')
+                    {
+                        throw_toml_parse_error("Empty Key.");
+                    }
+
+                    // parse key
+                    auto idx = m_line.find('='); 
+                    
+                    if (idx == m_line.npos)
+                    {
+                        throw_toml_parse_error("Expected '=' when parsing entry");
+                    }
+
+                    auto keys = detail::split_keys(m_line.substr(0, idx));
+
+                    advance_unchecked(idx); // eat key.
+
+                    skip_whitespace();
+
+                    // match '='
+                    if (!match_and_advance('='))
+                    {
+                        throw_toml_parse_error("Expected '=' after key.");
+                    }
+
+                    skip_whitespace();
+
+                    // parse value
+                    auto value = parse_value();
+
+                    m_cur_table = &table;
+                    try_put_value(keys, std::move(value));
+
+                    // consume_whitespace_and_comment();
+                    throw_toml_parse_error("...");
+                }
+
+            }
         }
 
         /* -------------------------------- Functions for reader -------------------------------- */
