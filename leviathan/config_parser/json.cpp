@@ -102,6 +102,7 @@ TEST_CASE("number")
     REQUIRE(check("4294967295", 4294967295));
     REQUIRE(check("18446744073709551615", std::size_t(-1)));
     REQUIRE(check("0", 0));
+    REQUIRE(check("-0", 0));
     REQUIRE(check("1", 1));
     REQUIRE(check("1.2345678", 1.2345678));
     REQUIRE(check("0.12345678e7", 1234567.8));
