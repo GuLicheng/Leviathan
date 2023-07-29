@@ -13,12 +13,68 @@
 #include <algorithm>
 #include <type_traits>
 #include <format>
+#include <expected>
 #include <assert.h>
 
 namespace leviathan::config::json
 {
     using std::string_view;
     using std::string;
+    using std::expected;
+    using std::unexpect;
+    using std::unexpect_t;
+    using std::unexpected;
+
+    namespace detail
+    {
+        struct parser_helper
+        {
+            enum err {
+                error_json_number,
+                not_json_number,
+            };
+
+            static expected<json_number, err> parse_json_integer(const char* startptr, const char* endptr)
+            {
+                if (startptr[0] != '0')
+                {
+                    // Try parse as integral first.
+                    if (auto value = from_chars_to_optional<json_number::int_type>(startptr, endptr); value)
+                    {
+                        return json_number(*value);
+                    }
+
+                    // Try parse as unsigned integral second.
+                    if (auto value = from_chars_to_optional<json_number::uint_type>(startptr, endptr); value)
+                    {
+                        return json_number(*value);
+                    }
+                }
+                else if (startptr + 1 == endptr) // "0"
+                {
+                    return json_number(0);
+                } 
+                else if (startptr[1] != '.') // Only "0." is allowed
+                {
+                    return unexpected<err>(err::error_json_number);
+                }
+                else
+                {
+                    return unexpected<err>(err::not_json_number);
+                }
+            } 
+
+            static expected<json_number, err> parse_json_floating(const char* startptr, const char* endptr)
+            {
+                // Try parse as floating last.
+                if (auto value = from_chars_to_optional<json_number::float_type>(startptr, endptr); value)
+                {
+                    return json_number(*value);
+                }    
+                return unexpected<err>(err::not_json_number);
+            }
+        };
+    }
 
     class parser
     {
