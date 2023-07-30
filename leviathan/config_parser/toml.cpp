@@ -126,3 +126,74 @@ TEST_CASE("integer")
 
     }
 }
+
+TEST_CASE("floating")
+{
+    SECTION("valid")
+    {
+        std::string context = R"(
+            flt1 = +1.0
+            flt2 = 3.1415
+            flt3 = -0.01
+
+            flt4 = 5e+22
+            flt5 = 1e06
+            flt6 = -2E-2
+
+            flt7 = 6.626e-34
+            sf1 = inf  
+            sf2 = +inf 
+            sf3 = -inf 
+
+            sf4 = nan  
+            sf5 = +nan 
+            sf6 = -nan 
+        )";
+
+        auto root = toml::load(context);
+
+        auto get_float = [&](const char* key) {
+            return root.as_table().find(key)->second.as_float(); 
+        };
+
+        auto float_cmp = [](toml::toml_float f1, toml::toml_float f2) {
+            REQUIRE(std::abs(f1 - f2) < 1e-5);
+        };
+
+        float_cmp(get_float("flt1"), 1.0);
+        float_cmp(get_float("flt2"), 3.1415);
+        float_cmp(get_float("flt3"), -0.01);
+        float_cmp(get_float("flt4"), 5e22);
+        float_cmp(get_float("flt5"), 1e6);
+        float_cmp(get_float("flt6"), -2e-2);
+        float_cmp(get_float("flt7"), 6.626e-34);
+
+        auto check_inf = [&](const char* key, bool sign) {
+            auto f = get_float(key);
+            REQUIRE(std::isinf(f));
+            REQUIRE(std::signbit(f) == sign);
+        };
+
+        check_inf("sf1", false);
+        check_inf("sf2", false);
+        check_inf("sf3", true);
+
+        auto check_nan = [&](const char* key, bool sign) {
+            auto f = get_float(key);
+            REQUIRE(std::isnan(f));
+            REQUIRE(std::signbit(f) == sign);
+        };
+
+        check_nan("sf4", false);
+        check_nan("sf5", false);
+        check_nan("sf6", true);
+
+    }
+
+    SECTION("invalid")
+    {
+
+    }
+}
+
+

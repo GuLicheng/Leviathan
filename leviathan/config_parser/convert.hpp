@@ -58,7 +58,7 @@ namespace leviathan::config
             json_value operator()(const toml::toml_string& str) const
             { return json::json_string(str); }
 
-            json_value operator()(const toml::toml_date_time& str) const
+            json_value operator()(const toml::toml_datetime& str) const
             { throw std::runtime_error("DataTime is not implemented"); }
 
             json_value operator()(const toml::toml_float& num) const

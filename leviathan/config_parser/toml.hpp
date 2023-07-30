@@ -12,7 +12,7 @@
 #include "toml_value.hpp"
 
 // #include <leviathan/string/string_extend.hpp>
-
+#include <cmath>
 #include <unordered_map>
 #include <vector>
 #include <string>
@@ -250,7 +250,7 @@ namespace leviathan::config::toml
                     return nullopt;
                 }
 
-                int sign = [ch = sv.front()]() {
+                toml_float sign = [ch = sv.front()]() {
                     switch (ch) 
                     {
                         case '+': return 1;
@@ -279,12 +279,13 @@ namespace leviathan::config::toml
 
                 if (auto op = from_chars_to_optional<toml_float>(sv); op) 
                 {
-                    return *op * sign;
+                    // std::copysign is valid for nan/inf
+                    return std::copysign(*op, sign);
                 }
                 return nullopt;
             }
 
-            static optional<toml_date_time> parse_toml_date_time(string_view sv)
+            static optional<toml_datetime> parse_toml_datetime(string_view sv)
             {
                 return nullopt;
             }
@@ -390,19 +391,26 @@ namespace leviathan::config::toml
             consume_whitespace_and_comment();
         }
 
-        void try_put_value(const std::vector<string_view>& keys, toml_value&& val)
+        void try_put_value(const std::vector<string_view>& keys, toml_value&& val, toml_table* table = nullptr)
         {
             bool ok = false;
 
-            auto t = m_cur_table;
+            auto t = table ? table : m_cur_table;
 
             for (size_t i = 0; i < keys.size() - 1; ++i)
             {
                 auto [it, succeed] = t->try_emplace(toml_string(keys[i]), toml_table());
 
-                if (!succeed && !it->second.is<toml_table>())
+                if (!succeed)
                 {
-                    throw_toml_parse_error("Key conflict");
+                    if (!it->second.is<toml_table>())
+                    {
+                        throw_toml_parse_error("Key conflict");
+                    }
+                    if (it->second.as_ptr<toml_table>()->is_inline_table())
+                    {
+                        throw_toml_parse_error("Inline table cannot be modified.");
+                    }
                 }
 
                 ok = ok || succeed;
@@ -576,21 +584,21 @@ namespace leviathan::config::toml
             auto context = m_line.substr(0, idx);
 
             // Datetime must contains '-' or ':',
-            if (context.contains(':') || (context.contains('-') && context.front() != '-'))
-            {
-                if (idx != sv.npos && *context.end() == ' ')
-                {
-                    idx = m_line.find_first_of(sv, idx);
-                    context = m_line.substr(0, idx);
-                }
-                auto op = detail::parser_helper::parse_toml_date_time(context);
-                if (!op)
-                {
-                    throw_toml_parse_error("Parse datetime error.");
-                }
-                advance_unchecked(context.size());
-                return *op;
-            }
+            // if (context.contains(':') || (context.contains('-') && context.front() != '-'))
+            // {
+            //     if (idx != sv.npos && *context.end() == ' ')
+            //     {
+            //         idx = m_line.find_first_of(sv, idx);
+            //         context = m_line.substr(0, idx);
+            //     }
+            //     auto op = detail::parser_helper::parse_toml_datetime(context);
+            //     if (!op)
+            //     {
+            //         throw_toml_parse_error("Parse datetime error.");
+            //     }
+            //     advance_unchecked(context.size());
+            //     return *op;
+            // }
             
             // Try parse as integer first
             if (auto op = detail::parser_helper::parse_toml_integer(context); op)
@@ -824,18 +832,18 @@ namespace leviathan::config::toml
             {
                 throw_toml_parse_error("Unexpected end of inline table.");
             }
+
+            toml_table table(true);
+
+            if (current() == '}')
+            {
+                advance_unchecked(1);
+                return toml_value(std::move(table));
+            }
             else
             {
-                toml_table table;
-
                 while (1)
                 {
-                    if (current() == '}')
-                    {
-                        advance_unchecked(1); // eat ']'
-                        return toml_value(std::move(table));
-                    }
-
                     if (m_line.front() == '=')
                     {
                         throw_toml_parse_error("Empty Key.");
@@ -866,11 +874,29 @@ namespace leviathan::config::toml
                     // parse value
                     auto value = parse_value();
 
-                    m_cur_table = &table;
-                    try_put_value(keys, std::move(value));
+                    // m_cur_table = &table;
+                    try_put_value(keys, std::move(value), &table);
 
-                    // consume_whitespace_and_comment();
-                    throw_toml_parse_error("...");
+                    skip_whitespace();
+
+                    if (m_line.empty())
+                    {
+                        throw_toml_parse_error("Unexpected end of inline table.");
+                    }
+                    if (current() == '}')
+                    {
+                        advance_unchecked(1);
+                        return toml_value(std::move(table));
+                    }
+                    if (current() == ',')
+                    {
+                        advance_unchecked(1);
+                        skip_whitespace();
+                    }
+                    else
+                    {
+                        throw_toml_parse_error("Expected , or } after value.");
+                    }
                 }
 
             }

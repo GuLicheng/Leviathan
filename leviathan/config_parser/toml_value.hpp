@@ -31,7 +31,7 @@ namespace leviathan::config::toml
 
     // Can we use std::chrono directly?
     // YYYY-MM-DDTHH:MM:SS.XXXX+HH:MM
-    struct toml_date_time
+    struct toml_datetime
     {
         int m_year = 0;
         int m_month = 0;
@@ -52,10 +52,10 @@ namespace leviathan::config::toml
 
     namespace detail
     {
-        template <typename T, typename Allocator = std::allocator<T>>
-        class toml_array_base : public std::vector<T, Allocator>
+        template <typename T>
+        class toml_array_base : public std::vector<T>
         {
-            using base = std::vector<T, Allocator>;
+            using base = std::vector<T>;
 
             bool m_locked = false;
 
@@ -73,21 +73,36 @@ namespace leviathan::config::toml
             bool is_array() const
             { return m_locked; }
         };
-    }
 
-    /**
-     * How to distinct the array and table array?
-     *  - Use two type : toml_array(std::vector<toml_value>) and toml_table_array(std::vector<toml_table>).
-     *  - Add another flag for toml_array to check whether it is a toml_table_array.
-     *  - Record all table_array when parsing.
-    */
-    using toml_array = detail::toml_array_base<toml_value>;
+        template <typename K, typename V>
+        class toml_table_base : public std::unordered_map<K, V, string_hash_key_equal, string_hash_key_equal>
+        {
+            using base = std::unordered_map<K, V, string_hash_key_equal, string_hash_key_equal>;
+
+            bool m_locked = false;
+
+        public:
+
+            toml_table_base() = default;
+
+            template <typename... Args>
+            explicit toml_table_base(bool locked, Args&&... args) 
+                : base((Args&&) args...), m_locked(locked) { }
+
+            bool is_inline_table() const 
+            { return m_locked; }
+
+            bool is_table() const
+            { return !m_locked; }
+        };
+    }
 
     using toml_boolean = bool;
     using toml_float = double;
     using toml_integer = int64_t;
     using toml_string = std::string;
-    using toml_table = std::unordered_map<toml_string, toml_value, string_hash_key_equal, string_hash_key_equal>;
+    using toml_array = detail::toml_array_base<toml_value>;
+    using toml_table = detail::toml_table_base<toml_string, toml_value>;
 
     using toml_value_base = value_base<
         to_pointer,
@@ -97,7 +112,7 @@ namespace leviathan::config::toml
         toml_string,
         toml_array, 
         toml_table,
-        toml_date_time
+        toml_datetime
     >;
 
     class toml_value : public toml_value_base
@@ -162,8 +177,8 @@ namespace leviathan::config::toml
         toml_float& as_float()
         { return as<toml_float>(); }
 
-        toml_date_time& as_date_time()
-        { return as<toml_date_time>(); }
+        toml_datetime& as_date_time()
+        { return as<toml_datetime>(); }
     };
 
     toml_value make(std::integral auto num)
@@ -184,7 +199,7 @@ namespace leviathan::config::toml
     toml_value make(toml_string str)
     { return toml_value(std::move(str)); }
 
-    toml_value make(toml_date_time datatime)
+    toml_value make(toml_datetime datatime)
     { throw "NotImplement"; }
 
 } // namespace leviathan::config::toml
