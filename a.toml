@@ -1,3 +1,9 @@
 [product]
-type = { name = "Nail" }
-type.edible = false  # 非法
+type = { name = "Nail", array = [
+    1, 2, 3
+], int = 1 } # This is inline table.
+# type.edible = false  # 非法
+
+[Hero]
+1 = "Boris"
+2 = "Tanya"
