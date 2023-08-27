@@ -1,4 +1,5 @@
 import toml
 
 
-toml.load()
+root = toml.load("a.toml")
+print(root["lines"])

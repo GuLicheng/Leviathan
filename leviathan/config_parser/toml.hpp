@@ -763,6 +763,10 @@ namespace leviathan::config::toml
                     {
                         throw_toml_parse_error("Unexpected multi-line basic string.");
                     }
+                    if (context.size())
+                    {
+                        context += '\n';
+                    }
                 }
 
                 if (current() != '\'')
@@ -776,6 +780,12 @@ namespace leviathan::config::toml
                 }
                 else
                 {
+                    // Sequences of three or more single quotes are not permitted.
+                    if (m_line.compare("''''''") == 0)
+                    {
+                        throw_toml_parse_error("Too much quote.");
+                    }
+
                     if (m_line.compare("'''") == 0)
                     {
                         advance_unchecked(3);
@@ -788,6 +798,7 @@ namespace leviathan::config::toml
                     else
                     {
                         context += '\'';
+                        advance_unchecked(1);
                     }
                 }
             }

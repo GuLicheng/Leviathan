@@ -1,1 +1,3 @@
-str = '''H15321\\sadasasd\d\asd\'''
+[product]
+type = { name = "Nail" }
+type.edible = false  # INVALID

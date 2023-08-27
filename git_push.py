@@ -10,3 +10,7 @@ if __name__ == "__main__":
 
     for instruction in instructions:
         os.system(instruction)
+
+
+
+        

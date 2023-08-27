@@ -146,7 +146,7 @@ namespace leviathan::config
      * @brief Decode unicode from C-style string. 
      * 
      * @param p The string to be decoded, please make sure that the p has at least N bytes.
-     * @param N Length of p, 4 for '\u' and 8 for '\U'
+     * @param N Length of p, 4 for '\u' and 8 for '\U'.
     */
     template <size_t N> 
     constexpr unsigned decode_unicode_from_char(const char* p)

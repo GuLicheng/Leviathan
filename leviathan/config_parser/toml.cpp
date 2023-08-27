@@ -196,4 +196,122 @@ TEST_CASE("floating")
     }
 }
 
+TEST_CASE("single line literal string")
+{
+    std::string strs[] = {
+        R"(winpath  = 'C:\Users\nodejs\templates')",  
+        R"(winpath2 = '\\ServerX\admin$\system32\')",  
+        R"(quoted   = 'Tom "Dubs" Preston-Werner')",  
+        R"(regex    = '<\i\c*\s*>')",  
+    };
 
+
+    auto check = [](std::string str, const char* key, const char* value) {
+        auto root = toml::load(str);
+        auto it = root.as_table().find(key);
+        REQUIRE(it->second.as_string() == value);
+    };
+
+    check(strs[0], "winpath", R"(C:\Users\nodejs\templates)");
+    check(strs[1], "winpath2", R"(\\ServerX\admin$\system32\)");
+    check(strs[2], "quoted", R"(Tom "Dubs" Preston-Werner)");
+    check(strs[3], "regex", R"(<\i\c*\s*>)");
+}
+
+TEST_CASE("multi line literal string")
+{
+    std::string strs[] = {
+        R"(str  = '''I [dw]on't need \d{2} apples''')",  
+        R"(str = '''Here are fifteen quotation marks: """""""""""""""''')",  
+        R"(str   = ''''That,' she said, 'is still pointless.'''')",  
+    };
+
+
+    auto check = [](std::string str, const char* key, const char* value) {
+        auto root = toml::load(str);
+        auto it = root.as_table().find(key);
+        REQUIRE(it->second.as_string() == value);
+    };
+
+    check(strs[0], "str", R"(I [dw]on't need \d{2} apples)");
+    check(strs[1], "str", R"(Here are fifteen quotation marks: """"""""""""""")");
+    check(strs[2], "str", R"('That,' she said, 'is still pointless.')");
+
+    std::string multiline = R"(
+lines  = '''
+The first newline is
+trimmed in raw strings.
+   All other whitespace
+   is preserved.
+''')";
+
+    check(multiline, "lines", "The first newline is\ntrimmed in raw strings.\n   All other whitespace\n   is preserved.\n");
+}
+
+TEST_CASE("single line basic string")
+{
+    std::string strs[] = {
+        R"(apos15 = "Here are fifteen apostrophes: '''''''''''''''")",
+        "s = \"Roses are red\\nViolets are blue\"",
+        "s = \"The quick brown fox jumps over the lazy dog.\"",
+        R"(s = "I'm a string. \"You can quote me\". Name\tJos\u00E9\nLocation\tSF.")",
+    };
+
+    auto check = [](std::string str, const char* key, const char* value) {
+        auto root = toml::load(str);
+        auto it = root.as_table().find(key);
+        REQUIRE(it->second.as_string() == value);
+    };
+
+    check(strs[0], "apos15", "Here are fifteen apostrophes: '''''''''''''''");
+    check(strs[1], "s", "Roses are red\nViolets are blue");
+    check(strs[2], "s", "The quick brown fox jumps over the lazy dog.");
+    check(strs[3], "s", "I'm a string. \"You can quote me\". Name\tJosé\nLocation\tSF.");
+
+}
+
+TEST_CASE("multi line basic string")
+{
+
+}
+
+TEST_CASE("inline table")
+{
+    SECTION("valid")
+    {
+        std::string s1 = "inline = { name = 'Alice', age = 10 }";
+
+        auto root = toml::load(s1);
+
+        REQUIRE(root.as_table().find("inline")->second.as_table().find("name")->second.as_string() == "Alice");
+        REQUIRE(root.as_table().find("inline")->second.as_table().find("age")->second.as_integer() == 10);
+
+        std::string s2 = "animal = { type.name = \"pug\" }";
+
+        root = toml::load(s2);
+
+        auto value = root.as_table().find("animal")->
+                   second.as_table().find("type")->
+                   second.as_table().find("name")->second.as_string();
+        REQUIRE(value == "pug");
+
+        std::string s3 = "empty_inline_table = {}";
+
+        root = toml::load(s3);
+
+        REQUIRE(root.as_table().find("empty_inline_table")->second.as_table().empty());
+    }
+
+    SECTION("invalid")
+    {
+        std::string s1 = "inline = { error = 'end with comma', }";
+        std::string s2 = R"(
+[product]
+type = { name = "Nail" }
+type.edible = false  # INVALID
+        )";
+
+        REQUIRE_THROWS(toml::load(s1));
+        REQUIRE_THROWS(toml::load(s2));
+    }
+}
