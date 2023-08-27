@@ -287,6 +287,10 @@ namespace leviathan::config::toml
 
             static optional<toml_datetime> parse_toml_datetime(string_view sv)
             {
+                // C# @"^(?:(\d+)-(0[1-9]|1[012])-(0[1-9]|[12]\d|3[01]))?([\sTt])?(?:([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?((?:[Zz])|(?:[\+|\-](?:[01]\d|2[0-3])(?::[0-6][0-9])?(?::[0-6][0-9])?))?)?$",
+                // Python r"([0-9]{2}):([0-9]{2}):([0-9]{2})(\.([0-9]{3,6}))?"
+                // C++ R"()"
+                static std::string regex = R"(([0-9]{2}):([0-9]{2}):([0-9]{2})(\.([0-9]{3,6}))?)";
                 return nullopt;
             }
         };
@@ -660,21 +664,20 @@ namespace leviathan::config::toml
 
         toml_value parse_basic_string()
         {
-            return m_line.compare(R"(""")") == 0 
+            return m_line.starts_with(R"(""")") 
                  ? parse_multi_line_basic_string()
                  : parse_single_line_basic_string();
         }
 
         toml_value parse_literal_string()
         {
-            return m_line.compare(R"(''')") == 0 
+            return m_line.starts_with(R"(''')") 
                  ? parse_multi_line_literal_string()
                  : parse_single_line_literal_string();
         }
 
         toml_value parse_multi_line_basic_string()
         {
-            advance_unchecked(3); // eat """
             throw_toml_parse_error("Not implement.");
         }
 
@@ -744,7 +747,52 @@ namespace leviathan::config::toml
 
         toml_value parse_multi_line_literal_string()
         {
-            throw_toml_parse_error("Not implement.");
+            advance_unchecked(3); // eat '''
+            toml_string context;
+
+            if (m_line.size() && current() == '\n')
+            {
+                advance_unchecked(1);
+            }
+
+            while (1) 
+            {
+                while (m_line.empty())
+                {
+                    if (!getline())
+                    {
+                        throw_toml_parse_error("Unexpected multi-line basic string.");
+                    }
+                }
+
+                if (current() != '\'')
+                {
+                    if (m_line.size() == 1 && current() == '\\')
+                    {
+                        skip_whitespace_and_empty_line();
+                    }
+                    context += current();
+                    advance_unchecked(1);
+                }
+                else
+                {
+                    if (m_line.compare("'''") == 0)
+                    {
+                        advance_unchecked(3);
+                        while (m_line.size() && current() == '\'')
+                        {
+                            context += '\'';
+                        }
+                        break;
+                    }
+                    else
+                    {
+                        context += '\'';
+                    }
+                }
+            }
+
+            return context;
         }
 
         toml_value parse_single_line_literal_string()

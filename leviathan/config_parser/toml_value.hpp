@@ -31,17 +31,36 @@ namespace leviathan::config::toml
 
     // Can we use std::chrono directly?
     // YYYY-MM-DDTHH:MM:SS.XXXX+HH:MM
+    // 1. offset date time: all
+    // 2. local date time: local date + local time
+    // 3. local date only
+    // 4. local time only
     struct toml_datetime
     {
+        enum class time_mode
+        {
+            offset_date_time,
+            local_date_time,
+            local_date,
+            local_time,
+        } m_type;
+
+        // std::chrono::year_month_day m_date;
+
+        // std::chrono::day m_day;
+
+        // local date
         int m_year = 0;
         int m_month = 0;
         int m_day = 0;
 
+        // local time
         int m_hour = 0;
         int m_minute = 0;
         int m_second = 0;
         int m_microsecond = 0;
 
+        // offset 
         int m_hour_offset = 0;
         int m_minute_offset = 0;
     };
