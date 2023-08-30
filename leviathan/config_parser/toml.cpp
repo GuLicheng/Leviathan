@@ -300,18 +300,119 @@ TEST_CASE("inline table")
         root = toml::load(s3);
 
         REQUIRE(root.as_table().find("empty_inline_table")->second.as_table().empty());
+
+        std::string s4 = R"(
+            points = [ { x = 1, y = 2, z = 3 },
+                       { x = 7, y = 8, z = 9 },
+                       { x = 2, y = 4, z = 8 } ]
+        )";
+
+        root = toml::load(s4);
+
+        auto check_point = [&](int idx, int x, int y, int z) {
+            auto& table = root.as_table().find("points")->second.as_array()[idx].as_table();
+            REQUIRE(table.find("x")->second.as_integer() == x);
+            REQUIRE(table.find("y")->second.as_integer() == y);
+            REQUIRE(table.find("z")->second.as_integer() == z);
+        };
+
+        check_point(0, 1, 2, 3);
+        check_point(1, 7, 8, 9);
+        check_point(2, 2, 4, 8);
+
     }
 
     SECTION("invalid")
     {
         std::string s1 = "inline = { error = 'end with comma', }";
         std::string s2 = R"(
-[product]
-type = { name = "Nail" }
-type.edible = false  # INVALID
+            [product]
+            type = { name = "Nail" }
+            type.edible = false  # INVALID
         )";
 
         REQUIRE_THROWS(toml::load(s1));
         REQUIRE_THROWS(toml::load(s2));
+    }
+}
+
+TEST_CASE("table array")
+{
+    SECTION("valid")
+    {
+        std::string s = R"(
+            [[products]]
+            name = "Hammer"
+            sku = 738594937
+
+            [[products]]  # empty table within the array
+
+            [[products]]
+            name = "Nail"
+            sku = 284758393
+
+            color = "gray"
+        )";
+
+        auto root = toml::load(s);
+
+        auto& array = root.as_table().find("products")->second.as_array();
+
+        REQUIRE(array.size() == 3);
+
+        REQUIRE(array[0].as_table().find("name")->second.as_string() == "Hammer");
+        REQUIRE(array[0].as_table().find("sku")->second.as_integer() == 738594937);
+        
+        REQUIRE(array[1].as_table().empty());
+
+        REQUIRE(array[2].as_table().find("name")->second.as_string() == "Nail");
+        REQUIRE(array[2].as_table().find("sku")->second.as_integer() == 284758393);
+        REQUIRE(array[2].as_table().find("color")->second.as_string() == "gray");
+    }
+
+    SECTION("invalid")
+    {
+        std::string s1 = R"(
+            [fruit.physical]  # subtable, but to which parent element should it belong?
+            color = "red"
+            shape = "round"
+
+            [[fruit]]  # parser must throw an error upon discovering that "fruit" is an array rather than a table.
+            name = "apple"
+        )";
+
+        REQUIRE_THROWS(toml::load(s1));
+
+        std::string s2 = R"(
+            # INVALID TOML DOC
+            fruits = []
+
+            [[fruits]] # Not allowed
+        )";
+
+        REQUIRE_THROWS(toml::load(s2));
+
+       std::string s3 = R"(
+            # INVALID TOML DOC
+            [[fruits]]
+            name = "apple"
+
+            [[fruits.varieties]]
+            name = "red delicious"
+
+            # INVALID: This table conflicts with the previous array of tables
+            [fruits.varieties]
+            name = "granny smith"
+
+            [fruits.physical]
+            color = "red"
+            shape = "round"
+
+            # INVALID: This array of tables conflicts with the previous table
+            [[fruits.physical]]
+            color = "green"
+        )";
+
+        REQUIRE_THROWS(toml::load(s3));
     }
 }

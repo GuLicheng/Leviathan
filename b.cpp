@@ -10,6 +10,16 @@ namespace chrono = std::chrono;
 
 struct datetime
 {
+    // date: xxxx-xx-xx
+    // time: xx:xx:xx.xxxxxx
+    // offset: -xx:xx / Z
+    enum {
+        offset_datetime,
+        local_datetime,
+        local_date,
+        local_time,
+    } m_type;
+
     int m_year;
     int m_month;
     int m_day;
@@ -17,7 +27,7 @@ struct datetime
     int m_hour;
     int m_minute;
     int m_second;
-    
+
     // int m_millisecond;
     // int m_microsecond;
     std::string m_offset;
@@ -32,6 +42,7 @@ struct datetime
 
 datetime report(std::string s) 
 {
+    
     std::smatch pieces_match;
 
     std::cout << std::format("S = {} and size is ", s);
