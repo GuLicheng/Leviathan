@@ -196,6 +196,75 @@ TEST_CASE("floating")
     }
 }
 
+TEST_CASE("array")
+{
+    std::string s = R"(
+        integers = [ 1, 2, 3 ]
+        colors = [ "red", "yellow", "green" ]
+        nested_array_of_ints = [ [ 1, 2 ], [3, 4, 5] ]
+        nested_mixed_array = [ [ 1, 2 ], ["a", "b", "c"] ]
+        # string_array = [ "all", 'strings', """are the same""", '''type''' ]
+
+        # Mixed-type arrays are allowed
+        numbers = [ 0.1, 0.2, 0.5, 1, 2, 5 ]
+        contributors = [
+        "Foo Bar <foo@example.com>",
+        { name = "Baz Qux", email = "bazqux@example.com", url = "https://example.com/bazqux" }
+        ]
+    )";
+
+    auto root = toml::load(s);
+
+    auto get_array = [&](const char* key) -> auto& {
+        return root.as_table().find(key)->second.as_array();
+    };
+
+    auto& integers = get_array("integers");
+    REQUIRE(integers[0].as_integer() == 1);
+    REQUIRE(integers[1].as_integer() == 2);
+    REQUIRE(integers[2].as_integer() == 3);
+
+    auto& colors = get_array("colors");
+    REQUIRE(colors[0].as_string() == "red");
+    REQUIRE(colors[1].as_string() == "yellow");
+    REQUIRE(colors[2].as_string() == "green");
+
+    auto& nested_array_of_ints = get_array("nested_array_of_ints");
+    auto check_array_equal = [](auto& arraylike, auto&& results) {
+        REQUIRE(arraylike.size() == results.size());
+        int size = results.size();
+        for (int i = 0; i < size; ++i) 
+        {
+            REQUIRE(arraylike[i].as_integer() == results[i]);
+        }
+    };
+
+    check_array_equal(nested_array_of_ints[0].as_array(), std::vector<int>{1, 2});
+    check_array_equal(nested_array_of_ints[1].as_array(), std::vector<int>{3, 4, 5});
+
+    auto& nested_mixed_array = get_array("nested_mixed_array");
+    check_array_equal(nested_mixed_array[0].as_array(), std::vector<int>{1, 2});
+
+    REQUIRE(nested_mixed_array[1].as_array()[0].as_string() == "a");
+    REQUIRE(nested_mixed_array[1].as_array()[1].as_string() == "b");
+    REQUIRE(nested_mixed_array[1].as_array()[2].as_string() == "c");
+
+    // mixed-type
+    auto& numbers = get_array("numbers");
+    REQUIRE(numbers[0].as_float() == 0.1);
+    REQUIRE(numbers[1].as_float() == 0.2);
+    REQUIRE(numbers[2].as_float() == 0.5);
+    REQUIRE(numbers[3].as_integer() == 1);
+    REQUIRE(numbers[4].as_integer() == 2);
+    REQUIRE(numbers[5].as_integer() == 5);
+
+    auto& contributors = get_array("contributors");
+    REQUIRE(contributors[0].as_string() == "Foo Bar <foo@example.com>");
+    REQUIRE(contributors[1].as_table().find("name")->second.as_string() == "Baz Qux");
+    REQUIRE(contributors[1].as_table().find("email")->second.as_string() == "bazqux@example.com");
+    REQUIRE(contributors[1].as_table().find("url")->second.as_string() == "https://example.com/bazqux");
+}
+
 TEST_CASE("single line literal string")
 {
     std::string strs[] = {

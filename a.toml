@@ -1,3 +1,12 @@
-points = [ { x = 1, y = 2, z = 3 },
-           { x = 7, y = 8, z = 9 },
-           { x = 2, y = 4, z = 8 } ]
+integers = [ 1, 2, 3, "Hello", [] ]
+colors = [ "红", "黄", "绿" ]
+nested_array_of_ints = [ [ 1, 2 ], [3, 4, 5] ]
+nested_mixed_array = [ [ 1, 2 ], ["a", "b", "c"] ]
+# string_array = [ "所有的", '字符串', """是相同的""", '''类型''' ]
+
+# 允许混合类型的数组
+numbers = [ 0.1, 0.2, 0.5, 1, 2, 5, true ]
+contributors = [
+  "Foo Bar <foo@example.com>",
+  { name = "Baz Qux", email = "bazqux@example.com", url = "https://example.com/bazqux" }
+]

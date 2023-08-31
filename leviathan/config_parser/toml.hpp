@@ -850,10 +850,11 @@ namespace leviathan::config::toml
 
                     auto value = parse_value();
 
-                    if (arr.size() && value.index() != arr.front().index())
-                    {
-                        throw_toml_parse_error("Elements in array must share same type.");
-                    }
+                    // toml 1.0 allow mixed-type
+                    // if (arr.size() && value.index() != arr.front().index())
+                    // {
+                    //     throw_toml_parse_error("Elements in array must share same type.");
+                    // }
 
                     arr.emplace_back(std::move(value));
 
