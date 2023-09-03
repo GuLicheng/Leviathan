@@ -209,7 +209,7 @@ TEST_CASE("array")
         numbers = [ 0.1, 0.2, 0.5, 1, 2, 5 ]
         contributors = [
         "Foo Bar <foo@example.com>",
-        { name = "Baz Qux", email = "bazqux@example.com", url = "https://example.com/bazqux" }
+        { name = "Baz Qux", email = "bazqux@example.com", url = "https://example.com/bazqux" } # OK
         ]
     )";
 
@@ -484,4 +484,31 @@ TEST_CASE("table array")
 
         REQUIRE_THROWS(toml::load(s3));
     }
+}
+
+TEST_CASE("define table")
+{
+    SECTION("valid")
+    {
+        std::string s = R"(
+            [x.y] # for this to work
+
+            [x] # defining a super-table afterward is ok
+        )";
+
+        auto root = toml::load(s);
+
+        REQUIRE(root.as_table().contains("x"));
+    }
+
+    SECTION("invalid")
+    {
+        std::string s = R"(
+            [x]
+            [x] # redefined table
+        )";
+
+        REQUIRE_THROWS(toml::load(s));
+    }
+
 }

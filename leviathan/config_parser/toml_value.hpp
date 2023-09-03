@@ -76,7 +76,7 @@ namespace leviathan::config::toml
         {
             using base = std::vector<T>;
 
-            bool m_locked = false;
+            bool m_locked = false;  // for fixed array or table array
 
         public:
 
@@ -98,7 +98,9 @@ namespace leviathan::config::toml
         {
             using base = std::unordered_map<K, V, string_hash_key_equal, string_hash_key_equal>;
 
-            bool m_locked = false;
+            bool m_locked = false;   // for table or inline table
+
+            bool m_defined = false;  // for defining a super-table afterward 
 
         public:
 
@@ -113,6 +115,12 @@ namespace leviathan::config::toml
 
             bool is_table() const
             { return !m_locked; }
+        
+            bool is_defined() const
+            { return m_defined; }
+
+            void define_table()
+            { m_defined = true; }
         };
     }
 
@@ -198,6 +206,27 @@ namespace leviathan::config::toml
 
         toml_datetime& as_date_time()
         { return as<toml_datetime>(); }
+
+        // friend bool operator==(const toml_value& lhs, const toml_value& rhs) 
+        // {
+        //     return std::visit([]<typename T1, typename T2>(const T1& lhs, const T2& rhs) -> bool {
+        //         if constexpr (std::same_as<T1, T2>)
+        //         {
+        //             if constexpr (is_pointer_v<T1>)
+        //             {
+        //                 return 
+        //             }
+        //             else    
+        //             {
+
+        //             }
+        //         }
+        //         else
+        //         {
+        //             return false;
+        //         }
+        //     }, lhs.data(), rhs.data());
+        // }
     };
 
     toml_value make(std::integral auto num)

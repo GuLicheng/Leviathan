@@ -523,7 +523,9 @@ namespace leviathan::config::toml
                 }
             }
 
-            m_cur_table = it->second.as_ptr<toml_array>()->emplace_back(toml_table()).as_ptr<toml_table>();
+            m_cur_table = it->second.as_ptr<toml_array>()->emplace_back(toml_table(true)).as_ptr<toml_table>();
+            // The last sub-table is defined so that the table with same name is not allowed.
+            m_cur_table->define_table();
         }
 
         void try_create_single_table(string_view table_name)
@@ -541,6 +543,7 @@ namespace leviathan::config::toml
                 
                 if (!succeed && !it->second.is<toml_table>())
                 {
+                    // already exist and the sub value is not a table
                     throw_toml_parse_error("Table conflict.");
                 }
 
@@ -548,12 +551,13 @@ namespace leviathan::config::toml
                 root = it->second.as_ptr<toml_table>();
             }
 
-            if (!ok)
+            if (!ok && root->is_defined())
             {
                 throw_toml_parse_error("Redefinition table.");
             }
 
             m_cur_table = root;
+            m_cur_table->define_table();
         }
 
         /* -------------------------------- Functions for parsing value -------------------------------- */
@@ -894,6 +898,7 @@ namespace leviathan::config::toml
             }
 
             toml_table table(true);
+            table.define_table();
 
             if (current() == '}')
             {
