@@ -683,6 +683,76 @@ namespace leviathan::config::toml
         toml_value parse_multi_line_basic_string()
         {
             throw_toml_parse_error("Not implement.");
+            advance_unchecked(3); // eat """
+            toml_string context;
+
+            if (m_line.size() && current() == '\n')
+            {
+                advance_unchecked(1);
+            }
+
+            while (1)
+            {
+                while (m_line.empty())
+                {
+                    if (!getline())
+                    {
+                        throw_toml_parse_error("Unexpected end of multi line basic string.");
+                    }
+                    if (context.size())
+                    {
+                        context += '\n';
+                    }
+                }
+
+                if (current() == '"')
+                {
+                    if (m_line.size() == 1 && current() == '\\')
+                    {
+                        skip_whitespace_and_empty_line();
+                    }
+                    context += current();
+                    advance_unchecked(1);
+                }
+                else if (current() == '\\')
+                {
+                    advance_unchecked(1); // eat '\'
+                    switch (current())
+                    {
+                        case 'b': context += '\b'; break;
+                        case 't': context += '\t'; break;
+                        case 'n': context += '\n'; break;
+                        case 'f': context += '\f'; break;
+                        case 'r': context += '\r'; break;
+                        case '"': context += '"'; break;
+                        case '\\': context += '\\'; break;
+                        case 'u':
+                        case 'U':
+                    }
+                }
+                else
+                {
+                    if (m_line.compare(R"("""""")") == 0)
+                    {
+                        throw_toml_parse_error("Too much quote.");
+                    }
+
+                    if (m_line.compare(R"(""")") == 0)
+                    {
+                        advance_unchecked(3);
+                        while (m_line.size() && current() == '"')
+                        {
+                            context += '"';
+                        }
+                        break;
+                    }
+                    else
+                    {
+                        context += '"';
+                        advance_unchecked(1);
+                    }
+                }
+            }
         }
 
         toml_value parse_single_line_basic_string()

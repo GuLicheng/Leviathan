@@ -376,10 +376,10 @@ namespace leviathan::collections
                 dest++;
             }
 
-            // If all elements are moved/copied into new_buffer, we swap buffer and
+            // If all elements are moved/copied into new_buffer successfully, we swap buffers and
             // dispose the current buffer.
-            // If any exception is thrown when copying, follow swap will not invoke and
-            // guard will dispose the new buffer.
+            // If any exception is thrown when copying, following swap will not be invoked and
+            // the guard will dispose the new buffer.
             new_buffer.swap(*this);
         }
 
