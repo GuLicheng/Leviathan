@@ -300,21 +300,19 @@ namespace leviathan::collections
         template <typename... Args>
         reference emplace_back_unchecked(Args&&... args)
         {
-            auto dest = m_impl.m_start + m_impl.m_write;
-            alloc_traits::construct(m_alloc, dest, (Args&&) args...);
+            alloc_traits::construct(m_alloc, m_impl.m_start + m_impl.m_write, (Args&&) args...);
             m_impl.forward_write_ptr();
             m_impl.m_size++;
-            return *dest;
+            return back();
         }
 
         template <typename... Args>
         reference emplace_front_unchecked(Args&&... args)
         {
             m_impl.backward_read_ptr();
-            auto dest = m_impl.m_start + m_impl.m_read;
-            alloc_traits::construct(m_alloc, dest, (Args&&) args...);
+            alloc_traits::construct(m_alloc, m_impl.m_start + m_impl.m_read, (Args&&) args...);
             m_impl.m_size++;
-            return *dest;
+            return front();
         }
 
     public:
@@ -346,6 +344,42 @@ namespace leviathan::collections
 
         ~ring_buffer()
         { m_impl.dispose(m_alloc); }
+
+        iterator begin()
+        { return { this, 0 }; }
+
+        const_iterator begin() const
+        { return const_cast<ring_buffer&>(*this).begin(); }
+
+        const_iterator cbegin() const
+        { return begin(); }
+
+        reverse_iterator rbegin()
+        { return end(); }
+
+        const_reverse_iterator rbegin() const
+        { return end(); }
+
+        const_reverse_iterator rcbegin() const
+        { return end(); }
+
+        iterator end()
+        { return { this, size() }; }
+
+        const_iterator end() const
+        { return const_cast<ring_buffer&>(*this).end(); }
+
+        const_iterator cend() const
+        { return end(); }
+
+        reverse_iterator rend()
+        { return begin(); }
+
+        const_reverse_iterator rend() const
+        { return begin(); }
+
+        const_reverse_iterator rcend() const
+        { return begin(); }
 
         void reserve(size_type capacity)
         { expand_capacity_unchecked(capacity); }
@@ -428,7 +462,7 @@ namespace leviathan::collections
         { return const_cast<ring_buffer&>(*this).front(); }
 
         void clear()
-        { m_impl.clear(); }
+        { m_impl.clear(m_alloc); }
 
         void shrink_to_fit()
         { expand_capacity_unchecked(size()); }

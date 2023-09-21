@@ -27,6 +27,7 @@
 #include <iostream>
 #include <format>
 #include <concepts>
+#include <algorithm>
 #include <leviathan/collections/internal/ring_buffer.hpp>
 
 int main(int argc, char const *argv[])
@@ -55,6 +56,10 @@ int main(int argc, char const *argv[])
     }
 
     static_assert(std::random_access_iterator<decltype(buffer)::iterator>);
+
+    std::ranges::reverse(buffer);
+
+    buffer.show();
 
     std::cout << "Ok\n";
 
