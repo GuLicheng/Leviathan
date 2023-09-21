@@ -40,20 +40,8 @@ namespace leviathan::collections
 
             offset_helper& operator++()
             {
-                advance(1);
+                m_index = (m_index + 1) % m_mask; 
                 return *this;
-            }
-
-            void advance(ssize_t n)
-            {
-                if (n > 0)
-                {
-                    m_index = (m_index + 1) % m_mask; 
-                } 
-                else if (n < 0)
-                {
-                    
-                }
             }
 
             size_t operator*() const
@@ -150,7 +138,6 @@ namespace leviathan::collections
                 assert(n >= 0);
                 return m_buf->operator[](m_idx + n);
             }
-
         };
 
         struct impl 
