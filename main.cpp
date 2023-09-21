@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <format>
+#include <concepts>
 #include <leviathan/collections/internal/ring_buffer.hpp>
 
 int main(int argc, char const *argv[])
@@ -33,20 +34,27 @@ int main(int argc, char const *argv[])
     
     leviathan::collections::ring_buffer<int> buffer;
 
-    buffer.reserve(100);
-
     buffer.emplace_back(0);
     buffer.emplace_back(1);
     buffer.emplace_back(2);
     buffer.emplace_back(3);
 
-    buffer.pop_back();
+    buffer.pop_front();
+    buffer.pop_front();
 
-    buffer.shrink_to_fit();
+    buffer.emplace_back(-1);
+    buffer.emplace_back(-2);
 
     buffer.show();
 
     std::cout << std::format("Front = {} and back = {} and capacity = {}\n", buffer.front(), buffer.back(), buffer.capacity());
+
+    for (auto i = 0uz; i < buffer.size(); ++i)
+    {
+        std::cout << std::format("idx = {} and value = {}\n", i, buffer[i]);
+    }
+
+    static_assert(std::random_access_iterator<decltype(buffer)::iterator>);
 
     std::cout << "Ok\n";
 

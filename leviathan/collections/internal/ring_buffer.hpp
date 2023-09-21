@@ -11,6 +11,7 @@
 
 #include <memory>
 #include <bit>
+#include <compare>
 
 namespace leviathan::collections
 {
@@ -22,17 +23,12 @@ namespace leviathan::collections
     public:
 
         using value_type = T;
-        using pointer = T*;
-        using const_pointer = const T*; 
+        using pointer = typename alloc_traits::pointer;
+        using const_pointer = typename alloc_traits::const_pointer; 
         using reference = value_type&;
         using const_reference = const value_type&;
         using size_type = size_t;
         using difference_type = std::make_signed_t<size_type>;
-        // using iterator = ring_buffer_iterator;             
-        // using const_iterator = std::const_iterator<iterator>;  
-        // using reverse_iterator = std::reverse_iterator<iterator>;
-        // using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-
         using allocator_type = Allocator;
 
     private:
@@ -44,8 +40,20 @@ namespace leviathan::collections
 
             offset_helper& operator++()
             {
-                m_index = (m_index + 1) % m_mask;
+                advance(1);
                 return *this;
+            }
+
+            void advance(ssize_t n)
+            {
+                if (n > 0)
+                {
+                    m_index = (m_index + 1) % m_mask; 
+                } 
+                else if (n < 0)
+                {
+                    
+                }
             }
 
             size_t operator*() const
@@ -54,9 +62,95 @@ namespace leviathan::collections
 
         struct ring_buffer_iterator
         {
-            T* m_head;  
-            T* m_tail; 
-            T* m_curr;
+            using value_type = T;
+            using reference = T&;
+            using iterator_category = std::random_access_iterator_tag;
+            using difference_type = std::ptrdiff_t;
+
+            // For simplify, we just reuse index and operator[] instead of pointer.
+            ring_buffer* m_buf = nullptr;
+
+            // We use size_t since the idx is started from 0. However, some methods
+            // require difference_type which is ssize_t/ptrdiff_t as their parameter.
+            // The users should keep it correct by themselves.
+            size_t m_idx = 0;
+
+            ring_buffer_iterator() = default;
+
+            ring_buffer_iterator(const ring_buffer_iterator&) = default;
+
+            ring_buffer_iterator(ring_buffer* buf, size_t idx) : m_buf(buf), m_idx(idx) { }
+
+            reference operator*() const
+            { return m_buf->operator[](m_idx); }
+
+            auto operator->() const
+            { return &(**this); }
+
+            bool operator==(const ring_buffer_iterator&) const = default;
+
+            auto operator<=>(const ring_buffer_iterator& rhs) const
+            {
+                // We assume m_buf is equal t0 rhs.m_buf. 
+                return m_idx <=> rhs.m_idx; 
+            }
+
+            ring_buffer_iterator& operator++()
+            {
+                m_idx++;
+                return *this;
+            }
+
+            ring_buffer_iterator operator++(int)
+            { 
+                auto old = *this;
+                ++*this;
+                return old;
+            }
+
+            ring_buffer_iterator& operator--()
+            {
+                m_idx--;
+                return *this;
+            }
+
+            ring_buffer_iterator operator--(int)
+            { 
+                auto old = *this;
+                --*this;
+                return old;
+            }
+
+            ring_buffer_iterator& operator+=(difference_type n) 
+            {
+                *this = *this + n;
+                return *this;
+            }
+
+            ring_buffer_iterator operator+(difference_type n) const
+            { return { m_buf, m_idx + n }; }
+
+            friend ring_buffer_iterator operator+(difference_type n, const ring_buffer_iterator& rhs) 
+            { return rhs + n; }
+
+            ring_buffer_iterator operator-(difference_type n) const
+            { return { m_buf, m_idx - n }; }
+
+            difference_type operator-(const ring_buffer_iterator& rhs) const
+            { return static_cast<difference_type>(m_idx) - static_cast<difference_type>(rhs.m_idx); }
+
+            ring_buffer_iterator& operator-=(difference_type n) 
+            {
+                m_idx -= n;
+                return *this;
+            }
+
+            reference operator[](difference_type n) const
+            {
+                assert(n >= 0);
+                return m_buf->operator[](m_idx + n);
+            }
+
         };
 
         struct impl 
@@ -136,6 +230,9 @@ namespace leviathan::collections
                 m_capacity = 0;
             }
         
+            bool is_contiguous() const
+            { return m_read + m_size <= m_capacity; }
+
             bool operator==(const impl&) const = default;
         };
 
@@ -222,6 +319,11 @@ namespace leviathan::collections
 
     public:
 
+        using iterator = ring_buffer_iterator;             
+        using const_iterator = std::const_iterator<iterator>;  
+        using reverse_iterator = std::reverse_iterator<iterator>;
+        using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
         void show() const
         {
             auto cur = m_impl;
@@ -239,7 +341,7 @@ namespace leviathan::collections
 
         ring_buffer(ring_buffer&&) = delete;
 
-        ring_buffer(const Allocator& allocator) : m_alloc(allocator) 
+        explicit ring_buffer(const Allocator& allocator) : m_alloc(allocator) 
         { }
 
         ~ring_buffer()
@@ -330,6 +432,26 @@ namespace leviathan::collections
 
         void shrink_to_fit()
         { expand_capacity_unchecked(size()); }
+
+        T& operator[](size_type idx)
+        { 
+            assert(idx < size());
+            if (m_impl.m_write > m_impl.m_read)
+            {
+                return *(m_impl.read_ptr() + idx);
+            }
+            else
+            {
+                auto offset = m_impl.m_read + idx;
+                return offset >= capacity() ? m_impl.m_start[offset % capacity()] : *(m_impl.read_ptr() + idx);
+            }
+        }
+
+        const T& operator[](size_type idx) const    
+        { return const_cast<ring_buffer&>(*this).operator[](idx); }
+
+        bool is_contiguous() const
+        { return m_impl.is_contiguous(); }
 
     };
 
