@@ -223,7 +223,7 @@ namespace leviathan::collections
 
         using allocator_type = Allocator;
         using alloc_traits = std::allocator_traits<allocator_type>;
-        using pointer = T*;
+        // using pointer = T*;
         using value_type = T;
 
         template <typename... Args>

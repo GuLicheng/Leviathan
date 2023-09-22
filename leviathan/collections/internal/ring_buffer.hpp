@@ -20,6 +20,18 @@ namespace leviathan::collections
     {
         using alloc_traits = std::allocator_traits<Allocator>;
 
+        constexpr static bool IsNothrowMoveConstruct = 
+                    std::is_nothrow_move_constructible_v<T> 
+                 && typename alloc_traits::is_always_equal();
+
+        constexpr static bool IsNothrowMoveAssign = 
+                    std::is_nothrow_move_assignable_v<T> 
+                 && typename alloc_traits::is_always_equal();
+
+        constexpr static bool IsNothrowSwap = 
+                    std::is_nothrow_swappable_v<T> 
+                 && typename alloc_traits::is_always_equal();
+
     public:
 
         using value_type = T;
@@ -223,6 +235,34 @@ namespace leviathan::collections
             bool operator==(const impl&) const = default;
         };
 
+        template <typename Action, typename Impl>
+        static void carry_elements(allocator_type& alloc, Impl&& src, impl& dst, Action action) 
+        {
+            // There are two situations:
+            // 1. The write is the right side.
+            // 2. The read is the right side.
+            if (src.m_write > src.m_read)
+            {
+                // The elements are in [read, write).
+                for (size_type i = src.m_read; i != src.m_write; ++i, ++dst.m_write, ++dst.m_size)
+                {
+                    alloc_traits::construct(alloc, dst.m_start + dst.m_write, action(*(src.m_start + i)));
+                }
+            }
+            else
+            {
+                // The elements are in [read, finish) and [start, write).
+                for (size_type i = src.m_read; i != src.m_capacity; ++i, dst.m_write++, ++dst.m_size)
+                {
+                    alloc_traits::construct(alloc, dst.m_start + dst.m_write, action(*(src.m_start + i)));
+                }
+                for (size_type i = 0; i != src.m_write; ++i, dst.m_write++, ++dst.m_size)
+                {
+                    alloc_traits::construct(alloc, dst.m_start + dst.m_write, action(*(src.m_start + i)));
+                }
+            }
+        }
+
         [[no_unique_address]] Allocator m_alloc;
         impl m_impl;
 
@@ -247,30 +287,7 @@ namespace leviathan::collections
 
             std::unique_ptr<impl, decltype(deleter)> guard(&store, deleter);
 
-            // There are two situations:
-            // 1. The write is the right side.
-            // 2. The read is the right side.
-
-            if (m_impl.m_write > m_impl.m_read)
-            {
-                // The elements are in [read, write).
-                for (size_type i = m_impl.m_read; i != m_impl.m_write; ++i, ++store.m_write, ++store.m_size)
-                {
-                    alloc_traits::construct(m_alloc, store.m_start + store.m_write, std::move_if_noexcept(*(m_impl.m_start + i)));
-                }
-            }
-            else
-            {
-                // The elements are in [read, finish) and [start, write).
-                for (size_type i = m_impl.m_read; i != m_impl.m_capacity; ++i, store.m_write++, ++store.m_size)
-                {
-                    alloc_traits::construct(m_alloc, store.m_start + store.m_write, std::move_if_noexcept(*(m_impl.m_start + i)));
-                }
-                for (size_type i = 0; i != m_impl.m_write; ++i, store.m_write++, ++store.m_size)
-                {
-                    alloc_traits::construct(m_alloc, store.m_start + store.m_write, std::move_if_noexcept(*(m_impl.m_start + i)));
-                }
-            }
+            carry_elements(m_alloc, m_impl, store, [](auto& x) { return std::move_if_noexcept(x); });
 
             // See buffer.hpp
             std::swap(store, m_impl);
@@ -321,16 +338,105 @@ namespace leviathan::collections
 
         ring_buffer() = default;
 
-        // TODO:
-        ring_buffer(const ring_buffer&) = delete;
+        ring_buffer(const ring_buffer& rhs) 
+            : ring_buffer(rhs, alloc_traits::select_on_container_copy_construction(rhs.m_alloc)) { }
 
-        ring_buffer(ring_buffer&&) = delete;
+        ring_buffer(const ring_buffer& rhs, const allocator_type& allocator)
+            : m_alloc(allocator)
+        {
+            try
+            {
+                m_impl.initialize(m_alloc, rhs.size());
+                carry_elements(m_alloc, rhs.m_impl, m_impl, [](const auto& x) -> auto& { return x; });
+            }
+            catch(...)
+            {
+                clear();
+                throw;
+            }
+        }
+
+        ring_buffer(ring_buffer&& rhs) noexcept(IsNothrowMoveConstruct)
+            : m_impl(std::exchange(rhs.m_impl, impl())), m_alloc(std::move(rhs.m_alloc)) { }
+
+        ring_buffer(ring_buffer&& rhs, const allocator_type& alloc) : m_alloc(alloc)
+        {
+            if (rhs.m_alloc == alloc)
+            {
+                m_impl = std::exchange(rhs.m_impl, impl());
+            }
+            else
+            {
+                carry_elements(m_alloc, rhs.m_impl, m_impl, [](auto&& x) -> auto&& { return std::move(x); });
+                rhs.clear();
+            }
+        }
+
+        ring_buffer& operator=(const ring_buffer& rhs) 
+        {
+            if (this != std::addressof(rhs))
+            {
+                clear();
+                if constexpr (typename alloc_traits::propagate_on_container_copy_assignment())
+                {
+					m_alloc = rhs.m_alloc;
+                }
+                try
+                {
+                    m_impl.initialize(m_alloc, rhs.size());
+                    carry_elements(m_alloc, rhs.m_impl, m_impl, [](const auto& x) -> auto& { return x; });
+                }
+                catch(...)
+                {
+                    clear();
+                    throw;
+                }
+            }
+            return *this;
+        }
+
+        ring_buffer& operator=(ring_buffer&& rhs) noexcept(IsNothrowMoveAssign)
+        {
+            if (this != std::addressof(rhs))
+            {
+                clear();
+				if constexpr (typename alloc_traits::propagate_on_container_move_assignment())
+				{
+					m_alloc = std::move(rhs.m_alloc);
+					// Move impl and reset other's state.
+                    m_impl = std::exchange(rhs.m_impl, impl());
+				}
+                else
+                {
+                    if (m_alloc == rhs.m_alloc)
+                    {
+                        m_impl = std::exchange(rhs.m_impl, impl());
+                    }
+                    else
+                    {
+                        m_impl.initialize(m_alloc, rhs.size());
+                        carry_elements(m_alloc, rhs.m_impl, m_impl, [](auto&& x) -> auto&& { return std::move(x); });
+                        rhs.clear();
+                    }
+                }
+            }
+            return *this;
+        }
 
         explicit ring_buffer(const Allocator& allocator) : m_alloc(allocator) 
         { }
 
         ~ring_buffer()
         { m_impl.dispose(m_alloc); }
+
+        void swap(ring_buffer& rhs) noexcept(IsNothrowSwap)
+        {
+            std::swap(m_impl, rhs.m_impl);
+            if constexpr (typename alloc_traits::propagate_on_container_swap())
+            {
+                std::swap(m_alloc, rhs.m_alloc);
+            }
+        }
 
         iterator begin()
         { return { this, 0 }; }

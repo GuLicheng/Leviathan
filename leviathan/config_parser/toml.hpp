@@ -726,8 +726,8 @@ namespace leviathan::config::toml
                         case 'r': context += '\r'; break;
                         case '"': context += '"'; break;
                         case '\\': context += '\\'; break;
-                        case 'u':
-                        case 'U':
+                        // case 'u':
+                        // case 'U':
                     }
                 }
                 else

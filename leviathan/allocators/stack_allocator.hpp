@@ -5,7 +5,7 @@
 
 namespace leviathan::alloc
 {
-    template <typename T, size_t N, bool ThrowException>
+    template <typename T, size_t N, bool ThrowException = true>
     class stack_allocator
     {
         struct throw_exception_t : std::bool_constant<ThrowException> { };

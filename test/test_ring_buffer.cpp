@@ -145,5 +145,58 @@ TEST_CASE("exception")
     REQUIRE(T::total_construct() == T::total_destruct());
 }
 
+TEST_CASE("copy ctor and assign")
+{
+    leviathan::collections::ring_buffer<std::string> rb;
+
+    rb.emplace_back("1. This string must be long enough.");
+    rb.emplace_back("2. This string must be long enough.");
+    rb.emplace_back("3. This string must be long enough.");
+    rb.emplace_back("4. This string must be long enough.");
+
+    auto rb2 = rb;
+
+    REQUIRE(std::ranges::equal(rb, rb2));
+
+    rb2.pop_back();
+
+    rb2 = rb;
+
+    REQUIRE(std::ranges::equal(rb, rb2));
+}
+
+TEST_CASE("move ctor and assign")
+{
+    leviathan::collections::ring_buffer<std::string> rb;
+
+    rb.emplace_back("1. This string must be long enough.");
+    rb.emplace_back("2. This string must be long enough.");
+    rb.emplace_back("3. This string must be long enough.");
+    rb.emplace_back("4. This string must be long enough.");
+
+    auto rb1 = rb;
+    auto rb2 = std::move(rb);
+
+    REQUIRE(rb.empty());
+    REQUIRE(std::ranges::equal(rb1, rb2));
+
+    rb = std::move(rb1);
+
+    REQUIRE(std::ranges::equal(rb, rb2));
+}
+
+TEST_CASE("swap")
+{
+    leviathan::collections::ring_buffer<std::string> rb1, rb2;
+
+    rb1.emplace_back("Hello");
+    rb2.emplace_back("World");
+
+    rb1.swap(rb2);
+
+    REQUIRE(rb1.front() == "World");
+    REQUIRE(rb2.front() == "Hello");
+}
+
 
 

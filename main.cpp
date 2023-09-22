@@ -1,72 +1,25 @@
-// #include <leviathan/config_parser/json.hpp>
-// #include <leviathan/config_parser/toml.hpp>
-// #include <leviathan/config_parser/convert.hpp>
-
-// #include <iostream>
-// #include <memory_resource>
-
-// int main(int argc, char const *argv[])
-// {
-//     const char* filename = R"(D:\Library\Leviathan\a.toml)";
-
-//     auto toml_root = leviathan::toml::parse_toml(filename);
-
-//     auto json_root = leviathan::toml2json(toml_root);
-
-//     std::cout << leviathan::json::dump(json_root) << '\n';
-
-//     // std::pmr::monotonic_buffer_resource source;
-
-//     // auto s = source.allocate(1024 * 1024 * 2, 1);
-
-//     std::cout << "Ok\n";
-
-//     return 0;
-// }
+#include <leviathan/config_parser/json.hpp>
+#include <leviathan/config_parser/toml.hpp>
+#include <leviathan/config_parser/convert.hpp>
 
 #include <iostream>
-#include <format>
-#include <concepts>
-#include <algorithm>
-#include <leviathan/collections/internal/ring_buffer.hpp>
+#include <memory_resource>
 
 int main(int argc, char const *argv[])
 {
-    
-    leviathan::collections::ring_buffer<int> buffer;
+    const char* filename = R"(D:\Library\Leviathan\a.toml)";
 
-    buffer.emplace_back(0);
-    buffer.emplace_back(1);
-    buffer.emplace_back(2);
-    buffer.emplace_back(3);
+    auto toml_root = leviathan::toml::parse_toml(filename);
 
-    buffer.pop_front();
-    buffer.pop_front();
+    auto json_root = leviathan::toml2json(toml_root);
 
-    buffer.emplace_back(-1);
-    buffer.emplace_back(-2);
+    std::cout << leviathan::json::dump(json_root) << '\n';
 
-    buffer.show();
+    // std::pmr::monotonic_buffer_resource source;
 
-    std::cout << std::format("Front = {} and back = {} and capacity = {}\n", buffer.front(), buffer.back(), buffer.capacity());
-
-    for (auto i = 0uz; i < buffer.size(); ++i)
-    {
-        std::cout << std::format("idx = {} and value = {}\n", i, buffer[i]);
-    }
-
-    static_assert(std::random_access_iterator<decltype(buffer)::iterator>);
-
-    std::ranges::reverse(buffer);
-
-    buffer.show();
+    // auto s = source.allocate(1024 * 1024 * 2, 1);
 
     std::cout << "Ok\n";
 
     return 0;
 }
-
-
-
-
-
