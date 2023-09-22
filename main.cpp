@@ -3,6 +3,7 @@
 #include <leviathan/config_parser/convert.hpp>
 
 #include <iostream>
+#include <deque>
 #include <memory_resource>
 
 int main(int argc, char const *argv[])

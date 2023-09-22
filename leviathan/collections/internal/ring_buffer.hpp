@@ -244,7 +244,7 @@ namespace leviathan::collections
             if (src.m_write > src.m_read)
             {
                 // The elements are in [read, write).
-                for (size_type i = src.m_read; i != src.m_write; ++i, ++dst.m_write, ++dst.m_size)
+                for (size_type i = src.m_read; i != src.m_write && dst.m_write != dst.m_capacity; ++i, ++dst.m_write, ++dst.m_size)
                 {
                     alloc_traits::construct(alloc, dst.m_start + dst.m_write, action(*(src.m_start + i)));
                 }
@@ -252,11 +252,11 @@ namespace leviathan::collections
             else
             {
                 // The elements are in [read, finish) and [start, write).
-                for (size_type i = src.m_read; i != src.m_capacity; ++i, dst.m_write++, ++dst.m_size)
+                for (size_type i = src.m_read; i != src.m_capacity && dst.m_write != dst.m_capacity; ++i, dst.m_write++, ++dst.m_size)
                 {
                     alloc_traits::construct(alloc, dst.m_start + dst.m_write, action(*(src.m_start + i)));
                 }
-                for (size_type i = 0; i != src.m_write; ++i, dst.m_write++, ++dst.m_size)
+                for (size_type i = 0; i != src.m_write && dst.m_write != dst.m_capacity; ++i, dst.m_write++, ++dst.m_size)
                 {
                     alloc_traits::construct(alloc, dst.m_start + dst.m_write, action(*(src.m_start + i)));
                 }
@@ -579,6 +579,26 @@ namespace leviathan::collections
 
         bool is_contiguous() const
         { return m_impl.is_contiguous(); }
+
+        void resize(size_type count)
+        {
+            auto old = size();
+            
+            if (count == old)
+            {
+                return;
+            }
+
+            expand_capacity_unchecked(count);
+            
+            if (count > old)
+            {
+                for (size_type i = old; i != count; ++i)
+                {
+                    emplace_back_unchecked();
+                }
+            }
+        }
 
     };
 

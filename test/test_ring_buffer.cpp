@@ -198,5 +198,40 @@ TEST_CASE("swap")
     REQUIRE(rb2.front() == "Hello");
 }
 
+TEST_CASE("resize")
+{
+    leviathan::collections::ring_buffer<int> buf;
+
+    buf.emplace_back(0);
+    buf.emplace_back(1);
+    buf.emplace_back(2);
+
+    SECTION("resize count is less than size")
+    {
+        buf.resize(2);
+        REQUIRE(buf.size() == 2);
+        REQUIRE(buf[0] == 0);
+        REQUIRE(buf[1] == 1);
+    }
+
+    SECTION("resize count is equal to size")
+    {
+        buf.resize(3);
+        REQUIRE(buf.size() == 3);
+        REQUIRE(buf[0] == 0);
+        REQUIRE(buf[1] == 1);
+        REQUIRE(buf[2] == 2);
+    }
+
+    SECTION("resize count is greater than size")
+    {
+        buf.resize(4);
+        REQUIRE(buf.size() == 4);
+        REQUIRE(buf[0] == 0);
+        REQUIRE(buf[1] == 1);
+        REQUIRE(buf[2] == 2);
+        REQUIRE(buf[3] == 0);
+    }
+}
 
 
