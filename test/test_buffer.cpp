@@ -291,16 +291,14 @@ TEST_CASE("insert_element_from_self")
     StringAllocator salloc;
 
     buffer.emplace(salloc, buffer.begin(), "This sentence must be longer enough and will be moved to last position");
-    buffer.emplace(salloc, buffer.begin(), "This sentence must be longer enough and will be moved to third position");
-    buffer.emplace(salloc, buffer.begin(), "This sentence must be longer enough and will be moved to second position");
 
     buffer.emplace(salloc, buffer.begin(), buffer[0]);
+    buffer.emplace(salloc, buffer.begin(), buffer[0]);
 
-    REQUIRE(buffer.size() == 4);
-    REQUIRE(buffer[0] == "This sentence must be longer enough and will be moved to second position");
-    REQUIRE(buffer[1] == "This sentence must be longer enough and will be moved to second position");
-    REQUIRE(buffer[2] == "This sentence must be longer enough and will be moved to third position");
-    REQUIRE(buffer[3] == "This sentence must be longer enough and will be moved to last position");
+    REQUIRE(buffer.size() == 3);
+    REQUIRE(buffer[0] == "This sentence must be longer enough and will be moved to last position");
+    REQUIRE(buffer[1] == "This sentence must be longer enough and will be moved to last position");
+    REQUIRE(buffer[2] == "This sentence must be longer enough and will be moved to last position");
 
     buffer.dispose(salloc);
 }

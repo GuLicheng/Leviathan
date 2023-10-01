@@ -292,6 +292,14 @@ namespace leviathan::collections
             assert(m_start <= position && position <= m_finish && "invalid position");
             auto alloc = detail::rebind_allocator<T>(allocator);
 
+            // Something in args... could alias one of the elements of the container.
+            // For instance: 
+            //      buffer.insert(allocator, buffer.begin(), buffer[0]);
+            // We cannot access the correct buffer[0] since 
+            // the buffer[0] is already moved to buffer[1]. So
+            // we store the value and then move to the position.
+            value_handle<T, Allocator> handle(alloc, (Args&&) args...);
+
             // We store distance since try_expand may cause memory reallocate 
             // which may make position invalid.
             const auto dist = position - m_start; 
@@ -309,14 +317,6 @@ namespace leviathan::collections
             }
             else
             {
-                // Something in args... could alias one of the elements of the container.
-                // For instance: 
-                //      buffer.insert(allocator, buffer.begin(), buffer[0]);
-                // We cannot access the correct buffer[0] since 
-                // the buffer[0] is already moved to buffer[1]. So
-                // we store the value and then move to the position.
-                value_handle<T, Allocator> handle(alloc, (Args&&) args...);
-
                 auto dest = m_start + dist;
 
                 // What if an exception is thrown when moving?

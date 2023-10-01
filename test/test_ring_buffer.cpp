@@ -111,6 +111,50 @@ TEST_CASE("iterator")
     REQUIRE(rb[2] == -1);
     REQUIRE(rb[3] == -2);
 
+    std::ranges::rotate(rb, rb.begin() + 2);
+
+    REQUIRE(rb[0] == -1);
+    REQUIRE(rb[1] == -2);
+    REQUIRE(rb[2] == 3);
+    REQUIRE(rb[3] == 2);
+
+}
+
+TEST_CASE("emplace")
+{
+    leviathan::collections::ring_buffer<std::string> rb;
+
+    rb.emplace(rb.begin(), "1.This string will be inserted at first position.");
+    rb.emplace(rb.end(), "2.This string will be inserted at last position.");
+
+    REQUIRE(rb.size() == 2);
+    REQUIRE(rb.front().front() == '1');
+    REQUIRE(rb.back().front() == '2');
+
+    SECTION("contigious")
+    {
+        REQUIRE(rb.is_contiguous());
+        rb.emplace(rb.begin() + 1, "HelloWorld");
+        REQUIRE(rb.size() == 3);
+        REQUIRE(rb.front().front() == '1');
+        REQUIRE(rb[1] == "HelloWorld");
+        REQUIRE(rb.back().front() == '2');
+    }
+
+    SECTION("not contigious")
+    {
+        auto s1 = rb.front();
+        
+        rb.pop_front();
+        rb.emplace_back(s1);
+
+        REQUIRE(!rb.is_contiguous());
+        rb.emplace(rb.begin() + 1, "HelloWorld");
+        REQUIRE(rb.size() == 3);
+        REQUIRE(rb.front().front() == '2');
+        REQUIRE(rb[1] == "HelloWorld");
+        REQUIRE(rb.back().front() == '1');
+    }
 }
 
 #include "leviathan/struct.hpp"

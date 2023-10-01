@@ -315,6 +315,30 @@ trimmed in raw strings.
 ''')";
 
     check(multiline, "lines", "The first newline is\ntrimmed in raw strings.\n   All other whitespace\n   is preserved.\n");
+
+    std::string s = R"(
+str1 = 'The quick brown fox jumps over the lazy dog.'
+
+str2 = '''
+The quick brown \
+
+
+  fox jumps over \
+    the lazy dog.'''
+
+str3 = '''\ 
+       The quick brown \
+       fox jumps over \
+       the lazy dog.\
+       ''')";
+
+    auto root = toml::load(s);
+    auto& s1 = root.as_table().find("str1")->second.as_string();
+    auto& s2 = root.as_table().find("str2")->second.as_string();
+    auto& s3 = root.as_table().find("str3")->second.as_string();
+    REQUIRE(s1 == s2);
+    REQUIRE(s3 == s2);
+
 }
 
 TEST_CASE("single line basic string")
@@ -341,7 +365,61 @@ TEST_CASE("single line basic string")
 
 TEST_CASE("multi line basic string")
 {
+    SECTION("valid")
+    {
+        std::string s = R"(
+str1 = "The quick brown fox jumps over the lazy dog."
 
+str2 = """
+The quick brown \
+
+
+  fox jumps over \
+    the lazy dog."""
+
+str3 = """\ 
+       The quick brown \
+       fox jumps over \
+       the lazy dog.\
+       """
+
+
+str4 = """Here are two quotation marks: "". Simple enough."""
+# str5 = """Here are three quotation marks: """."""  # INVALID
+str5 = """Here are three quotation marks: ""\"."""
+str6 = """Here are fifteen quotation marks: ""\"""\"""\"""\"""\"."""
+
+# "This," she said, "is just a pointless statement."
+str7 = """"This," she said, "is just a pointless statement.""""
+        )";
+
+        auto root = toml::load(s);
+        auto& s1 = root.as_table().find("str1")->second.as_string();
+        auto& s2 = root.as_table().find("str2")->second.as_string();
+        auto& s3 = root.as_table().find("str3")->second.as_string();
+        REQUIRE(s1 == s2);
+        REQUIRE(s3 == s2);
+
+        auto check_equal = [&](const char* key, const char* value) {
+            auto& str = root.as_table().find(key)->second.as_string();
+            REQUIRE(str == value);
+        };
+
+        check_equal("str4", R"(Here are two quotation marks: "". Simple enough.)");
+        check_equal("str5", R"(Here are three quotation marks: ""\".)");
+        check_equal("str6", R"(Here are fifteen quotation marks: ""\"""\"""\"""\"""\".)");
+        check_equal("str7", R"("This," she said, "is just a pointless statement.")");
+
+    }
+
+    SECTION("invalid")
+    {
+        std::string strs[] = {
+            R"(str5 = """Here are three quotation marks: """."""  # INVALID)"
+        };
+
+        REQUIRE_THROWS(toml::load(strs[0]));
+    }
 }
 
 TEST_CASE("inline table")

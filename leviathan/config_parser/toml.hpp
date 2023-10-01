@@ -682,13 +682,20 @@ namespace leviathan::config::toml
 
         toml_value parse_multi_line_basic_string()
         {
-            throw_toml_parse_error("Not implement.");
             advance_unchecked(3); // eat """
             toml_string context;
 
-            if (m_line.size() && current() == '\n')
+            if (m_line.size() == 1)
             {
-                advance_unchecked(1);
+                if (current() == '\n')
+                {
+                    advance_unchecked(1);
+                }
+                else if (current() == '\\')
+                {
+                    advance_unchecked(1);
+                    skip_whitespace_and_empty_line();
+                }
             }
 
             while (1)
@@ -705,11 +712,13 @@ namespace leviathan::config::toml
                     }
                 }
 
-                if (current() == '"')
+                if (current() != '"')
                 {
-                    if (m_line.size() == 1 && current() == '\\')
+                    if (all_blank())
                     {
+                        advance_unchecked(1);
                         skip_whitespace_and_empty_line();
+                        continue;
                     }
                     context += current();
                     advance_unchecked(1);
@@ -717,6 +726,7 @@ namespace leviathan::config::toml
                 else if (current() == '\\')
                 {
                     advance_unchecked(1); // eat '\'
+
                     switch (current())
                     {
                         case 'b': context += '\b'; break;
@@ -726,9 +736,11 @@ namespace leviathan::config::toml
                         case 'r': context += '\r'; break;
                         case '"': context += '"'; break;
                         case '\\': context += '\\'; break;
-                        // case 'u':
-                        // case 'U':
+                        case 'u': decode_unicode<4>(context, m_line.substr(1, 4)); break;
+                        case 'U': decode_unicode<8>(context, m_line.substr(1, 8)); break;
+                        default: throw_toml_parse_error("Illegal character {} after \\", current());
                     }
+                    advance_unchecked(1);
                 }
                 else
                 {
@@ -753,6 +765,7 @@ namespace leviathan::config::toml
                     }
                 }
             }
+            return context;
         }
 
         toml_value parse_single_line_basic_string()
@@ -785,16 +798,6 @@ namespace leviathan::config::toml
                         throw_toml_parse_error("Expected character after \\");
                     }
 
-                    auto decode_unicode = [&, this]<size_t N>(string_view sv) {
-                        if (sv.size() != N)
-                        {
-                            throw_toml_parse_error("Character is not enough");
-                        }
-                        auto codepoint = decode_unicode_from_char<N>(sv.data());
-                        encode_unicode_to_utf8(std::back_inserter(s), codepoint);
-                        advance_unchecked(N);
-                    };
-
                     switch (current())
                     {
                         case '"': s += '"'; break;    // quote
@@ -805,8 +808,8 @@ namespace leviathan::config::toml
                         case 'n': s += '\n'; break;   // linefeed
                         case 'r': s += '\r'; break;   // carriage return
                         case 't': s += '\t'; break;   // horizontal tab
-                        case 'u': decode_unicode.template operator()<4>(m_line.substr(1, 4)); break;
-                        case 'U': decode_unicode.template operator()<8>(m_line.substr(1, 8)); break;
+                        case 'u': decode_unicode<4>(s, m_line.substr(1, 4)); break;
+                        case 'U': decode_unicode<8>(s, m_line.substr(1, 8)); break;
                         default: throw_toml_parse_error("Illegal character after \\");
                     }
                 }
@@ -824,9 +827,17 @@ namespace leviathan::config::toml
             advance_unchecked(3); // eat '''
             toml_string context;
 
-            if (m_line.size() && current() == '\n')
+            if (m_line.size() == 1)
             {
-                advance_unchecked(1);
+                if (current() == '\n')
+                {
+                    advance_unchecked(1);
+                }
+                else if (current() == '\\')
+                {
+                    advance_unchecked(1);
+                    skip_whitespace_and_empty_line();
+                }
             }
 
             while (1) 
@@ -845,9 +856,11 @@ namespace leviathan::config::toml
 
                 if (current() != '\'')
                 {
-                    if (m_line.size() == 1 && current() == '\\')
+                    if (all_blank())
                     {
+                        advance_unchecked(1);
                         skip_whitespace_and_empty_line();
+                        continue;
                     }
                     context += current();
                     advance_unchecked(1);
@@ -1151,6 +1164,16 @@ namespace leviathan::config::toml
             }
         }
 
+        void try_skip_whitespace_and_empty_line()
+        {
+            assert(current() == '\\');
+            advance_unchecked(1);
+            if (m_line.size() == 1 && current() == '\n')
+            {
+                skip_whitespace_and_empty_line();
+            }
+        }
+
         char peek(int n) const
         { return m_line[n]; }
 
@@ -1160,6 +1183,24 @@ namespace leviathan::config::toml
         void advance_unchecked(size_t n)
         { m_line.remove_prefix(n); }
 
+        bool all_blank() const
+        {
+            return m_line.size() 
+                && current() == '\\' 
+                && m_line.substr(1).find_first_not_of(" \t") == m_line.npos;
+        }
+
+        template <size_t N>
+        void decode_unicode(toml_string& context, string_view sv) 
+        {
+            if (sv.size() != N)
+            {
+                throw_toml_parse_error("Too small characters for unicode");
+            }
+            auto codepoint = decode_unicode_from_char<N>(sv.data());
+            encode_unicode_to_utf8(std::back_inserter(context), codepoint);
+            advance_unchecked(N);
+        }
     };
 
     toml_value load(string context)

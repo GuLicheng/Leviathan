@@ -600,6 +600,51 @@ namespace leviathan::collections
             }
         }
 
+        template <typename... Args>
+        iterator emplace(const_iterator pos, Args&&... args)
+        {
+            if (size() == capacity())
+            {
+                expand_capacity_unchecked(std::bit_ceil(size() + 1));
+            }
+
+            value_handle<T, allocator_type> handle(m_alloc, (Args&&) args...);
+
+            if (pos == cbegin())
+            {
+                emplace_front_unchecked(*handle);
+                return begin();
+            }
+
+            if (pos == cend())
+            {
+                emplace_back_unchecked(*handle);
+                return end() - 1;
+            }
+
+            const auto position = pos.base().m_idx;
+
+            if (is_contiguous() && m_impl.m_write != 0)
+            {
+                auto dest = m_impl.m_start + position;
+
+                // What if an exception is thrown when moving?
+                alloc_traits::construct(m_alloc, m_impl.write_ptr(), std::move(*(m_impl.write_ptr() - 1)));
+                std::move_backward(dest, m_impl.write_ptr() - 1, m_impl.write_ptr());
+                alloc_traits::destroy(m_alloc, dest);
+                alloc_traits::construct(m_alloc, dest, *handle);
+                m_impl.forward_write_ptr();
+                ++m_impl.m_size;
+                return { this, position };
+            }
+            else
+            {
+                emplace_back_unchecked(*pos);
+                std::rotate(begin(), end() - 1, end());
+                return { this, position };
+            }
+        }
+
     };
 
 

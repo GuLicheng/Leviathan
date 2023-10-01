@@ -1,12 +1,20 @@
-[[x.y]]
-Hello = "World"
+# 下列字符串的每一个字节都完全相同：
+str1 = 'The quick brown fox jumps over the lazy dog.'
 
-[x.z]
-Hello = "World"
+str2 = '''
+The quick brown \
 
 
-[x] # 后置父表定义是可以的
-y1 = { age = 1 }
+  fox jumps over \
+    the lazy dog.'''
 
-[x]
-age=1
+str3 = '''\   
+       The quick brown \
+       fox jumps over \
+       the lazy dog.\
+       '''
+
+
+
+
+
