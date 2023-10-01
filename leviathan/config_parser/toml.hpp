@@ -15,6 +15,7 @@
 #include <cmath>
 #include <unordered_map>
 #include <vector>
+#include <regex>
 #include <string>
 #include <algorithm>
 #include <string_view>
@@ -287,11 +288,40 @@ namespace leviathan::config::toml
 
             static optional<toml_datetime> parse_toml_datetime(string_view sv)
             {
-                // C# @"^(?:(\d+)-(0[1-9]|1[012])-(0[1-9]|[12]\d|3[01]))?([\sTt])?(?:([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?((?:[Zz])|(?:[\+|\-](?:[01]\d|2[0-3])(?::[0-6][0-9])?(?::[0-6][0-9])?))?)?$",
-                // Python r"([0-9]{2}):([0-9]{2}):([0-9]{2})(\.([0-9]{3,6}))?"
-                // C++ R"()"
-                static std::string regex = R"(([0-9]{2}):([0-9]{2}):([0-9]{2})(\.([0-9]{3,6}))?)";
-                return nullopt;
+                static std::regex re(R"(^(?:(\d+)-(0[1-9]|1[012])-(0[1-9]|[12]\d|3[01]))?([\sTt])?(?:([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?((?:[Zz])|(?:[\+|\-](?:[01]\d|2[0-3])(?::[0-6][0-9])?(?::[0-6][0-9])?))?)?$)");
+
+                std::string s(sv);
+                
+                std::smatch pieces_match;
+
+                if (std::regex_match(s , pieces_match, re))
+                {
+                    toml_datetime dt;
+
+                    // auto to_int = [](auto& slice) {
+                    //     return from_chars_to_optional<int>(slice.str()).value();
+                    // };
+
+                    // dt.year = to_int(pieces_match[2]);
+                    // dt.month = to_int(pieces_match[3]);
+                    // dt.day = to_int(pieces_match[4]);
+
+                    // dt.hour = to_int(pieces_match[6]);
+                    // dt.minute = to_int(pieces_match[7]);
+                    // dt.second = to_int(pieces_match[8]);
+
+                    // auto microsecond = to_int(pieces_match[9]);
+
+                    // if (pieces_match[10].str().size() && pieces_match[10] != 'Z')
+                    // {
+
+                    // }
+                    return dt;
+                }
+                else
+                {
+                    return nullopt;
+                }
             }
         };
     }
@@ -591,23 +621,6 @@ namespace leviathan::config::toml
 
             auto context = m_line.substr(0, idx);
 
-            // Datetime must contains '-' or ':',
-            // if (context.contains(':') || (context.contains('-') && context.front() != '-'))
-            // {
-            //     if (idx != sv.npos && *context.end() == ' ')
-            //     {
-            //         idx = m_line.find_first_of(sv, idx);
-            //         context = m_line.substr(0, idx);
-            //     }
-            //     auto op = detail::parser_helper::parse_toml_datetime(context);
-            //     if (!op)
-            //     {
-            //         throw_toml_parse_error("Parse datetime error.");
-            //     }
-            //     advance_unchecked(context.size());
-            //     return *op;
-            // }
-            
             // Try parse as integer first
             if (auto op = detail::parser_helper::parse_toml_integer(context); op)
             {
@@ -617,6 +630,12 @@ namespace leviathan::config::toml
 
             // Then fallback to floating.
             if (auto op = detail::parser_helper::parse_toml_float(context); op)
+            {
+                advance_unchecked(context.size());
+                return std::move(*op);
+            }
+
+            if (auto op = detail::parser_helper::parse_toml_datetime(context); op)
             {
                 advance_unchecked(context.size());
                 return std::move(*op);

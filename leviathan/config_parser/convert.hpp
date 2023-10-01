@@ -59,7 +59,7 @@ namespace leviathan::config
             { return json::json_string(str); }
 
             json_value operator()(const toml::toml_datetime& str) const
-            { throw std::runtime_error("DataTime is not implemented"); }
+            { return json::json_string(str.to_string()); }
 
             json_value operator()(const toml::toml_float& num) const
             { return json::json_number(num); }

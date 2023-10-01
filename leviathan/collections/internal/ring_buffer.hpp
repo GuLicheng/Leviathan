@@ -91,7 +91,7 @@ namespace leviathan::collections
 
             auto operator<=>(const ring_buffer_iterator& rhs) const
             {
-                // We assume m_buf is equal t0 rhs.m_buf. 
+                // We assume m_buf and rhs.m_buf are pointing to the same object. 
                 return m_idx <=> rhs.m_idx; 
             }
 

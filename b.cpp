@@ -65,13 +65,13 @@ datetime report(std::string s)
             return slice.str().empty() ? 0 : std::stoi(slice.str());
         };
 
-        dt.m_year = to_int(pieces_match[2]);
-        dt.m_month = to_int(pieces_match[3]);
-        dt.m_day = to_int(pieces_match[4]);
+        // dt.m_year = to_int(pieces_match[2]);
+        // dt.m_month = to_int(pieces_match[3]);
+        // dt.m_day = to_int(pieces_match[4]);
 
-        dt.m_hour = to_int(pieces_match[6]);
-        dt.m_minute = to_int(pieces_match[7]);
-        dt.m_second = to_int(pieces_match[8]);
+        // dt.m_hour = to_int(pieces_match[6]);
+        // dt.m_minute = to_int(pieces_match[7]);
+        // dt.m_second = to_int(pieces_match[8]);
 
         return dt;
     }
@@ -94,12 +94,12 @@ int main(int argc, char const *argv[])
     report("1979-05-27");
     report("07:32:00");
     report("07:32:00.999999");
-    report("07:32:00..999999");
-    report("07:32::00..999999");
+    // report("07:32:00..999999");
+    // report("07:32::00..999999");
     report("1979-05-27t07:32:00");
-    report("1979-05-27A07:32:00");
+    // report("1979-05-27A07:32:00");
 
-    // std::chrono::system_clock::time_point tp;
+    std::chrono::system_clock::time_point tp;
 
     return 0;
 }

@@ -7,6 +7,7 @@
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
+#include <utility>
 
 namespace leviathan::config::toml
 {
@@ -28,42 +29,6 @@ namespace leviathan::config::toml
         auto msg = std::vformat(fmt, std::make_format_args((Args&&) args...));
         throw toml_parse_error(msg);
     }
-
-    // Can we use std::chrono directly?
-    // YYYY-MM-DDTHH:MM:SS.XXXX+HH:MM
-    // 1. offset date time: all
-    // 2. local date time: local date + local time
-    // 3. local date only
-    // 4. local time only
-    struct toml_datetime
-    {
-        enum class time_mode
-        {
-            offset_date_time,
-            local_date_time,
-            local_date,
-            local_time,
-        } m_type;
-
-        // std::chrono::year_month_day m_date;
-
-        // std::chrono::day m_day;
-
-        // local date
-        int m_year = 0;
-        int m_month = 0;
-        int m_day = 0;
-
-        // local time
-        int m_hour = 0;
-        int m_minute = 0;
-        int m_second = 0;
-        int m_microsecond = 0;
-
-        // offset 
-        int m_hour_offset = 0;
-        int m_minute_offset = 0;
-    };
 
     using to_pointer = to_unique_ptr_if_large_than<16>;
 
@@ -130,6 +95,51 @@ namespace leviathan::config::toml
     using toml_string = std::string;
     using toml_array = detail::toml_array_base<toml_value>;
     using toml_table = detail::toml_table_base<toml_string, toml_value>;
+
+    // Can we use std::chrono directly?
+    // YYYY-MM-DDTHH:MM:SS.XXXX+HH:MM
+    // 1. offset date time: all
+    // 2. local date time: local date + local time
+    // 3. local date only
+    // 4. local time only
+    struct toml_datetime
+    {
+        enum class time_mode
+        {
+            offset_date_time,
+            local_date_time,
+            local_date,
+            local_time,
+        } m_type;
+
+        // local date
+        int m_year = 0;
+        int m_month = 0;
+        int m_day = 0;
+
+        // local time
+        int m_hour = 0;
+        int m_minute = 0;
+        int m_second = 0;
+        int m_microsecond = 0;
+
+        // offset 
+        int m_hour_offset = 0;
+        int m_minute_offset = 0;
+
+        toml_string to_string() const
+        {
+            using enum toml_datetime::time_mode;
+            switch (m_type)
+            {
+                case offset_date_time: return std::format("{}-{}-{}T{}:{}:{}.{}+-{}:{}", m_year, m_month, m_day, m_hour, m_minute, m_second, m_microsecond, m_hour_offset, m_minute_offset);
+                case local_date_time: return std::format("{}-{}-{}T{}:{}:{}.{}", m_year, m_month, m_day, m_hour, m_minute, m_second, m_microsecond);
+                case local_date: return std::format("{}-{}-{}", m_year, m_month, m_day);
+                case local_time: return std::format("{}:{}:{}.{}", m_hour, m_minute, m_second, m_microsecond);
+                default: std::unreachable();
+            }
+        }
+    };
 
     using toml_value_base = value_base<
         to_pointer,
