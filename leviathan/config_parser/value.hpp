@@ -143,38 +143,4 @@ namespace leviathan::config
         constexpr static size_t hash_impl(std::string_view sv)
         { return std::hash<std::string_view>()(sv); }
     };
- 
-    inline constexpr const char* whitespace_delimiters = " \t\n\r";
-
-    constexpr std::string_view ltrim(std::string_view sv, std::string_view delimiters = whitespace_delimiters)
-    {
-        auto left = sv.find_first_not_of(delimiters);
-        return sv.substr(left == sv.npos ? sv.size() : left);
-    }
-
-    constexpr std::string_view rtrim(std::string_view sv, std::string_view delimiters = whitespace_delimiters)
-    {
-        auto right = sv.find_last_not_of(delimiters);
-        return sv.substr(0, right + 1);
-    }
-
-    constexpr std::string_view trim(std::string_view sv, std::string_view delimiters = whitespace_delimiters)
-    { return rtrim(ltrim(sv, delimiters), delimiters); }
-
-    std::string_view trim(const std::string& s, std::string_view delimiters = whitespace_delimiters)
-    {
-        std::string_view sv = s;
-        return trim(sv, delimiters);        
-    }
-
-    inline std::string replace(std::string str, std::string_view from, std::string_view to)
-    {
-        size_t pos = 0;
-        while ((pos = str.find(from, pos)) != str.npos)
-        {
-            str.replace(pos, from.size(), to);
-            pos += to.size();
-        }
-        return str;
-    }
 }
