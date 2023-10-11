@@ -1,4 +1,5 @@
 /*
+                    direction: ----->
     -----------------------------------------------------
     |                1   2   3   ?                      |
     -----------------------------------------------------
@@ -600,6 +601,8 @@ namespace leviathan::collections
             }
         }
 
+        // void resize(size_type count, const value_type& value);
+
         template <typename... Args>
         iterator emplace(const_iterator pos, Args&&... args)
         {
@@ -645,8 +648,62 @@ namespace leviathan::collections
             }
         }
 
+        iterator insert(const_iterator pos, const T& value)
+        { return emplace(pos, value); }
+
+        iterator insert(const_iterator pos, T&& value)
+        { return emplace(pos, std::move(value)); }
+
+        iterator erase(const_iterator first, const_iterator last)
+        {
+            if (first == cbegin() && last == cend())
+            {
+                clear();
+                return end();
+            }
+
+            auto first1 = first.base(), last1 = last.base();
+            for (; first1 != last1; first1 = erase(first1));
+            return first1;
+        }
+
+        iterator erase(const_iterator pos)
+        {
+            auto idx = pos.base().m_idx;
+            assert(idx < size());
+
+            if (is_contiguous())
+            {
+                // See vector::erase
+                auto left = m_impl.read_ptr() + idx;
+
+                // If the ring_buffer is full, the write_ptr will equal to read_ptr, we make
+                // right always point the right of read_ptr.
+                auto right = m_impl.read_ptr() != m_impl.write_ptr() ? m_impl.write_ptr() : m_impl.m_start + m_impl.m_capacity;
+                std::move(left + 1, right, left);
+                pop_back();
+            }
+            else
+            {
+                auto dest = std::addressof(*pos.base());
+                
+                if (dest >= m_impl.read_ptr())
+                {
+                    // Right part
+                    std::move_backward(m_impl.read_ptr(), dest, dest + 1);
+                    pop_front();
+                }
+                else
+                {
+                    // Left part
+                    auto right = m_impl.write_ptr();
+                    std::move(dest + 1, right, dest);
+                    pop_back();
+                }
+            }
+            // If we remove the last element, the idx should be reset to 0.
+            return { this, idx == size() ? 0 : idx };
+        }
     };
-
-
 } // namespace leviathan::collections
 

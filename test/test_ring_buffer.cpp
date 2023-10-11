@@ -278,4 +278,72 @@ TEST_CASE("resize")
     }
 }
 
+leviathan::collections::ring_buffer<int> MakeRingBuffer(bool contigious)
+{
+    leviathan::collections::ring_buffer<int> rb;
+
+    rb.emplace_back(0);
+    rb.emplace_back(1);
+    rb.emplace_back(2);
+    rb.emplace_back(3);
+
+    REQUIRE(rb.capacity() == 4);
+
+    if (!contigious)
+    {
+        rb.pop_front();
+        rb.pop_front();
+        rb.emplace_back(4);
+        rb.emplace_back(5);
+        REQUIRE(!rb.is_contiguous());
+    }
+
+    return rb;
+}
+
+TEST_CASE("erase")
+{
+    SECTION("contigious")
+    {
+        auto rb = MakeRingBuffer(true);
+        REQUIRE(*rb.erase(rb.begin() + 1) == 2);
+        REQUIRE(rb.size() == 3);
+        REQUIRE(rb[0] == 0);
+        REQUIRE(rb[1] == 2);
+        REQUIRE(rb[2] == 3);
+
+        REQUIRE(*rb.erase(rb.begin()) == 2); // [2, 3]
+        REQUIRE(*rb.erase(rb.end() - 1) == 2); // [2]
+        REQUIRE(rb.size() == 1);
+        REQUIRE(rb[0] == 2);
+    }
+
+    SECTION("not contigious -- right part")
+    {
+        // [4, 5, 2, 3]
+        //        ^
+        //        |
+        auto rb = MakeRingBuffer(false);
+
+        auto it = rb.erase(rb.begin() + 1);
+        REQUIRE(rb.size() == 3);
+        REQUIRE(rb[0] == 2);
+        REQUIRE(rb[1] == 4);
+        REQUIRE(rb[2] == 5);
+    }
+
+    SECTION("not contigious -- left part")
+    {
+        // [4, 5, 2, 3]
+        //        ^
+        //        |
+        auto rb = MakeRingBuffer(false);
+
+        rb.erase(rb.begin() + 3);
+        REQUIRE(rb.size() == 3);
+        REQUIRE(rb[0] == 2);
+        REQUIRE(rb[1] == 3);
+        REQUIRE(rb[2] == 4);
+    }
+}
 
