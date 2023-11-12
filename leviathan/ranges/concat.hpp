@@ -2,6 +2,7 @@
 
 #include "common.hpp"
 
+#include <assert.h>
 #include <variant>
 
 

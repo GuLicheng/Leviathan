@@ -1,17 +1,29 @@
-#include <iostream>
 #include <any>
-#include <cstdint>
-#include <memory>
-#include <optional>
-#include <deque>
+#include <vector>
+#include <functional>
+#include <iostream>
+#include <string>
+#include <list>
+#include <tuple>
+#include <functional>
 
-using T = std::optional<int>;
+struct Lambda
+{
+    mutable int i = 0;
+
+    constexpr auto operator()() const 
+    {
+        return ++i;
+    }
+};
 
 int main(int argc, char const *argv[])
 {
-    std::deque<int> de;
-    using U1 = std::pointer_traits<T>::element_type;
-    using U2 = std::pointer_traits<T>::pointer;
+
+    constexpr Lambda lambda;
+
+    auto a = lambda();
+
     return 0;
 }
 
