@@ -41,7 +41,7 @@ inline constexpr auto IsEntry = [](auto str) {
 };
 
 inline constexpr auto ChunkSectionAndEntries = [](auto l, auto r) {
-    return (IsSection(l) && IsEntr  y(r)) || (IsEntry(l) && IsEntry(r));
+    return (IsSection(l) && IsEntry(r)) || (IsEntry(l) && IsEntry(r));
 };
 
 inline constexpr auto SplitEntryToKeyValue = [](auto line) {

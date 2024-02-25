@@ -500,7 +500,7 @@ namespace leviathan::config::json
     {
         struct dump_helper
         {
-            constexpr static const char* padding_character = " ";
+            constexpr static const char* padding_character = "  ";
 
             template <typename OStream, typename Character>
             static void json_padding(OStream& os, Character character, int count)
@@ -586,3 +586,22 @@ namespace leviathan::json
 {
     using namespace ::leviathan::config::json;
 }
+
+#include <format>
+
+template <typename CharT>
+struct std::formatter<leviathan::json::json_value, CharT> 
+{
+    static_assert(std::is_same_v<CharT, char>, "Only support char");
+
+    template <typename ParseContext>
+    constexpr typename ParseContext::iterator parse(ParseContext& ctx)
+    { return ctx.begin(); }
+
+    template <typename FmtContext>
+    typename FmtContext::iterator format(const leviathan::json::json_value& val, FmtContext& ctx) const
+    {
+        std::basic_string<CharT> result = leviathan::json::dump(val);
+        return std::ranges::copy(result, ctx.out()).out;
+    }
+};

@@ -1,29 +1,26 @@
-#include <any>
-#include <vector>
-#include <functional>
+#include <cassert>
+#include <format>
 #include <iostream>
+#include <iterator>
 #include <string>
-#include <list>
-#include <tuple>
-#include <functional>
+#include <utility>
+#include <concepts>
+#include <vector>
+#include <set>
+#include <leviathan/config_parser/json.hpp>
+#include <leviathan/config_parser/toml.hpp>
 
-struct Lambda
-{
-    mutable int i = 0;
+int main() {
 
-    constexpr auto operator()() const 
-    {
-        return ++i;
-    }
-};
+    // const char* path = R"(D:\Library\Leviathan\a.json)";
 
-int main(int argc, char const *argv[])
-{
+    // auto root = leviathan::json::parse_json(path);
 
-    constexpr Lambda lambda;
+    const char* path = R"(D:\Library\Leviathan\a.toml)";
 
-    auto a = lambda();
+    auto root = leviathan::toml::parse_toml(path);
+    
+    std::cout << std::format("Json = \n{}", root);
 
     return 0;
 }
-

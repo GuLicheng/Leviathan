@@ -1235,3 +1235,18 @@ namespace leviathan::toml
     using namespace ::leviathan::config::toml;
 }
 
+#include <format>
+#include "convert.hpp"
+
+template <typename CharT>
+struct std::formatter<leviathan::toml::toml_value, CharT>
+{
+    constexpr auto parse(auto& ctx) 
+    { return ctx.begin(); }
+
+    auto format(const auto& x, auto& ctx) const
+    {
+        auto jv = leviathan::config::toml2json(x);
+        return std::formatter<leviathan::json::json_value, CharT>().format(jv, ctx);
+    }
+};

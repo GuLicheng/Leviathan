@@ -34,7 +34,6 @@ namespace leviathan::alloc
 
     public:
 
-        // All member for allocator_traits has default value except value_type.
         using value_type = T;
 
         template <typename U>
