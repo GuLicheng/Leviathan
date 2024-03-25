@@ -3,6 +3,7 @@
 .vscode
 build/*
 thirdpart
+out
 
 Makefile
 __pycache__
