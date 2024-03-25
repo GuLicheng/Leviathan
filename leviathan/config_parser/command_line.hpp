@@ -1,5 +1,7 @@
 #include <leviathan/meta/template_info.hpp>
+#include <string/fixed_string.hpp>
 
+#include <span>
 #include <format>
 #include <string>
 #include <ranges>
@@ -12,89 +14,7 @@
 #include <unordered_map>
 #include <optional>
 
-#include <string/fixed_string.hpp>
-
-struct command_error : std::runtime_error
-{
-    using std::runtime_error::runtime_error;
-};
-
-enum class parse_mode 
-{
-    optional,
-    gather,
-    just_one,
-}; 
-
-template <typename T, 
-        leviathan::basic_fixed_string Shortname, 
-        leviathan::basic_fixed_string Longname, 
-        leviathan::basic_fixed_string Help = "",
-        bool Required = false>
-class option
-{
-    template <auto S1, auto... Ss>
-    struct char_checker
-    {
-        constexpr static bool value = 
-            (std::is_same_v<
-            typename decltype(S1)::string_view_type, 
-            typename decltype(Ss)::string_view_type> 
-                && ... && true);
-    };
-
-
-    static_assert(char_checker<Longname, Shortname, Help>::value);
-    using string_view_type = typename decltype(Longname)::string_view_type;
-
-public:
-
-    using value_type = T;
-
-    consteval option() = default;
-
-    consteval static string_view_type longname() 
-    { return Longname.sv(); }
-
-    consteval static string_view_type shortname() 
-    { return Shortname.sv(); }
-
-    consteval static string_view_type help()
-    { return Help.sv(); }
-
-    consteval static size_t max_length()
-    { return std::max(Longname.size(), Shortname.size()); }
-
-    consteval static bool required() 
-    { return Required; }
-
-    /**
-     * @brief:
-     * @param:
-     *  idx: Current index of option values.
-     *  argc: Count of arguments.
-     *  argv: Arguments values.
-    */
-    template <typename Fn>
-    constexpr static std::optional<T> parse(int argc, const char* argv[], Fn fn) 
-    {
-        for (int i = 1; i < argc; ++i)
-        {
-            std::string_view name = argv[i];
-            
-            if (name == longname() || name == shortname())
-            {
-                if (i + 1 == argc)
-                {
-                    throw command_error("Argument should not in last.");
-                }
-                std::string_view value = argv[i + 1];
-                return std::make_optional(fn(value));
-            }
-        }
-        return std::nullopt;
-    }
-};
+#include <assert.h>
 
 template <typename T> struct default_parser;
 
@@ -116,87 +36,291 @@ struct default_parser<std::string>
     }
 };
 
-template <typename... Arguments>
+struct command_error : std::runtime_error
+{
+    using std::runtime_error::runtime_error;
+};
+
+enum class parse_mode 
+{
+    optional,
+    gather,
+    just_one,
+}; 
+
+enum class option_type : int
+{
+    leaf,
+    root,
+};
+
+inline std::string_view empty_value = "";
+
+namespace detail
+{
+    template <typename Option, leviathan::fixed_string... Names> struct leaf { };
+
+    template <leviathan::fixed_string Name, typename Node> struct add_path;
+
+    template <leviathan::fixed_string Name, typename Option, leviathan::fixed_string... Names>
+    struct add_path<Name, leaf<Option, Names...>> : std::type_identity<leaf<Option, Name, Names...>> 
+    { };
+
+
+
+}
+
+template <typename T, 
+        leviathan::basic_fixed_string Shortname, 
+        leviathan::basic_fixed_string Longname, 
+        leviathan::basic_fixed_string Help = "",
+        bool Required = false>
+class option
+{
+    template <auto S1, auto... Ss>
+    struct char_checker
+    {
+        constexpr static bool value = 
+            (std::is_same_v<
+            typename decltype(S1)::string_view_type, 
+            typename decltype(Ss)::string_view_type> 
+                && ... && true);
+    };
+
+    static_assert(char_checker<Longname, Shortname, Help>::value);
+    using string_view_type = typename decltype(Longname)::string_view_type;
+
+public:
+
+    using value_type = T;
+
+    constexpr static bool is_leaf = true;
+
+    consteval option() = default;
+
+    consteval static string_view_type longname() 
+    { return Longname.sv(); }
+
+    consteval static string_view_type shortname() 
+    { return Shortname.sv(); }
+
+    consteval static string_view_type help()
+    { return Help.sv(); }
+
+    consteval static size_t max_length()
+    { return std::max(Longname.size(), Shortname.size()); }
+
+    consteval static bool required() 
+    { return Required; }
+
+    consteval static size_t count()
+    { return 1; }
+
+    constexpr static bool is_name(std::string_view name)
+    { return name == longname() || name == shortname(); }
+
+    /**
+     * @brief: Try parse option.
+     * 
+     * @param:
+     *  - first: Current token if commands.
+     *  - last: Sentinel of commands.
+     * 
+     * @return: Next position of current option if succeed, otherwise first.
+    */
+    template <typename I, typename S>
+    constexpr static I parse(I first, S last) 
+    {
+        if (!(first != last && is_name(*first)))
+        {
+            throw command_error(std::format("Unknown token {}", *first));
+        }
+
+        std::cout << std::format("Current options is {} and value = {}\n", longname(), *(first + 1));
+        return first + 2;
+    }
+};
+
+template <typename T> struct is_option : std::false_type { };
+
+template <typename T, 
+    leviathan::basic_fixed_string S1, 
+    leviathan::basic_fixed_string S2,
+    leviathan::basic_fixed_string S3, 
+    bool B> 
+struct is_option<option<T, S1, S2, S3, B>> : std::false_type { };
+
+template <typename T>
+inline constexpr bool is_option_v = is_option<T>::value;
+
+template <leviathan::fixed_string RootName, typename... Arguments>
 class options
 {
     static_assert(sizeof...(Arguments) > 0);
 
-    constexpr static std::array shortnames = { Arguments::shortname()... };
-    constexpr static std::array longnames = { Arguments::longname()... };
-    constexpr static std::array helps = { Arguments::help()... };
-    
-    constexpr static const char* default_prog = "";
-    constexpr static const char* default_description = "";
-
-    template <leviathan::basic_fixed_string Name>
-    struct str_wrapper
-    {
-        constexpr static auto name() { return Name; }
-    };
-
-    template <typename StrWrapper>
-    struct helper
-    {
-        consteval static size_t get_return_value_index()
-        {
-            const auto name = StrWrapper::name();
-            return name.starts_with("--") 
-                ? std::ranges::distance(std::ranges::find(longnames, name), longnames.end()) 
-                : std::ranges::distance(std::ranges::find(shortnames, name), shortnames.end());
-        }
-    };
-
-    using storage = std::tuple<std::optional<typename Arguments::value_type>...>;
-
-    struct parse_result : storage
-    {
-        using storage::storage;
-
-        template <typename StrWrapper, typename Fn = void>
-        auto& get() const
-        {
-            constexpr auto idx = helper<StrWrapper>::get_return_value_index();
-            static_assert(idx != sizeof...(Arguments), "Unknown name.");
-            return std::get<idx>(*this);
-        }
-
-        void show()
-        {
-            [this]<size_t... Idx>(std::index_sequence<Idx...>) {
-                ((std::cout << std::format("Is {} has value ? {}\n", Idx, std::get<Idx>(*this).has_value())), ...);
-            }(std::make_index_sequence<sizeof...(Arguments)>());
-        }
-    };
-
 public:
 
-    options(std::string prog = default_prog, std::string description = default_description)
-        : m_prog(std::move(prog)), m_description(std::move(description)), m_length(calculate_length())
-    { }
+    consteval static size_t count()
+    { return (1 + ... + Arguments::count()); }
 
-    void show() const
+    consteval static size_t max_length()
+    { return RootName.size(); }
+
+    constexpr static bool is_name(std::string_view name)
+    { return RootName.sv() == name; }
+
+    consteval static auto rootname() 
+    { return RootName.sv(); }
+
+    consteval static auto longname() 
+    { return RootName.sv(); }
+
+    consteval static auto shortname() 
+    { return RootName.sv(); }
+
+    consteval static auto help() 
+    { return RootName.sv(); }
+
+    template <typename I, typename S>
+    constexpr I static parse_current_leaf(I first, S last) 
     {
-        std::string usage;
-        std::format_to(std::back_inserter(usage), "Usage: [optionals]\n\n{}\n\n", m_prog);
-        std::format_to(std::back_inserter(usage), "Usage: {}:\n", m_description);
-
-        for (size_t i = 0; i < sizeof...(Arguments); ++i)
+        while (1)
         {
-            std::format_to(
-                std::back_inserter(usage), 
-                "\t{}, {:{}}\t\t{}\n", 
-                shortnames[i], 
-                longnames[i], 
-                m_length, 
-                helps[i]);
+            I cur = parse_current_leaf_impl<0>(first, last);
+            if (cur == first)
+            {
+                throw command_error("Unknown Option.");
+            }
+            if (cur == last)
+            {
+                return cur;
+            }
+            first = cur;
         }
-
-        std::cout << usage << '\n';
     }
 
-    parse_result parse(int argc, const char* argv[]) const
+    template <size_t Idx, typename I, typename S>
+    constexpr I static parse_current_leaf_impl(I first, S last)
     {
-        return { Arguments::parse(argc, argv, default_parser<typename Arguments::value_type>())... };
+        constexpr auto N = sizeof...(Arguments);
+
+        if constexpr (Idx == N)
+        {
+            return first;
+        }
+        else
+        {
+            if (first == last)
+            {
+                return first;
+            }
+
+            static_assert(Idx < N);
+
+            using pack = std::tuple<Arguments...>;
+            using current_type = std::tuple_element_t<Idx, pack>;
+
+            if constexpr (current_type::count() != 1)
+            {
+                // Current argument is options
+                return parse_current_leaf_impl<Idx + 1>(first, last);
+            }
+            else
+            {
+                // Current argument is option
+                return current_type::is_name(*first)
+                    ? current_type::parse(first, last)
+                    : parse_current_leaf_impl<Idx + 1>(first, last);
+            }
+        }
+    }
+
+    template <size_t Idx, typename I, typename S>
+    constexpr I static parse_suboptions_impl(I first, S last)
+    {
+        constexpr auto N = sizeof...(Arguments);
+
+        if constexpr (Idx == N)
+        {
+            return first;
+        }
+        else
+        {
+            if (first == last)
+            {
+                return first;
+            }
+
+            static_assert(Idx < N);
+
+            using pack = std::tuple<Arguments...>;
+            using current_type = std::tuple_element_t<Idx, pack>;
+
+            if constexpr (current_type::count() == 1)
+            {
+                // Current argument is option
+                return parse_suboptions_impl<Idx + 1>(first, last);
+            }
+            else
+            {
+                // Current argument is options
+                return current_type::is_name(*first)
+                    ? current_type::parse(first + 1, last)
+                    : parse_suboptions_impl<Idx + 1>(first, last);
+            }
+        }
+    }
+
+    template <typename I, typename S>
+    constexpr I static parse_suboptions(I first, S last)
+    {
+        while (1)
+        {
+            I cur = parse_suboptions_impl<0>(first, last);
+            if (cur == first)
+            {
+                throw command_error("Unknown Options.");
+            }
+            if (cur == last)
+            {
+                return cur;
+            }
+            first = cur;
+        }
+    }
+
+    template <typename I, typename S>
+    constexpr I static parse(I first, S last)
+    {
+        if (first == last)
+        {
+            return first;
+        }
+
+        std::string_view name = *first;
+
+        // 1. Parse current options
+        //  - Current name is equal to RootName.
+        //  - Current name is starts with '-'.
+        //  - Current option has no suboptions.
+        //
+        // 2. Parse suboptions
+        //  Otherwise.
+
+        if constexpr (count() == sizeof...(Arguments) - 1)
+        {
+            // No options
+            return is_name(name) 
+                ? parse_current_leaf(first + 1, last)
+                : first;
+        }
+        else
+        {
+            // dotnet -v
+            return name.starts_with('-')
+                ? parse_current_leaf(first, last)
+                : parse_suboptions(first, last);
+        }
     }
 
 private:
@@ -204,30 +328,77 @@ private:
     static size_t calculate_length()
     { return std::ranges::max({ Arguments::max_length()... }); }
 
-    std::string m_prog;
-    std::string m_description;
-    size_t m_length;
+};
+
+template <typename Options>
+class parser
+{
+
+
+    struct result
+    {
+        size_t m_index; // Suboption
+    };
+
+
+public:
+    constexpr static auto parse(int argc, const char* argv[])
+    {
+        return Options::parse(argv + 1, argv + argc);
+    }
 };
 
 int main(/* int argc, const char* argv[] */)
 {
-    using Arg1 = option<int, "-e", "--epoch", "Epoch">;
-    using Arg2 = option<std::string, "-n", "--name", "Name of prog">;
+    using DotnetNewConsole = options<
+        "console",
+        option<std::string, "-o", "--output", "Location of output file">,
+        option<std::string, "-n", "--name", "SDK instructions">
+    >;
 
-    options<Arg1, Arg2> parser;
+    using DotnetNew = options<
+        "new",
+        DotnetNewConsole
+    >;
+
+    using DotnetBuild = options<
+        "build",
+        option<std::string, "-o", "--output", "Location of output file">,
+        option<std::string, "-v", "--verbosity", "Location of output file">
+    >;
+        
+    using Dotnet = options<
+        "dotnet",
+        DotnetNew,
+        DotnetBuild,
+        option<int, "-v", "--version", "Version of SDK">,
+        option<int, "-i", "--info", "Show the infomation of .Net">
+    >;
 
 
-    parser.show();
+    // int argc = 3;
+    // const char* argv[] = {
+    //     "dotnet", "-v", "15"
+    // };
 
-    int argc = 3;
-    const char* argv[] = {
-        "prop", "-e", "15"
-    };
+    std::vector<const char*> _1 = {
+        "dotnet",
+        "-v",
+        "1.0",
+    }; 
 
-    auto result = parser.parse(argc, argv);
+    std::vector<const char*> _2 = {
+        "dotnet",
+        "new",
+        "console",
+        "-n",
+        "MyApplication",
+    }; 
 
-    result.show();
+    auto& _ = _2;
 
+    // Dotnet::parse(_.begin() + 1, _.end());
+    parser<Dotnet>::parse(_.size(), _.data());
 
     return 0;
 }
