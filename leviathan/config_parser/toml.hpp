@@ -1222,10 +1222,10 @@ namespace leviathan::config::toml
         }
     };
 
-    toml_value load(string context)
+    inline toml_value load(string context)
     { return parser(std::move(context))(); }
 
-    toml_value parse_toml(const char* filename)
+    inline toml_value parse_toml(const char* filename)
     { return load(read_file_contents(filename)); }
 
 } // namespace leviathan::config::toml

@@ -1,13 +1,18 @@
+# Config
 .vs
 .idea
 .vscode
+
+# Directory
 build/*
 thirdpart
 out
 
+# Cache
 Makefile
 __pycache__
 
+# Other files
 *.exe
 *.o
 # *.txt
@@ -21,6 +26,3 @@ __pycache__
 *.png
 *.jpg
 
-# root
-# /*.cpp
-# /*.c

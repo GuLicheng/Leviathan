@@ -490,10 +490,10 @@ namespace leviathan::config::json
         }
     };
 
-    json_value parse_json(const char* filename)
+    inline json_value parse_json(const char* filename)
     { return parser(read_file_contents(filename))(); }
 
-    json_value load(string s)
+    inline json_value load(string s)
     { return parser(std::move(s))(); }
 
     namespace detail
@@ -573,7 +573,7 @@ namespace leviathan::config::json
         };
     } // namespace detail
 
-    string dump(const json_value& val)
+    inline string dump(const json_value& val)
     {
         std::stringstream ss;
         detail::dump_helper()(ss, val, 0);

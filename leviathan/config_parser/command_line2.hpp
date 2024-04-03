@@ -16,6 +16,9 @@
 
 #include <assert.h>
 
+namespace leviathan::config::cmd
+{
+
 template <typename T> struct default_parser;
 
 template <> 
@@ -65,16 +68,16 @@ namespace detail
     template <leviathan::fixed_string Name, typename Option, leviathan::fixed_string... Names>
     struct add_path<Name, leaf<Option, Names...>> : std::type_identity<leaf<Option, Name, Names...>> 
     { };
-
-
-
 }
+
+
 
 template <typename T, 
         leviathan::basic_fixed_string Shortname, 
         leviathan::basic_fixed_string Longname, 
         leviathan::basic_fixed_string Help = "",
-        bool Required = false>
+        typename Required = std::false_type,
+        typename Collector = void>
 class option
 {
     template <auto S1, auto... Ss>
@@ -111,7 +114,7 @@ public:
     { return std::max(Longname.size(), Shortname.size()); }
 
     consteval static bool required() 
-    { return Required; }
+    { return Required()(); }
 
     consteval static size_t count()
     { return 1; }
@@ -139,19 +142,25 @@ public:
         std::cout << std::format("Current options is {} and value = {}\n", longname(), *(first + 1));
         return first + 2;
     }
+
+    template <typename I, typename S>
+    constexpr static I operator()(I first, S last)
+    {
+        return parse(first, last);
+    }
 };
 
-template <typename T> struct is_option : std::false_type { };
+// template <typename T> struct is_option : std::false_type { };
 
-template <typename T, 
-    leviathan::basic_fixed_string S1, 
-    leviathan::basic_fixed_string S2,
-    leviathan::basic_fixed_string S3, 
-    bool B> 
-struct is_option<option<T, S1, S2, S3, B>> : std::false_type { };
+// template <typename T, 
+//     leviathan::basic_fixed_string S1, 
+//     leviathan::basic_fixed_string S2,
+//     leviathan::basic_fixed_string S3, 
+//     bool B> 
+// struct is_option<option<T, S1, S2, S3, B>> : std::false_type { };
 
-template <typename T>
-inline constexpr bool is_option_v = is_option<T>::value;
+// template <typename T>
+// inline constexpr bool is_option_v = is_option<T>::value;
 
 template <leviathan::fixed_string RootName, typename... Arguments>
 class options
@@ -347,6 +356,10 @@ public:
         return Options::parse(argv + 1, argv + argc);
     }
 };
+
+}
+
+using namespace leviathan::config::cmd;
 
 int main(/* int argc, const char* argv[] */)
 {
