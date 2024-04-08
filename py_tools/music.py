@@ -1,7 +1,6 @@
 from filesystem import PathHandler
 from convertor import Convertor
 from pydub import AudioSegment
-import argparse
 import os
 
 class MusicWriter(Convertor):

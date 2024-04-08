@@ -15,7 +15,7 @@ namespace leviathan::config::cmd
         void add_option(option op) 
         { m_options.emplace_back(op); }
 
-        void add_options(options subop)
+        void add_suboption(options subop)
         { m_suboptions.emplace_back(std::move(subop)); }
 
         parse_result parse(int argc, const char* argv[]) const
@@ -84,31 +84,8 @@ namespace leviathan::config::cmd
         { return option_builder(); }
 
         option build() &&
-        { return m_op; }
+        { return std::move(m_op); }
 
-        option_builder& longname(std::format_string name) &&
-        {
-            m_op.m_longname = name.get();
-            return *this;
-        }
-
-        option_builder& shortname(std::format_string name) &&
-        {
-            m_op.m_shortname = name.get();
-            return *this;
-        }
-
-        option_builder& help(std::format_args info) &&
-        {
-            m_op.m_help = info.get();
-            return *this;
-        }
-
-        option_builder& type(option_type tp) &&
-        {
-            m_op.m_tp = tp;
-            return *this;
-        }
 
     private:
 
