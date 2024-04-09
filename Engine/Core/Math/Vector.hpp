@@ -1,11 +1,13 @@
 #pragma once
 
-#include <cstdint>
-#include <cmath>
+
+#include <utility>
 #include <concepts>
 #include <type_traits>
 #include <array>
 #include <functional>
+#include <cstdint>
+#include <cmath>
 
 namespace Leviathan::Math
 {
@@ -62,6 +64,13 @@ protected:
             return std::abs(x);
         }
     };
+
+    template <size_t I, size_t... Idx>
+    consteval static VectorBase BasisImpl(std::index_sequence<Idx...>)
+    {
+        static_assert(I < N);
+        return { (Idx == I ? T(1) : T(0))... };
+    }
 
     template <typename UnaryOp, typename I, size_t... Idx>
     constexpr static VectorBase UnaryOperation(UnaryOp fn, I first, std::index_sequence<Idx...>)
@@ -181,6 +190,12 @@ public:
 
     constexpr static VectorBase Zero = VectorBase();
 
+    template <size_t I>
+    constexpr static VectorBase Basis()
+    {
+        return BasisImpl<I>(Indices);
+    }
+
     // Constructors
     constexpr VectorBase() = default;
 
@@ -193,7 +208,7 @@ public:
         const char* delimiter = "(";
         for (int i = 0; i < N; ++i)
         {
-            std::cout << std::__exchange(delimiter, ", ") << Data[i];
+            std::cout << std::exchange(delimiter, ", ") << Data[i];
         }
         std::cout << ')';
     }
