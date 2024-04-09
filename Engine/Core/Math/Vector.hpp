@@ -15,7 +15,8 @@ namespace Leviathan::Math
 template <std::floating_point T, size_t N>    
 struct VectorBase
 {
-private:
+    static_assert(N > 1);
+protected:
 
     constexpr static auto Indices = std::make_index_sequence<N>();
 
@@ -62,6 +63,12 @@ private:
         }
     };
 
+    template <typename UnaryOp, typename I, size_t... Idx>
+    constexpr static VectorBase UnaryOperation(UnaryOp fn, I first, std::index_sequence<Idx...>)
+    {
+        return { fn(first[Idx])... };
+    }
+
     template <typename BinaryOp, typename I, size_t... Idx>
     constexpr static VectorBase BinaryOperation(BinaryOp fn, I first, I second, std::index_sequence<Idx...>)
     {
@@ -99,7 +106,6 @@ private:
     }
 
 public:
-
     // Operators(vector and vector)
     constexpr VectorBase operator+(const VectorBase& rhs) const
     {
@@ -109,6 +115,11 @@ public:
     constexpr VectorBase operator-(const VectorBase& rhs) const
     {
         return BinaryOperation(std::minus<T>(), Data.begin(), rhs.Data.begin(), Indices);
+    }
+
+    constexpr VectorBase operator-() const
+    { 
+        return UnaryOperation(std::negate<T>(), Data.begin(), Indices);
     }
 
     constexpr VectorBase operator*(const VectorBase& rhs) const
@@ -158,7 +169,12 @@ public:
         return EuclideanDistance(lhs.Data.begin(), rhs.Data.begin());
     }
 
-    constexpr static T Norm(const VectorBase& v)
+    constexpr static VectorBase Normalize(const VectorBase& v)
+    {
+        return BinaryOperation(std::divides<T>(), v.Data.begin(), Length(v), Indices);
+    }
+
+    constexpr static T Length(const VectorBase& v)
     {
         return Distance(v, VectorBase());
     }

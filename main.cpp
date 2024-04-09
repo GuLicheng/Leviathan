@@ -4,7 +4,7 @@
 
 using namespace Leviathan::Math;
 
-// template class Vector<float, 2>;
+template class Vector2D<float>;
 
 using FVector = Vector2D<float>;
 
@@ -23,9 +23,13 @@ int main()
 
     std::cout << FVector::Distance(v1, v2) << '\n';
 
-    (FVector::One / 2).show();
+    FVector::Normalize(v2).show();
 
-    std::cout << FVector::Norm(v2) << '\n';
+    std::cout << FVector::Length(v2) << '\n';
+
+    (-v2).show();
+
+    
 
     return 0;
 }

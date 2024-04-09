@@ -7,8 +7,9 @@ namespace Leviathan::Math
     template <typename T>
     struct Vector2D : VectorBase<T, 2>
     {
-        using VectorBase<T, 2>::VectorBase;
-        using VectorBase<T, 2>::operator=;
+        using Super = VectorBase<T, 2>;
+        using Super::Super;
+        using Super::operator=;
 
         constexpr static Vector2D Zero = { T(0), T(0) };
         
