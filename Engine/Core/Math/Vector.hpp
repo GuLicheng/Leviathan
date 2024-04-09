@@ -179,6 +179,8 @@ public:
         return Distance(v, VectorBase());
     }
 
+    constexpr static VectorBase Zero = VectorBase();
+
     // Constructors
     constexpr VectorBase() = default;
 
@@ -195,6 +197,24 @@ public:
         }
         std::cout << ')';
     }
+
+    // 2D Vector Methods
+    static VectorBase RotateVector(const VectorBase& v, T angle) requires (N == 2)
+    {
+        // RotateMatrix:
+        // [
+        //   cosθ -sinθ
+        //   sinθ cosθ
+        // ]
+        const auto theta = angle / (T)180 * std::numbers::pi_v<T>;
+        const auto cosine = std::cos(theta);
+        const auto sine = std::sin(theta);
+        const auto x = v.Data[0];
+        const auto y = v.Data[1];
+        return { cosine * x - sine * y, sine * x + cosine * y };
+    }
+
+
 
     std::array<T, N> Data;   
 };  
