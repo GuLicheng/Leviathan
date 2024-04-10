@@ -1,20 +1,13 @@
 #include <iostream>
 
-#include <Engine/Core/Math/Vector.hpp>
+#include <Engine/Core/Vector2D.hpp>
 
 using namespace Leviathan::Math;
 
-using FVector = VectorBase<float, 2>;
+using FVector = TVector2D<float>;
 
-void func(FVector fv)
-{
-    fv.show();
-    std::endl(std::cout);
-}
 
-using FVector3 = VectorBase<double, 4>;
-
-void func(FVector3 fv)
+void func(auto fv)
 {
     fv.show();
     std::endl(std::cout);
@@ -25,14 +18,21 @@ int main()
 
     FVector v1(0.0f, 0.0f), v2(1.0f, 1.0f);
 
-    func(FVector::RotateVector(v1, 90));
+    func(Transform2D::RotateVector(v2, 90));
 
-    func(FVector::Basis<0>());
-    func(FVector::Basis<1>());
+    
 
-    func(FVector3::Basis<0>());
-    func(FVector3::Basis<1>());
-    func(FVector3::Basis<2>());
+    // func(FVector::Basis<0>());
+    // func(FVector::Basis<1>());
+
+
+    // using FVector3 = TVector<double, 4>;
+
+    // func(FVector3::Basis<0>());
+    // func(FVector3::Basis<1>());
+    // func(FVector3::Basis<2>());
+
+    // func(FVector::Normalize(v2));
 
     return 0;
 }

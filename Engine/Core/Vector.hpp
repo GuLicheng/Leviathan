@@ -1,5 +1,6 @@
 #pragma once
 
+#include <leviathan/meta/template_info.hpp>
 
 #include <utility>
 #include <concepts>
@@ -9,13 +10,13 @@
 #include <cstdint>
 #include <cmath>
 
+#include <assert.h>
+
 namespace Leviathan::Math
 {
 
-// T may only be float32, float64 or float16?
-// N may be one of [2, 3, 4]
 template <std::floating_point T, size_t N>    
-struct VectorBase
+struct TVector
 {
     static_assert(N > 1);
 protected:
@@ -66,26 +67,25 @@ protected:
     };
 
     template <size_t I, size_t... Idx>
-    consteval static VectorBase BasisImpl(std::index_sequence<Idx...>)
+    consteval static TVector BasisImpl(std::index_sequence<Idx...>)
     {
-        static_assert(I < N);
         return { (Idx == I ? T(1) : T(0))... };
     }
 
     template <typename UnaryOp, typename I, size_t... Idx>
-    constexpr static VectorBase UnaryOperation(UnaryOp fn, I first, std::index_sequence<Idx...>)
+    constexpr static TVector UnaryOperation(UnaryOp fn, I first, std::index_sequence<Idx...>)
     {
         return { fn(first[Idx])... };
     }
 
     template <typename BinaryOp, typename I, size_t... Idx>
-    constexpr static VectorBase BinaryOperation(BinaryOp fn, I first, I second, std::index_sequence<Idx...>)
+    constexpr static TVector BinaryOperation(BinaryOp fn, I first, I second, std::index_sequence<Idx...>)
     {
         return { fn(first[Idx], second[Idx])... };
     }
 
     template <typename BinaryOp, typename I, size_t... Idx>
-    constexpr static VectorBase BinaryOperation(BinaryOp fn, I first, T scale, std::index_sequence<Idx...>)
+    constexpr static TVector BinaryOperation(BinaryOp fn, I first, T scale, std::index_sequence<Idx...>)
     {
         return { fn(first[Idx], scale)... };
     }
@@ -115,92 +115,95 @@ protected:
     }
 
 public:
+
+    using value_type = T;
+
     // Operators(vector and vector)
-    constexpr VectorBase operator+(const VectorBase& rhs) const
+    constexpr bool operator==(const TVector& rhs) const = default;
+
+    constexpr TVector operator+(const TVector& rhs) const
     {
         return BinaryOperation(std::plus<T>(), Data.begin(), rhs.Data.begin(), Indices);
     }
 
-    constexpr VectorBase operator-(const VectorBase& rhs) const
+    constexpr TVector operator-(const TVector& rhs) const
     {
         return BinaryOperation(std::minus<T>(), Data.begin(), rhs.Data.begin(), Indices);
     }
 
-    constexpr VectorBase operator-() const
+    constexpr TVector operator-() const
     { 
         return UnaryOperation(std::negate<T>(), Data.begin(), Indices);
     }
 
-    constexpr VectorBase operator*(const VectorBase& rhs) const
+    constexpr TVector operator*(const TVector& rhs) const
     {
         return BinaryOperation(std::multiplies<T>(), Data.begin(), rhs.Data.begin(), Indices);
     }
 
-    constexpr VectorBase& operator+=(const VectorBase& rhs)
+    constexpr TVector& operator+=(const TVector& rhs)
     {
         return *this = *this + rhs;    
     }
 
-    constexpr VectorBase& operator-=(const VectorBase& rhs)
+    constexpr TVector& operator-=(const TVector& rhs)
     {
         return *this = *this - rhs;    
     }
 
-    constexpr VectorBase& operator*=(const VectorBase& rhs)
+    constexpr TVector& operator*=(const TVector& rhs)
     {
         return *this = *this * rhs;    
     }
 
     // Operators(vector and scale)
-    constexpr VectorBase operator*(T scale) const
+    constexpr TVector operator*(T scale) const
     {
         return BinaryOperation(std::multiplies<T>(), Data.begin(), scale, Indices);
     }
 
-    friend constexpr VectorBase operator*(T scale, const VectorBase& v)
+    friend constexpr TVector operator*(T scale, const TVector& v)
     {
         return v * scale;
     }
 
-    constexpr VectorBase operator/(T scale) const
+    constexpr TVector operator/(T scale) const
     {
-        return BinaryOperation(std::divides<T>(), Data.begin(), scale, Indices);
+        return this->operator*((T)1 / scale);
     }
 
-    constexpr VectorBase& operator/=(T scale) 
+    constexpr TVector& operator/=(T scale) 
     {
         return *this = *this / scale;
     }
 
     // Static Methods
-    constexpr static T Distance(const VectorBase& lhs, const VectorBase& rhs)
+    constexpr static T Distance(const TVector& lhs, const TVector& rhs)
     {
         return EuclideanDistance(lhs.Data.begin(), rhs.Data.begin());
     }
 
-    constexpr static VectorBase Normalize(const VectorBase& v)
+    constexpr static TVector Normalize(const TVector& v)
     {
-        return BinaryOperation(std::divides<T>(), v.Data.begin(), Length(v), Indices);
+        return BinaryOperation(std::multiplies<T>(), v.Data.begin(), 1 / Length(v), Indices);
     }
 
-    constexpr static T Length(const VectorBase& v)
+    constexpr static T Length(const TVector& v)
     {
-        return Distance(v, VectorBase());
+        return Distance(v, TVector());
     }
-
-    constexpr static VectorBase Zero = VectorBase();
 
     template <size_t I>
-    constexpr static VectorBase Basis()
+    constexpr static TVector Basis()
     {
         return BasisImpl<I>(Indices);
     }
 
     // Constructors
-    constexpr VectorBase() = default;
+    constexpr TVector() = default;
 
     template <std::same_as<T>... Us>
-    constexpr VectorBase(Us... us) : Data{ us... } { }
+    constexpr TVector(Us... us) : Data{ us... } { }
 
     // Other Methods
     void show() const
@@ -212,24 +215,6 @@ public:
         }
         std::cout << ')';
     }
-
-    // 2D Vector Methods
-    static VectorBase RotateVector(const VectorBase& v, T angle) requires (N == 2)
-    {
-        // RotateMatrix:
-        // [
-        //   cosθ -sinθ
-        //   sinθ cosθ
-        // ]
-        const auto theta = angle / (T)180 * std::numbers::pi_v<T>;
-        const auto cosine = std::cos(theta);
-        const auto sine = std::sin(theta);
-        const auto x = v.Data[0];
-        const auto y = v.Data[1];
-        return { cosine * x - sine * y, sine * x + cosine * y };
-    }
-
-
 
     std::array<T, N> Data;   
 };  
