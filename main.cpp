@@ -13,6 +13,13 @@ void func(auto fv)
     std::endl(std::cout);
 }
 
+template<typename T>
+void out(const T& value) 
+{ 
+    PrintTypeInfo(T);
+    std::cout << value; 
+}
+
 int main()
 {
 
@@ -32,7 +39,9 @@ int main()
     // func(FVector3::Basis<1>());
     // func(FVector3::Basis<2>());
 
-    // func(FVector::Normalize(v2));
+    // out(FVector::Normalize(v2));
+    std::cout << std::format("{:.3f}\n", FVector::Normalize(v2)) << '\n';
+
 
     return 0;
 }

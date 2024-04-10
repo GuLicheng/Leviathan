@@ -222,3 +222,31 @@ public:
 } // namespace Math
 
 
+#include <format>
+
+template <typename T, size_t N>
+struct std::formatter<Leviathan::Math::TVector<T, N>>
+{
+    template <typename ParseContext>
+    constexpr typename ParseContext::iterator parse(ParseContext& ctx) 
+    { 
+        return m_fmt.parse(ctx); 
+    }
+
+    template <typename FmtContext>
+    typename FmtContext::iterator format(const Leviathan::Math::TVector<T, N>& v, FmtContext& ctx) const
+    {
+        auto it = ctx.out();
+        const char* delimiter = "(";
+
+        for (auto value : v.Data)
+        {
+            *it++ = std::exchange(delimiter, ", ") ;
+            it = m_fmt.format(value, ctx);
+        }
+            
+        return *it++ = ")";
+    }
+
+    std::formatter<T> m_fmt;
+};

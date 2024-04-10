@@ -7,6 +7,8 @@ namespace Leviathan::Math
 
 template <typename T> using TVector2D = TVector<T, 2>;
 
+using FVector2D = TVector<float, 2>;
+
 struct Transform2D
 {
     template <typename T>
@@ -17,8 +19,6 @@ struct Transform2D
         //   cosθ -sinθ
         //   sinθ cosθ
         // ]
-        PrintTypeCategory(angle);
-
         const auto theta = angle / (T)180 * std::numbers::pi_v<T>;
         const auto cosine = std::cos(theta);
         const auto sine = std::sin(theta);
