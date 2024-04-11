@@ -94,20 +94,42 @@ protected:
         }
     };
 
-    template <T V>
-    struct Value
-    {
-        constexpr static T operator()(size_t)
-        {
-            return V;
-        }
-    };
-
     // Helper functions
     template <size_t I, size_t... Idx>
     constexpr static TVector UnitImpl(std::index_sequence<Idx...>)
     {
         return { (Idx == I ? T(1) : T(0))... };
+    }
+
+    constexpr static auto CrossProductImpl(const TVector& x, const TVector& y)
+    {
+        if constexpr (N == 2)
+        {
+            return x.Data[0] * y.Data[1] - x.Data[1] * y.Data[0];
+        }
+        else if constexpr (N == 3)
+        {
+            return TVector 
+            {
+                x.Data[1] * y.Data[2] - x.Data[2] * y.Data[1],
+                x.Data[2] * y.Data[0] - x.Data[0] * y.Data[2],
+                x.Data[0] * y.Data[1] - x.Data[1] * y.Data[0],
+            };
+        }
+        else if constexpr (N == 4)
+        {
+            return TVector 
+            { 
+                x.Data[1] * y.Data[2] - x.Data[2] * y.Data[1], 
+                x.Data[2] * y.Data[0] - x.Data[0] * y.Data[2],
+                x.Data[0] * y.Data[1] - x.Data[1] * y.Data[0],
+                T(0)
+            };
+        }
+        else
+        {
+            std::unreachable();
+        }
     }
 
     template <typename UnaryOp, typename I, size_t... Idx>
@@ -223,6 +245,11 @@ public:
         return BinaryOperation(Summation(), std::multiplies<T>(), Data.begin(), rhs.Data.begin(), Indices);
     }
 
+    constexpr auto operator^(const TVector& rhs) const
+    {
+        return CrossProductImpl(*this, rhs);
+    }
+
     constexpr TVector operator/(T scale) const
     {
         return this->operator*((T)1 / scale);
@@ -267,6 +294,11 @@ public:
     constexpr static T DotProduct(const TVector& x, const TVector& y)
     {
         return x | y;
+    }
+
+    constexpr static auto CrossProduct(const TVector& x, const TVector& y)
+    {
+        return x ^ y;
     }
 
     // Static Methods(unary)
