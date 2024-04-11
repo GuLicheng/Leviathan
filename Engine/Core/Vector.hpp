@@ -369,6 +369,19 @@ public:
     std::array<T, N> Data;   
 };  
 
+
+template <typename T> using TVector2D = TVector<T, 2>;
+template <typename T> using TVector3D = TVector<T, 3>;
+template <typename T> using TVector4D = TVector<T, 4>;
+
+using FVector2f = TVector<float, 2>;
+using FVector3f = TVector<float, 3>;
+using FVector4f = TVector<float, 4>;
+
+using FVector2d = TVector<double, 2>;
+using FVector3d = TVector<double, 3>;
+using FVector4d = TVector<double, 4>;
+
 } // namespace Math
 
 

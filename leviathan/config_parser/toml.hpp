@@ -1247,6 +1247,6 @@ struct std::formatter<leviathan::toml::toml_value, CharT>
     auto format(const auto& x, auto& ctx) const
     {
         auto jv = leviathan::config::toml2json(x);
-        return std::formatter<leviathan::json::json_value, CharT>().format(jv, ctx);
+        return std::formatter<leviathan::config::json::json_value, CharT>().format(jv, ctx);
     }
 };

@@ -4,11 +4,6 @@
 
 namespace Leviathan::Math
 {
-
-template <typename T> using TVector2D = TVector<T, 2>;
-
-using FVector2D = TVector<float, 2>;
-
 struct Transform2D
 {
     template <typename T>
