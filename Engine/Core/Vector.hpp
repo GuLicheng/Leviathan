@@ -1,6 +1,7 @@
 #pragma once
 
 #include <leviathan/meta/template_info.hpp>
+#include <leviathan/collections/internal/common.hpp>
 
 #include <utility>
 #include <concepts>
@@ -28,10 +29,9 @@ protected:
     // Helper classes
     struct Summation 
     {
-        template <typename... Us>
+        template <std::same_as<T>... Us>
         constexpr static T operator()(Us... us) 
         {
-            static_assert((std::is_same_v<T, Us> && ...));
             return (us + ...);
         }
     };
@@ -43,7 +43,7 @@ protected:
             return x;
         }
 
-        template <typename... Us>
+        template <std::same_as<T>... Us>
         constexpr static T operator()(T x1, T x2, Us... xs) 
         {
             static_assert((std::is_same_v<T, Us> && ... && true));
@@ -60,10 +60,9 @@ protected:
             return x;
         }
 
-        template <typename... Us>
+        template <std::same_as<T>... Us>
         constexpr static T operator()(T x1, T x2, Us... xs) 
         {
-            static_assert((std::is_same_v<T, Us> && ... && true));
             return x1 < x2 
                 ? MinValue::operator()(x1, xs...)
                 : MinValue::operator()(x2, xs...);
@@ -360,11 +359,18 @@ public:
     // Constructors
     constexpr TVector() = default;
 
-    template <std::same_as<T>... Us>
-    constexpr TVector(Us... us) : Data{ us... } { }
+    template <typename... Ts>
+    constexpr TVector(Ts... ts) : Data{ (T)ts... } { }
+ 
+    constexpr T* AsPtr() 
+    { 
+        return Data.data();
+    }
 
-    // template <typename... Ts>
-    // constexpr TVector(Ts... ts) : Data{ (T)ts... } { }
+    constexpr const T* AsPtr() const
+    {
+        return Data.data();
+    }
 
     std::array<T, N> Data;   
 };  
