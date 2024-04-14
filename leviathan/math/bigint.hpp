@@ -206,8 +206,6 @@ public:
 		return { result.rbegin(), result.rend() };
 	}
 
-
-
 	integer operator-() const
 	{
 		// handle neg of zero separately since it'll cause an overflow
@@ -281,6 +279,7 @@ public:
 
 		return result;
 	}
+
 	integer operator-(const integer& rhs) const
 	{
 		integer result;
@@ -324,6 +323,7 @@ public:
 
 		return result;
 	}
+
 	integer operator*(const integer& rhs) const
 	{
 		int lastPos = MaxLength - 1;
@@ -414,6 +414,7 @@ public:
 
 		return result;
 	}
+	
 	integer operator/(const integer& rhs) const
 	{
 		integer quotient;
@@ -453,6 +454,7 @@ public:
 			return quotient;
 		}
 	}
+	
 	integer operator%(const integer& rhs) const
 	{
 		integer bi1 = *this;
@@ -505,6 +507,7 @@ public:
 			result.m_length--;
 		return result;
 	}
+	
 	integer operator^(const integer& rhs) const
 	{
 		integer result;
@@ -519,6 +522,7 @@ public:
 			result.m_length--;
 		return result;
 	}
+	
 	integer operator|(const integer& rhs) const
 	{
 		integer result;
@@ -533,6 +537,7 @@ public:
 			result.m_length--;
 		return result;
 	}
+	
 	integer operator~() const
 	{
 		integer result = *this;;
@@ -555,6 +560,7 @@ public:
 		result.m_length = shift_left(result.m_data, value);
 		return result;
 	}
+	
 	integer operator>>(int value) const
 	{
 		integer result = *this;
@@ -568,46 +574,55 @@ public:
 		*this = this->operator+(rhs);
 		return *this;
 	}
+	
 	integer& operator-=(const integer& rhs)
 	{
 		*this = this->operator-(rhs);
 		return *this;
 	}
+
 	integer& operator*=(const integer& rhs)
 	{
 		*this = this->operator*(rhs);
 		return *this;
 	}
+
 	integer& operator/=(const integer& rhs)
 	{
 		*this = this->operator/(rhs);
 		return *this;
 	}
+
 	integer& operator%=(const integer& rhs)
 	{
 		*this = this->operator%(rhs);
 		return *this;
 	}
+
 	integer& operator&=(const integer& rhs)
 	{
 		*this = this->operator&(rhs);
 		return *this;
 	}
+
 	integer& operator|=(const integer& rhs)
 	{
 		*this = this->operator|(rhs);
 		return *this;
 	}
+
 	integer& operator^=(const integer& rhs)
 	{
 		*this = this->operator^(rhs);
 		return *this;
 	}
+
 	integer& operator>>=(int value)
 	{
 		*this = this->operator>>(value);
 		return *this;
 	}
+
 	integer& operator<<=(int value)
 	{
 		*this = this->operator<<(value);
@@ -621,12 +636,14 @@ public:
 		*this = b1 + b2;
 		return *this;
 	}
+
 	integer operator++(int)
 	{
 		integer old = *this;
 		++(*this);
 		return old;
 	}
+
 	integer& operator--()
 	{
 		integer b1 = *this;
@@ -634,6 +651,7 @@ public:
 		*this = b1 - b2;
 		return *this;
 	}
+
 	integer operator--(int)
 	{
 		integer old = *this;
@@ -651,10 +669,12 @@ public:
 				return false;
 		return true;
 	}
+
 	bool operator!=(const integer& rhs) const
 	{
 		return this->operator!=(rhs);
 	}
+
 	bool operator<(const integer& rhs) const
 	{
 		int pos = MaxLength - 1;
@@ -679,14 +699,17 @@ public:
 		}
 		return false;
 	}
+	
 	bool operator<=(const integer& rhs) const
 	{
 		return !(this->operator>(rhs));
 	}
+	
 	bool operator>=(const integer& rhs) const
 	{
 		return !(this->operator<(rhs));
 	}
+	
 	bool operator>(const integer& rhs) const
 	{
 		return rhs.operator<(*this);
@@ -711,7 +734,6 @@ public:
 
 		return pos >= 0 ? this->m_data[pos] <=> rhs.m_data[pos] : std::strong_ordering::equal;
 	}
-
 
 	// Other methods
 	integer gcd(const integer& bi) const

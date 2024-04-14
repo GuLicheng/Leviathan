@@ -1,5 +1,7 @@
 #include <iostream>
 #include <format>
+
+#include <stdfloat>
 #include <leviathan/math/vector.hpp>
 
 template class leviathan::math::vector<float, 3>;
@@ -13,6 +15,9 @@ int main(int argc, char const *argv[])
     
     using FVector = leviathan::math::vector<float, 3>;
     std::cout << FVector::size(FVector(1, 1, 1)) << '\n';
+
+    // std::float16_t
+    // std::float128_t
 
     return 0;
 }
