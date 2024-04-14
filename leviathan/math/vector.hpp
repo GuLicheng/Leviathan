@@ -87,6 +87,9 @@ private:
 
 public:
 
+    constexpr static const vector zero_vector = vector();
+
+
     // Binary operations
     constexpr bool operator==(const vector& rhs) const = default;
 
@@ -250,6 +253,64 @@ public:
     consteval static size_t dimension()
     {
         return Dimension;
+    }
+
+    constexpr static vector max(const vector& v1, const vector& v2)
+    {
+        return binary_operation(max_value, v1, v2);
+    }
+
+    constexpr static vector min(const vector& v1, const vector& v2)
+    {
+        return binary_operation(min_value, v1, v2);
+    }
+
+    constexpr static vector abs(const vector& v)
+    {
+        return unary_operation(absolute_value, v);
+    }
+
+    constexpr static vector sign_vector(const vector& v)
+    {
+        return unary_operation(sign, v);
+    }
+
+    constexpr static T distance(const vector& v1, const vector& v2)
+    {
+        return euclidean_distance(v1, v2);
+    }
+
+    constexpr static T size(const vector& v)
+    {
+        return sqrt(size_square(v));
+    }
+
+    constexpr static T size_square(const vector& v)
+    {
+        return Lp_norm(summation, square, v.data(), zero_vector.data(), indices);
+    }
+
+    constexpr static T length(const vector& v)
+    {
+        return size(v);
+    }
+
+    constexpr static T length_square(const vector& v)
+    {
+        return size_square(v);
+    }
+
+    constexpr static vector normalize(const vector& v)
+    {
+        return binary_operation(std::multiplies<T>(), v, static_cast<T>(1) / size(v));
+    }
+
+    constexpr static vector safe_normalize(const vector& v)
+    {
+        const auto len = size_square(v);
+        return len > small_number 
+            ? binary_operation(std::multiplies<T>(), v, static_cast<T>(1) / sqrt(len))
+            : zero_vector;
     }
 
     constexpr vector() = default;
