@@ -326,3 +326,30 @@ private:
 
 } // namespace leviathan::math
 
+
+#include <format>
+
+template <typename T, size_t N, typename CharT>
+struct std::formatter<leviathan::math::vector<T, N>, CharT>
+{
+    template <typename ParseContext>
+    constexpr typename ParseContext::iterator parse(ParseContext& ctx)
+    {
+        return m_fmt.parse(ctx);
+    }
+
+    template <typename FormatContext>
+    typename FormatContext::iterator format(const leviathan::math::vector<T, N>& v, FormatContext& ctx) const
+    {
+        auto it = ctx.out();
+        const char* delimiter = "(";
+        for (auto value : v.as_span())
+        {
+            *it++ = std::exchange(delimiter, ", ") ;
+            it = m_fmt.format(value, ctx);
+        }
+        return *it++ = ")";
+    }
+
+    std::formatter<T, CharT> m_fmt;
+};
