@@ -11,10 +11,13 @@ inline constexpr u128 Zero = u128(0, 0);
 inline constexpr u128 One = u128(0, 1);
 inline constexpr u128 Two = u128(0, 2);
 inline constexpr u128 Three = u128(0, 3);
+inline constexpr u128 Four = u128(0, 4);
 
 inline constexpr u128 TwoPower64 = u128(1, 0);
 inline constexpr u128 TwoPower64PlusOne = u128(1, 1);
 inline constexpr u128 TwoPower64MinusOne = u128(0, -1);
+
+inline constexpr u128 DoubleTwoPower64 = u128(2, 0);
 
 inline constexpr u128 Max = u128::max();
 
@@ -175,7 +178,7 @@ TEST_CASE("UnsignedIntegerBinaryOperarion")
 
         REQUIRE(UnsignedCheckEqual(TwoPower64MinusOne + One, TwoPower64));
         REQUIRE(UnsignedCheckEqual(TwoPower64 + One, TwoPower64PlusOne));
-        REQUIRE(UnsignedCheckEqual(Max + One, Zero));
+        REQUIRE(UnsignedCheckEqual(Max + One, Zero));   // Warp around
     }
 
     SECTION("SubOperation")
@@ -183,10 +186,36 @@ TEST_CASE("UnsignedIntegerBinaryOperarion")
         REQUIRE(UnsignedCheckEqual(Two - One, One));
         REQUIRE(UnsignedCheckEqual(Three - Two, One));
         REQUIRE(UnsignedCheckEqual(One - Zero, One));
-        REQUIRE(UnsignedCheckEqual(Zero - One, Max));
+        REQUIRE(UnsignedCheckEqual(Zero - One, Max));   // Warp around
 
         REQUIRE(UnsignedCheckEqual(TwoPower64 - One, TwoPower64MinusOne));
         REQUIRE(UnsignedCheckEqual(TwoPower64PlusOne - One, TwoPower64));
+    }
+
+    SECTION("ShiftLeft")
+    {
+        REQUIRE(UnsignedCheckEqual(One << 1, Two));
+        REQUIRE(UnsignedCheckEqual(Two << 1, Four));
+        REQUIRE(UnsignedCheckEqual(One << 2, Four));
+        REQUIRE(UnsignedCheckEqual(One << 64, TwoPower64));
+        REQUIRE(UnsignedCheckEqual(One << 65, DoubleTwoPower64));
+    }
+
+    SECTION("ShiftRight")
+    {
+        REQUIRE(UnsignedCheckEqual(One >> 1, Zero));
+        REQUIRE(UnsignedCheckEqual(Two >> 1, One));
+        REQUIRE(UnsignedCheckEqual(DoubleTwoPower64 >> 1, TwoPower64));
+        REQUIRE(UnsignedCheckEqual(DoubleTwoPower64 >> 100, Zero));
+    }
+
+    SECTION("Multiply")
+    {
+        REQUIRE(UnsignedCheckEqual(Zero * Max, Zero));
+        REQUIRE(UnsignedCheckEqual(Zero * One, Zero));
+        REQUIRE(UnsignedCheckEqual(Max * One, Max));
+        REQUIRE(UnsignedCheckEqual(Two * One, Two));
+        REQUIRE(UnsignedCheckEqual(Two * TwoPower64, DoubleTwoPower64));
     }
 
 }

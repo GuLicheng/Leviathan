@@ -179,16 +179,18 @@ public:
 
     constexpr uint128 operator*(uint128 rhs) const
     {
-        constexpr uint64_t mask1 = 0x00000000fffffff;   // mask high 64-bit
-        constexpr uint64_t mask2 = 0xfffffff00000000;   // mask low 64-bit
+        constexpr uint64_t mask = 0xffffffff;   // mask low 64-bit
 
-        const uint64_t ah = m_value.lower() & mask2;
-        const uint64_t al = m_value.lower() & mask1;
+        const uint64_t ah = m_value.lower() >> 32;
+        const uint64_t al = m_value.lower() & mask;
 
-        const uint64_t bh = rhs.m_value.lower() & mask1;
-        const uint64_t bl = rhs.m_value.lower() & mask1;
+        const uint64_t bh = rhs.m_value.lower() >> 32;
+        const uint64_t bl = rhs.m_value.lower() & mask;
         
-        const auto part_hi = m_value.upper() * rhs.m_value.upper() + ah * bh;
+        const auto part_hi = m_value.upper() * rhs.m_value.lower() 
+                           + m_value.lower() * rhs.m_value.upper() 
+                           + ah * bh;
+
         const auto lo = al * bl;
 
         uint128 result(part_hi, lo);
