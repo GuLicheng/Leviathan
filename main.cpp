@@ -1,23 +1,29 @@
+#include <leviathan/math/int128.hpp>
+
 #include <iostream>
 #include <format>
+#include <bitset>
+#include <array>
 
-#include <stdfloat>
-#include <leviathan/math/vector.hpp>
-#include <memory_resource>
-
-template class leviathan::math::vector<float, 3>;
+#define BIG_ENDIAN 0x0100
+#define LITTLE_ENDIAN 0x0001
+#define BYTE_ORDER 1
 
 int main(int argc, char const *argv[])
 {
+    leviathan::math::uint128_t u1(-1uz, 0uz);
 
-    std::cout << leviathan::math::summation(1, 2, 3) << '\n';
-    std::cout << leviathan::math::max_value(1, 2, 3) << '\n';
-    std::cout << leviathan::math::min_value(1, 2, 3) << '\n';
-    
-    using FVector = leviathan::math::vector<float, 3>;
-    std::cout << FVector::size(FVector(1, 1, 1)) << '\n';
+    std::cout << std::format("u1 =                 {}\n", u1.to_string());
 
-    std::cout << std::format("{:.3}\n", FVector(1, 2, 3));
+    int shifts[] = { 1, 65 };
+
+    for (auto x : shifts)
+    {
+        std::cout << std::format("left shift  {:5} is {}\nright shift {:5} is {}\n", 
+            x, (u1 << x).to_string(), x, (u1 >> x).to_string());
+    }
 
     return 0;
 }
+// 1111111111111111111111111111111111111111111111111111111111111111
+// 0000000000000000000000000000000000000000000000000000000000000000

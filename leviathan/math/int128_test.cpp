@@ -1,0 +1,193 @@
+#include "int128.hpp"
+
+#include <catch2/catch_all.hpp>
+
+using u128 = leviathan::math::uint128_t;
+
+namespace uconstant
+{
+
+inline constexpr u128 Zero = u128(0, 0);
+inline constexpr u128 One = u128(0, 1);
+inline constexpr u128 Two = u128(0, 2);
+inline constexpr u128 Three = u128(0, 3);
+
+inline constexpr u128 TwoPower64 = u128(1, 0);
+inline constexpr u128 TwoPower64PlusOne = u128(1, 1);
+inline constexpr u128 TwoPower64MinusOne = u128(0, -1);
+
+inline constexpr u128 Max = u128::max();
+
+}
+
+template <typename... Ts>
+struct UnsignedIntegerConstructorTest
+{
+    constexpr static u128 one = uconstant::One;
+    
+    void static TestConstructors()
+    {
+        auto impl = []<typename T>() 
+        {
+            T temp = 1;
+            REQUIRE(one == temp);
+        };
+
+        (impl.template operator()<Ts>(), ...);
+    }   
+
+    void static TestAssignment()
+    {
+        auto impl = []<typename T>() 
+        {
+            u128 x;
+            x = static_cast<T>(1);
+            REQUIRE(one == x);
+        };
+
+        (impl.template operator()<Ts>(), ...);
+    }
+
+    void static TestConvert()
+    {
+        auto impl = []<typename T>() 
+        {
+            T temp = static_cast<T>(one);
+            REQUIRE(one == temp);
+        };
+
+        (impl.template operator()<Ts>(), ...);
+    }
+};
+
+TEST_CASE("UnsignedInteger Constructors")
+{
+    UnsignedIntegerConstructorTest<
+        char, 
+        char16_t, 
+        char32_t,
+        int8_t,
+        int16_t,
+        int32_t,
+        int64_t,
+        uint8_t,
+        uint16_t,
+        uint32_t,
+        uint64_t,
+        float,
+        double,
+        long double
+        >::TestConstructors();
+}
+
+TEST_CASE("UnsignedInteger Conversion")
+{
+    UnsignedIntegerConstructorTest<
+        char, 
+        char16_t, 
+        char32_t,
+        int8_t,
+        int16_t,
+        int32_t,
+        int64_t,
+        uint8_t,
+        uint16_t,
+        uint32_t,
+        uint64_t,
+        float,
+        double,
+        long double
+        >::TestConvert();
+}
+
+TEST_CASE("UnsignedInteger Assignment")
+{
+    UnsignedIntegerConstructorTest<
+        char, 
+        char16_t, 
+        char32_t,
+        int8_t,
+        int16_t,
+        int32_t,
+        int64_t,
+        uint8_t,
+        uint16_t,
+        uint32_t,
+        uint64_t,
+        float,
+        double,
+        long double
+        >::TestAssignment();
+}
+
+bool UnsignedCheckEqual(u128 x, u128 y)
+{
+    bool result = x.to_string() == y.to_string();
+    if (result)
+    {
+        REQUIRE(x == y);
+    }
+    return result;
+}
+
+TEST_CASE("UnsignedIntegerUnaryOperation")
+{
+    using namespace uconstant;
+
+    REQUIRE(UnsignedCheckEqual(-Zero, Zero));
+    
+    REQUIRE(UnsignedCheckEqual(+Zero, Zero));
+
+    REQUIRE(UnsignedCheckEqual(~Zero, Max));
+    REQUIRE(UnsignedCheckEqual(~Max, Zero));
+
+    REQUIRE(!Zero == true);
+    REQUIRE(!One == false);
+}
+
+TEST_CASE("UnsignedIntegerBinaryOperarion")
+{
+    using namespace uconstant;
+
+    SECTION("BitOperation")
+    {
+        REQUIRE(UnsignedCheckEqual(One | Zero, One));
+        REQUIRE(UnsignedCheckEqual(Max | Zero, Max));
+        
+        REQUIRE(UnsignedCheckEqual(Max & Zero, Zero));
+        REQUIRE(UnsignedCheckEqual(One & Max, One));
+
+        REQUIRE(UnsignedCheckEqual(One ^ Zero, One));
+        REQUIRE(UnsignedCheckEqual(One ^ One, Zero));
+    }
+
+    SECTION("EqualOperation")
+    {
+        // See `UnsignedCheckEqual`
+    }
+
+    SECTION("AddOperation")
+    {
+        REQUIRE(UnsignedCheckEqual(Zero + One, One));
+        REQUIRE(UnsignedCheckEqual(Zero + Zero, Zero));
+        REQUIRE(UnsignedCheckEqual(One + One, Two));
+        REQUIRE(UnsignedCheckEqual(One + Two, Three));
+
+        REQUIRE(UnsignedCheckEqual(TwoPower64MinusOne + One, TwoPower64));
+        REQUIRE(UnsignedCheckEqual(TwoPower64 + One, TwoPower64PlusOne));
+        REQUIRE(UnsignedCheckEqual(Max + One, Zero));
+    }
+
+    SECTION("SubOperation")
+    {
+        REQUIRE(UnsignedCheckEqual(Two - One, One));
+        REQUIRE(UnsignedCheckEqual(Three - Two, One));
+        REQUIRE(UnsignedCheckEqual(One - Zero, One));
+        REQUIRE(UnsignedCheckEqual(Zero - One, Max));
+
+        REQUIRE(UnsignedCheckEqual(TwoPower64 - One, TwoPower64MinusOne));
+        REQUIRE(UnsignedCheckEqual(TwoPower64PlusOne - One, TwoPower64));
+    }
+
+}
+

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utilis.hpp"
+#include "common.hpp"
 
 #include <utility>
 #include <cstdint>
@@ -72,7 +72,7 @@ private:
 
     constexpr static T euclidean_distance(const vector& v1, const vector& v2)
     {
-        return sqrt(Lp_norm(summation, square, v1.data(), v2.data(), indices));
+        return square_root(Lp_norm(summation, square, v1.data(), v2.data(), indices));
     }
     
     constexpr static T manhattan_distance(const vector& v1, const vector& v2)
@@ -282,7 +282,7 @@ public:
 
     constexpr static T size(const vector& v)
     {
-        return sqrt(size_square(v));
+        return square_root(size_square(v));
     }
 
     constexpr static T size_square(const vector& v)
@@ -309,7 +309,7 @@ public:
     {
         const auto len = size_square(v);
         return len > small_number 
-            ? binary_operation(std::multiplies<T>(), v, static_cast<T>(1) / sqrt(len))
+            ? binary_operation(std::multiplies<T>(), v, static_cast<T>(1) / square_root(len))
             : zero_vector;
     }
 
