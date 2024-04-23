@@ -191,6 +191,21 @@ public:
 
     constexpr uint128 operator*(uint128 rhs) const
     {
+        // We split uint128 into three parts: 
+        // High64bit(H64), Low-High32bit(LH32) and Low-Low32bit(LL32)
+        // |----------------|--------|--------|
+        // 128             64        32       0
+        //        H64           LH32     LL32
+        //                           L64
+        // A * B = 
+        // H64(A) * H64(B) => Overflow
+        // H64(A) * L64(B) => H64
+        // L64(A) * H64(B) => H64
+        // L64(A) * L64(B) =    
+        //      LH32(A) * LH32(B) => H64
+        //      LL32(A) * LH32(B) => H64 or L64
+        //      LH32(A) * LL32(B) => H64 or L64
+        //      LL32(A) * LL32(B) => L64
         constexpr uint64_t mask = 0xffffffff;   // mask low 64-bit
 
         const uint64_t ah = m_value.lower() >> 32;
@@ -199,16 +214,16 @@ public:
         const uint64_t bh = rhs.m_value.lower() >> 32;
         const uint64_t bl = rhs.m_value.lower() & mask;
         
-        const auto part_hi = m_value.upper() * rhs.m_value.lower() 
-                           + m_value.lower() * rhs.m_value.upper() 
-                           + ah * bh;
+        const auto part_hi = m_value.upper() * rhs.m_value.lower() // H64(A) * L64(B)
+                           + m_value.lower() * rhs.m_value.upper() // L64(A) * H64(B)
+                           + ah * bh;                              // LH32(A) * LH32(B)
 
-        const auto lo = al * bl;
+        const auto lo = al * bl; // LL32(A) * LL32(B)
 
         uint128 result(part_hi, lo);
 
-        result += uint128(ah * bl) << 32;
-        result += uint128(bh * al) << 32;
+        result += uint128(ah * bl) << 32;  // LH32(A) * LL32(B)
+        result += uint128(bh * al) << 32;  // LL32(A) * LH32(B)
 
         return result;
     }
