@@ -7,16 +7,16 @@ namespace leviathan::collections
 
     struct simple_binary_node : tree_node_basic_operation<simple_binary_node>
     {
-        constexpr static void reset(simple_binary_node* node)
+        static constexpr void reset(simple_binary_node* node)
         {
             node->m_parent = nullptr;
             node->m_left = node->m_right = node;
         }
 
-        constexpr static void init(simple_binary_node* node)
+        static constexpr void init(simple_binary_node* node)
         { node->m_left = node->m_right = node->m_parent = nullptr; }
 
-        constexpr static void insert_and_rebalance(bool insert_left,
+        static constexpr void insert_and_rebalance(bool insert_left,
                                       simple_binary_node* x,
                                       simple_binary_node* p,
                                       simple_binary_node& header)
@@ -43,13 +43,13 @@ namespace leviathan::collections
             }
         }
 
-        constexpr static bool is_header(simple_binary_node* node)
+        static constexpr bool is_header(simple_binary_node* node)
         { return node->m_parent == nullptr; }            
 
-        constexpr static void clone(simple_binary_node* x, const simple_binary_node* y)
+        static constexpr void clone(simple_binary_node* x, const simple_binary_node* y)
         { } 
 
-        constexpr static simple_binary_node* rebalance_for_erase(simple_binary_node* z, simple_binary_node& header)
+        static constexpr simple_binary_node* rebalance_for_erase(simple_binary_node* z, simple_binary_node& header)
         {
             auto x = z;
 

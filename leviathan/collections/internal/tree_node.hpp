@@ -12,7 +12,7 @@ namespace leviathan::collections
     template <typename TreeNode>
     struct tree_node_basic_operation
     {
-        constexpr static TreeNode* increment(TreeNode* x)
+        static constexpr TreeNode* increment(TreeNode* x)
         {
             assert(x && "x should not be nullptr");
             if (x->m_right)
@@ -33,7 +33,7 @@ namespace leviathan::collections
             return x;
         }
 
-        constexpr static TreeNode* decrement(TreeNode* x)
+        static constexpr TreeNode* decrement(TreeNode* x)
         {
             assert(x && "x should not be nullptr");
             if (x->m_left)
@@ -54,30 +54,30 @@ namespace leviathan::collections
             return x;
         }
 
-        constexpr static const TreeNode* increment(const TreeNode* x)
+        static constexpr const TreeNode* increment(const TreeNode* x)
         { return increment(const_cast<TreeNode*>(x)); }
 
-        constexpr static const TreeNode* decrement(const TreeNode* x)
+        static constexpr const TreeNode* decrement(const TreeNode* x)
         { return decrement(const_cast<TreeNode*>(x)); }
 
-        constexpr static TreeNode* maximum(TreeNode* x)
+        static constexpr TreeNode* maximum(TreeNode* x)
         {
             assert(x && "x should not be nullptr");
             for (; x->m_right; x = x->m_right);
             return x;
         }
 
-        constexpr static TreeNode* minimum(TreeNode* x)
+        static constexpr TreeNode* minimum(TreeNode* x)
         {
             assert(x && "x should not be nullptr");
             for (; x->m_left; x = x->m_left);
             return x;
         }
 
-        constexpr static const TreeNode* maximum(const TreeNode* x)
+        static constexpr const TreeNode* maximum(const TreeNode* x)
         { return maximum(const_cast<TreeNode*>(x)); }
 
-        constexpr static const TreeNode* minimum(const TreeNode* x)
+        static constexpr const TreeNode* minimum(const TreeNode* x)
         { return minimum(const_cast<TreeNode*>(x)); }
 
         /*
@@ -85,7 +85,7 @@ namespace leviathan::collections
         *       \   =>   /    
         *         y    x
         */
-        constexpr static void tree_rotate_left(TreeNode* x, TreeNode*& root)
+        static constexpr void tree_rotate_left(TreeNode* x, TreeNode*& root)
         {
             TreeNode* y = x->m_right;
 
@@ -111,7 +111,7 @@ namespace leviathan::collections
         *    /     =>    \
         *   y              x
         */
-        constexpr static void tree_rotate_right(TreeNode* x, TreeNode*& root)
+        static constexpr void tree_rotate_right(TreeNode* x, TreeNode*& root)
         {
             TreeNode* y = x->m_left;
 
@@ -131,31 +131,31 @@ namespace leviathan::collections
         }
 
         // Observers and modifiers
-        constexpr static TreeNode* left(TreeNode* x) 
+        static constexpr TreeNode* left(TreeNode* x) 
         { return x->m_left; }
 
-        constexpr static TreeNode* right(TreeNode* x) 
+        static constexpr TreeNode* right(TreeNode* x) 
         { return x->m_right; }
 
-        constexpr static TreeNode* parent(TreeNode* x) 
+        static constexpr TreeNode* parent(TreeNode* x) 
         { return x->m_parent; }
 
-        constexpr static const TreeNode* left(const TreeNode* x) 
+        static constexpr const TreeNode* left(const TreeNode* x) 
         { return x->m_left; }
 
-        constexpr static const TreeNode* right(const TreeNode* x) 
+        static constexpr const TreeNode* right(const TreeNode* x) 
         { return x->m_right; }
 
-        constexpr static const TreeNode* parent(const TreeNode* x) 
+        static constexpr const TreeNode* parent(const TreeNode* x) 
         { return x->m_parent; }
 
-        constexpr static void set_left(TreeNode* x, TreeNode* left)
+        static constexpr void set_left(TreeNode* x, TreeNode* left)
         { x->m_left = left; }
 
-        constexpr static void set_right(TreeNode* x, TreeNode* right)
+        static constexpr void set_right(TreeNode* x, TreeNode* right)
         { x->m_right = right; }
 
-        constexpr static void set_parent(TreeNode* x, TreeNode* parent)
+        static constexpr void set_parent(TreeNode* x, TreeNode* parent)
         { x->m_parent = parent; }
 
         TreeNode* m_parent;

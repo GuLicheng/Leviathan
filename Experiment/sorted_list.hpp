@@ -107,15 +107,15 @@ namespace leviathan::collections
         using bucket_list_type = buffer<bucket_type>;
         using self_type = sorted_list;
 
-        constexpr static bool IsTransparent = detail::is_transparent<Compare>;
+        static constexpr bool IsTransparent = detail::is_transparent<Compare>;
         
         template <typename U>
         using key_arg_t = detail::key_arg<IsTransparent, U, key_type>;
 
-        constexpr static bool IsAllocatorAlwaysEqual = typename alloc_traits::is_always_equal();
-        constexpr static bool NoexceptSwap = std::is_nothrow_swappable_v<Compare> && IsAllocatorAlwaysEqual;
-        constexpr static bool NoexceptMoveConstruction = std::is_nothrow_move_constructible_v<Compare> && IsAllocatorAlwaysEqual;
-        constexpr static bool NoexceptMoveAssignment = std::is_nothrow_assignable_v<Compare> && IsAllocatorAlwaysEqual;
+        static constexpr bool IsAllocatorAlwaysEqual = typename alloc_traits::is_always_equal();
+        static constexpr bool NoexceptSwap = std::is_nothrow_swappable_v<Compare> && IsAllocatorAlwaysEqual;
+        static constexpr bool NoexceptMoveConstruction = std::is_nothrow_move_constructible_v<Compare> && IsAllocatorAlwaysEqual;
+        static constexpr bool NoexceptMoveAssignment = std::is_nothrow_assignable_v<Compare> && IsAllocatorAlwaysEqual;
 
         struct sorted_list_impl
         {

@@ -16,7 +16,7 @@ namespace leviathan
     template <typename T>
     struct default_initializer
     {
-        constexpr static auto operator()() { return T{}; }
+        static constexpr auto operator()() { return T{}; }
     };
 
     /**
@@ -32,7 +32,7 @@ namespace leviathan
     template <basic_fixed_string Tag, typename T>
     struct tag_value 
     {
-        constexpr static auto tag() { return Tag; }
+        static constexpr auto tag() { return Tag; }
 
         using value_type = T;
 
@@ -51,7 +51,7 @@ namespace leviathan
     template <basic_fixed_string Tag>
     struct arg_t
     {
-        constexpr static auto tag() { return Tag; }
+        static constexpr auto tag() { return Tag; }
 
         template <typename T>
         constexpr auto operator=(T t) const 
@@ -81,8 +81,8 @@ namespace leviathan
     struct field
     {
         using value_type = T;
-        constexpr static auto tag_value = Tag;
-        constexpr static auto initializer_value() { return Initializer(); }
+        static constexpr auto tag_value = Tag;
+        static constexpr auto initializer_value() { return Initializer(); }
     };
 
     namespace detail
@@ -114,7 +114,7 @@ namespace leviathan
     template <typename... Fields>
     class named_tuple
     {
-        constexpr static fixed_string_list<Fields::tag_value...> tag_list { };
+        static constexpr fixed_string_list<Fields::tag_value...> tag_list { };
     public:
         using tuple_type = std::tuple<typename Fields::value_type...>;
 

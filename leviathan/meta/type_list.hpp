@@ -521,7 +521,7 @@ template <typename List, size_t N>
 struct take
 {
 private:
-    constexpr static auto size = leviathan::meta::size<List>::value;
+    static constexpr auto size = leviathan::meta::size<List>::value;
 public:
     using type = typename detail::iterate<size - N - 1, leviathan::meta::pop_back, List>::type;
 };
@@ -541,7 +541,7 @@ template <typename List, size_t N>
 struct take_last
 {
 private:
-    constexpr static auto size = leviathan::meta::size<List>::value;
+    static constexpr auto size = leviathan::meta::size<List>::value;
 public:
     using type = typename detail::iterate<size - N - 1, leviathan::meta::pop_front, List>::type;
 };
@@ -589,7 +589,7 @@ struct Idx2Arr;
 template <std::size_t... Idx>
 struct Idx2Arr<std::index_sequence<Idx...>>
 {
-    constexpr static std::array value = { Idx... };
+    static constexpr std::array value = { Idx... };
 };
 
 */

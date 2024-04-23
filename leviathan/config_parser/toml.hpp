@@ -34,7 +34,7 @@ namespace leviathan::config::toml
     {
         struct config
         {
-            constexpr static int value = 256;
+            static constexpr int value = 256;
 
             int operator()(size_t x) const
             {

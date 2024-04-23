@@ -23,7 +23,7 @@ struct endian
     using lower_type = uint64_t;
     using upper_type = std::conditional_t<Signed, int64_t, uint64_t>;
 
-    constexpr static bool lower_index = (Endian == std::endian::little);
+    static constexpr bool lower_index = (Endian == std::endian::little);
 
     uint64_t m_data[2];
     
@@ -242,6 +242,7 @@ public:
             : m_value.lower() <=> rhs.m_value.lower();
     }
 
+    // Other operators
     constexpr uint128& operator+=(uint128 rhs) { return *this = *this + rhs; }
     constexpr uint128& operator-=(uint128 rhs) { return *this = *this - rhs; }
     constexpr uint128& operator*=(uint128 rhs) { return *this = *this * rhs; }
@@ -272,10 +273,41 @@ public:
         return temp;
     }
 
+    // Bits
     constexpr friend int popcount(uint128 x) 
     {
         return std::popcount(x.m_value.lower()) 
              + std::popcount(x.m_value.upper());
+    }
+
+    friend constexpr bool has_single_bit(uint128 x) { return popcount(x) == 1; }
+
+    friend constexpr int countl_zero(uint128 x)
+    {
+        return x.m_value.upper() == 0 
+             ? std::countl_zero(x.m_value.lower()) + 64
+             : std::countl_zero(x.m_value.upper());
+    } 
+
+    friend constexpr int countr_zero(uint128 x)
+    {
+        return x.m_value.lower() == 0
+             ? std::countr_zero(x.m_value.upper()) + 64
+             : std::countr_zero(x.m_value.lower());
+    }
+
+    friend constexpr int countl_one(uint128 x)
+    {
+        return x.m_value.upper() == std::numeric_limits<uint64_t>::max()
+             ? std::countl_one(x.m_value.lower()) + 64
+             : std::countl_one(x.m_value.upper());
+    }
+
+    friend constexpr int countr_one(uint128 x)
+    {
+        return x.m_value.lower() == std::numeric_limits<uint64_t>::max()
+             ? std::countr_one(x.m_value.upper()) + 64
+             : std::countr_one(x.m_value.lower());
     }
 
     std::string to_string() const
@@ -284,7 +316,7 @@ public:
         return b1.to_string() + b2.to_string();
     }
 
-    constexpr static uint128 max() 
+    static constexpr uint128 max() 
     { 
         return uint128(
             std::numeric_limits<uint64_t>::max(), 
@@ -302,3 +334,49 @@ template class uint128<>;
 using uint128_t = uint128<>;
 
 }
+
+template <>
+struct std::is_unsigned<leviathan::math::uint128_t> : std::true_type { };
+
+template <>
+struct std::numeric_limits<leviathan::math::uint128_t>
+{
+private:
+    using uint128 = leviathan::math::uint128_t;
+
+public:
+    static constexpr bool is_specialized = true;
+    static constexpr bool is_signed = false;
+    static constexpr bool is_integer = true;
+    static constexpr bool is_exact = true;
+    static constexpr bool has_infinity = false;
+    static constexpr bool has_quiet_NaN = false;
+    static constexpr bool has_signaling_NaN = false;
+    static constexpr std::float_denorm_style has_denorm = std::float_denorm_style::denorm_absent;
+    static constexpr bool has_denorm_loss = false;
+    static constexpr std::float_round_style round_style = std::float_round_style::round_toward_zero;
+    static constexpr bool is_iec559 = false;
+    static constexpr bool is_bounded = true;
+    static constexpr bool is_modulo = true;
+    static constexpr int digits = 128;
+    static constexpr int digits10 = 38;
+    static constexpr int max_digits10 = 0;
+    static constexpr int radix = 2;
+    static constexpr int min_exponent = 0;
+    static constexpr int min_exponent10 = 0;
+    static constexpr int max_exponent = 0;
+    static constexpr int max_exponent10 = 0;
+
+    static constexpr bool traps = std::numeric_limits<uint64_t>::traps;
+    static constexpr bool tinyness_before = false;
+
+    static constexpr uint128 min() { return 0; }
+    static constexpr uint128 lowest() { return 0; }
+    static constexpr uint128 max() { return uint128::max(); }
+    static constexpr uint128 epsilon() { return 0; }
+    static constexpr uint128 round_error() { return 0; }
+    static constexpr uint128 infinity() { return 0; }
+    static constexpr uint128 quiet_NaN() { return 0; }
+    static constexpr uint128 signaling_NaN() { return 0; }
+    static constexpr uint128 denorm_min() { return 0; }
+};

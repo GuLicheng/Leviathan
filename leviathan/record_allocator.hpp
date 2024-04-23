@@ -59,7 +59,7 @@ class RecordAllocator : public std::allocator<T>
     using Base = std::allocator<T>;
     using Self = RecordAllocator<T>;
 
-    constexpr static std::string_view Name = TypeInfo(Self);
+    static constexpr std::string_view Name = TypeInfo(Self);
 
 public:
     [[nodiscard]] constexpr T *allocate(std::size_t n)
@@ -97,7 +97,7 @@ class RecordPolymorphicAllocator : public std::pmr::polymorphic_allocator<T>
     using Base = std::pmr::polymorphic_allocator<T>;
     using Self = RecordPolymorphicAllocator<T>;
 
-    constexpr static std::string_view Name = TypeInfo(Self);
+    static constexpr std::string_view Name = TypeInfo(Self);
 
 public:
     [[nodiscard]] constexpr T *allocate(std::size_t n)

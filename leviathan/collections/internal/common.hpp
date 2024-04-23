@@ -135,7 +135,7 @@ namespace leviathan::collections
         template <typename T, typename... Args>
         struct emplace_helper
         {
-            constexpr static bool value = []() {
+            static constexpr bool value = []() {
                 if constexpr (sizeof...(Args) != 1)
                     return false;
                 else

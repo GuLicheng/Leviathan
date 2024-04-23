@@ -49,13 +49,13 @@ namespace leviathan::ranges
         template <typename X, typename Y>
         struct func1
         {
-            constexpr static bool value = std::is_nothrow_invocable_v<decltype(std::ranges::iter_swap), const X&, const Y&>;
+            static constexpr bool value = std::is_nothrow_invocable_v<decltype(std::ranges::iter_swap), const X&, const Y&>;
         };
         
         template <typename X, typename Y>
         struct func2
         {
-            constexpr static bool value = std::indirectly_swappable<X, Y>;
+            static constexpr bool value = std::indirectly_swappable<X, Y>;
         };
 
         // unfold:
@@ -68,13 +68,13 @@ namespace leviathan::ranges
         template <template <typename...> typename BinaryFn, typename T, typename... Ts>
         struct combination_one_row
         {
-            constexpr static bool value = (BinaryFn<T, Ts>::value && ...);
+            static constexpr bool value = (BinaryFn<T, Ts>::value && ...);
         };
 
         template <template <typename...> typename BinaryFn, typename... Ts>
         struct combination
         {   
-            constexpr static bool value = (combination_one_row<BinaryFn, Ts, Ts...>::value && ...);
+            static constexpr bool value = (combination_one_row<BinaryFn, Ts, Ts...>::value && ...);
         };
 
         template <bool Const, typename... Vs>
@@ -222,7 +222,7 @@ namespace leviathan::ranges
     struct concat_view<Vs...>::iterator : public detail::has_typedef_name_of_iterator_category<(std::ranges::forward_range<detail::maybe_const_t<Const, Vs>> && ...), decltype(detail::concat_iterator_category<Const, Vs...>())>
     {
     private:
-        constexpr static auto iterator_concept_check()
+        static constexpr auto iterator_concept_check()
         {
             if constexpr (concat_random_access<detail::maybe_const_t<Const, Vs>...>)
                 return std::random_access_iterator_tag{};

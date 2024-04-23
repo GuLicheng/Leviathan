@@ -72,7 +72,7 @@ namespace leviathan::collections
                 return m_value;
             }
 
-            constexpr static bool is_power_of_two(std::size_t x) 
+            static constexpr bool is_power_of_two(std::size_t x) 
             { return std::popcount(x) == 1; }
 
             constexpr std::size_t operator*() const 
@@ -139,7 +139,7 @@ namespace leviathan::collections
         //         125555621, 188333437, 282500161, 423750241, 635625377, 953438137
         //     };
 
-        //     constexpr static bool is_prime(std::size_t x) noexcept
+        //     static constexpr bool is_prime(std::size_t x) noexcept
         //     { return std::ranges::find(prime_table, x) != std::ranges::end(prime_table); } 
 
         //     std::size_t m_value;
@@ -175,12 +175,12 @@ namespace leviathan::collections
 
     protected:
 
-        constexpr static bool IsTransparent = detail::is_transparent<hasher> && detail::is_transparent<key_equal>;
+        static constexpr bool IsTransparent = detail::is_transparent<hasher> && detail::is_transparent<key_equal>;
         
         template <typename U>
         using key_arg_t = detail::key_arg<IsTransparent, U, key_type>;
 
-        constexpr static bool CacheHashCode = true;
+        static constexpr bool CacheHashCode = true;
         using index_type = std::size_t;
         using slot_type = detail::storage_impl<value_type, CacheHashCode>;
         using hash_generator_type = HashGenerator;
@@ -193,23 +193,23 @@ namespace leviathan::collections
 
         using alloc_traits = std::allocator_traits<allocator_type>;
 
-        constexpr static index_type SlotUnused = static_cast<index_type>(-1);
-        constexpr static index_type SlotDeleted = static_cast<index_type>(-2);
-        constexpr static std::size_t default_hash_size = 8;
+        static constexpr index_type SlotUnused = static_cast<index_type>(-1);
+        static constexpr index_type SlotDeleted = static_cast<index_type>(-2);
+        static constexpr std::size_t default_hash_size = 8;
 
-        constexpr static bool IsNothrowMoveConstruct = 
+        static constexpr bool IsNothrowMoveConstruct = 
                     std::is_nothrow_move_constructible_v<hasher> 
                  && std::is_nothrow_move_constructible_v<key_equal> 
                  && typename slot_alloc_traits::is_always_equal()
                  && typename indices_alloc_traits::is_always_equal();
 
-        constexpr static bool IsNothrowMoveAssign = 
+        static constexpr bool IsNothrowMoveAssign = 
                     std::is_nothrow_move_assignable_v<hasher> 
                  && std::is_nothrow_move_assignable_v<key_equal> 
                  && typename slot_alloc_traits::is_always_equal()
                  && typename indices_alloc_traits::is_always_equal();
 
-        constexpr static bool IsNothrowSwap = 
+        static constexpr bool IsNothrowSwap = 
                     std::is_nothrow_swappable_v<hasher> 
                  && std::is_nothrow_swappable_v<key_equal> 
                  && typename slot_alloc_traits::is_always_equal()

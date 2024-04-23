@@ -38,10 +38,10 @@ namespace leviathan::string
 
     private:
 
-        constexpr static bool compare_impl(std::string_view lhs, std::string_view rhs)
+        static constexpr bool compare_impl(std::string_view lhs, std::string_view rhs)
         { return lhs == rhs; }  
 
-        constexpr static size_t hash_impl(std::string_view sv)
+        static constexpr size_t hash_impl(std::string_view sv)
         { return std::hash<std::string_view>()(sv); }
 
     };
@@ -118,7 +118,7 @@ namespace leviathan::string
     template <std::integral I>
     struct lexical_cast_t<I, std::string_view>
     {
-        constexpr static std::optional<I> operator()(std::string_view s, int base = 10) 
+        static constexpr std::optional<I> operator()(std::string_view s, int base = 10) 
         {
             I value;
             auto result = std::from_chars(s.begin(), s.end(), value, base);
@@ -132,7 +132,7 @@ namespace leviathan::string
     template <std::floating_point F>
     struct lexical_cast_t<F, std::string_view>
     {
-        constexpr static std::optional<F> operator()(std::string_view s, std::chars_format fmt = std::chars_format::general) 
+        static constexpr std::optional<F> operator()(std::string_view s, std::chars_format fmt = std::chars_format::general) 
         {
             F value;
             auto result = std::from_chars(s.begin(), s.end(), value, fmt);
@@ -147,7 +147,7 @@ namespace leviathan::string
     struct lexical_cast_t<Target, std::string>
     {
         template <typename... Args>
-        constexpr static auto operator()(const std::string& s, Args... args) 
+        static constexpr auto operator()(const std::string& s, Args... args) 
         {
             return lexical_cast_t<Target, std::string_view>()(s, args...);
         }

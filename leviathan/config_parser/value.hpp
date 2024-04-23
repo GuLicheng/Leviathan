@@ -53,13 +53,13 @@ namespace leviathan::config
         template <typename T>
         struct declaration
         {
-            constexpr static bool value = (false || ... || std::is_same_v<T, Ts>);
+            static constexpr bool value = (false || ... || std::is_same_v<T, Ts>);
         };
 
         template <typename T>
         struct storage
         {
-            constexpr static bool value = (false || ... || std::is_same_v<T, typename mapped<Ts>::type>);
+            static constexpr bool value = (false || ... || std::is_same_v<T, typename mapped<Ts>::type>);
         };
 
         using value_type = std::variant<typename mapped<Ts>::type...>;
@@ -137,10 +137,10 @@ namespace leviathan::config
 
     private:
 
-        constexpr static bool compare_impl(std::string_view lhs, std::string_view rhs)
+        static constexpr bool compare_impl(std::string_view lhs, std::string_view rhs)
         { return lhs == rhs; }  
 
-        constexpr static size_t hash_impl(std::string_view sv)
+        static constexpr size_t hash_impl(std::string_view sv)
         { return std::hash<std::string_view>()(sv); }
     };
 }

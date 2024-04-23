@@ -25,7 +25,7 @@
 //     class join_with_view : public std::ranges::view_interface<join_with_view<V, Pattern>>
 //     {
 //         using inner_range = std::ranges::range_reference_t<V>;
-//         constexpr static bool has_inner_non_propagating_cache = !std::is_reference_v<inner_range>;
+//         static constexpr bool has_inner_non_propagating_cache = !std::is_reference_v<inner_range>;
 //         using non_propagating_cache = std::optional<std::remove_cv_t<inner_range>>;
 
 //         V m_base = V();
@@ -111,7 +111,7 @@
 //         using INNERC = detail::iter_category_t<inner_iterator>;
 //         using PATTERNC = detail::iter_category_t<pattern_iterator>;
 
-//         constexpr static auto category() 
+//         static constexpr auto category() 
 //         {
 //             if constexpr (std::is_lvalue_reference_v<std::common_reference_t<std::iter_reference_t<inner_iterator>, std::iter_reference_t<pattern_iterator>>>)
 //                 return std::input_iterator_tag();
@@ -208,7 +208,7 @@
 //             }
 //         }
 
-//         constexpr static auto iterator_concept_check() 
+//         static constexpr auto iterator_concept_check() 
 //         {
 //             if constexpr (ref_is_glvalue && std::ranges::bidirectional_range<base> && bidirectional_common<inner_base> && bidirectional_common<pattern_base>)
 //                 return std::bidirectional_iterator_tag();

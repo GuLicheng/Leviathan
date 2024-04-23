@@ -45,7 +45,7 @@ class integer
 	int m_length;  // number of actual chars used
 
 public:
-	constexpr static int MaxLength = BitWidth;
+	static constexpr int MaxLength = BitWidth;
 
 	/**
 	 *  Constructor (Default value is 0)

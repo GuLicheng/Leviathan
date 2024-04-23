@@ -26,7 +26,7 @@ inline constexpr u128 Max = u128::max();
 template <typename... Ts>
 struct UnsignedIntegerConstructorTest
 {
-    constexpr static u128 one = uconstant::One;
+    static constexpr u128 one = uconstant::One;
     
     void static TestConstructors()
     {
@@ -218,5 +218,42 @@ TEST_CASE("UnsignedIntegerBinaryOperarion")
         REQUIRE(UnsignedCheckEqual(Two * TwoPower64, DoubleTwoPower64));
     }
 
+    SECTION("Comparision")
+    {
+        REQUIRE(One > Zero);
+        REQUIRE(Zero < One);
+
+        REQUIRE(One >= One);
+        REQUIRE(One <= One);
+
+        REQUIRE(Max > One);
+        REQUIRE(Max > TwoPower64);
+        REQUIRE(Max > TwoPower64);
+        REQUIRE(Max > TwoPower64MinusOne);
+
+        REQUIRE(One < TwoPower64);        
+        REQUIRE(One <= TwoPower64);        
+        REQUIRE(TwoPower64MinusOne <= TwoPower64);        
+    }
+
+    SECTION("Increase self")
+    {
+        u128 u = One;
+
+        REQUIRE(++u == Two);
+        REQUIRE(u == Two);
+        REQUIRE(u++ == Two);
+        REQUIRE(u == Three);
+    }
+
+    SECTION("Decrease self")
+    {
+        u128 u = Two;
+
+        REQUIRE(u-- == Two);
+        REQUIRE(u == One);
+        REQUIRE(--u == Zero);
+        REQUIRE(u == Zero);
+    }
 }
 

@@ -500,7 +500,7 @@ namespace leviathan::config::json
     {
         struct dump_helper
         {
-            constexpr static const char* padding_character = "  ";
+            static constexpr const char* padding_character = "  ";
 
             template <typename OStream, typename Character>
             static void json_padding(OStream& os, Character character, int count)

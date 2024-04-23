@@ -21,15 +21,15 @@ namespace leviathan::collections
     {
         using alloc_traits = std::allocator_traits<Allocator>;
 
-        constexpr static bool IsNothrowMoveConstruct = 
+        static constexpr bool IsNothrowMoveConstruct = 
                     std::is_nothrow_move_constructible_v<T> 
                  && typename alloc_traits::is_always_equal();
 
-        constexpr static bool IsNothrowMoveAssign = 
+        static constexpr bool IsNothrowMoveAssign = 
                     std::is_nothrow_move_assignable_v<T> 
                  && typename alloc_traits::is_always_equal();
 
-        constexpr static bool IsNothrowSwap = 
+        static constexpr bool IsNothrowSwap = 
                     std::is_nothrow_swappable_v<T> 
                  && typename alloc_traits::is_always_equal();
 

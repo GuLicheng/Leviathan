@@ -16,7 +16,7 @@
 //         enum class store_type { None, Iter, Offset };
 
 //         //  For forward_range, cache iterator, for random_access_range, cache offset, View otherwise 
-//         constexpr static store_type st = []{
+//         static constexpr store_type st = []{
 //             if constexpr (std::ranges::random_access_range<V> && 
 //                 (sizeof(std::ranges::range_difference_t<V>) <= sizeof(std::ranges::iterator_t<V>)))
 //                 return store_type::Offset;

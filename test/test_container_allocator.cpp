@@ -26,7 +26,7 @@ public:
     using alloc_traits = std::allocator_traits<Allocator>;
     using node_alloc_traits = typename std::allocator_traits<Allocator>::template rebind_traits<ListNode>;
     using node_alloc_type = typename std::allocator_traits<Allocator>::template rebind_alloc<ListNode>;
-    constexpr static auto NoException = typename alloc_traits::is_always_equal();
+    static constexpr auto NoException = typename alloc_traits::is_always_equal();
 
     struct Iterator {
 

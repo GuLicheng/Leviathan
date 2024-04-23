@@ -25,26 +25,26 @@ namespace leviathan::collections
         };
 
 
-        constexpr static void reset(_Rb_tree_node_base* node)
+        static constexpr void reset(_Rb_tree_node_base* node)
         {
             node->m_parent = nullptr;
             node->m_left = node->m_right = node;
             node->m_color = _S_sentinel;
         }
 
-        constexpr static void init(_Rb_tree_node_base* node)
+        static constexpr void init(_Rb_tree_node_base* node)
         {
             node->m_left = node->m_right = node->m_parent = nullptr;
             node->m_color = _S_red;
         }
 
-        constexpr static bool is_header(_Rb_tree_node_base* node)
+        static constexpr bool is_header(_Rb_tree_node_base* node)
         { return node->m_color == _S_sentinel; } 
 
-        constexpr static void clone(_Rb_tree_node_base* x, const _Rb_tree_node_base* y)
+        static constexpr void clone(_Rb_tree_node_base* x, const _Rb_tree_node_base* y)
         { x->m_color = y->m_color; } 
 
-        constexpr static void
+        static constexpr void
         insert_and_rebalance(const bool __insert_left,
                                       _Rb_tree_node_base *__x,
                                       _Rb_tree_node_base *__p,
@@ -136,7 +136,7 @@ namespace leviathan::collections
             __header.m_color = _S_sentinel;
         }
 
-        constexpr static _Rb_tree_node_base *
+        static constexpr _Rb_tree_node_base *
         rebalance_for_erase(_Rb_tree_node_base *const __z,
                                      _Rb_tree_node_base &__header) 
         {

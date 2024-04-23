@@ -16,9 +16,9 @@ namespace leviathan::logging
 
     class pattern_formatter : public basic_formatter
     {
-        constexpr static std::string_view default_pattern = "%(time) : %(level) - %(message)";
+        static constexpr std::string_view default_pattern = "%(time) : %(level) - %(message)";
 
-        constexpr static std::array<std::string_view, 2> replace_table[] = {
+        static constexpr std::array<std::string_view, 2> replace_table[] = {
             { "time", "0" },
             { "level", "1" },
             { "message", "2" },

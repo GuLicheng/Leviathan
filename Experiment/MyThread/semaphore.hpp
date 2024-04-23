@@ -7,7 +7,7 @@
 struct Semaphore
 {
     using clock_type = std::chrono::system_clock;
-    constexpr static std::ptrdiff_t max_sem = SEM_VALUE_MAX;
+    static constexpr std::ptrdiff_t max_sem = SEM_VALUE_MAX;
 
     NOCOPYABLE(Semaphore)
 
@@ -122,7 +122,7 @@ public:
 
     ~CountingSemaphore() = default;
 
-    constexpr static auto max() noexcept
+    static constexpr auto max() noexcept
     { return Count; }
 
     void release(std::ptrdiff_t update = 1) noexcept(noexcept(m_semaphore.release(update)))

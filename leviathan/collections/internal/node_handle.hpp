@@ -23,7 +23,7 @@ namespace leviathan::collections
     {
         using allocator_type = Alloc;
         using alloc_traits = std::allocator_traits<allocator_type>;
-        constexpr static bool IsNothrowSwap = 
+        static constexpr bool IsNothrowSwap = 
                 alloc_traits::propagate_on_container_swap::value 
              || alloc_traits::is_always_equal::value;
 

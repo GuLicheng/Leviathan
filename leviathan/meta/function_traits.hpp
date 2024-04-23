@@ -24,9 +24,9 @@ namespace leviathan::meta
             template <std::size_t N>
             using nth_arg = std::tuple_element_t<N, std::tuple<Args...>>;
 
-            constexpr static bool is_noexcept = IsNoThrow;
+            static constexpr bool is_noexcept = IsNoThrow;
 
-            constexpr static unsigned attribute = Attribute;
+            static constexpr unsigned attribute = Attribute;
             /*
                 0000 for none
                 0001 for const

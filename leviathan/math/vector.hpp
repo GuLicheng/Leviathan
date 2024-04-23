@@ -22,72 +22,72 @@ struct vector
 
 private:
 
-    constexpr static auto indices = std::make_index_sequence<Dimension>();
+    static constexpr auto indices = std::make_index_sequence<Dimension>();
 
-    constexpr static T small_number = static_cast<T>(1e-5);
+    static constexpr T small_number = static_cast<T>(1e-5);
 
     // Helper functions
     template <typename UnaryOp, typename I, size_t... Indices>
-    constexpr static vector unary_operation_impl(UnaryOp fn, I first, std::index_sequence<Indices...>)
+    static constexpr vector unary_operation_impl(UnaryOp fn, I first, std::index_sequence<Indices...>)
     {
         return { fn(first[Indices])... };
     }
 
     template <typename UnaryOp>
-    constexpr static vector unary_operation(UnaryOp fn, const vector& v)
+    static constexpr vector unary_operation(UnaryOp fn, const vector& v)
     {
         return unary_operation_impl(fn, v.data(), indices);
     }
 
     template <typename BinaryOp, typename I, size_t... Indices>
-    constexpr static vector binary_operation_impl(BinaryOp fn, I first, I second, std::index_sequence<Indices...>)
+    static constexpr vector binary_operation_impl(BinaryOp fn, I first, I second, std::index_sequence<Indices...>)
     {
         return { fn(first[Indices], second[Indices])... };
     }
 
     template <typename BinaryOp, typename I, size_t... Indices>
-    constexpr static vector binary_operation_impl(BinaryOp fn, I first, T scale, std::index_sequence<Indices...>)
+    static constexpr vector binary_operation_impl(BinaryOp fn, I first, T scale, std::index_sequence<Indices...>)
     {
         return { fn(first[Indices], scale)... };
     }
 
     template <typename BinaryOp>
-    constexpr static vector binary_operation(BinaryOp fn, const vector& v1, const vector& v2)
+    static constexpr vector binary_operation(BinaryOp fn, const vector& v1, const vector& v2)
     {
         return binary_operation_impl(fn, v1.data(), v2.data(), indices);
     }
 
     template <typename BinaryOp>
-    constexpr static vector binary_operation(BinaryOp fn, const vector& v, T scale)
+    static constexpr vector binary_operation(BinaryOp fn, const vector& v, T scale)
     {
         return binary_operation_impl(fn, v.data(), scale, indices);
     }
 
     // ||x||_p = Sigma|x_i| ^ (1/p)
     template <typename Fn1, typename Fn2, typename I, size_t... Idx>
-    constexpr static T Lp_norm(Fn1 fn1, Fn2 fn2, I first, I second, std::index_sequence<Idx...>)
+    static constexpr T Lp_norm(Fn1 fn1, Fn2 fn2, I first, I second, std::index_sequence<Idx...>)
     {
         return fn1(fn2(first[Idx] - second[Idx])...);
     }
 
-    constexpr static T euclidean_distance(const vector& v1, const vector& v2)
+    static constexpr T euclidean_distance(const vector& v1, const vector& v2)
     {
         return square_root(Lp_norm(summation, square, v1.data(), v2.data(), indices));
     }
     
-    constexpr static T manhattan_distance(const vector& v1, const vector& v2)
+    static constexpr T manhattan_distance(const vector& v1, const vector& v2)
     {
         return Lp_norm(summation, absolute_value, v1.data(), v2.data(), indices);
     }
 
-    constexpr static T chebyshev_distance(const vector& v1, const vector& v2)
+    static constexpr T chebyshev_distance(const vector& v1, const vector& v2)
     {
         return Lp_norm(max_value, absolute_value, v1.data(), v2.data(), indices);
     }
 
 public:
 
-    constexpr static const vector zero_vector = vector();
+    static constexpr const vector zero_vector = vector();
 
 
     // Binary operations
@@ -220,12 +220,12 @@ public:
         return m_data[idx];
     }
 
-    constexpr static T dot_product(const vector& v1, const vector& v2)
+    static constexpr T dot_product(const vector& v1, const vector& v2)
     {
         return v1 | v2;
     }
 
-    constexpr static auto cross_product(const vector& v1, const vector& v2)
+    static constexpr auto cross_product(const vector& v1, const vector& v2)
     {
         return v1 ^ v2;
     }
@@ -255,57 +255,57 @@ public:
         return Dimension;
     }
 
-    constexpr static vector max(const vector& v1, const vector& v2)
+    static constexpr vector max(const vector& v1, const vector& v2)
     {
         return binary_operation(max_value, v1, v2);
     }
 
-    constexpr static vector min(const vector& v1, const vector& v2)
+    static constexpr vector min(const vector& v1, const vector& v2)
     {
         return binary_operation(min_value, v1, v2);
     }
 
-    constexpr static vector abs(const vector& v)
+    static constexpr vector abs(const vector& v)
     {
         return unary_operation(absolute_value, v);
     }
 
-    constexpr static vector sign_vector(const vector& v)
+    static constexpr vector sign_vector(const vector& v)
     {
         return unary_operation(sign, v);
     }
 
-    constexpr static T distance(const vector& v1, const vector& v2)
+    static constexpr T distance(const vector& v1, const vector& v2)
     {
         return euclidean_distance(v1, v2);
     }
 
-    constexpr static T size(const vector& v)
+    static constexpr T size(const vector& v)
     {
         return square_root(size_square(v));
     }
 
-    constexpr static T size_square(const vector& v)
+    static constexpr T size_square(const vector& v)
     {
         return Lp_norm(summation, square, v.data(), zero_vector.data(), indices);
     }
 
-    constexpr static T length(const vector& v)
+    static constexpr T length(const vector& v)
     {
         return size(v);
     }
 
-    constexpr static T length_square(const vector& v)
+    static constexpr T length_square(const vector& v)
     {
         return size_square(v);
     }
 
-    constexpr static vector normalize(const vector& v)
+    static constexpr vector normalize(const vector& v)
     {
         return binary_operation(std::multiplies<T>(), v, static_cast<T>(1) / size(v));
     }
 
-    constexpr static vector safe_normalize(const vector& v)
+    static constexpr vector safe_normalize(const vector& v)
     {
         const auto len = size_square(v);
         return len > small_number 

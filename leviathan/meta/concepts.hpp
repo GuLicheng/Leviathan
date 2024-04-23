@@ -39,7 +39,7 @@ namespace leviathan::meta
         template <std::size_t N>
         using tuple_element_t = std::tuple_element_t<N, this_type>;
 
-        constexpr static auto tuple_size_v = std::tuple_size_v<this_type>;
+        static constexpr auto tuple_size_v = std::tuple_size_v<this_type>;
 
     };
 

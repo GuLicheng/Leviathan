@@ -8,23 +8,23 @@ namespace leviathan::collections
 {
     struct avl_node : tree_node_basic_operation<avl_node>
     {
-        constexpr static void reset(avl_node* node)
+        static constexpr void reset(avl_node* node)
         {
             node->m_parent = nullptr;
             node->m_left = node->m_right = node;
             node->m_height = -1;    // If m_height == -1, the node must be header.
         }
 
-        constexpr static void init(avl_node* node)
+        static constexpr void init(avl_node* node)
         {
             node->m_left = node->m_right = node->m_parent = nullptr;
             node->m_height = 1; // the height of left is 1
         }
 
-        constexpr static int height(const avl_node* x)
+        static constexpr int height(const avl_node* x)
         { return x ? x->m_height : 0; }
 
-        constexpr static void update_height(avl_node* x)
+        static constexpr void update_height(avl_node* x)
         {
             assert(x && "x should not be nullptr");
             int lh = height(x->m_left);
@@ -33,7 +33,7 @@ namespace leviathan::collections
         }
 
         // remove x from tree and return removed node
-        constexpr static void erase_node(avl_node* x, avl_node* header)
+        static constexpr void erase_node(avl_node* x, avl_node* header)
         {
             assert(x && "x should not be nullptr");
 
@@ -115,7 +115,7 @@ namespace leviathan::collections
             avl_tree_rebalance_erase(parent, header);
         }
 
-        constexpr static void avl_tree_fix_l(avl_node* x, avl_node* header)
+        static constexpr void avl_tree_fix_l(avl_node* x, avl_node* header)
         {
             auto r = x->m_right;
             int lh0 = height(r->m_left);
@@ -131,7 +131,7 @@ namespace leviathan::collections
             update_height(x->m_parent);
         }
 
-        constexpr static void avl_tree_fix_r(avl_node* x, avl_node* header)
+        static constexpr void avl_tree_fix_r(avl_node* x, avl_node* header)
         {
             auto l = x->m_left;
             int lh0 = height(l->m_left);
@@ -147,7 +147,7 @@ namespace leviathan::collections
             update_height(x->m_parent);
         }
 
-        constexpr static void avl_tree_rebalance_insert(avl_node* x, avl_node* header)
+        static constexpr void avl_tree_rebalance_insert(avl_node* x, avl_node* header)
         {
             for (x = x->m_parent; x != header; x = x->m_parent)
             {
@@ -169,7 +169,7 @@ namespace leviathan::collections
             }
         }
 
-        constexpr static void avl_tree_rebalance_erase(avl_node* x, avl_node* header)
+        static constexpr void avl_tree_rebalance_erase(avl_node* x, avl_node* header)
         {
             for (; x != header; x = x->m_parent)
             {
@@ -192,7 +192,7 @@ namespace leviathan::collections
             }
         }
 
-        constexpr static void insert_and_rebalance(bool insert_left,
+        static constexpr void insert_and_rebalance(bool insert_left,
                                       avl_node* x,
                                       avl_node* p,
                                       avl_node& header)
@@ -223,17 +223,17 @@ namespace leviathan::collections
             avl_node::avl_tree_rebalance_insert(x, &header);
         }
 
-        constexpr static avl_node* rebalance_for_erase(avl_node* z, avl_node& header)
+        static constexpr avl_node* rebalance_for_erase(avl_node* z, avl_node& header)
         {
             erase_node(z, std::addressof(header));
             return z;
         }
 
-        constexpr static void clone(avl_node* x, const avl_node* y)
+        static constexpr void clone(avl_node* x, const avl_node* y)
         { x->m_height = y->m_height; } 
 
 
-        constexpr static bool is_header(avl_node* node)
+        static constexpr bool is_header(avl_node* node)
         { return node->m_height == -1; }
 
         int m_height; 

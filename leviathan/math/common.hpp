@@ -67,7 +67,7 @@ concept arithmetic = floating_point<T> || integral<T>;
 inline constexpr struct 
 {
     template <arithmetic T, std::same_as<T>... Ts>
-    constexpr static T operator()(T x, Ts... xs)
+    static constexpr T operator()(T x, Ts... xs)
     {
         return (x + ... + xs);
     }
@@ -76,7 +76,7 @@ inline constexpr struct
 inline constexpr struct 
 {
     template <arithmetic T1, std::same_as<T1> T2, std::same_as<T1>... Ts>
-    constexpr static T1 operator()(T1 x1, T2 x2, Ts... xs)
+    static constexpr T1 operator()(T1 x1, T2 x2, Ts... xs)
     {
         if constexpr (sizeof...(Ts) == 0)
         {
@@ -94,7 +94,7 @@ inline constexpr struct
 inline constexpr struct 
 {
     template <arithmetic T1, std::same_as<T1> T2, std::same_as<T1>... Ts>
-    constexpr static T1 operator()(T1 x1, T2 x2, Ts... xs)
+    static constexpr T1 operator()(T1 x1, T2 x2, Ts... xs)
     {
         if constexpr (sizeof...(Ts) == 0)
         {
@@ -112,7 +112,7 @@ inline constexpr struct
 inline constexpr struct
 {
     template <arithmetic T>
-    constexpr static T operator()(T x)
+    static constexpr T operator()(T x)
     {
         return x * x;
     }
@@ -121,7 +121,7 @@ inline constexpr struct
 inline constexpr struct 
 {
     template <arithmetic T>
-    constexpr static T operator()(T x)
+    static constexpr T operator()(T x)
     {
         using std::abs;
         return abs(x);
@@ -131,7 +131,7 @@ inline constexpr struct
 inline constexpr struct 
 {
     template <arithmetic T>
-    constexpr static T operator()(T x)
+    static constexpr T operator()(T x)
     {
         using std::sqrt;
         return sqrt(x);
@@ -141,7 +141,7 @@ inline constexpr struct
 inline constexpr struct 
 {
     template <arithmetic T>
-    constexpr static T operator()(T x)
+    static constexpr T operator()(T x)
     {
         using std::signbit;
         return signbit(x) 

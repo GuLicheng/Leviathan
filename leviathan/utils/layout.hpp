@@ -40,8 +40,8 @@ namespace leviathan
     template <typename... Ts, size_t... Sizes> 
     struct layout_impl<std::tuple<Ts...>, std::index_sequence<Sizes...>>
     {
-        constexpr static auto NumTypes = sizeof...(Ts);
-        constexpr static auto NumSizes = sizeof...(Sizes);
+        static constexpr auto NumTypes = sizeof...(Ts);
+        static constexpr auto NumSizes = sizeof...(Sizes);
 
         static_assert(NumTypes > 0, "Internal error");
 

@@ -157,14 +157,14 @@ namespace leviathan
     struct fixed_string_list
     {
         template <basic_fixed_string FixedString>
-        constexpr static size_t index_of = [](){
+        static constexpr size_t index_of = [](){
             std::array strings = { FixedStrings.sv()... };
             auto dist = std::ranges::find(strings, FixedString.sv());
             return std::distance(strings.begin(), dist);
         }();
 
         template <basic_fixed_string FixedString>
-        constexpr static bool contains = [](){
+        static constexpr bool contains = [](){
             return index_of<FixedString> != sizeof...(FixedStrings);
         }();
     };
@@ -222,7 +222,7 @@ namespace leviathan::string
     struct lexical_cast_t<Target, fixed_string<N>> 
     {
         template <typename... Args>
-        constexpr static auto operator()(const fixed_string<N>& s, Args... args) 
+        static constexpr auto operator()(const fixed_string<N>& s, Args... args) 
         {
             return lexical_cast_t<Target, std::string_view>()(s.sv(), args...);
         }

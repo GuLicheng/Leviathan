@@ -23,8 +23,8 @@ namespace leviathan::image
 
 struct bmp_info
 {
-    constexpr static int FileHeaderSize = 14;
-    constexpr static int InfomationHeaderSize = 40;
+    static constexpr int FileHeaderSize = 14;
+    static constexpr int InfomationHeaderSize = 40;
     
     // FileHeader
     uint8_t bfType[2]; // "BM"
@@ -93,7 +93,7 @@ struct bmp
 {
 
     using image_type = tag::BMP;
-    constexpr static auto endian = std::endian::native;
+    static constexpr auto endian = std::endian::native;
 
 private:
 

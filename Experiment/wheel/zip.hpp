@@ -38,7 +38,7 @@
 //         template <bool Const> struct iterator 
 //             : detail::has_typedef_name_of_iterator_category<all_forward<Const, Vs...>, std::input_iterator_tag>
 //         {
-//             constexpr static bool is_all_random_access = all_random_access<Const, Vs...>;
+//             static constexpr bool is_all_random_access = all_random_access<Const, Vs...>;
 //             using tp_t = detail::tuple_or_pair<std::ranges::iterator_t<detail::maybe_const_t<Const, Vs>>...>;
 //             tp_t m_current;
 //             constexpr explicit iterator(tp_t current) : m_current(std::move(current)) { }

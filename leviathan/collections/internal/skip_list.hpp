@@ -31,7 +31,7 @@ namespace leviathan::collections
 
         inline static std::random_device rd;
 
-        constexpr static std::random_device::result_type p = std::random_device::max() / Ratio;
+        static constexpr std::random_device::result_type p = std::random_device::max() / Ratio;
 
         using node_allocator = std::allocator_traits<Allocator>::template rebind_alloc<char>;
         using node_alloc_traits = std::allocator_traits<node_allocator>;
@@ -92,7 +92,7 @@ namespace leviathan::collections
 
         };
 
-        constexpr static bool IsTransparent = leviathan::collections::detail::is_transparent<Compare>;
+        static constexpr bool IsTransparent = leviathan::collections::detail::is_transparent<Compare>;
         
         using Key = typename KeyOfValue::template key_type<TypePack>;
 
@@ -174,15 +174,15 @@ namespace leviathan::collections
 
         };
 
-        constexpr static bool IsNothrowMoveConstruct = 
+        static constexpr bool IsNothrowMoveConstruct = 
                     std::is_nothrow_move_constructible_v<Compare> 
                  && typename node_alloc_traits::is_always_equal();
 
-        constexpr static bool IsNothrowMoveAssign = 
+        static constexpr bool IsNothrowMoveAssign = 
                     std::is_nothrow_move_assignable_v<Compare> 
                  && typename node_alloc_traits::is_always_equal();
 
-        constexpr static bool IsNothrowSwap = 
+        static constexpr bool IsNothrowSwap = 
                     std::is_nothrow_swappable_v<Compare> 
                  && typename node_alloc_traits::is_always_equal();
 

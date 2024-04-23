@@ -209,7 +209,7 @@ namespace leviathan::json
             os << character;
     }
 
-    constexpr static auto padding_character = " ";
+    static constexpr auto padding_character = " ";
 
     template <typename OStream>
     void json_serialize(OStream& os, const json_array& arr, int padding);

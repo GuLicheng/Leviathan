@@ -47,8 +47,8 @@ private:
     using traits = leviathan::meta::function_traits<F>;
     using arg_tuple = typename traits::args;
     using class_type = typename traits::class_type;
-    constexpr static bool is_const = traits::attribute & 0x0001;
-    constexpr static bool is_class_member_pointer = std::is_member_function_pointer_v<F>; // member_obj ?
+    static constexpr bool is_const = traits::attribute & 0x0001;
+    static constexpr bool is_class_member_pointer = std::is_member_function_pointer_v<F>; // member_obj ?
 
 public:
 

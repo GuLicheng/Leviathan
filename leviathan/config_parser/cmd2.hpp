@@ -50,7 +50,7 @@ namespace leviathan::config::cmd
 
         // How to store result?
         template <typename I, typename S>
-        constexpr static I operator()(I first, S last)
+        static constexpr I operator()(I first, S last)
         {
             std::cout << std::format("Current key is {} and value = {}\n", *first, *(first + 1));
             // return first + 2;
@@ -63,7 +63,7 @@ namespace leviathan::config::cmd
         // using value_type = void;
 
         template <typename I, typename S>
-        constexpr static I operator()(I first, S last)
+        static constexpr I operator()(I first, S last)
         {
             return std::ranges::next(first, 1, last);
         }
@@ -74,14 +74,14 @@ namespace leviathan::config::cmd
     {
         // using value_type = typename Scanner::value_type;
 
-        constexpr static bool is_name_or_flag(std::string_view name)
+        static constexpr bool is_name_or_flag(std::string_view name)
         {
             auto names = { NameOrFlags.sv()... };
             return std::ranges::contains(names, name);
         }
 
         template <typename I, typename S>
-        constexpr static I parse(I first, S last)
+        static constexpr I parse(I first, S last)
         {
             return Scanner()(first, last);
         }
@@ -118,7 +118,7 @@ namespace leviathan::config::cmd
     public:
 
         template <typename I, typename S>
-        constexpr static I parse(I first, S last)
+        static constexpr I parse(I first, S last)
         {
             if (first == last)
             {
@@ -150,13 +150,13 @@ namespace leviathan::config::cmd
             return (... && is_option_v<SubOptions>);
         }
 
-        constexpr static bool is_name_or_flag(std::string_view name)
+        static constexpr bool is_name_or_flag(std::string_view name)
         {
             return Name.sv() == name;
         }
 
         template <typename I, typename S>
-        constexpr static I parse_option_only(I first, S last)
+        static constexpr I parse_option_only(I first, S last)
         {
             while (1)
             {

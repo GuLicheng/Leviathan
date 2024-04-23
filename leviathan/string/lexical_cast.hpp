@@ -24,7 +24,7 @@ namespace leviathan::string
     template <typename Target>
     struct lexical_cast_t<Target, Target>
     {
-        constexpr static const Target& operator()(const Target& s) 
+        static constexpr const Target& operator()(const Target& s) 
         {
             return s;
         }
