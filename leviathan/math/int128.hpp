@@ -129,6 +129,9 @@ public:
     constexpr explicit operator bool() const { return m_value.lower() || m_value.upper(); }
     
     constexpr explicit operator char() const { return static_cast<char>(m_value.lower()); }
+    constexpr explicit operator wchar_t() const { return static_cast<wchar_t>(m_value.lower()); }
+
+    constexpr explicit operator char8_t() const { return static_cast<char8_t>(m_value.lower()); }
     constexpr explicit operator char16_t() const { return static_cast<char16_t>(m_value.lower()); }
     constexpr explicit operator char32_t() const { return static_cast<char32_t>(m_value.lower()); }
 
@@ -142,7 +145,7 @@ public:
         return int128<Endian>(
             static_cast<int64_t>(m_value.upper()),
             m_value.lower()
-        ); 
+        );
     }
 
     constexpr explicit operator uint8_t() const { return static_cast<uint8_t>(m_value.lower()); }
@@ -206,6 +209,7 @@ public:
         //      LL32(A) * LH32(B) => H64 or L64
         //      LH32(A) * LL32(B) => H64 or L64
         //      LL32(A) * LL32(B) => L64
+
         constexpr uint64_t mask = 0xffffffff;   // mask low 64-bit
 
         const uint64_t ah = m_value.lower() >> 32;
@@ -218,9 +222,9 @@ public:
                            + m_value.lower() * rhs.m_value.upper() // L64(A) * H64(B)
                            + ah * bh;                              // LH32(A) * LH32(B)
 
-        const auto lo = al * bl; // LL32(A) * LL32(B)
+        const auto part_lo = al * bl; // LL32(A) * LL32(B)
 
-        uint128 result(part_hi, lo);
+        uint128 result(part_hi, part_lo);
 
         result += uint128(ah * bl) << 32;  // LH32(A) * LL32(B)
         result += uint128(bh * al) << 32;  // LL32(A) * LH32(B)
