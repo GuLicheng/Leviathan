@@ -255,5 +255,34 @@ TEST_CASE("UnsignedIntegerBinaryOperarion")
         REQUIRE(--u == Zero);
         REQUIRE(u == Zero);
     }
+
+    SECTION("Div and Mod")
+    {
+
+    }
+}
+
+TEST_CASE("UnsignedIntegerBits")
+{
+    using namespace uconstant;
+    
+    SECTION("Popcount")
+    {
+        REQUIRE(One.popcount() == 1);
+        REQUIRE(Zero.popcount() == 0);
+        REQUIRE(Max.popcount() == 128);
+        REQUIRE(TwoPower64MinusOne.popcount() == 64);
+    }
+
+    SECTION("Has single bit")
+    {
+        REQUIRE(One.has_single_bit() == true);
+        REQUIRE(TwoPower64.has_single_bit() == true);
+        REQUIRE(Zero.has_single_bit() == false);
+    }
+
+    SECTION("Count left zero")
+    {
+    }
 }
 

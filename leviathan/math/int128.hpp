@@ -2,7 +2,7 @@
 // https://github.com/dotnet/runtime/blob/5535e31a712343a63f5d7d796cd874e563e5ac14/src/libraries/System.Private.CoreLib/src/System/UInt128.cs
 #pragma once
 
-#include "common.hpp"
+#include "core.hpp"
 
 #include <limits>
 #include <compare>
@@ -45,6 +45,9 @@ template <typename Endian = int128_endian> struct int128;
 template <typename Endian>
 class uint128
 {
+    // template <typename E>
+    friend class int128<Endian>;
+
     template <typename T>
     static uint128 make_uint128_from_float(T v)
     {
@@ -82,6 +85,7 @@ public:
     constexpr uint128() = default;
     constexpr uint128(const uint128&) = default;
     constexpr uint128(typename Endian::upper_type upper, typename Endian::lower_type lower) : m_value(upper, lower) { }
+    constexpr uint128(int128<Endian> i128) : m_value(static_cast<uint64_t>(i128.m_value.upper()), i128.m_value.lower()) { }
 
     // Constructors from unsigned types
     constexpr uint128(uint64_t u) : m_value(0, u) { }
@@ -96,9 +100,9 @@ public:
     constexpr uint128(int8_t i) : uint128(static_cast<int64_t>(i)) { }
 
     // Constructors from floating types
-    constexpr uint128(long double ld) : uint128(make_uint128_from_float(ld)) { }
     constexpr uint128(float f) : uint128(make_uint128_from_float(f)) { }
     constexpr uint128(double d) : uint128(make_uint128_from_float(d)) { }
+    constexpr uint128(long double ld) : uint128(make_uint128_from_float(ld)) { }
     
     // Assignment operator from arithmetic types
     uint128& operator=(uint128 rhs)
@@ -117,9 +121,9 @@ public:
     constexpr uint128& operator=(int16_t i) { return *this = uint128(i); }
     constexpr uint128& operator=(int8_t i) { return *this = uint128(i); }
 
-    constexpr uint128& operator=(long double ld) { return *this = uint128(ld); }
     constexpr uint128& operator=(float f) { return *this = uint128(f); }
     constexpr uint128& operator=(double d) { return *this = uint128(d); }
+    constexpr uint128& operator=(long double ld) { return *this = uint128(ld); }
 
     // Conversion operators to other arithmetic types
     constexpr explicit operator bool() const { return m_value.lower() || m_value.upper(); }
@@ -132,6 +136,14 @@ public:
     constexpr explicit operator int16_t() const { return static_cast<int16_t>(m_value.lower()); }
     constexpr explicit operator int32_t() const { return static_cast<int32_t>(m_value.lower()); }
     constexpr explicit operator int64_t() const { return static_cast<int64_t>(m_value.lower()); }
+
+    constexpr explicit operator int128<Endian>() const 
+    { 
+        return int128<Endian>(
+            static_cast<int64_t>(m_value.upper()),
+            m_value.lower()
+        ); 
+    }
 
     constexpr explicit operator uint8_t() const { return static_cast<uint8_t>(m_value.lower()); }
     constexpr explicit operator uint16_t() const { return static_cast<uint16_t>(m_value.lower()); }
@@ -274,40 +286,40 @@ public:
     }
 
     // Bits
-    constexpr friend int popcount(uint128 x) 
+    constexpr int popcount() const
     {
-        return std::popcount(x.m_value.lower()) 
-             + std::popcount(x.m_value.upper());
+        return std::popcount(m_value.lower()) 
+             + std::popcount(m_value.upper());
     }
 
-    friend constexpr bool has_single_bit(uint128 x) { return popcount(x) == 1; }
+    constexpr bool has_single_bit() const { return popcount() == 1; }
 
-    friend constexpr int countl_zero(uint128 x)
+    constexpr int countl_zero() const
     {
-        return x.m_value.upper() == 0 
-             ? std::countl_zero(x.m_value.lower()) + 64
-             : std::countl_zero(x.m_value.upper());
+        return m_value.upper() == 0 
+             ? std::countl_zero(m_value.lower()) + 64
+             : std::countl_zero(m_value.upper());
     } 
 
-    friend constexpr int countr_zero(uint128 x)
+    constexpr int countr_zero() const
     {
-        return x.m_value.lower() == 0
-             ? std::countr_zero(x.m_value.upper()) + 64
-             : std::countr_zero(x.m_value.lower());
+        return m_value.lower() == 0
+             ? std::countr_zero(m_value.upper()) + 64
+             : std::countr_zero(m_value.lower());
     }
 
-    friend constexpr int countl_one(uint128 x)
+    constexpr int countl_one() const
     {
-        return x.m_value.upper() == std::numeric_limits<uint64_t>::max()
-             ? std::countl_one(x.m_value.lower()) + 64
-             : std::countl_one(x.m_value.upper());
+        return m_value.upper() == std::numeric_limits<uint64_t>::max()
+             ? std::countl_one(m_value.lower()) + 64
+             : std::countl_one(m_value.upper());
     }
 
-    friend constexpr int countr_one(uint128 x)
+    constexpr int countr_one() const
     {
-        return x.m_value.lower() == std::numeric_limits<uint64_t>::max()
-             ? std::countr_one(x.m_value.upper()) + 64
-             : std::countr_one(x.m_value.lower());
+        return m_value.lower() == std::numeric_limits<uint64_t>::max()
+             ? std::countr_one(m_value.upper()) + 64
+             : std::countr_one(m_value.lower());
     }
 
     std::string to_string() const
@@ -332,6 +344,20 @@ private:
 template class uint128<>;
 
 using uint128_t = uint128<>;
+
+template <typename Endian>
+class int128
+{
+    friend class uint128<Endian>;
+public:
+
+    int128(typename Endian::upper_type upper, typename Endian::lower_type lower) : m_value(upper, lower) { }
+
+
+private:
+
+    Endian m_value;
+};
 
 }
 
