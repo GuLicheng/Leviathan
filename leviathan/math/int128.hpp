@@ -99,14 +99,19 @@ class uint128
         uint128 current = 1;
         uint128 answer = 0;
 
-        while (denominator <= dividend)
-        {
-            denominator <<= 1;
-            current <<= 1;
-        }
+        // while (denominator <= dividend)
+        // {
+        //     denominator <<= 1;
+        //     current <<= 1;
+        // }
 
-        denominator >>= 1;
-        current >>= 1;
+        // denominator >>= 1;
+        // current >>= 1;
+
+        // Follow may be faster.
+        const int shift = denominator.countl_zero() - dividend.countl_zero() + 1; 
+        denominator <<= shift;
+        current <<= shift;
 
         while (current)
         {
