@@ -150,4 +150,11 @@ inline constexpr struct
     }
 } sign;
 
+template <typename T>
+struct div_result
+{
+    T quotient;
+    T remainder;
+};
+
 } // namespace leviathan::math

@@ -80,6 +80,48 @@ class uint128
         return uint128(hi, lo);
     }
 
+    static div_result<uint128> div_mod(uint128 dividend, uint128 divisor)
+    {
+        assert(divisor != 0 && "dividend = quotient * divisor + remainder");
+
+        // https://stackoverflow.com/questions/5386377/division-without-using
+        if (divisor > dividend)
+        {
+            return { .quotient = uint128(0), .remainder = dividend };
+        }
+
+        if (divisor == dividend)
+        {
+            return { .quotient = uint128(1), .remainder = uint128(0) };
+        }
+        
+        uint128 denominator = divisor;
+        uint128 current = 1;
+        uint128 answer = 0;
+
+        while (denominator <= dividend)
+        {
+            denominator <<= 1;
+            current <<= 1;
+        }
+
+        denominator >>= 1;
+        current >>= 1;
+
+        while (current)
+        {
+            if (dividend >= denominator)
+            {
+                dividend -= denominator;
+                answer |= current;
+            }
+            current >>= 1;
+            denominator >>= 1;
+        }
+        
+        return { .quotient = answer, .remainder = dividend };
+    }
+
 public:
 
     constexpr uint128() = default;
@@ -167,7 +209,7 @@ public:
         return uint128(hi, lo);
     }
 
-    constexpr bool operator!() const { return !m_value.upper() && !m_value.lower(); }
+    constexpr bool operator!() const { return !static_cast<bool>(*this); }
 
     constexpr uint128 operator~() const { return uint128(~m_value.upper(), ~m_value.lower()); }
 
@@ -232,31 +274,32 @@ public:
         return result;
     }
 
-    constexpr uint128 operator/(uint128 rhs) const { throw 0; }
-    constexpr uint128 operator%(uint128 rhs) const { throw 0; }
+    constexpr uint128 operator/(uint128 rhs) const  { return div_mod(*this, rhs).quotient; }
 
-    constexpr uint128 operator<<(int value) const
+    constexpr uint128 operator%(uint128 rhs) const  { return div_mod(*this, rhs).remainder; }
+
+    constexpr uint128 operator<<(int amount) const
     {
-        assert(0 < value && value < 128 && "");
+        assert(0 < amount && amount < 128 && "");
         
         const auto hi = m_value.upper();
         const auto lo = m_value.lower();
 
-        return value >= 64 
-             ? uint128(lo << (value - 64), 0)
-             : uint128((hi << value) | (lo >> (64 - value)), lo << value);
+        return amount >= 64 
+             ? uint128(lo << (amount - 64), 0)
+             : uint128((hi << amount) | (lo >> (64 - amount)), lo << amount);
     }
 
-    constexpr uint128 operator>>(int value) const
+    constexpr uint128 operator>>(int amount) const
     {
-        assert(0 < value && value < 128 && "");
+        assert(0 < amount && amount < 128 && "");
 
         const auto hi = m_value.upper();
         const auto lo = m_value.lower();
 
-        return value >= 64 
-             ? uint128(0, hi >> (value - 64)) 
-             : uint128(hi >> value, (lo >> value) | (hi << (64 - value)));
+        return amount >= 64 
+             ? uint128(0, hi >> (amount - 64)) 
+             : uint128(hi >> amount, (lo >> amount) | (hi << (64 - amount)));
     }
 
     // Comparision
@@ -283,8 +326,8 @@ public:
     constexpr uint128& operator^=(uint128 rhs) { return *this = *this ^ rhs; }
     constexpr uint128& operator&=(uint128 rhs) { return *this = *this & rhs; }
 
-    constexpr uint128& operator<<=(int value) { return *this = *this >> value; }
-    constexpr uint128& operator>>=(int value) { return *this = *this << value; }
+    constexpr uint128& operator<<=(int amount) { return *this = *this << amount; }
+    constexpr uint128& operator>>=(int amount) { return *this = *this >> amount; }
 
     constexpr uint128& operator++() { return *this = *this + 1; }
 
@@ -364,20 +407,6 @@ template class uint128<>;
 
 using uint128_t = uint128<>;
 
-template <typename Endian>
-class int128
-{
-    friend class uint128<Endian>;
-public:
-
-    int128(typename Endian::upper_type upper, typename Endian::lower_type lower) : m_value(upper, lower) { }
-
-
-private:
-
-    Endian m_value;
-};
-
 }
 
 template <>
@@ -425,3 +454,144 @@ public:
     static constexpr uint128 signaling_NaN() { return 0; }
     static constexpr uint128 denorm_min() { return 0; }
 };
+
+
+namespace leviathan::math
+{
+
+template <typename Endian>
+class int128
+{
+    friend class uint128<Endian>;
+public:
+
+    constexpr int128() = default;
+    constexpr int128(const int128&) = default;
+    constexpr int128(typename Endian::upper_type upper, typename Endian::lower_type lower) : m_value(upper, lower) { }
+    constexpr int128(uint128<Endian> u128) : m_value(static_cast<int64_t>(u128.m_value.upper()), u128.m_value.lower()) { }
+
+    // COnstructors from unsigned types
+    constexpr int128(uint64_t u);
+    constexpr int128(uint32_t u);
+    constexpr int128(uint16_t u);
+    constexpr int128(uint8_t u);
+
+    // Constructors from signed types
+    constexpr int128(int64_t i);
+    constexpr int128(int32_t i);
+    constexpr int128(int16_t i);
+    constexpr int128(int8_t i);
+
+    // Constructors from floating types
+    constexpr int128(float f);
+    constexpr int128(double d);
+    constexpr int128(long double ld);
+
+    int128& operator=(int128 rhs)
+    {
+        m_value = rhs.m_value;
+        return *this;
+    }
+
+    constexpr int128& operator=(uint64_t u) { return *this = int128(u); }
+    constexpr int128& operator=(uint32_t u) { return *this = int128(u); }
+    constexpr int128& operator=(uint16_t u) { return *this = int128(u); }
+    constexpr int128& operator=(uint8_t u) { return *this = int128(u); }
+
+    constexpr int128& operator=(int64_t i) { return *this = int128(i); }
+    constexpr int128& operator=(int32_t i) { return *this = int128(i); }
+    constexpr int128& operator=(int16_t i) { return *this = int128(i); }
+    constexpr int128& operator=(int8_t i) { return *this = int128(i); }
+
+    constexpr int128& operator=(float f) { return *this = int128(f); }
+    constexpr int128& operator=(double d) { return *this = int128(d); }
+    constexpr int128& operator=(long double ld) { return *this = int128(ld); }
+
+    // Conversion operators to other arithmetic types
+    constexpr explicit operator bool() const;
+    
+    constexpr explicit operator char() const;
+    constexpr explicit operator wchar_t() const;
+
+    constexpr explicit operator char8_t() const;
+    constexpr explicit operator char16_t() const;
+    constexpr explicit operator char32_t() const;
+
+    constexpr explicit operator int8_t() const;
+    constexpr explicit operator int16_t() const;
+    constexpr explicit operator int32_t() const;
+    constexpr explicit operator int64_t() const;
+
+    constexpr explicit operator uint8_t() const;
+    constexpr explicit operator uint16_t() const;
+    constexpr explicit operator uint32_t() const;
+    constexpr explicit operator uint64_t() const;
+
+    constexpr explicit operator uint128<Endian>() const;
+
+    constexpr explicit operator float() const;
+    constexpr explicit operator double() const;
+    constexpr explicit operator long double() const;
+
+    // Unary operators
+    constexpr int128 operator+() const { return *this; }
+
+    constexpr int128 operator-() const;
+
+    constexpr bool operator!() const;
+
+    constexpr int128 operator~() const;
+
+    // Binary operators
+    constexpr int128 operator|(int128 rhs) const { return bit_op(std::bit_or<>(), *this, rhs); }
+    constexpr int128 operator&(int128 rhs) const { return bit_op(std::bit_and<>(), *this, rhs); }
+    constexpr int128 operator^(int128 rhs) const { return bit_op(std::bit_xor<>(), *this, rhs); }
+
+    constexpr int128 operator+(int128 rhs) const;
+    constexpr int128 operator-(int128 rhs) const;
+    constexpr int128 operator*(int128 rhs) const;
+    constexpr int128 operator/(int128 rhs) const;
+    constexpr int128 operator%(int128 rhs) const;
+    constexpr int128 operator<<(int128 rhs) const;
+    constexpr int128 operator>>(int128 rhs) const;
+
+    constexpr bool operator==(int128 rhs) const;
+    constexpr auto operator<=>(int128 rhs) const;
+
+    // Other operators
+    constexpr int128& operator+=(int128 rhs) { return *this = *this + rhs; }
+    constexpr int128& operator-=(int128 rhs) { return *this = *this - rhs; }
+    constexpr int128& operator*=(int128 rhs) { return *this = *this * rhs; }
+    constexpr int128& operator/=(int128 rhs) { return *this = *this / rhs; }
+    constexpr int128& operator%=(int128 rhs) { return *this = *this % rhs; }
+    constexpr int128& operator|=(int128 rhs) { return *this = *this | rhs; }
+    constexpr int128& operator^=(int128 rhs) { return *this = *this ^ rhs; }
+    constexpr int128& operator&=(int128 rhs) { return *this = *this & rhs; }
+
+    constexpr int128& operator<<=(int amount) { return *this = *this << amount; }
+    constexpr int128& operator>>=(int amount) { return *this = *this >> amount; }
+
+    constexpr int128& operator++() { return *this = *this + 1; }
+
+    constexpr int128& operator--() { return *this = *this - 1; }
+
+    constexpr int128 operator++(int)
+    {
+        auto temp = *this;
+        ++*this;
+        return temp;
+    }
+
+    constexpr int128 operator--(int)
+    {
+        auto temp = *this;
+        --*this;
+        return temp;
+    }
+
+private:
+
+    Endian m_value;
+};
+
+}

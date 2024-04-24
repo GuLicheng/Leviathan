@@ -1,5 +1,5 @@
 #include "int128.hpp"
-
+#include <iostream>
 #include <catch2/catch_all.hpp>
 
 using u128 = leviathan::math::uint128_t;
@@ -86,17 +86,22 @@ TEST_CASE("UnsignedInteger Constructors")
 TEST_CASE("UnsignedInteger Conversion")
 {
     UnsignedIntegerConstructorTest<
-        char, 
+        char,
+        wchar_t,
+        char8_t, 
         char16_t, 
         char32_t,
+
         int8_t,
         int16_t,
         int32_t,
         int64_t,
+
         uint8_t,
         uint16_t,
         uint32_t,
         uint64_t,
+
         float,
         double,
         long double
@@ -258,7 +263,11 @@ TEST_CASE("UnsignedIntegerBinaryOperarion")
 
     SECTION("Div and Mod")
     {
-
+        REQUIRE(One / One == One);
+        REQUIRE(One / Two == Zero);
+        REQUIRE(Two / One == Two);
+        REQUIRE(Three / Two == One);
+        REQUIRE(Four / Three == One);
     }
 }
 
@@ -283,6 +292,32 @@ TEST_CASE("UnsignedIntegerBits")
 
     SECTION("Count left zero")
     {
+        REQUIRE(One.countl_zero() == 127);
+        REQUIRE(Zero.countl_zero() == 128);
+        REQUIRE(Max.countl_zero() == 0);
+        REQUIRE(TwoPower64.countl_zero() == 63);
+    }
+
+    SECTION("Count right zero")
+    {
+        REQUIRE(One.countr_zero() == 0);
+        REQUIRE(Zero.countr_zero() == 128);
+        REQUIRE(Max.countr_zero() == 0);
+        REQUIRE(TwoPower64.countr_zero() == 64);
+    }
+
+    SECTION("Count left one")
+    {
+        REQUIRE(One.countl_one() == 0);
+        REQUIRE(Zero.countl_one() == 0);
+        REQUIRE(Max.countl_one() == 128);
+    }
+
+    SECTION("Count left zero")
+    {
+        REQUIRE(One.countl_zero() == 127);
+        REQUIRE(Zero.countl_zero() == 128);
+        REQUIRE(Max.countl_zero() == 0);
     }
 }
 
