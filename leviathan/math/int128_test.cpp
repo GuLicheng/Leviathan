@@ -261,13 +261,22 @@ TEST_CASE("UnsignedIntegerBinaryOperarion")
         REQUIRE(u == Zero);
     }
 
-    SECTION("Div and Mod")
+    SECTION("Division")
     {
         REQUIRE(One / One == One);
         REQUIRE(One / Two == Zero);
         REQUIRE(Two / One == Two);
         REQUIRE(Three / Two == One);
         REQUIRE(Four / Three == One);
+        REQUIRE(Four / Two == Two);
+    }
+
+    SECTION("Modulus")
+    {
+        REQUIRE(One % One == Zero);
+        REQUIRE(Two % One == Zero);
+        REQUIRE(TwoPower64PlusOne % TwoPower64 == One);
+        REQUIRE(TwoPower64MinusOne % TwoPower64 == TwoPower64MinusOne);
     }
 }
 

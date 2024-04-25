@@ -12,7 +12,9 @@
 
 int main(int argc, char const *argv[])
 {
-    leviathan::math::uint128_t u1(-1uz, 0uz);
+    using leviathan::math::uint128_t;
+
+    uint128_t u1(-1uz, 0uz);
 
     std::cout << std::format("u1 =                 {}\n", u1.to_string());
 
@@ -22,6 +24,11 @@ int main(int argc, char const *argv[])
     {
         std::cout << std::format("left shift  {:5} is {}\nright shift {:5} is {}\n", 
             x, (u1 << x).to_string(), x, (u1 >> x).to_string());
+    }
+
+    for (uint128_t i = 0; i < 10; ++i)
+    {
+        std::cout << (uint128_t(i) + INT_MAX).to_string() << '\n';
     }
 
     return 0;

@@ -11,6 +11,7 @@
 
 #include <string>  // TODO
 #include <bitset>  // TODO
+#include <iostream>
 
 #include <assert.h>
 
@@ -99,21 +100,12 @@ class uint128
         uint128 current = 1;
         uint128 answer = 0;
 
-        // while (denominator <= dividend)
-        // {
-        //     denominator <<= 1;
-        //     current <<= 1;
-        // }
-
-        // denominator >>= 1;
-        // current >>= 1;
-
         // Follow may be faster.
         const int shift = denominator.countl_zero() - dividend.countl_zero() + 1; 
         denominator <<= shift;
         current <<= shift;
 
-        while (current)
+        for (int i = 0; i <= shift; ++i)
         {
             if (dividend >= denominator)
             {
@@ -389,13 +381,34 @@ public:
              : std::countr_one(m_value.lower());
     }
 
-    std::string to_string() const
+    std::string to_string(int base = 10) const
     {
-        std::bitset<64> b1(m_value.upper()), b2(m_value.lower());
-        return b1.to_string() + b2.to_string();
+        assert(base == 10 && "Only supported dec now.");
+        static char base10[] = 
+        {
+            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+        };
+
+        auto current = *this;
+        
+        if (current == 0)
+        {
+            return "0";
+        }
+
+        std::string result;
+
+        while (current)
+        {
+            auto [quotient, remainder] = div_mod(current, 10);
+            result += base10[static_cast<int>(remainder)];
+            current = quotient;
+        }
+
+        return { result.rbegin(), result.rend() };
     }
 
-    static constexpr uint128 max() 
+    static consteval uint128 max() 
     { 
         return uint128(
             std::numeric_limits<uint64_t>::max(), 
@@ -600,3 +613,5 @@ private:
 };
 
 }
+
+
