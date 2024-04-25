@@ -157,4 +157,25 @@ struct div_result
     T remainder;
 };
 
+namespace detail
+{
+
+// https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0814r0.pdf
+template <typename T>
+void hash_combine_impl(size_t& seed, const T& value)
+{
+    seed ^= std::hash<T>()(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+}
+
+template <typename... Ts>
+size_t hash_combine(const Ts&... ts)
+{
+    size_t seed = 0;
+    (detail::hash_combine_impl(seed, ts), ...);
+    return seed;
+}
+
+
 } // namespace leviathan::math

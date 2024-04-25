@@ -15,8 +15,26 @@
 
 #include <assert.h>
 
+namespace leviathan::math::detail
+{
+    enum align
+    {
+        align_default,
+        align_left,
+        align_right,
+        align_centre,
+    };
+
+    template <typename CharT>
+    struct spec
+    {
+
+    };
+}
+
 namespace leviathan::math
 {
+
 
 template <bool Signed, std::endian Endian = std::endian::native>
 struct endian
@@ -408,6 +426,8 @@ public:
         return { result.rbegin(), result.rend() };
     }
 
+    constexpr uint64_t hash_code() const { return hash_combine(m_value.upper(), m_value.lower()); }
+
     static consteval uint128 max() 
     { 
         return uint128(
@@ -415,6 +435,8 @@ public:
             std::numeric_limits<uint64_t>::max()
         );
     }
+
+    static consteval uint128 min() { return uint128(0, 0); }
 
 private:
 
@@ -462,7 +484,7 @@ public:
     static constexpr bool traps = std::numeric_limits<uint64_t>::traps;
     static constexpr bool tinyness_before = false;
 
-    static constexpr uint128 min() { return 0; }
+    static constexpr uint128 min() { return uint128::min(); }
     static constexpr uint128 lowest() { return 0; }
     static constexpr uint128 max() { return uint128::max(); }
     static constexpr uint128 epsilon() { return 0; }
@@ -473,6 +495,14 @@ public:
     static constexpr uint128 denorm_min() { return 0; }
 };
 
+template <>
+struct std::hash<leviathan::math::uint128_t> 
+{
+    static constexpr operator()(leviathan::math::uint128_t x)
+    {
+        return x.hash_code();
+    }
+};
 
 namespace leviathan::math
 {
