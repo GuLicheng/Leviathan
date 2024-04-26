@@ -152,7 +152,7 @@ public:
     constexpr uint128(uint8_t u) : uint128(static_cast<uint64_t>(u)) { }
 
     // Constructors from signed types
-    constexpr uint128(int64_t i) : uint128(i < 0 ? std::numeric_limits<uint64_t>::max() : 0, i) { }
+    constexpr uint128(int64_t i) : uint128(std::signbit(i) ? std::numeric_limits<uint64_t>::max() : 0, i) { }
     constexpr uint128(int32_t i) : uint128(static_cast<int64_t>(i)) { }
     constexpr uint128(int16_t i) : uint128(static_cast<int64_t>(i)) { }
     constexpr uint128(int8_t i) : uint128(static_cast<int64_t>(i)) { }
@@ -443,70 +443,6 @@ public:
 
 };
 
-template class uint128<>;
-
-using uint128_t = uint128<>;
-
-}
-
-template <>
-struct std::is_unsigned<leviathan::math::uint128_t> : std::true_type { };
-
-template <>
-struct std::numeric_limits<leviathan::math::uint128_t>
-{
-private:
-    using uint128 = leviathan::math::uint128_t;
-
-public:
-    static constexpr bool is_specialized = true;
-    static constexpr bool is_signed = false;
-    static constexpr bool is_integer = true;
-    static constexpr bool is_exact = true;
-    static constexpr bool has_infinity = false;
-    static constexpr bool has_quiet_NaN = false;
-    static constexpr bool has_signaling_NaN = false;
-    static constexpr std::float_denorm_style has_denorm = std::float_denorm_style::denorm_absent;
-    static constexpr bool has_denorm_loss = false;
-    static constexpr std::float_round_style round_style = std::float_round_style::round_toward_zero;
-    static constexpr bool is_iec559 = false;
-    static constexpr bool is_bounded = true;
-    static constexpr bool is_modulo = true;
-    static constexpr int digits = 128;
-    static constexpr int digits10 = 38;
-    static constexpr int max_digits10 = 0;
-    static constexpr int radix = 2;
-    static constexpr int min_exponent = 0;
-    static constexpr int min_exponent10 = 0;
-    static constexpr int max_exponent = 0;
-    static constexpr int max_exponent10 = 0;
-
-    static constexpr bool traps = std::numeric_limits<uint64_t>::traps;
-    static constexpr bool tinyness_before = false;
-
-    static constexpr uint128 min() { return uint128::min(); }
-    static constexpr uint128 lowest() { return 0; }
-    static constexpr uint128 max() { return uint128::max(); }
-    static constexpr uint128 epsilon() { return 0; }
-    static constexpr uint128 round_error() { return 0; }
-    static constexpr uint128 infinity() { return 0; }
-    static constexpr uint128 quiet_NaN() { return 0; }
-    static constexpr uint128 signaling_NaN() { return 0; }
-    static constexpr uint128 denorm_min() { return 0; }
-};
-
-template <>
-struct std::hash<leviathan::math::uint128_t> 
-{
-    static constexpr operator()(leviathan::math::uint128_t x)
-    {
-        return x.hash_code();
-    }
-};
-
-namespace leviathan::math
-{
-
 template <std::endian Endian>
 class int128 : int128_layout<true, Endian>
 {
@@ -523,7 +459,7 @@ class int128 : int128_layout<true, Endian>
                                     (v >= -std::ldexp(static_cast<T>(1), 127) &&
                                      v < std::ldexp(static_cast<T>(1), 127))));
 
-        uint128<Endian> result = v < 0 ? -uint128<Endian>(-v) : uint128<Endian>(v);
+        uint128<Endian> result = std::signbit(v) ? -uint128<Endian>(-v) : uint128<Endian>(v);
         return static_cast<int128>(result);
     }
 
@@ -545,7 +481,7 @@ public:
     constexpr int128(uint8_t u) : int128(static_cast<uint64_t>(u)) { }
 
     // Constructors from signed types
-    constexpr int128(int64_t i) : int128((i < 0 ? ~int64_t(0) : 0), static_cast<uint64_t>(i)) { }
+    constexpr int128(int64_t i) : int128((std::signbit(i) ? ~int64_t(0) : 0), static_cast<uint64_t>(i)) { }
     constexpr int128(int32_t i) : int128(static_cast<int64_t>(i)) { }
     constexpr int128(int16_t i) : int128(static_cast<int64_t>(i)) { }
     constexpr int128(int8_t i) : int128(static_cast<int64_t>(i)) { }
@@ -673,6 +609,11 @@ public:
         return u.to_string();
     }
 
+    constexpr size_t hash_code() const
+    {
+        return hash_combine(upper(), lower());
+    }
+
     friend std::ostream& operator<<(std::ostream& os, int128 x) 
     {
         return os << x.to_string();
@@ -680,7 +621,74 @@ public:
 };
 
 using int128_t = int128<>;
+using uint128_t = uint128<>;
+template class uint128<>;
 
 }
+
+// Extend std::numeric_limits
+template <std::endian Endian>
+struct std::numeric_limits<leviathan::math::uint128<Endian>>
+{
+private:
+    using uint128 = leviathan::math::uint128<Endian>;
+
+public:
+    static constexpr bool is_specialized = true;
+    static constexpr bool is_signed = false;
+    static constexpr bool is_integer = true;
+    static constexpr bool is_exact = true;
+    static constexpr bool has_infinity = false;
+    static constexpr bool has_quiet_NaN = false;
+    static constexpr bool has_signaling_NaN = false;
+    static constexpr std::float_denorm_style has_denorm = std::float_denorm_style::denorm_absent;
+    static constexpr bool has_denorm_loss = false;
+    static constexpr std::float_round_style round_style = std::float_round_style::round_toward_zero;
+    static constexpr bool is_iec559 = false;
+    static constexpr bool is_bounded = true;
+    static constexpr bool is_modulo = true;
+    static constexpr int digits = 128;
+    static constexpr int digits10 = 38;
+    static constexpr int max_digits10 = 0;
+    static constexpr int radix = 2;
+    static constexpr int min_exponent = 0;
+    static constexpr int min_exponent10 = 0;
+    static constexpr int max_exponent = 0;
+    static constexpr int max_exponent10 = 0;
+
+    static constexpr bool traps = std::numeric_limits<uint64_t>::traps;
+    static constexpr bool tinyness_before = false;
+
+    static constexpr uint128 min() { return uint128::min(); }
+    static constexpr uint128 lowest() { return 0; }
+    static constexpr uint128 max() { return uint128::max(); }
+    static constexpr uint128 epsilon() { return 0; }
+    static constexpr uint128 round_error() { return 0; }
+    static constexpr uint128 infinity() { return 0; }
+    static constexpr uint128 quiet_NaN() { return 0; }
+    static constexpr uint128 signaling_NaN() { return 0; }
+    static constexpr uint128 denorm_min() { return 0; }
+};
+
+// Extend std::hash
+template <std::endian Endian>
+struct std::hash<leviathan::math::uint128<Endian>> 
+{
+    static constexpr operator()(leviathan::math::uint128<Endian> x)
+    {
+        return x.hash_code();
+    }
+};
+
+template <std::endian Endian>
+struct std::hash<leviathan::math::int128<Endian>> 
+{
+    static constexpr operator()(leviathan::math::int128<Endian> x)
+    {
+        return x.hash_code();
+    }
+};
+
+
 
 

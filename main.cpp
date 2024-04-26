@@ -6,27 +6,30 @@
 #include <bitset>
 #include <array>
 
-#define BIG_ENDIAN 0x0100
-#define LITTLE_ENDIAN 0x0001
-#define BYTE_ORDER 1
-
-int main(int argc, char const *argv[])
-{
     using leviathan::math::int128_t;
     using leviathan::math::uint128_t;
 
-    uint8_t i = -1;
+    template <typename T>
+    int128_t make_int128_from_float1(T v)
+    {
+        uint128_t result = v < 0 ? -uint128_t(-v) : uint128_t(v);
+        return static_cast<int128_t>(result);
+    }
 
-    uint8_t i1 = -i;
+    template <typename T>
+    int128_t make_int128_from_float2(T v)
+    {
+        uint128_t result = std::signbit(v) ? -uint128_t(-v) : uint128_t(v);
+        return static_cast<int128_t>(result);
+    }
 
-    uint64_t i2 = i1;
+int main(int argc, char const *argv[])
+{
+    std::puts(make_int128_from_float1(+0.0).to_string().c_str());
+    std::puts(make_int128_from_float1(-0.0).to_string().c_str());
 
-    int64_t i3 = -i2;
-
-    int64_t i4 = -int64_t(i1);
-
-    std::cout << i3 << '\n';
-    std::cout << i4 << '\n';
+    std::puts(make_int128_from_float2(+0.0).to_string().c_str());
+    std::puts(make_int128_from_float2(-0.0).to_string().c_str());
 
     return 0;
 }
