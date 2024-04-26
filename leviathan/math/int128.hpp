@@ -35,9 +35,8 @@ namespace leviathan::math::detail
 namespace leviathan::math
 {
 
-
-template <bool Signed, std::endian Endian = std::endian::native>
-struct endian
+template <bool Signed, std::endian Endian>
+struct int128_layout
 {
     using lower_type = uint64_t;
     using upper_type = std::conditional_t<Signed, int64_t, uint64_t>;
@@ -46,26 +45,24 @@ struct endian
 
     uint64_t m_data[2];
     
-    constexpr endian() = default;
+    constexpr int128_layout() = default;
 
-    constexpr endian(upper_type upper, lower_type lower) : m_data{ upper, lower } { }
+    constexpr int128_layout(upper_type upper, lower_type lower) : m_data{ static_cast<uint64_t>(upper), lower } { }
 
     upper_type upper() const { return static_cast<upper_type>(m_data[1 - lower_index]); }
 
     lower_type lower() const { return static_cast<lower_type>(m_data[lower_index]); }
 };
 
-using uint128_endian = endian<false>;
-using int128_endian = endian<true>;
+template <std::endian Endian = std::endian::native> struct uint128;
+template <std::endian Endian = std::endian::native> struct int128;
 
-template <typename Endian = uint128_endian> struct uint128;
-template <typename Endian = int128_endian> struct int128;
-
-template <typename Endian>
-class uint128
+template <std::endian Endian>
+class uint128 : int128_layout<false, Endian>
 {
-    // template <typename E>
     friend class int128<Endian>;
+
+    using base = int128_layout<false, Endian>;
 
     template <typename T>
     static uint128 make_uint128_from_float(T v)
@@ -84,18 +81,22 @@ class uint128
         return uint128(0, static_cast<uint64_t>(v));
     }
 
+    auto lower() const { return base::lower(); }
+
+    auto upper() const { return base::upper(); }
+
     template <typename T>
     T make_float_from_uint128() const
     { 
-        return static_cast<T>(m_value.lower()) 
-             + std::ldexp(static_cast<T>(m_value.upper()), 64); 
+        return static_cast<T>(lower()) 
+             + std::ldexp(static_cast<T>(upper()), 64); 
     }
 
     template <typename Fn>
     static uint128 bit_op(Fn fn, uint128 u1, uint128 u2)
     {
-        const auto hi = fn(u1.m_value.upper(), u2.m_value.upper());
-        const auto lo = fn(u1.m_value.lower(), u2.m_value.lower());
+        const auto hi = fn(u1.upper(), u2.upper());
+        const auto lo = fn(u1.lower(), u2.lower());
         return uint128(hi, lo);
     }
 
@@ -141,17 +142,17 @@ public:
 
     constexpr uint128() = default;
     constexpr uint128(const uint128&) = default;
-    constexpr uint128(typename Endian::upper_type upper, typename Endian::lower_type lower) : m_value(upper, lower) { }
-    constexpr uint128(int128<Endian> i128) : m_value(static_cast<uint64_t>(i128.m_value.upper()), i128.m_value.lower()) { }
+    constexpr uint128(uint64_t upper, uint64_t lower) : base(upper, lower) { }
+    constexpr uint128(int128<Endian> i128) : base(static_cast<uint64_t>(i128.upper()), i128.lower()) { }
 
     // Constructors from unsigned types
-    constexpr uint128(uint64_t u) : m_value(0, u) { }
+    constexpr uint128(uint64_t u) : uint128(0, u) { }
     constexpr uint128(uint32_t u) : uint128(static_cast<uint64_t>(u)) { }
     constexpr uint128(uint16_t u) : uint128(static_cast<uint64_t>(u)) { }
     constexpr uint128(uint8_t u) : uint128(static_cast<uint64_t>(u)) { }
 
     // Constructors from signed types
-    constexpr uint128(int64_t i) : m_value(i < 0 ? std::numeric_limits<uint64_t>::max() : 0, i) { }
+    constexpr uint128(int64_t i) : uint128(i < 0 ? std::numeric_limits<uint64_t>::max() : 0, i) { }
     constexpr uint128(int32_t i) : uint128(static_cast<int64_t>(i)) { }
     constexpr uint128(int16_t i) : uint128(static_cast<int64_t>(i)) { }
     constexpr uint128(int8_t i) : uint128(static_cast<int64_t>(i)) { }
@@ -164,7 +165,9 @@ public:
     // Assignment operator from arithmetic types
     uint128& operator=(uint128 rhs)
     { 
-        m_value = rhs.m_value; 
+        // m_value = rhs.m_value; 
+        this->m_data[0] = rhs.m_data[0];
+        this->m_data[1] = rhs.m_data[1];
         return *this;
     }
 
@@ -183,32 +186,32 @@ public:
     constexpr uint128& operator=(long double ld) { return *this = uint128(ld); }
 
     // Conversion operators to other arithmetic types
-    constexpr explicit operator bool() const { return m_value.lower() || m_value.upper(); }
+    constexpr explicit operator bool() const { return lower() || upper(); }
     
-    constexpr explicit operator char() const { return static_cast<char>(m_value.lower()); }
-    constexpr explicit operator wchar_t() const { return static_cast<wchar_t>(m_value.lower()); }
+    constexpr explicit operator char() const { return static_cast<char>(lower()); }
+    constexpr explicit operator wchar_t() const { return static_cast<wchar_t>(lower()); }
 
-    constexpr explicit operator char8_t() const { return static_cast<char8_t>(m_value.lower()); }
-    constexpr explicit operator char16_t() const { return static_cast<char16_t>(m_value.lower()); }
-    constexpr explicit operator char32_t() const { return static_cast<char32_t>(m_value.lower()); }
+    constexpr explicit operator char8_t() const { return static_cast<char8_t>(lower()); }
+    constexpr explicit operator char16_t() const { return static_cast<char16_t>(lower()); }
+    constexpr explicit operator char32_t() const { return static_cast<char32_t>(lower()); }
 
-    constexpr explicit operator int8_t() const { return static_cast<int8_t>(m_value.lower()); }
-    constexpr explicit operator int16_t() const { return static_cast<int16_t>(m_value.lower()); }
-    constexpr explicit operator int32_t() const { return static_cast<int32_t>(m_value.lower()); }
-    constexpr explicit operator int64_t() const { return static_cast<int64_t>(m_value.lower()); }
+    constexpr explicit operator int8_t() const { return static_cast<int8_t>(lower()); }
+    constexpr explicit operator int16_t() const { return static_cast<int16_t>(lower()); }
+    constexpr explicit operator int32_t() const { return static_cast<int32_t>(lower()); }
+    constexpr explicit operator int64_t() const { return static_cast<int64_t>(lower()); }
 
     constexpr explicit operator int128<Endian>() const 
     { 
         return int128<Endian>(
-            static_cast<int64_t>(m_value.upper()),
-            m_value.lower()
+            static_cast<int64_t>(upper()),
+            lower()
         );
     }
 
-    constexpr explicit operator uint8_t() const { return static_cast<uint8_t>(m_value.lower()); }
-    constexpr explicit operator uint16_t() const { return static_cast<uint16_t>(m_value.lower()); }
-    constexpr explicit operator uint32_t() const { return static_cast<uint32_t>(m_value.lower()); }
-    constexpr explicit operator uint64_t() const { return static_cast<uint64_t>(m_value.lower()); }
+    constexpr explicit operator uint8_t() const { return static_cast<uint8_t>(lower()); }
+    constexpr explicit operator uint16_t() const { return static_cast<uint16_t>(lower()); }
+    constexpr explicit operator uint32_t() const { return static_cast<uint32_t>(lower()); }
+    constexpr explicit operator uint64_t() const { return static_cast<uint64_t>(lower()); }
 
     constexpr explicit operator float() const { return make_float_from_uint128<float>(); }
     constexpr explicit operator double() const { return make_float_from_uint128<double>(); }
@@ -219,14 +222,14 @@ public:
     
     constexpr uint128 operator-() const 
     {
-        const auto hi = ~m_value.upper() + static_cast<uint64_t>(m_value.lower() == 0);
-        const auto lo = ~m_value.lower() + 1;
+        const auto hi = ~upper() + static_cast<uint64_t>(lower() == 0);
+        const auto lo = ~lower() + 1;
         return uint128(hi, lo);
     }
 
     constexpr bool operator!() const { return !static_cast<bool>(*this); }
 
-    constexpr uint128 operator~() const { return uint128(~m_value.upper(), ~m_value.lower()); }
+    constexpr uint128 operator~() const { return uint128(~upper(), ~lower()); }
 
     // Binary operators
     constexpr uint128 operator|(uint128 rhs) const { return bit_op(std::bit_or<>(), *this, rhs); }
@@ -235,17 +238,17 @@ public:
 
     constexpr uint128 operator+(uint128 rhs) const
     {
-        const auto lo = m_value.lower() + rhs.m_value.lower();
-        const auto carry = (lo < m_value.lower() ? 1 : 0);
-        const auto hi = m_value.upper() + rhs.m_value.upper() + carry;
+        const auto lo = lower() + rhs.lower();
+        const auto carry = (lo < lower() ? 1 : 0);
+        const auto hi = upper() + rhs.upper() + carry;
         return uint128(hi, lo);
     }
 
     constexpr uint128 operator-(uint128 rhs) const
     {
-        const auto lo = m_value.lower() - rhs.m_value.lower();
-        const auto carry = (lo <= m_value.lower() ? 0 : 1);
-        const auto hi = m_value.upper() - rhs.m_value.upper() - carry;
+        const auto lo = lower() - rhs.lower();
+        const auto carry = (lo <= lower() ? 0 : 1);
+        const auto hi = upper() - rhs.upper() - carry;
         return uint128(hi, lo);
     }
 
@@ -269,14 +272,14 @@ public:
 
         constexpr uint64_t mask = 0xffffffff;   // mask low 64-bit
 
-        const uint64_t ah = m_value.lower() >> 32;
-        const uint64_t al = m_value.lower() & mask;
+        const uint64_t ah = lower() >> 32;
+        const uint64_t al = lower() & mask;
 
-        const uint64_t bh = rhs.m_value.lower() >> 32;
-        const uint64_t bl = rhs.m_value.lower() & mask;
+        const uint64_t bh = rhs.lower() >> 32;
+        const uint64_t bl = rhs.lower() & mask;
         
-        const auto part_hi = m_value.upper() * rhs.m_value.lower() // H64(A) * L64(B)
-                           + m_value.lower() * rhs.m_value.upper() // L64(A) * H64(B)
+        const auto part_hi = upper() * rhs.lower() // H64(A) * L64(B)
+                           + lower() * rhs.upper() // L64(A) * H64(B)
                            + ah * bh;                              // LH32(A) * LH32(B)
 
         const auto part_lo = al * bl; // LL32(A) * LL32(B)
@@ -297,8 +300,8 @@ public:
     {
         assert(0 < amount && amount < 128 && "");
         
-        const auto hi = m_value.upper();
-        const auto lo = m_value.lower();
+        const auto hi = upper();
+        const auto lo = lower();
 
         return amount >= 64 
              ? uint128(lo << (amount - 64), 0)
@@ -309,8 +312,8 @@ public:
     {
         assert(0 < amount && amount < 128 && "");
 
-        const auto hi = m_value.upper();
-        const auto lo = m_value.lower();
+        const auto hi = upper();
+        const auto lo = lower();
 
         return amount >= 64 
              ? uint128(0, hi >> (amount - 64)) 
@@ -320,15 +323,15 @@ public:
     // Comparision
     constexpr bool operator==(uint128 rhs) const 
     { 
-        return m_value.lower() == rhs.m_value.lower()
-            && m_value.upper() == rhs.m_value.upper();
+        return lower() == rhs.lower()
+            && upper() == rhs.upper();
     }
 
     constexpr auto operator<=>(uint128 rhs) const
     {
-        return m_value.upper() != rhs.m_value.upper()
-            ? m_value.upper() <=> rhs.m_value.upper()
-            : m_value.lower() <=> rhs.m_value.lower();
+        return upper() != rhs.upper()
+            ? upper() <=> rhs.upper()
+            : lower() <=> rhs.lower();
     }
 
     // Other operators
@@ -365,38 +368,38 @@ public:
     // Bits
     constexpr int popcount() const
     {
-        return std::popcount(m_value.lower()) 
-             + std::popcount(m_value.upper());
+        return std::popcount(lower()) 
+             + std::popcount(upper());
     }
 
     constexpr bool has_single_bit() const { return popcount() == 1; }
 
     constexpr int countl_zero() const
     {
-        return m_value.upper() == 0 
-             ? std::countl_zero(m_value.lower()) + 64
-             : std::countl_zero(m_value.upper());
+        return upper() == 0 
+             ? std::countl_zero(lower()) + 64
+             : std::countl_zero(upper());
     } 
 
     constexpr int countr_zero() const
     {
-        return m_value.lower() == 0
-             ? std::countr_zero(m_value.upper()) + 64
-             : std::countr_zero(m_value.lower());
+        return lower() == 0
+             ? std::countr_zero(upper()) + 64
+             : std::countr_zero(lower());
     }
 
     constexpr int countl_one() const
     {
-        return m_value.upper() == std::numeric_limits<uint64_t>::max()
-             ? std::countl_one(m_value.lower()) + 64
-             : std::countl_one(m_value.upper());
+        return upper() == std::numeric_limits<uint64_t>::max()
+             ? std::countl_one(lower()) + 64
+             : std::countl_one(upper());
     }
 
     constexpr int countr_one() const
     {
-        return m_value.lower() == std::numeric_limits<uint64_t>::max()
-             ? std::countr_one(m_value.upper()) + 64
-             : std::countr_one(m_value.lower());
+        return lower() == std::numeric_limits<uint64_t>::max()
+             ? std::countr_one(upper()) + 64
+             : std::countr_one(lower());
     }
 
     std::string to_string(int base = 10) const
@@ -426,7 +429,7 @@ public:
         return { result.rbegin(), result.rend() };
     }
 
-    constexpr uint64_t hash_code() const { return hash_combine(m_value.upper(), m_value.lower()); }
+    constexpr uint64_t hash_code() const { return hash_combine(upper(), lower()); }
 
     static consteval uint128 max() 
     { 
@@ -438,9 +441,6 @@ public:
 
     static consteval uint128 min() { return uint128(0, 0); }
 
-private:
-
-    Endian m_value;
 };
 
 template class uint128<>;
@@ -507,37 +507,58 @@ struct std::hash<leviathan::math::uint128_t>
 namespace leviathan::math
 {
 
-template <typename Endian>
-class int128
+template <std::endian Endian>
+class int128 : int128_layout<true, Endian>
 {
     friend class uint128<Endian>;
+
+    using base = int128_layout<true, Endian>;
+
+    template <typename T>
+    int128 make_int128_from_float(T v)
+    {
+        // Conversion when v is NaN or cannot fit into int128 would be undefined
+        // behavior if using an intrinsic 128-bit integer.
+        assert(std::isfinite(v) && (std::numeric_limits<T>::max_exponent <= 127 ||
+                                    (v >= -std::ldexp(static_cast<T>(1), 127) &&
+                                     v < std::ldexp(static_cast<T>(1), 127))));
+
+        uint128<Endian> result = v < 0 ? -uint128<Endian>(-v) : uint128<Endian>(v);
+        return static_cast<int128>(result);
+    }
+
+    auto lower() const { return base::lower(); }
+
+    auto upper() const { return base::upper(); }
+
 public:
 
     constexpr int128() = default;
     constexpr int128(const int128&) = default;
-    constexpr int128(typename Endian::upper_type upper, typename Endian::lower_type lower) : m_value(upper, lower) { }
-    constexpr int128(uint128<Endian> u128) : m_value(static_cast<int64_t>(u128.m_value.upper()), u128.m_value.lower()) { }
+    constexpr int128(int64_t upper, uint64_t lower) : base(upper, lower) { }
+    constexpr int128(uint128<Endian> u128) : base(static_cast<int64_t>(u128.upper()), u128.lower()) { }
 
     // COnstructors from unsigned types
-    constexpr int128(uint64_t u);
-    constexpr int128(uint32_t u);
-    constexpr int128(uint16_t u);
-    constexpr int128(uint8_t u);
+    constexpr int128(uint64_t u) : int128(0, u) { }
+    constexpr int128(uint32_t u) : int128(static_cast<uint64_t>(u)) { }
+    constexpr int128(uint16_t u) : int128(static_cast<uint64_t>(u)) { }
+    constexpr int128(uint8_t u) : int128(static_cast<uint64_t>(u)) { }
 
     // Constructors from signed types
-    constexpr int128(int64_t i);
-    constexpr int128(int32_t i);
-    constexpr int128(int16_t i);
-    constexpr int128(int8_t i);
+    constexpr int128(int64_t i) : int128((i < 0 ? ~int64_t(0) : 0), static_cast<uint64_t>(i)) { }
+    constexpr int128(int32_t i) : int128(static_cast<int64_t>(i)) { }
+    constexpr int128(int16_t i) : int128(static_cast<int64_t>(i)) { }
+    constexpr int128(int8_t i) : int128(static_cast<int64_t>(i)) { }
 
     // Constructors from floating types
-    constexpr int128(float f);
-    constexpr int128(double d);
-    constexpr int128(long double ld);
+    constexpr int128(float f) : int128(make_int128_from_float(f)) { }
+    constexpr int128(double d) : int128(make_int128_from_float(d)) { }
+    constexpr int128(long double ld) : int128(make_int128_from_float(ld)) { }
 
     int128& operator=(int128 rhs)
     {
-        m_value = rhs.m_value;
+        this->m_data[0] = rhs.m_data[0];
+        this->m_data[1] = rhs.m_data[1];
         return *this;
     }
 
@@ -556,7 +577,7 @@ public:
     constexpr int128& operator=(long double ld) { return *this = int128(ld); }
 
     // Conversion operators to other arithmetic types
-    constexpr explicit operator bool() const;
+    constexpr explicit operator bool() const { return upper() || lower(); }
     
     constexpr explicit operator char() const;
     constexpr explicit operator wchar_t() const;
@@ -603,7 +624,12 @@ public:
     constexpr int128 operator<<(int128 rhs) const;
     constexpr int128 operator>>(int128 rhs) const;
 
-    constexpr bool operator==(int128 rhs) const;
+    constexpr bool operator==(int128 rhs) const
+    {
+        return upper() == rhs.upper()
+            && lower() == rhs.lower();
+    }
+
     constexpr auto operator<=>(int128 rhs) const;
 
     // Other operators
@@ -637,10 +663,23 @@ public:
         return temp;
     }
 
-private:
+    std::string to_string(int base = 10) const
+    {
+        uint128<Endian> u(*this);
+        if (std::signbit(upper()))
+        {
+            return std::string("-") + (-u).to_string();
+        }
+        return u.to_string();
+    }
 
-    Endian m_value;
+    friend std::ostream& operator<<(std::ostream& os, int128 x) 
+    {
+        return os << x.to_string();
+    }
 };
+
+using int128_t = int128<>;
 
 }
 

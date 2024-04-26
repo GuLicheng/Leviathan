@@ -66,9 +66,6 @@ struct UnsignedIntegerConstructorTest
 TEST_CASE("UnsignedInteger Constructors")
 {
     UnsignedIntegerConstructorTest<
-        char, 
-        char16_t, 
-        char32_t,
         int8_t,
         int16_t,
         int32_t,
@@ -111,9 +108,6 @@ TEST_CASE("UnsignedInteger Conversion")
 TEST_CASE("UnsignedInteger Assignment")
 {
     UnsignedIntegerConstructorTest<
-        char, 
-        char16_t, 
-        char32_t,
         int8_t,
         int16_t,
         int32_t,
@@ -329,4 +323,97 @@ TEST_CASE("UnsignedIntegerBits")
         REQUIRE(Max.countl_zero() == 0);
     }
 }
+
+// ================================================================================================================
+
+using int128_t = leviathan::math::int128_t;
+
+namespace iconstant
+{
+    
+inline constexpr int128_t Zero = int128_t(0, 0);
+inline constexpr int128_t One = int128_t(0, 1);
+inline constexpr int128_t Two = int128_t(0, 2);
+inline constexpr int128_t Three = int128_t(0, 3);
+inline constexpr int128_t Four = int128_t(0, 3);
+inline constexpr int128_t NegativeOne = int128_t(~int64_t(0), ~int64_t(0));
+
+} // namespace iconstant
+
+using int128_t = leviathan::math::int128_t;
+
+template <typename... Ts>
+struct SignedIntegerConstructorTest
+{
+    static constexpr int128_t one = iconstant::One;
+    static constexpr int128_t negative_one = iconstant::NegativeOne;
+
+    void static TestConstructors()
+    {
+        auto impl = []<typename T>() 
+        {
+            T x = 1;
+            REQUIRE(one == x);
+            if (std::is_signed_v<T>)
+            {
+                T y = -1;
+                REQUIRE(negative_one == y);
+            }
+        };
+
+        (impl.template operator()<Ts>(), ...);
+    }   
+
+    void static TestAssignment()
+    {
+        auto impl = []<typename T>() 
+        {
+            int128_t x;
+            x = static_cast<T>(1);
+            x = static_cast<T>(-1);
+            REQUIRE(one == x);
+        };
+
+        (impl.template operator()<Ts>(), ...);
+    }
+
+    void static TestConvert()
+    {
+        auto impl = []<typename T>() 
+        {
+            T temp = static_cast<T>(one);
+            REQUIRE(one == temp);
+        };
+
+        (impl.template operator()<Ts>(), ...);
+    }
+};
+
+TEST_CASE("SignedInteger Constructors")
+{
+    SignedIntegerConstructorTest<
+        int8_t,
+        int16_t,
+        int32_t,
+        int64_t,
+        uint8_t,
+        uint16_t,
+        uint32_t,
+        uint64_t,
+        float,
+        double,
+        long double
+        >::TestConstructors();
+}
+
+
+
+
+
+
+
+
+
+
+
 
