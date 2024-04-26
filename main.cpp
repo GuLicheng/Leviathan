@@ -15,11 +15,18 @@ int main(int argc, char const *argv[])
     using leviathan::math::int128_t;
     using leviathan::math::uint128_t;
 
-    int128_t x = -1;
-    puts(x.to_string().c_str());
-    puts(uint128_t(x).to_string().c_str());
+    uint8_t i = -1;
 
+    uint8_t i1 = -i;
 
+    uint64_t i2 = i1;
+
+    int64_t i3 = -i2;
+
+    int64_t i4 = -int64_t(i1);
+
+    std::cout << i3 << '\n';
+    std::cout << i4 << '\n';
 
     return 0;
 }

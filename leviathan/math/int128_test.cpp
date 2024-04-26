@@ -326,27 +326,25 @@ TEST_CASE("UnsignedIntegerBits")
 
 // ================================================================================================================
 
-using int128_t = leviathan::math::int128_t;
+using i128 = leviathan::math::int128_t;
 
 namespace iconstant
 {
     
-inline constexpr int128_t Zero = int128_t(0, 0);
-inline constexpr int128_t One = int128_t(0, 1);
-inline constexpr int128_t Two = int128_t(0, 2);
-inline constexpr int128_t Three = int128_t(0, 3);
-inline constexpr int128_t Four = int128_t(0, 3);
-inline constexpr int128_t NegativeOne = int128_t(~int64_t(0), ~int64_t(0));
+inline constexpr i128 Zero = i128(0, 0);
+inline constexpr i128 One = i128(0, 1);
+inline constexpr i128 Two = i128(0, 2);
+inline constexpr i128 Three = i128(0, 3);
+inline constexpr i128 Four = i128(0, 3);
+inline constexpr i128 NegativeOne = i128(~int64_t(0), ~int64_t(0));
 
 } // namespace iconstant
-
-using int128_t = leviathan::math::int128_t;
 
 template <typename... Ts>
 struct SignedIntegerConstructorTest
 {
-    static constexpr int128_t one = iconstant::One;
-    static constexpr int128_t negative_one = iconstant::NegativeOne;
+    static constexpr i128 one = iconstant::One;
+    static constexpr i128 negative_one = iconstant::NegativeOne;
 
     void static TestConstructors()
     {
@@ -354,6 +352,7 @@ struct SignedIntegerConstructorTest
         {
             T x = 1;
             REQUIRE(one == x);
+
             if (std::is_signed_v<T>)
             {
                 T y = -1;
@@ -368,7 +367,7 @@ struct SignedIntegerConstructorTest
     {
         auto impl = []<typename T>() 
         {
-            int128_t x;
+            i128 x;
             x = static_cast<T>(1);
             x = static_cast<T>(-1);
             REQUIRE(one == x);
@@ -404,6 +403,8 @@ TEST_CASE("SignedInteger Constructors")
         double,
         long double
         >::TestConstructors();
+
+    
 }
 
 
