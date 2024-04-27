@@ -32,7 +32,7 @@ namespace leviathan::math::detail
     };
 }
 
-namespace leviathan::math
+namespace leviathan::math::numeric
 {
 
 template <bool Signed, std::endian Endian>
@@ -107,12 +107,12 @@ class uint128 : int128_layout<false, Endian>
         // https://stackoverflow.com/questions/5386377/division-without-using
         if (divisor > dividend)
         {
-            return { .quotient = uint128(0), .remainder = dividend };
+            return { uint128(0), dividend };
         }
 
         if (divisor == dividend)
         {
-            return { .quotient = uint128(1), .remainder = uint128(0) };
+            return { uint128(1), uint128(0) };
         }
         
         uint128 denominator = divisor;
@@ -120,10 +120,12 @@ class uint128 : int128_layout<false, Endian>
         uint128 answer = 0;
 
         // Follow may be faster.
-        const int shift = denominator.countl_zero() - dividend.countl_zero() + 1; 
+        // const int shift = denominator.countl_zero() - dividend.countl_zero() + 1; 
+        const int shift = countl_zero(denominator) - countl_zero(dividend) + 1; 
         denominator <<= shift;
         current <<= shift;
 
+        // After loop, the current will be zero.
         for (int i = 0; i <= shift; ++i)
         {
             if (dividend >= denominator)
@@ -135,7 +137,7 @@ class uint128 : int128_layout<false, Endian>
             denominator >>= 1;
         }
         
-        return { .quotient = answer, .remainder = dividend };
+        return { answer, dividend };
     }
 
 public:
@@ -366,40 +368,40 @@ public:
     }
 
     // Bits
-    constexpr int popcount() const
+    constexpr friend int popcount(uint128 x) 
     {
-        return std::popcount(lower()) 
-             + std::popcount(upper());
+        return std::popcount(x.lower()) 
+             + std::popcount(x.upper());
     }
 
-    constexpr bool has_single_bit() const { return popcount() == 1; }
+    friend constexpr bool has_single_bit(uint128 x) { return popcount(x) == 1; }
 
-    constexpr int countl_zero() const
+    friend constexpr int countl_zero(uint128 x) 
     {
-        return upper() == 0 
-             ? std::countl_zero(lower()) + 64
-             : std::countl_zero(upper());
+        return x.upper() == 0 
+             ? std::countl_zero(x.lower()) + 64
+             : std::countl_zero(x.upper());
     } 
 
-    constexpr int countr_zero() const
+    friend constexpr int countr_zero(uint128 x) 
     {
-        return lower() == 0
-             ? std::countr_zero(upper()) + 64
-             : std::countr_zero(lower());
+        return x.lower() == 0
+             ? std::countr_zero(x.upper()) + 64
+             : std::countr_zero(x.lower());
     }
 
-    constexpr int countl_one() const
+    friend constexpr int countl_one(uint128 x) 
     {
-        return upper() == std::numeric_limits<uint64_t>::max()
-             ? std::countl_one(lower()) + 64
-             : std::countl_one(upper());
+        return x.upper() == std::numeric_limits<uint64_t>::max()
+             ? std::countl_one(x.lower()) + 64
+             : std::countl_one(x.upper());
     }
 
-    constexpr int countr_one() const
+    friend constexpr int countr_one(uint128 x) 
     {
-        return lower() == std::numeric_limits<uint64_t>::max()
-             ? std::countr_one(upper()) + 64
-             : std::countr_one(lower());
+        return x.lower() == std::numeric_limits<uint64_t>::max()
+             ? std::countr_one(x.upper()) + 64
+             : std::countr_one(x.lower());
     }
 
     std::string to_string(int base = 10) const
@@ -623,6 +625,17 @@ public:
 using int128_t = int128<>;
 using uint128_t = uint128<>;
 template class uint128<>;
+
+}
+
+namespace leviathan::math
+{
+
+using leviathan::math::numeric::uint128;
+using leviathan::math::numeric::uint128_t;
+
+using leviathan::math::numeric::int128;
+using leviathan::math::numeric::int128_t;
 
 }
 

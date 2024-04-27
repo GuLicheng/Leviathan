@@ -9,7 +9,7 @@
 #include <concepts>
 #include <span>
 
-namespace leviathan::math
+namespace leviathan::math::algebra
 {
 
 template <typename T, size_t Dimension>
@@ -72,17 +72,17 @@ private:
 
     static constexpr T euclidean_distance(const vector& v1, const vector& v2)
     {
-        return square_root(Lp_norm(summation, square, v1.data(), v2.data(), indices));
+        return math::sqrt(Lp_norm(math::sum, math::square, v1.data(), v2.data(), indices));
     }
     
     static constexpr T manhattan_distance(const vector& v1, const vector& v2)
     {
-        return Lp_norm(summation, absolute_value, v1.data(), v2.data(), indices);
+        return Lp_norm(math::sum, math::abs, v1.data(), v2.data(), indices);
     }
 
     static constexpr T chebyshev_distance(const vector& v1, const vector& v2)
     {
-        return Lp_norm(max_value, absolute_value, v1.data(), v2.data(), indices);
+        return Lp_norm(math::max, math::abs, v1.data(), v2.data(), indices);
     }
 
 public:
@@ -163,7 +163,7 @@ public:
     {
         return []<typename I, size_t... Indices>(I first, I second, std::index_sequence<Indices...>)
         {
-            return summation(first[Indices] * second[Indices]...);
+            return math::sum(first[Indices] * second[Indices]...);
         }(data(), rhs.data(), indices);
     }
 
@@ -257,22 +257,22 @@ public:
 
     static constexpr vector max(const vector& v1, const vector& v2)
     {
-        return binary_operation(max_value, v1, v2);
+        return binary_operation(math::max, v1, v2);
     }
 
     static constexpr vector min(const vector& v1, const vector& v2)
     {
-        return binary_operation(min_value, v1, v2);
+        return binary_operation(math::min, v1, v2);
     }
 
     static constexpr vector abs(const vector& v)
     {
-        return unary_operation(absolute_value, v);
+        return unary_operation(math::abs, v);
     }
 
     static constexpr vector sign_vector(const vector& v)
     {
-        return unary_operation(sign, v);
+        return unary_operation(math::signbit, v);
     }
 
     static constexpr T distance(const vector& v1, const vector& v2)
@@ -282,12 +282,12 @@ public:
 
     static constexpr T size(const vector& v)
     {
-        return square_root(size_square(v));
+        return math::sqrt(size_square(v));
     }
 
     static constexpr T size_square(const vector& v)
     {
-        return Lp_norm(summation, square, v.data(), zero_vector.data(), indices);
+        return Lp_norm(math::sum, math::square, v.data(), zero_vector.data(), indices);
     }
 
     static constexpr T length(const vector& v)
@@ -309,7 +309,7 @@ public:
     {
         const auto len = size_square(v);
         return len > small_number 
-            ? binary_operation(std::multiplies<T>(), v, static_cast<T>(1) / square_root(len))
+            ? binary_operation(std::multiplies<T>(), v, static_cast<T>(1) / math::sqrt(len))
             : zero_vector;
     }
 
@@ -324,7 +324,14 @@ private:
 };
 
 
-} // namespace leviathan::math
+} // namespace leviathan::math::algebra
+
+namespace leviathan::math
+{
+
+using leviathan::math::algebra::vector;
+
+}
 
 
 #include <format>

@@ -4,78 +4,27 @@
 #include <numbers>
 #include <functional>
 #include <concepts>
+#include <cinttypes>
+
 #include <type_traits>
 #include <bit>
 
+// Any component should in sub-namespace.
 namespace leviathan::math
 {
 
-// Signed integral 
-template <typename T>
-struct is_user_defined_signed_integral : std::false_type { };
-
-template <typename T>
-struct is_user_defined_signed_integral<const T> : is_user_defined_signed_integral<T> { };
-
-template <typename T>
-struct is_user_defined_signed_integral<volatile T> : is_user_defined_signed_integral<T> { };
-
-template <typename T>
-struct is_user_defined_signed_integral<const volatile T> : is_user_defined_signed_integral<T> { };
-
-template <typename T>
-concept signed_integral = std::signed_integral<T> || is_user_defined_signed_integral<T>::value;
-
-// Unsigned integral
-template <typename T>
-struct is_user_defined_unsigned_integral : std::false_type { };
-
-template <typename T>
-struct is_user_defined_unsigned_integral<const T> : is_user_defined_unsigned_integral<T> { };
-
-template <typename T>
-struct is_user_defined_unsigned_integral<volatile T> : is_user_defined_unsigned_integral<T> { };
-
-template <typename T>
-struct is_user_defined_unsigned_integral<const volatile T> : is_user_defined_unsigned_integral<T> { };
-
-template <typename T>
-concept unsigned_integral = std::unsigned_integral<T> || is_user_defined_unsigned_integral<T>::value;
-
-template <typename T>
-concept integral = signed_integral<T> || unsigned_integral<T>;
-
-// Floating point
-template <typename T>
-struct is_user_defined_floating_point : std::false_type { };
-
-template <typename T>
-struct is_user_defined_floating_point<const T> : is_user_defined_floating_point<T> { };
-
-template <typename T>
-struct is_user_defined_floating_point<volatile T> : is_user_defined_floating_point<T> { };
-
-template <typename T>
-struct is_user_defined_floating_point<const volatile T> : is_user_defined_floating_point<T> { };
-
-template <typename T>
-concept floating_point = std::floating_point<T> || is_user_defined_floating_point<T>::value;
-
-template <typename T>
-concept arithmetic = floating_point<T> || integral<T>;
-
 inline constexpr struct 
 {
-    template <arithmetic T, std::same_as<T>... Ts>
+    template <typename T, std::same_as<T>... Ts>
     static constexpr T operator()(T x, Ts... xs)
     {
         return (x + ... + xs);
     }
-} summation; 
+} sum; 
 
 inline constexpr struct 
 {
-    template <arithmetic T1, std::same_as<T1> T2, std::same_as<T1>... Ts>
+    template <typename T1, std::same_as<T1> T2, std::same_as<T1>... Ts>
     static constexpr T1 operator()(T1 x1, T2 x2, Ts... xs)
     {
         if constexpr (sizeof...(Ts) == 0)
@@ -89,11 +38,11 @@ inline constexpr struct
                 : operator()(x1, xs...);
         }
     }
-} max_value;
+} max;
 
 inline constexpr struct 
 {
-    template <arithmetic T1, std::same_as<T1> T2, std::same_as<T1>... Ts>
+    template <typename T1, std::same_as<T1> T2, std::same_as<T1>... Ts>
     static constexpr T1 operator()(T1 x1, T2 x2, Ts... xs)
     {
         if constexpr (sizeof...(Ts) == 0)
@@ -107,11 +56,11 @@ inline constexpr struct
                 : operator()(x1, xs...);
         }
     }
-} min_value;
+} min;
 
 inline constexpr struct
 {
-    template <arithmetic T>
+    template <typename T>
     static constexpr T operator()(T x)
     {
         return x * x;
@@ -120,27 +69,27 @@ inline constexpr struct
 
 inline constexpr struct 
 {
-    template <arithmetic T>
+    template <typename T>
     static constexpr T operator()(T x)
     {
         using std::abs;
         return abs(x);
     }
-} absolute_value;
+} abs;
 
 inline constexpr struct 
 {
-    template <arithmetic T>
+    template <typename T>
     static constexpr T operator()(T x)
     {
         using std::sqrt;
         return sqrt(x);
     }
-} square_root; 
+} sqrt; 
 
 inline constexpr struct 
 {
-    template <arithmetic T>
+    template <typename T>
     static constexpr T operator()(T x)
     {
         using std::signbit;
@@ -148,13 +97,81 @@ inline constexpr struct
             ? static_cast<T>(-1) 
             : static_cast<T>(1);
     }
-} sign;
+} signbit;
 
+inline constexpr struct 
+{
+    template <typename T>
+    static constexpr int operator()(T x)
+    {
+        using std::popcount;
+        return popcount(x);
+    }
+} popcount;
+
+inline constexpr struct 
+{
+    template <typename T>
+    static constexpr bool operator()(T x)
+    {
+        using std::has_single_bit;
+        return has_single_bit(x);
+    }
+} has_single_bit;
+
+inline constexpr struct 
+{
+    template <typename T>
+    static constexpr int operator()(T x)
+    {
+        using std::countl_zero;
+        return countl_zero(x);
+    }
+} countl_zero;
+
+inline constexpr struct 
+{
+    template <typename T>
+    static constexpr int operator()(T x)
+    {
+        using std::countr_zero;
+        return countr_zero(x);
+    }
+} countr_zero;
+
+inline constexpr struct 
+{
+    template <typename T>
+    static constexpr int operator()(T x)
+    {
+        using std::countl_one;
+        return countl_one(x);
+    }
+} countl_one;
+
+inline constexpr struct 
+{
+    template <typename T>
+    static constexpr int operator()(T x)
+    {
+        using std::countr_one;
+        return countr_one(x);
+    }
+} countr_one;
+
+// https://en.cppreference.com/w/cpp/numeric/math/div
+// The order of quot and rem in std::div_t or other div-return types is not certainly.
 template <typename T>
 struct div_result
 {
     T quotient;
     T remainder;
+
+    constexpr div_result(T quot, T rem) : quotient(quot), remainder(rem) { }
+    constexpr div_result(std::div_t x) : quotient(x.quot), remainder(x.rem) { }
+    constexpr div_result(std::ldiv_t x) : quotient(x.quot), remainder(x.rem) { }
+    constexpr div_result(std::lldiv_t x) : quotient(x.quot), remainder(x.rem) { }
+    constexpr div_result(std::imaxdiv_t x) : quotient(x.quot), remainder(x.rem) { }
 };
 
 template <typename... Ts>

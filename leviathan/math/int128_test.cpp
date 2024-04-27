@@ -277,50 +277,51 @@ TEST_CASE("UnsignedIntegerBinaryOperarion")
 TEST_CASE("UnsignedIntegerBits")
 {
     using namespace uconstant;
-    
+    using namespace leviathan::math;
+
     SECTION("Popcount")
     {
-        REQUIRE(One.popcount() == 1);
-        REQUIRE(Zero.popcount() == 0);
-        REQUIRE(Max.popcount() == 128);
-        REQUIRE(TwoPower64MinusOne.popcount() == 64);
+        REQUIRE(popcount(One) == 1);
+        REQUIRE(popcount(Zero) == 0);
+        REQUIRE(popcount(Max) == 128);
+        REQUIRE(popcount(TwoPower64MinusOne) == 64);
     }
 
     SECTION("Has single bit")
     {
-        REQUIRE(One.has_single_bit() == true);
-        REQUIRE(TwoPower64.has_single_bit() == true);
-        REQUIRE(Zero.has_single_bit() == false);
+        REQUIRE(has_single_bit(One) == true);
+        REQUIRE(has_single_bit(TwoPower64) == true);
+        REQUIRE(has_single_bit(Zero) == false);
     }
 
     SECTION("Count left zero")
     {
-        REQUIRE(One.countl_zero() == 127);
-        REQUIRE(Zero.countl_zero() == 128);
-        REQUIRE(Max.countl_zero() == 0);
-        REQUIRE(TwoPower64.countl_zero() == 63);
+        REQUIRE(countl_zero(One) == 127);
+        REQUIRE(countl_zero(Zero) == 128);
+        REQUIRE(countl_zero(Max) == 0);
+        REQUIRE(countl_zero(TwoPower64) == 63);
     }
 
     SECTION("Count right zero")
     {
-        REQUIRE(One.countr_zero() == 0);
-        REQUIRE(Zero.countr_zero() == 128);
-        REQUIRE(Max.countr_zero() == 0);
-        REQUIRE(TwoPower64.countr_zero() == 64);
+        REQUIRE(countr_zero(One) == 0);
+        REQUIRE(countr_zero(Zero) == 128);
+        REQUIRE(countr_zero(Max) == 0);
+        REQUIRE(countr_zero(TwoPower64) == 64);
     }
 
     SECTION("Count left one")
     {
-        REQUIRE(One.countl_one() == 0);
-        REQUIRE(Zero.countl_one() == 0);
-        REQUIRE(Max.countl_one() == 128);
+        REQUIRE(countl_one(One) == 0);
+        REQUIRE(countl_one(Zero) == 0);
+        REQUIRE(countl_one(Max) == 128);
     }
 
     SECTION("Count left zero")
     {
-        REQUIRE(One.countl_zero() == 127);
-        REQUIRE(Zero.countl_zero() == 128);
-        REQUIRE(Max.countl_zero() == 0);
+        REQUIRE(countl_zero(One) == 127);
+        REQUIRE(countl_zero(Zero) == 128);
+        REQUIRE(countl_zero(Max) == 0);
     }
 }
 
@@ -403,8 +404,6 @@ TEST_CASE("SignedInteger Constructors")
         double,
         long double
         >::TestConstructors();
-
-    
 }
 
 

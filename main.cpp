@@ -31,6 +31,10 @@ int main(int argc, char const *argv[])
     std::puts(make_int128_from_float2(+0.0).to_string().c_str());
     std::puts(make_int128_from_float2(-0.0).to_string().c_str());
 
+    int x = 0;
+
+    leviathan::math::signbit(x);
+
     return 0;
 }
 // 1111111111111111111111111111111111111111111111111111111111111111
