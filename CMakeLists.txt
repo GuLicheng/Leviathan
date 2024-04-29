@@ -8,7 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_STANDARD 23)
 
-set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -Werror")
 set(CMAKE_CXX_FLAGS_RELEASE  "-O3 ")
 
 include_directories(leviathan)

@@ -63,7 +63,7 @@ struct UnsignedIntegerConstructorTest
     }
 };
 
-TEST_CASE("UnsignedInteger Constructors")
+TEST_CASE("UnsignedIntegerConstructors")
 {
     UnsignedIntegerConstructorTest<
         int8_t,
@@ -80,7 +80,7 @@ TEST_CASE("UnsignedInteger Constructors")
         >::TestConstructors();
 }
 
-TEST_CASE("UnsignedInteger Conversion")
+TEST_CASE("UnsignedIntegerConversion")
 {
     UnsignedIntegerConstructorTest<
         char,
@@ -105,7 +105,7 @@ TEST_CASE("UnsignedInteger Conversion")
         >::TestConvert();
 }
 
-TEST_CASE("UnsignedInteger Assignment")
+TEST_CASE("UnsignedIntegerAssignment")
 {
     UnsignedIntegerConstructorTest<
         int8_t,
@@ -168,7 +168,7 @@ TEST_CASE("UnsignedIntegerBinaryOperarion")
         // See `UnsignedCheckEqual`
     }
 
-    SECTION("AddOperation")
+    SECTION("Addition")
     {
         REQUIRE(UnsignedCheckEqual(Zero + One, One));
         REQUIRE(UnsignedCheckEqual(Zero + Zero, Zero));
@@ -180,7 +180,7 @@ TEST_CASE("UnsignedIntegerBinaryOperarion")
         REQUIRE(UnsignedCheckEqual(Max + One, Zero));   // Warp around
     }
 
-    SECTION("SubOperation")
+    SECTION("Subtraction")
     {
         REQUIRE(UnsignedCheckEqual(Two - One, One));
         REQUIRE(UnsignedCheckEqual(Three - Two, One));
@@ -189,6 +189,7 @@ TEST_CASE("UnsignedIntegerBinaryOperarion")
 
         REQUIRE(UnsignedCheckEqual(TwoPower64 - One, TwoPower64MinusOne));
         REQUIRE(UnsignedCheckEqual(TwoPower64PlusOne - One, TwoPower64));
+        REQUIRE(UnsignedCheckEqual(Zero - One, Max));
     }
 
     SECTION("ShiftLeft")
@@ -235,7 +236,7 @@ TEST_CASE("UnsignedIntegerBinaryOperarion")
         REQUIRE(TwoPower64MinusOne <= TwoPower64);        
     }
 
-    SECTION("Increase self")
+    SECTION("IncreaseSelf")
     {
         u128 u = One;
 
@@ -245,7 +246,7 @@ TEST_CASE("UnsignedIntegerBinaryOperarion")
         REQUIRE(u == Three);
     }
 
-    SECTION("Decrease self")
+    SECTION("DecreaseSelf")
     {
         u128 u = Two;
 
@@ -333,11 +334,20 @@ namespace iconstant
 {
     
 inline constexpr i128 Zero = i128(0, 0);
-inline constexpr i128 One = i128(0, 1);
-inline constexpr i128 Two = i128(0, 2);
-inline constexpr i128 Three = i128(0, 3);
-inline constexpr i128 Four = i128(0, 3);
-inline constexpr i128 NegativeOne = i128(~int64_t(0), ~int64_t(0));
+inline constexpr i128 One = 1;
+inline constexpr i128 Two = 2;
+inline constexpr i128 Three = 3;
+inline constexpr i128 Four = 4;
+inline constexpr i128 NegativeOne = -1;
+inline constexpr i128 NegativeTwo = -2;
+
+inline constexpr i128 Max = i128::max();
+inline constexpr i128 Min = i128::min();
+
+inline constexpr i128 TwoPower64 = i128(1, 0);
+inline constexpr i128 TwoPower64PlusOne = i128(1, 1);
+inline constexpr i128 TwoPower64MinusOne = i128(0, -1);
+inline constexpr i128 DoubleTwoPower64 = i128(2, 0);
 
 } // namespace iconstant
 
@@ -370,7 +380,6 @@ struct SignedIntegerConstructorTest
         {
             i128 x;
             x = static_cast<T>(1);
-            x = static_cast<T>(-1);
             REQUIRE(one == x);
         };
 
@@ -389,7 +398,7 @@ struct SignedIntegerConstructorTest
     }
 };
 
-TEST_CASE("SignedInteger Constructors")
+TEST_CASE("SignedIntegerConstructors")
 {
     SignedIntegerConstructorTest<
         int8_t,
@@ -406,12 +415,128 @@ TEST_CASE("SignedInteger Constructors")
         >::TestConstructors();
 }
 
+TEST_CASE("SignedIntegerAssignment")
+{
+    SignedIntegerConstructorTest<
+        int8_t,
+        int16_t,
+        int32_t,
+        int64_t,
+        uint8_t,
+        uint16_t,
+        uint32_t,
+        uint64_t,
+        float,
+        double,
+        long double
+        >::TestAssignment();
+}
 
+TEST_CASE("SignedIntegerConversion")
+{
+    SignedIntegerConstructorTest<
+        char, 
+        wchar_t,
+        char8_t,
+        char16_t,
+        char32_t,
+        int8_t,
+        int16_t,
+        int32_t,
+        int64_t,
+        uint8_t,
+        uint16_t,
+        uint32_t,
+        uint64_t,
+        float, 
+        double,
+        long double
+        >::TestConvert();
+}
 
+bool SignedCheckEqual(i128 x, i128 y)
+{
+    bool result = x.to_string() == y.to_string();
+    if (result)
+    {
+        REQUIRE(x == y);
+    }
+    return result;
+}
 
+TEST_CASE("SignedIntegerUnaryOperation")
+{
+    using namespace iconstant;
 
+    REQUIRE(SignedCheckEqual(-Zero, Zero));
+    
+    REQUIRE(SignedCheckEqual(+Zero, Zero));
 
+    REQUIRE(SignedCheckEqual(~Zero, NegativeOne));
+    REQUIRE(SignedCheckEqual(~NegativeOne, Zero));
 
+    REQUIRE(!Zero == true);
+    REQUIRE(!One == false);
+}
+
+TEST_CASE("SignedIntegerBinaryOperation")
+{
+    using namespace iconstant;
+
+    SECTION("EqualOperation")
+    {
+        // See `SignedCheckEqual`
+    }
+
+    SECTION("Addition")
+    {
+        REQUIRE(SignedCheckEqual(One + One, Two));
+        REQUIRE(SignedCheckEqual(Zero + One, One));
+        REQUIRE(SignedCheckEqual(NegativeOne + One, Zero));
+        REQUIRE(SignedCheckEqual(TwoPower64MinusOne + Two, TwoPower64PlusOne));
+    }
+
+    SECTION("Subtraction")
+    {
+        REQUIRE(SignedCheckEqual(One - One, Zero));
+        REQUIRE(SignedCheckEqual(Zero - One, NegativeOne));
+        REQUIRE(SignedCheckEqual(One - Two, NegativeOne));
+        REQUIRE(SignedCheckEqual(TwoPower64PlusOne - Two, TwoPower64MinusOne));
+    }
+
+    SECTION("ShiftLeft")
+    {
+        REQUIRE(SignedCheckEqual(One << 1, 2));
+        REQUIRE(SignedCheckEqual(Two << 1, 4));
+        REQUIRE(SignedCheckEqual(NegativeOne << 1, -2));
+        REQUIRE(SignedCheckEqual(Zero << 1, Zero));
+        REQUIRE(SignedCheckEqual(TwoPower64 << 1, DoubleTwoPower64));
+    }
+
+    SECTION("ShiftRight")
+    {
+        REQUIRE(SignedCheckEqual(One >> 1, Zero));
+        REQUIRE(SignedCheckEqual(Zero >> 1, Zero));
+        REQUIRE(SignedCheckEqual(DoubleTwoPower64 >> 1, TwoPower64));
+        REQUIRE((NegativeOne >> 1) == NegativeOne);
+        REQUIRE(SignedCheckEqual(i128(-2) >> 1, NegativeOne));
+    }
+
+    SECTION("Multiply")
+    {
+        REQUIRE(UnsignedCheckEqual(Zero * Max, Zero));
+        REQUIRE(UnsignedCheckEqual(Zero * Min, Zero));
+        REQUIRE(UnsignedCheckEqual(Zero * Zero, Zero));
+        REQUIRE(UnsignedCheckEqual(One * One, One));
+        REQUIRE(UnsignedCheckEqual(NegativeOne * One, NegativeOne));
+    }
+
+}
+
+TEST_CASE("SignedIntegerBits")
+{
+
+}
 
 
 

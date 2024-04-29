@@ -90,12 +90,10 @@ inline constexpr struct
 inline constexpr struct 
 {
     template <typename T>
-    static constexpr T operator()(T x)
+    static constexpr bool operator()(T x)
     {
         using std::signbit;
-        return signbit(x) 
-            ? static_cast<T>(-1) 
-            : static_cast<T>(1);
+        return signbit(x);
     }
 } signbit;
 

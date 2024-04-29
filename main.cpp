@@ -1,4 +1,4 @@
-#include <leviathan/math/int128.hpp>
+#include <leviathan/print.hpp>
 #include <variant>
 #include <iostream>
 #include <format>
@@ -9,6 +9,9 @@
 
 int main(int argc, char const *argv[])
 {
+    int64_t X = -1, Y = -2, Z = -3;
+
+    ::println("X = {}, Y = {}, Z = {}", X, Y, Z);
 
     return 0;
 }
