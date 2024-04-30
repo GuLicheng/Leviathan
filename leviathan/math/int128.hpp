@@ -244,7 +244,7 @@ public:
     constexpr uint128 operator<<(int amount) const
     {
         assert(0 < amount && amount < 128 && "");
-        
+
         const auto hi = upper();
         const auto lo = lower();
 
@@ -719,10 +719,10 @@ using leviathan::math::numeric::int128_t;
 
 // Extend std::numeric_limits
 template <std::endian Endian>
-struct std::numeric_limits<leviathan::math::uint128<Endian>>
+struct std::numeric_limits<leviathan::math::numeric::uint128<Endian>>
 {
 private:
-    using uint128 = leviathan::math::uint128<Endian>;
+    using uint128 = leviathan::math::numeric::uint128<Endian>;
 
 public:
     static constexpr bool is_specialized = true;
@@ -762,10 +762,10 @@ public:
 };
 
 template <std::endian Endian>
-struct std::numeric_limits<leviathan::math::int128<Endian>>
+struct std::numeric_limits<leviathan::math::numeric::int128<Endian>>
 {
 private:
-    using int128 = leviathan::math::int128<Endian>;
+    using int128 = leviathan::math::numeric::int128<Endian>;
 
 public:
 
@@ -806,18 +806,18 @@ public:
 
 // Extend std::hash
 template <std::endian Endian>
-struct std::hash<leviathan::math::uint128<Endian>> 
+struct std::hash<leviathan::math::numeric::uint128<Endian>> 
 {
-    static constexpr operator()(leviathan::math::uint128<Endian> x)
+    static constexpr operator()(leviathan::math::numeric::uint128<Endian> x)
     {
         return x.hash_code();
     }
 };
 
 template <std::endian Endian>
-struct std::hash<leviathan::math::int128<Endian>> 
+struct std::hash<leviathan::math::numeric::int128<Endian>> 
 {
-    static constexpr operator()(leviathan::math::int128<Endian> x)
+    static constexpr operator()(leviathan::math::numeric::int128<Endian> x)
     {
         return x.hash_code();
     }

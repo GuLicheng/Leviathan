@@ -52,7 +52,7 @@ namespace leviathan::collections
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
         // 5.2, copy/move construction:
-        static constexpr_vector() noexcept 
+        constexpr static_vector() noexcept 
         { m_vec.reserve(N); }
         
         constexpr explicit static_vector(size_type n)
@@ -62,7 +62,7 @@ namespace leviathan::collections
             m_vec.resize(n);
         }
         
-        static constexpr_vector(size_type n, const value_type& value)
+        constexpr static_vector(size_type n, const value_type& value)
         {
             check_overflow(n);
             m_vec.reserve(N);
@@ -70,28 +70,28 @@ namespace leviathan::collections
         }
 
         template <std::input_iterator InputIterator>
-        static constexpr_vector(InputIterator first, InputIterator last)
+        constexpr static_vector(InputIterator first, InputIterator last)
         {
             m_vec.reserve(N);
             std::copy(first, last, std::back_inserter(m_vec));
         }
 
-        static constexpr_vector(const static_vector& other)
+        constexpr static_vector(const static_vector& other)
         noexcept(std::is_nothrow_copy_constructible_v<value_type>) 
             : static_vector(other.begin(), other.end()) 
         { }
 
-        static constexpr_vector(static_vector&& other)
+        constexpr static_vector(static_vector&& other)
         noexcept(std::is_nothrow_move_constructible_v<value_type>) 
             : static_vector(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end()))
         { }
 
-        static constexpr_vector(std::initializer_list<value_type> il)
+        constexpr static_vector(std::initializer_list<value_type> il)
             : static_vector(il.begin(), il.end()) 
         { }
 
         // 5.3, copy/move assignment:
-        static constexpr_vector& operator=(const static_vector& other)
+        constexpr static_vector& operator=(const static_vector& other)
         noexcept(std::is_nothrow_copy_assignable_v<value_type>)
         {
             if (this != std::addressof(other))
@@ -101,7 +101,7 @@ namespace leviathan::collections
             return *this;
         }
 
-        static constexpr_vector& operator=(static_vector&& other)
+        constexpr static_vector& operator=(static_vector&& other)
         noexcept(std::is_nothrow_move_assignable_v<value_type>)
         {
             if (this != std::addressof(other))

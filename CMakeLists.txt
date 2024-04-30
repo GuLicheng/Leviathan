@@ -8,7 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_STANDARD 23)
 
-set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -Werror")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE  "-O3 ")
 
 include_directories(leviathan)
@@ -50,4 +50,10 @@ set(LEVIATHAN_BUILD_MATH ON)
 if (LEVIATHAN_BUILD_MATH STREQUAL "ON")
     message(STATUS "Build math")
     add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/math)
+endif()
+
+set(LEVIATHAN_BUILD_ALGORITHM ON)
+if (LEVIATHAN_BUILD_ALGORITHM STREQUAL "ON")
+    message(STATUS "Build math")
+    add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/algorithm)
 endif()

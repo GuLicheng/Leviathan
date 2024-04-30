@@ -1,7 +1,8 @@
 // https://leetcode.cn/problems/subsets-ii/
 
+#include "combination.hpp"
+
 #include <catch2/catch_all.hpp>
-#include <leviathan/algorithm/combination_range.hpp>
 #include <vector>
 #include <list>
 
@@ -18,7 +19,7 @@ TEST_CASE("combination random access iterator")
 
     do {
         REQUIRE(vec == result[i++]);
-    } while (leviathan::next_combination(vec.begin(), vec.begin() + 2, vec.end()));
+    } while (leviathan::algorithm::next_combination(vec.begin(), vec.begin() + 2, vec.end()));
 }
 
 TEST_CASE("range_combination")
@@ -35,7 +36,7 @@ TEST_CASE("range_combination")
 
     do {
         REQUIRE(vec == result[i++]);
-    } while (leviathan::ranges::next_combination(vec, vec.begin() + 2).found);
+    } while (leviathan::algorithm::ranges::next_combination(vec, vec.begin() + 2).found);
 }
 
 TEST_CASE("combination bidirectional iterator")
@@ -51,5 +52,5 @@ TEST_CASE("combination bidirectional iterator")
 
     do {
         REQUIRE(vec == result[i++]);
-    } while (leviathan::next_combination(vec.begin(), std::next(vec.begin(), 2), vec.end()));
+    } while (leviathan::algorithm::next_combination(vec.begin(), std::next(vec.begin(), 2), vec.end()));
 }

@@ -1,9 +1,8 @@
 #pragma once
 
-#include <algorithm>
-#include <functional>
+#include "core.hpp"
 
-namespace leviathan
+namespace leviathan::algorithm
 {
     template <typename I, typename Comp = std::less<>>
     constexpr void insertion_sort(I first, I last, Comp comp = {}) 
