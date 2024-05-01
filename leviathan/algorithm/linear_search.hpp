@@ -1,11 +1,11 @@
 #pragma once
 
-#include "core.hpp"
+#include "common.hpp"
 
 namespace leviathan::algorithm
 {
 
-template <typename T, typename I>
+template <typename I, typename T = std::iter_value_t<I>>
 constexpr bool linear_search(I first, I last, const T& value)
 {
     return std::find(first, last, value) != last;
@@ -27,7 +27,7 @@ inline constexpr struct
         return std::ranges::find(first, last, value, std::ref(proj)) != last;
     }
 
-    template <std::ranges::input_range R, typename T, typename Proj = std::identity>
+    template <std::ranges::input_range R, typename T = std::ranges::range_value_t<R>, typename Proj = std::identity>
     requires std::indirect_binary_predicate<std::ranges::equal_to,
                  std::projected<std::ranges::iterator_t<R>, Proj>, const T*>
     constexpr bool operator()(R&& r, const T& value, Proj proj = {}) const

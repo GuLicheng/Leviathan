@@ -8,6 +8,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_STANDARD 23)
 
+set(LIBRARY_OUTPUT_DIRECTORY ${PROJECT_ROOT_PATH}/lib)
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_ROOT_PATH}/bin)
+
 set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE  "-O3 ")
 
@@ -28,11 +31,11 @@ if(LEVIATHAN_BUILD_BENCHMARK STREQUAL "ON")
 endif()
     
 
-if(LEVIATHAN_BUILD_TEST STREQUAL "ON")
-    message(STATUS "Build test")
-    add_subdirectory(test)
-    include(CTest)
-endif()
+# if(LEVIATHAN_BUILD_TEST STREQUAL "ON")
+#     message(STATUS "Build test")
+#     add_subdirectory(test)
+#     include(CTest)
+# endif()
 
 set(LEVIATHAN_BUILD_LOGGING ON)
 if(LEVIATHAN_BUILD_LOGGING STREQUAL "ON")
@@ -68,4 +71,10 @@ set(LEVIATHAN_BUILD_ALGORITHM ON)
 if (LEVIATHAN_BUILD_ALGORITHM STREQUAL "ON")
     message(STATUS "Build utilis")
     add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/utils)
+endif()
+
+set(LEVIATHAN_BUILD_META ON)
+if (LEVIATHAN_BUILD_META STREQUAL "ON")
+    message(STATUS "Build meta")
+    add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/meta)
 endif()

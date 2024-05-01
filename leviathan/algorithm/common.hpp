@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <functional>
 #include <iterator>
+#include <algorithm>
 
 namespace leviathan::algorithm::detail
 {

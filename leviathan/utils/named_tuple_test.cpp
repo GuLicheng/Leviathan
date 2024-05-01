@@ -1,4 +1,4 @@
-#include <leviathan/named_tuple.hpp>
+#include "named_tuple.hpp"
 #include <catch2/catch_all.hpp>
 
 TEST_CASE("simple test")

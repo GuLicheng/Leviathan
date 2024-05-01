@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core.hpp"
+#include "common.hpp"
 
 namespace leviathan::algorithm::detail
 {

@@ -533,10 +533,6 @@ TEST_CASE("SignedIntegerBinaryOperation")
 
 }
 
-TEST_CASE("SignedIntegerBits")
-{
-
-}
 
 
 

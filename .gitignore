@@ -4,6 +4,8 @@
 .vscode
 
 # Directory
+bin/*
+lib/*
 build/*
 thirdpart
 out

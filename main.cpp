@@ -1,25 +1,18 @@
+#include <leviathan/algorithm/all.hpp>
 #include <leviathan/print.hpp>
-#include <leviathan/meta/template_info.hpp>
-#include <variant>
-#include <iostream>
-#include <format>
-#include <stdint.h>
-#include <bitset>
-#include <array>
 
-template <typename> to_int = int;
+using Point = std::pair<int, int>;
 
-template <typename... Ts>
-void params_ints(to_int<Ts>... ints)
-{
-    
-}
+namespace cxx { }
 
 int main(int argc, char const *argv[])
 {
-    int64_t X = -1, Y = -2, Z = -3;
+    std::vector<Point> v;
 
-    ::println("X = {}, Y = {}, Z = {}", X, Y, Z);
+    v.emplace_back(1, 1);
+
+    leviathan::algorithm::ranges::linear_search(v, { 1, 2 });
+    leviathan::algorithm::linear_search(v.begin(), v.end(), { 1, 2 });
 
     return 0;
 }

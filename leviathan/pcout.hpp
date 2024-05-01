@@ -1,5 +1,4 @@
-#ifndef __PCOUT_HPP__
-#define __PCOUT_HPP__
+#pragma once
 
 #include <mutex>
 #include <iostream>

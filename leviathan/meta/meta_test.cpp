@@ -3,9 +3,9 @@
 #include <variant>
 #include <string>
 #include <string_view>
-#include <leviathan/meta/type_list.hpp>
-#include <leviathan/meta/meta.hpp>
-#include <leviathan/meta/concepts.hpp>
+#include "type_list.hpp"
+#include "meta.hpp"
+#include "concepts.hpp"
 
 namespace meta = leviathan::meta;
 namespace lv = leviathan;

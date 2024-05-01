@@ -2,7 +2,7 @@
 #include <catch2/catch_all.hpp>
 #include <vector>
 
-TEST_CASE("LinearSearchWithNonEmptyArray")
+TEST_CASE("LinearSearch_WithNonEmptyArray")
 {
     int arr[] = { 1, 2, 3 };
 
@@ -12,7 +12,7 @@ TEST_CASE("LinearSearchWithNonEmptyArray")
     REQUIRE(leviathan::algorithm::linear_search(arr, arr + 3, 0) == false);
 }
 
-TEST_CASE("LinearSearchRangeWithNonEmptyArray")
+TEST_CASE("LinearSearchRange_WithNonEmptyArray")
 {
     int arr[] = { 1, 2, 3 };
 
@@ -22,9 +22,23 @@ TEST_CASE("LinearSearchRangeWithNonEmptyArray")
     REQUIRE(leviathan::algorithm::ranges::linear_search(arr, 0) == false);
 }
 
-TEST_CASE("LinearSearchRangeWithEmptyArray")
+TEST_CASE("LinearSearchRange_WithEmptyArray")
 {
     std::vector<int> v;
 
     REQUIRE(leviathan::algorithm::ranges::linear_search(v, 0) == false);
+}
+
+#include <utility>
+
+TEST_CASE("LinearSearch_Enabling_List-initialization")
+{
+    using Point = std::pair<int, int>;
+
+    std::vector<Point> v;
+
+    v.emplace_back(0, 0);
+
+    REQUIRE(leviathan::algorithm::linear_search(v.begin(), v.end(), { 0, 0 }) == true);
+    REQUIRE(leviathan::algorithm::ranges::linear_search(v, { 1, 1 }) == false);
 }

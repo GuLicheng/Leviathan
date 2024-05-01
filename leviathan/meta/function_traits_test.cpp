@@ -1,16 +1,15 @@
 #include <iostream>
 
-// #include <leviathan/meta/type_list.hpp>
-// #include <leviathan/meta/template_info.hpp>
-#include <leviathan/meta/function_traits.hpp>
+#include "function_traits.hpp"
 
 using namespace leviathan::meta;
 
 int func(int, double, char) noexcept { return 0; }
 
-void test_for_function()
-{
+int c_func_variadic(const char* fmt, ...) { return 0; }
 
+void TestCFuntion()
+{
     static_assert(function_traits<decltype(func)>::is_noexcept == true);
 
     using Arg1 = function_traits<decltype(func)>::args; 
@@ -41,7 +40,15 @@ void test_for_function()
     static_assert(std::is_same_v<Arg8, int>);
 }
 
-void test_for_lambda()
+void TestCVariadicFunction()
+{
+    using Traits = function_traits<decltype(c_func_variadic)>;
+
+    static_assert(std::is_same_v<Traits::return_type, int>);
+    static_assert(std::is_same_v<Traits::template nth_arg<0>, const char*>);
+}
+
+void LambdaDeduction()
 {
     auto a = [](int x){ return x;};
     const auto b = [](double y) { return y; };
@@ -63,7 +70,7 @@ void test_for_lambda()
 template <typename T, typename... Ts>
 struct all_type : std::conjunction<std::is_same<T, Ts>...> { };
 
-void test_for_class_member_function()
+void ClassMemberFunctionDeduction()
 {
     struct foo
     {
@@ -130,7 +137,8 @@ void test_for_class_member_function()
 
 int main()
 {
-    test_for_function();
-    test_for_lambda();
-    test_for_class_member_function();
+    TestCFuntion();
+    TestCVariadicFunction();
+    LambdaDeduction();
+    ClassMemberFunctionDeduction();
 }
