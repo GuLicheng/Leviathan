@@ -1,4 +1,5 @@
 #include <leviathan/print.hpp>
+#include <leviathan/meta/template_info.hpp>
 #include <variant>
 #include <iostream>
 #include <format>
@@ -6,6 +7,13 @@
 #include <bitset>
 #include <array>
 
+template <typename> to_int = int;
+
+template <typename... Ts>
+void params_ints(to_int<Ts>... ints)
+{
+    
+}
 
 int main(int argc, char const *argv[])
 {

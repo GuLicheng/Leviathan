@@ -272,7 +272,7 @@ public:
 
     static constexpr vector sign_vector(const vector& v)
     {
-        return unary_operation(math::signbit, v);
+        return unary_operation(math::sign, v);
     }
 
     static constexpr T distance(const vector& v1, const vector& v2)
@@ -316,7 +316,6 @@ public:
     constexpr vector() = default;
 
     template <typename... Ts>
-        requires (sizeof...(Ts) == Dimension)
     constexpr vector(Ts... xs) : m_data{ static_cast<T>(xs)... } { }
 
 private:

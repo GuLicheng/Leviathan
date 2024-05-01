@@ -4,6 +4,7 @@
 #include <numbers>
 #include <functional>
 #include <concepts>
+#include <compare>
 #include <cinttypes>
 
 #include <type_traits>
@@ -96,6 +97,19 @@ inline constexpr struct
         return signbit(x);
     }
 } signbit;
+
+inline constexpr struct
+{
+    template <typename T>
+    static constexpr int operator()(T x)
+    {
+        if (x == 0)
+        {
+            return 0;
+        }
+        return signbit(x) ? -1 : 1;
+    }
+} sign; 
 
 inline constexpr struct 
 {
