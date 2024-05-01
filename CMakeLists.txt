@@ -54,6 +54,12 @@ endif()
 
 set(LEVIATHAN_BUILD_ALGORITHM ON)
 if (LEVIATHAN_BUILD_ALGORITHM STREQUAL "ON")
-    message(STATUS "Build math")
+    message(STATUS "Build algorithm")
     add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/algorithm)
+endif()
+
+set(LEVIATHAN_BUILD_ALGORITHM ON)
+if (LEVIATHAN_BUILD_ALGORITHM STREQUAL "ON")
+    message(STATUS "Build string")
+    add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/string)
 endif()
