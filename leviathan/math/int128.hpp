@@ -65,10 +65,6 @@ class uint128 : int128_layout<false, Endian>
         return uint128(0, static_cast<uint64_t>(v));
     }
 
-    constexpr auto lower() const { return base::lower(); }
-
-    constexpr auto upper() const { return base::upper(); }
-
     template <typename T>
     constexpr T make_float_from_uint128() const
     { 
@@ -89,7 +85,7 @@ public:
     constexpr uint128() = default;
     constexpr uint128(const uint128&) = default;
     constexpr uint128(uint64_t upper, uint64_t lower) : base(upper, lower) { }
-    constexpr uint128(int128<Endian> i128) : base(static_cast<uint64_t>(i128.upper()), i128.lower()) { }
+    constexpr uint128(int128<Endian> i128) : uint128(static_cast<uint64_t>(i128.upper()), i128.lower()) { }
 
     // Constructors from unsigned types
     constexpr uint128(uint64_t u) : uint128(0, u) { }
@@ -434,6 +430,10 @@ public:
         return { answer, dividend };
     }
 
+    constexpr auto lower() const { return base::lower(); }
+
+    constexpr auto upper() const { return base::upper(); }
+
 };
 
 template <std::endian Endian>
@@ -455,10 +455,6 @@ class int128 : int128_layout<true, Endian>
         const uint128<Endian> result = signbit(v) ? -uint128<Endian>(-v) : uint128<Endian>(v);
         return static_cast<int128>(result);
     }
-
-    constexpr auto lower() const { return base::lower(); }
-
-    constexpr auto upper() const { return base::upper(); }
 
     template <typename T>
     constexpr T make_float_from_int128() const
@@ -486,7 +482,7 @@ public:
     constexpr int128() = default;
     constexpr int128(const int128&) = default;
     constexpr int128(int64_t upper, uint64_t lower) : base(upper, lower) { }
-    constexpr int128(uint128<Endian> u128) : base(static_cast<int64_t>(u128.upper()), u128.lower()) { }
+    constexpr int128(uint128<Endian> u128) : int128(static_cast<int64_t>(u128.upper()), u128.lower()) { }
 
     // COnstructors from unsigned types
     constexpr int128(uint64_t u) : int128(0, u) { }
@@ -700,6 +696,10 @@ public:
     {
         return os << x.to_string(2);
     }
+
+    constexpr auto lower() const { return base::lower(); }
+
+    constexpr auto upper() const { return base::upper(); }
 };
 
 using int128_t = int128<>;
@@ -823,6 +823,48 @@ struct std::hash<leviathan::math::numeric::int128<Endian>>
     }
 };
 
+template <std::endian Endian>
+struct std::formatter<leviathan::math::numeric::uint128<Endian>>
+{
+    using uint128 = leviathan::math::numeric::uint128<Endian>;
 
+    template <typename ParseContext>
+    constexpr typename ParseContext::iterator parse(ParseContext& ctx) 
+    {
+        return m_fmt.parse(ctx);
+    }
+
+    template <typename FormatContext>
+    typename FormatContext::iterator format(uint128 x, FormatContext& ctx) const
+    {
+        unsigned __int128 v = (static_cast<unsigned __int128>(x.upper()) << 64) 
+                            | (static_cast<unsigned __int128>(x.lower()));
+        return m_fmt.format(v, ctx);
+    }   
+
+    std::formatter<unsigned __int128> m_fmt;
+};
+
+template <std::endian Endian>
+struct std::formatter<leviathan::math::numeric::int128<Endian>>
+{
+    using int128 = leviathan::math::numeric::int128<Endian>;
+
+    template <typename ParseContext>
+    constexpr typename ParseContext::iterator parse(ParseContext& ctx) 
+    {
+        return m_fmt.parse(ctx);
+    }
+
+    template <typename FormatContext>
+    typename FormatContext::iterator format(int128 x, FormatContext& ctx) const
+    {
+        signed __int128 v = (static_cast<signed __int128>(x.upper()) << 64) 
+                          | (static_cast<signed __int128>(x.lower()));
+        return m_fmt.format(v, ctx);
+    }   
+
+    std::formatter<signed __int128> m_fmt;
+};
 
 
