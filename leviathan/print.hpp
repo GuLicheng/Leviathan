@@ -19,13 +19,13 @@ struct std::formatter<View, CharT>
     typename FormatContext::iterator format(const View& v, FormatContext& ctx) const
     {
         auto it = ctx.out();
-        const char* delimiter = "(";
+        const char* delimiter = "[";
         for (const auto& value : v)
         {
             *it++ = std::exchange(delimiter, ", ") ;
             it = m_fmt.format(value, ctx);
         }
-        return *it++ = ")";
+        return *it++ = "]";
     }
 
 

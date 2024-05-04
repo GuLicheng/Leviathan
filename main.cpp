@@ -3,7 +3,7 @@
 #include <leviathan/allocators/checked_allocator.hpp>
 #include <vector>
 
-using Alloc = leviathan::alloc::checked_allocator<int, leviathan::alloc::alloc_spec(7)>;
+using Alloc = leviathan::alloc::checked_allocator<int, leviathan::alloc::alloc_spec(2)>;
 
 int main(int argc, char const *argv[])
 {
