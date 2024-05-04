@@ -10,7 +10,7 @@
 namespace leviathan::alloc
 {
     
-enum struct alloc_spec
+enum alloc_spec
 {
     propagate_on_none = 0,
     propagate_on_copy = 1,
@@ -36,28 +36,33 @@ bool check_memory_alloc()
     return messages.empty();
 }
 
+// All allocator will share one `alloc_state`. 
+struct alloc_state 
+{
+    size_t m_num_allocs = 0;
+    size_t m_num_deallocs = 0;
+    size_t m_num_constructs = 0;
+    size_t m_num_destroys = 0;
+    std::set<void*> m_owned;
+
+    ~alloc_state() 
+    {
+        // assert(m_num_allocs == m_num_deallocs && "Memory Leak");
+        if (m_num_allocs != m_num_deallocs)
+        {
+            messages.emplace_back(std::format("Memory Leak, alloc = {} and dealloc = {}\n", 
+                m_num_allocs, m_num_deallocs));
+        }
+        if (m_num_constructs != m_num_destroys)
+        {
+            messages.emplace_back(std::format("Object may not destroyed corrected\n"));
+        }
+    }
+};
+
 template <typename T, alloc_spec Spec>
 struct checked_allocator
 {
-    // All allocator will share one `alloc_state`. 
-    struct alloc_state 
-    {
-        size_t m_num_allocs = 0;
-        size_t m_num_deallocs = 0;
-        size_t m_num_constructs = 0;
-        size_t m_num_destroys = 0;
-        std::set<void*> m_owned;
-
-        ~alloc_state() 
-        {
-            // assert(m_num_allocs == m_num_deallocs && "Memory Leak");
-            if (m_num_allocs != m_num_deallocs)
-            {
-                messages += std::format("Memory Leak, alloc = {} and dealloc = {}\n", 
-                    m_num_allocs, m_num_deallocs);
-            }
-        }
-    };
 
     using value_type = T;
     using size_type = size_t;
@@ -134,7 +139,7 @@ struct checked_allocator
     { lhs.swap(rhs); }
 
     std::string to_string() const
-    { return std::format("alloc({})", a.m_id); }
+    { return std::format("alloc({})", m_id); }
 
     void track_alloc(void* ptr)
     {
@@ -142,8 +147,8 @@ struct checked_allocator
         ++state->m_num_allocs;
         if (!state->m_owned.insert(ptr).second)
         {
-            messages += std::format("{} got previously allocated memory: {}\n", 
-                    to_string(), ptr);
+            messages.emplace_back(std::format("{} got previously allocated memory: {}\n", 
+                    to_string(), ptr));
         }
     }
 
@@ -153,8 +158,8 @@ struct checked_allocator
         ++state->m_num_deallocs;
         if (m_state->m_owned.erase(ptr) != 1)
         {
-            messages += std::format("{} deleting memory owned by another allocator: {}\n", 
-                    to_string(), ptr);
+            messages.emplace_back(std::format("{} deleting memory owned by another allocator: {}\n", 
+                    to_string(), ptr));
         }
     }
 
