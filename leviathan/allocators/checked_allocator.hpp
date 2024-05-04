@@ -12,11 +12,14 @@ namespace leviathan::alloc
     
 enum struct alloc_spec
 {
+    propagate_on_none = 0,
     propagate_on_copy = 1,
     propagate_on_move = 2,
     propagate_on_swap = 4,
-    all_propagate = 8,
 };
+
+namespace detail
+{
 
 template <bool B>
 struct true_or_false : std::conditional<B, std::true_type, std::false_type> { };
@@ -24,11 +27,19 @@ struct true_or_false : std::conditional<B, std::true_type, std::false_type> { };
 template <bool B>
 using true_or_false_t = typename true_or_false<B>::type;
 
+}
+
+inline static std::vector<std::string> messages;   // global message error.
+
+bool check_memory_alloc()
+{
+    return messages.empty();
+}
+
 template <typename T, alloc_spec Spec>
 struct checked_allocator
 {
-    inline static std::vector<std::string> messages;
-
+    // All allocator will share one `alloc_state`. 
     struct alloc_state 
     {
         size_t m_num_allocs = 0;
@@ -52,9 +63,9 @@ struct checked_allocator
     using size_type = size_t;
     using difference_type = ptrdiff_t;
 
-    using propagate_on_container_copy_assignment = true_or_false_t<(Spec & propagate_on_copy) != 0>;
-    using propagate_on_container_move_assignment = true_or_false_t<(Spec & propagate_on_move) != 0>;
-    using propagate_on_container_swap = true_or_false_t<(Spec & propagate_on_swap) != 0>;
+    using propagate_on_container_copy_assignment = detail::true_or_false_t<(Spec & propagate_on_copy) != 0>;
+    using propagate_on_container_move_assignment = detail::true_or_false_t<(Spec & propagate_on_move) != 0>;
+    using propagate_on_container_swap = detail::true_or_false_t<(Spec & propagate_on_swap) != 0>;
 
     template <typename U>
     struct rebind { using other = checked_allocator<U, Spec>; };
@@ -131,7 +142,7 @@ struct checked_allocator
         ++state->m_num_allocs;
         if (!state->m_owned.insert(ptr).second)
         {
-            messages += std::format("{} got previously allocated memory: {}", 
+            messages += std::format("{} got previously allocated memory: {}\n", 
                     to_string(), ptr);
         }
     }
@@ -142,7 +153,7 @@ struct checked_allocator
         ++state->m_num_deallocs;
         if (m_state->m_owned.erase(ptr) != 1)
         {
-            messages += std::format("{} deleting memory owned by another allocator: {}", 
+            messages += std::format("{} deleting memory owned by another allocator: {}\n", 
                     to_string(), ptr);
         }
     }
