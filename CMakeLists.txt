@@ -31,11 +31,11 @@ if(LEVIATHAN_BUILD_BENCHMARK STREQUAL "ON")
 endif()
     
 
-# if(LEVIATHAN_BUILD_TEST STREQUAL "ON")
-#     message(STATUS "Build test")
-#     add_subdirectory(test)
-#     include(CTest)
-# endif()
+if(LEVIATHAN_BUILD_TEST STREQUAL "ON")
+    message(STATUS "Build test")
+    add_subdirectory(test)
+    include(CTest)
+endif()
 
 set(LEVIATHAN_BUILD_LOGGING ON)
 if(LEVIATHAN_BUILD_LOGGING STREQUAL "ON")

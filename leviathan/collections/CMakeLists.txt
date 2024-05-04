@@ -20,6 +20,10 @@ add_executable(skip_list_test ${CMAKE_SOURCE_DIR}/leviathan/collections/skip_lis
 target_link_libraries(skip_list_test PRIVATE Catch2::Catch2WithMain)
 add_test(NAME skip_list_test COMMAND skip_list_test)
 
+add_executable(avl_tree_test ${CMAKE_SOURCE_DIR}/leviathan/collections/avl_tree_test.cpp)
+target_link_libraries(avl_tree_test PRIVATE Catch2::Catch2WithMain)
+add_test(NAME avl_tree_test COMMAND avl_tree_test)
+
 
 
 

@@ -1,5 +1,5 @@
 
-#include <leviathan/collections/internal/avl_tree.hpp>
+#include "avl_tree.hpp"
 
 using leviathan::collections::avl_node;
 using leviathan::collections::avl_set;
@@ -94,9 +94,4 @@ TEST_CASE("avl_tree_height_test")
 {
     test_height_and_value();
 }
-
-
-
-
-
 

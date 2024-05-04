@@ -1,9 +1,8 @@
 #include <iostream>
 #include <string>
 #include <concepts>
-// #include "base.hpp"
-#include <leviathan/callable_container.hpp>
-#include <leviathan/struct.hpp>
+#include <leviathan/../experimental/callable_container.hpp>
+#include <leviathan/utils/controllable_value.hpp>
 #include <catch2/catch_all.hpp>
 
 class Sum
@@ -14,7 +13,7 @@ public:
 };
 
 
-void report(int a) { std::cout << (a); }
+void report(int* a) { (*a)++; }
 
 const Sum s;
 Sum s2;
@@ -32,8 +31,10 @@ TEST_CASE("lambda")
 
 TEST_CASE("C-style function")
 {
+    int x = 100;
     callables.register_handler("c_function", report);
-    callables.call_by_name<void>("c_function", 100);
+    callables.call_by_name<void>("c_function", &x);
+    REQUIRE(x == 101);
 }
 
 TEST_CASE("member function")
@@ -83,8 +84,10 @@ TEST_CASE("capture")
 
 TEST_CASE("object free")
 {
+    using Int32 = leviathan::controllable_value<int>;
+
     {
-        Int32<> i{ 0 };
+        Int32 i{ 0 };
         callables.register_handler("capture_int", [i]() { });
         callables.call_by_name<void>("capture_int");
         callables.call_by_name<void>("capture_int");
@@ -92,7 +95,7 @@ TEST_CASE("object free")
         callables.destroy_all_handlers();
     }
 
-    REQUIRE(Int32<>::total_construct() == Int32<>::total_destruct());
+    REQUIRE(Int32::total_construct() == Int32::total_destruct());
 
     {
         auto tuple = [](std::tuple<int> t) { return std::get<0>(t); };
@@ -103,12 +106,12 @@ TEST_CASE("object free")
     }   
 
     {
-        callables.register_handler("capture_Int32", [](int i) { return Int32<>(i); });
-        auto p = callables.call_by_name<Int32<>>("capture_Int32", -1);
-        std::cout << "Int32<> = " << p->val << '\n';
+        callables.register_handler("capture_Int32", [](int i) { return Int32(i); });
+        auto p = callables.call_by_name<Int32>("capture_Int32", -1);
+        REQUIRE(p->m_value == -1);
         callables.destroy_all_handlers();
     }
 
-    REQUIRE(Int32<>::total_construct() == Int32<>::total_destruct());
+    REQUIRE(Int32::total_construct() == Int32::total_destruct());
 }
 
