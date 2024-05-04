@@ -1,6 +1,3 @@
-#define CATCH_CONFIG_MAIN
-#define CATCH_CONFIG_ENABLE_BENCHMARKING
-
 #include <iostream>
 #include <string>
 #include <vector>
@@ -9,9 +6,8 @@
 #include <random>
 #include <algorithm>
 
-#include <leviathan/collections/internal/buffer.hpp>
-// #include <catch2/catch_all.hpp>
-#include <catch2/catch_test_macros.hpp>
+#include "buffer.hpp"
+#include <catch2/catch_all.hpp>
 
 // #include <thirdpart/catch_amalgamated.hpp>
 
@@ -336,18 +332,20 @@ TEST_CASE("initializer_list")
     buffer.dispose(allocator);
 }
 
-#include "leviathan/struct.hpp"
+// #include "leviathan/struct.hpp"
+#include <leviathan/utils/controllable_value.hpp>
 
 TEST_CASE("exception")
 {
-    using T = Int32<false, 2, -1, true>;
+    using T = leviathan::controllable_value<int, 2, -1>;
+    // using T = Int32<false, 2, -1, true>;
     {
         std::allocator<T> alloc;
 
         leviathan::collections::buffer<T> buffer(alloc, 1);
 
         REQUIRE(std::is_nothrow_move_constructible_v<T> == false);
-        REQUIRE(!T::Moveable);
+        REQUIRE(!T::moveable);
 
         bool is_throw = false;
 
@@ -388,6 +386,9 @@ TEST_CASE("pmr::allocator")
 
     buffer.dispose(pa);
 }
+
+
+
 
 
 

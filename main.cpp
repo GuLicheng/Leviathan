@@ -1,18 +1,15 @@
-#include <leviathan/algorithm/all.hpp>
 #include <leviathan/print.hpp>
+#include <leviathan/utils/controllable_value.hpp>
+#include <vector>
 
-using Point = std::pair<int, int>;
-
-namespace cxx { }
 
 int main(int argc, char const *argv[])
 {
-    std::vector<Point> v;
+    std::vector vec = { 1, 2, 3 };
 
-    v.emplace_back(1, 1);
+    ::println("{}", vec);
 
-    leviathan::algorithm::ranges::linear_search(v, { 1, 2 });
-    leviathan::algorithm::linear_search(v.begin(), v.end(), { 1, 2 });
+    std::string_view sv = "";
 
     return 0;
 }

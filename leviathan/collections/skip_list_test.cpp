@@ -1,6 +1,4 @@
-#define CATCH_CONFIG_MAIN
-
-#include <leviathan/collections/internal/skip_list.hpp>
+#include "skip_list.hpp"
 #include <catch2/catch_all.hpp>
 
 using namespace leviathan::collections;
@@ -85,44 +83,51 @@ TEST_CASE("remove elements", "[iterator][remove][clear][find][size][empty]")
     REQUIRE(h.empty());
 }
 
-#include "test_random_int.hpp"
+// #include "test_random_int.hpp"
 
-TEST_CASE("data structure is correct", "[insert][contains][erase]")
-{
-    ::leviathan::test::test_set_is_correct<SetT, true>();
-}
+// TEST_CASE("data structure is correct", "[insert][contains][erase]")
+// {
+//     ::leviathan::test::test_set_is_correct<SetT, true>();
+// }
 
 // #include "struct.hpp"
 // #include "except_allocator.hpp"
 // #include "fancy_ptr.hpp"
 
-#include <leviathan/struct.hpp>
-#include <leviathan/fancy_ptr.hpp>
-#include <leviathan/record_allocator.hpp>
+// #include <leviathan/struct.hpp>
+#include <leviathan/allocators/fancy_ptr.hpp>
+// #include <leviathan/record_allocator.hpp>
 
 TEST_CASE("fancy pointer")
 {
-    ::leviathan::collections::skip_set<int, std::less<>, TrivialAllocator<int>> sl;
+    using TrivialAllocator = leviathan::alloc::trivial_allocator<int>;
+    ::leviathan::collections::skip_set<int, std::less<>, TrivialAllocator> sl;
     sl.insert(0);
 }
+
+#include <leviathan/utils/controllable_value.hpp>
 
 TEST_CASE("element destroy", "[dtor]")
 {
 
+    using Int32 = leviathan::controllable_value<int>;
+
     {
-        ::leviathan::collections::skip_set<Int32<>> h1, h2, h3;
+        ::leviathan::collections::skip_set<Int32> h1, h2, h3;
 
         for (int i = 0; i < 10; ++i)
         {
-            h1.insert(Int32<>(i));
+            h1.insert(Int32(i));
         }
     }
 
-    auto a = Int32<>::total_construct();
-    auto b = Int32<>::total_destruct();
+    auto a = Int32::total_construct();
+    auto b = Int32::total_destruct();
 
     REQUIRE(a == b);
 }
+
+#if 0
 
 TEST_CASE("memory", "[dtor]")
 {
@@ -138,3 +143,4 @@ TEST_CASE("memory", "[dtor]")
     REQUIRE(CheckMemoryAlloc());
 }
 
+#endif

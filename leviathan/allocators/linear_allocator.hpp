@@ -5,50 +5,56 @@
 
 namespace leviathan::alloc
 {
-    // The final keyword may optimize the virtual function. 
-    struct monotonic_buffer final : public std::pmr::monotonic_buffer_resource
-    {
-        using std::pmr::monotonic_buffer_resource::monotonic_buffer_resource;
-        using std::pmr::monotonic_buffer_resource::operator=;
-    };
+    
+// The final keyword may optimize the virtual function. 
+struct monotonic_buffer final : public std::pmr::monotonic_buffer_resource
+{
+    using std::pmr::monotonic_buffer_resource::monotonic_buffer_resource;
+    using std::pmr::monotonic_buffer_resource::operator=;
+};
 
-    template <typename T, std::size_t MaxObjectCount = 1024, bool IsGlobal = true>
-    class monotonic_allocator 
-    {
-        inline static auto buffer = new monotonic_buffer(MaxObjectCount * sizeof(T));
+#if 0 && "FIXME"
 
-    public:
+template <typename T, std::size_t MaxObjectCount = 1024, bool IsGlobal = true>
+class monotonic_allocator 
+{
+    inline static auto buffer = new monotonic_buffer(MaxObjectCount * sizeof(T));
 
-        monotonic_allocator(monotonic_buffer* buffer) : m_buffer(buffer)  { }
+public:
 
-        monotonic_allocator() : monotonic_allocator(buffer) { }
+    monotonic_allocator(monotonic_buffer* buffer) : m_buffer(buffer)  { }
 
-        using value_type = T;
-        using is_always_equal = std::conditional_t<IsGlobal, std::true_type, std::false_type>;
+    monotonic_allocator() : monotonic_allocator(buffer) { }
 
-        template <typename U>
-        struct rebind { using other = monotonic_allocator<U, MaxObjectCount, IsGlobal>; };
+    using value_type = T;
+    using is_always_equal = std::conditional_t<IsGlobal, std::true_type, std::false_type>;
 
-        [[nodiscard]] T* allocate(std::size_t n)
-        { return (T*)m_buffer->allocate(n * sizeof(T), alignof(T)); }
+    template <typename U>
+    struct rebind { using other = monotonic_allocator<U, MaxObjectCount, IsGlobal>; };
 
-        void deallocate(T* p, std::size_t n)
-        { m_buffer->deallocate(p, n * sizeof(T), alignof(T)); }
+    [[nodiscard]] T* allocate(std::size_t n)
+    { return (T*)m_buffer->allocate(n * sizeof(T), alignof(T)); }
 
-        constexpr bool operator==(const monotonic_allocator& rhs) const 
-        { 
-            if constexpr (IsGlobal) 
-            {
-                return true;
-            }
-            else    
-            {
-                return m_buffer == rhs.m_buffer; 
-            }
+    void deallocate(T* p, std::size_t n)
+    { m_buffer->deallocate(p, n * sizeof(T), alignof(T)); }
+
+    constexpr bool operator==(const monotonic_allocator& rhs) const 
+    { 
+        if constexpr (IsGlobal) 
+        {
+            return true;
         }
+        else    
+        {
+            return m_buffer == rhs.m_buffer; 
+        }
+    }
 
-    private:
+private:
 
-        monotonic_buffer* m_buffer;
-    };
+    monotonic_buffer* m_buffer;
+};
+
+#endif
+
 }

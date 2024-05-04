@@ -9,7 +9,7 @@
 #include <random>
 #include <algorithm>
 
-#include <leviathan/collections/internal/ring_buffer.hpp>
+#include "ring_buffer.hpp"
 // #include <catch2/catch_all.hpp>
 #include <catch2/catch_all.hpp>
 
@@ -73,7 +73,7 @@ TEST_CASE("iterator")
 
     for (size_t i = 0; i < rb.size(); ++i)
     {
-        REQUIRE(rb[i] == i);
+        REQUIRE(rb[i] == (int)i);
     }
 
     std::ranges::reverse(rb);
@@ -81,7 +81,7 @@ TEST_CASE("iterator")
     for (size_t i = 0; i < rb.size(); ++i)
     {
         auto x = 6 - i;
-        REQUIRE(rb[i] == x);
+        REQUIRE(rb[i] == (int)x);
     }
 
     rb.clear();
@@ -157,18 +157,20 @@ TEST_CASE("emplace")
     }
 }
 
-#include "leviathan/struct.hpp"
+#include <leviathan/utils/controllable_value.hpp>
 
 TEST_CASE("exception")
 {
-    using T = Int32<false, 2, -1, true>;
+    // using T = Int32<false, 2, -1, true>;
+
+    using T = leviathan::controllable_value<int, 2, -1>;
     {
         std::allocator<T> alloc;
 
         leviathan::collections::ring_buffer<T> buffer;
 
         REQUIRE(std::is_nothrow_move_constructible_v<T> == false);
-        REQUIRE(!T::Moveable);
+        REQUIRE(!T::moveable);
 
         bool is_throw = false;
 
@@ -325,7 +327,7 @@ TEST_CASE("erase")
         //        |
         auto rb = MakeRingBuffer(false);
 
-        auto it = rb.erase(rb.begin() + 1);
+        [[maybe_unused]] auto it = rb.erase(rb.begin() + 1);
         REQUIRE(rb.size() == 3);
         REQUIRE(rb[0] == 2);
         REQUIRE(rb[1] == 4);

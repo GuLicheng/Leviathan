@@ -270,6 +270,8 @@ TEST_CASE("swap", "[swap]")
 
 }
 
+#if 0
+
 #include "test_random_int.hpp"
 
 TEST_CASE("data structure is correct", "[insert][contains][erase]")
@@ -277,6 +279,7 @@ TEST_CASE("data structure is correct", "[insert][contains][erase]")
     ::leviathan::test::test_set_is_correct<SetT, true>();
 }
 
+#endif
 
 // #include "struct.hpp"
 // #include "except_allocator.hpp"

@@ -109,26 +109,26 @@ public:
     constexpr uint128(long double ld) : uint128(make_uint128_from_float(ld)) { }
     
     // Assignment operator from arithmetic types
-    constexpr uint128& operator=(uint128 rhs)
+    constexpr uint128 operator=(uint128 rhs)
     { 
         this->m_data[0] = rhs.m_data[0];
         this->m_data[1] = rhs.m_data[1];
         return *this;
     }
 
-    constexpr uint128& operator=(uint64_t u) { return *this = uint128(u); }
-    constexpr uint128& operator=(uint32_t u) { return *this = uint128(u); }
-    constexpr uint128& operator=(uint16_t u) { return *this = uint128(u); }
-    constexpr uint128& operator=(uint8_t u) { return *this = uint128(u); }
+    constexpr uint128 operator=(uint64_t u) { return *this = uint128(u); }
+    constexpr uint128 operator=(uint32_t u) { return *this = uint128(u); }
+    constexpr uint128 operator=(uint16_t u) { return *this = uint128(u); }
+    constexpr uint128 operator=(uint8_t u) { return *this = uint128(u); }
 
-    constexpr uint128& operator=(int64_t i) { return *this = uint128(i); }
-    constexpr uint128& operator=(int32_t i) { return *this = uint128(i); }
-    constexpr uint128& operator=(int16_t i) { return *this = uint128(i); }
-    constexpr uint128& operator=(int8_t i) { return *this = uint128(i); }
+    constexpr uint128 operator=(int64_t i) { return *this = uint128(i); }
+    constexpr uint128 operator=(int32_t i) { return *this = uint128(i); }
+    constexpr uint128 operator=(int16_t i) { return *this = uint128(i); }
+    constexpr uint128 operator=(int8_t i) { return *this = uint128(i); }
 
-    constexpr uint128& operator=(float f) { return *this = uint128(f); }
-    constexpr uint128& operator=(double d) { return *this = uint128(d); }
-    constexpr uint128& operator=(long double ld) { return *this = uint128(ld); }
+    constexpr uint128 operator=(float f) { return *this = uint128(f); }
+    constexpr uint128 operator=(double d) { return *this = uint128(d); }
+    constexpr uint128 operator=(long double ld) { return *this = uint128(ld); }
 
     // Conversion operators to other arithmetic types
     constexpr explicit operator bool() const { return lower() || upper(); }
@@ -280,21 +280,21 @@ public:
     }
 
     // Other operators
-    constexpr uint128& operator+=(uint128 rhs) { return *this = *this + rhs; }
-    constexpr uint128& operator-=(uint128 rhs) { return *this = *this - rhs; }
-    constexpr uint128& operator*=(uint128 rhs) { return *this = *this * rhs; }
-    constexpr uint128& operator/=(uint128 rhs) { return *this = *this / rhs; }
-    constexpr uint128& operator%=(uint128 rhs) { return *this = *this % rhs; }
-    constexpr uint128& operator|=(uint128 rhs) { return *this = *this | rhs; }
-    constexpr uint128& operator^=(uint128 rhs) { return *this = *this ^ rhs; }
-    constexpr uint128& operator&=(uint128 rhs) { return *this = *this & rhs; }
+    constexpr uint128 operator+=(uint128 rhs) { return *this = *this + rhs; }
+    constexpr uint128 operator-=(uint128 rhs) { return *this = *this - rhs; }
+    constexpr uint128 operator*=(uint128 rhs) { return *this = *this * rhs; }
+    constexpr uint128 operator/=(uint128 rhs) { return *this = *this / rhs; }
+    constexpr uint128 operator%=(uint128 rhs) { return *this = *this % rhs; }
+    constexpr uint128 operator|=(uint128 rhs) { return *this = *this | rhs; }
+    constexpr uint128 operator^=(uint128 rhs) { return *this = *this ^ rhs; }
+    constexpr uint128 operator&=(uint128 rhs) { return *this = *this & rhs; }
 
-    constexpr uint128& operator<<=(int amount) { return *this = *this << amount; }
-    constexpr uint128& operator>>=(int amount) { return *this = *this >> amount; }
+    constexpr uint128 operator<<=(int amount) { return *this = *this << amount; }
+    constexpr uint128 operator>>=(int amount) { return *this = *this >> amount; }
 
-    constexpr uint128& operator++() { return *this = *this + 1; }
+    constexpr uint128 operator++() { return *this = *this + 1; }
 
-    constexpr uint128& operator--() { return *this = *this - 1; }
+    constexpr uint128 operator--() { return *this = *this - 1; }
 
     constexpr uint128 operator++(int)
     {
@@ -505,26 +505,26 @@ public:
     constexpr int128(double d) : int128(make_int128_from_float(d)) { }
     constexpr int128(long double ld) : int128(make_int128_from_float(ld)) { }
 
-    constexpr int128& operator=(int128 rhs)
+    constexpr int128 operator=(int128 rhs)
     {
         this->m_data[0] = rhs.m_data[0];
         this->m_data[1] = rhs.m_data[1];
         return *this;
     }
 
-    constexpr int128& operator=(uint64_t u) { return *this = int128(u); }
-    constexpr int128& operator=(uint32_t u) { return *this = int128(u); }
-    constexpr int128& operator=(uint16_t u) { return *this = int128(u); }
-    constexpr int128& operator=(uint8_t u) { return *this = int128(u); }
+    constexpr int128 operator=(uint64_t u) { return *this = int128(u); }
+    constexpr int128 operator=(uint32_t u) { return *this = int128(u); }
+    constexpr int128 operator=(uint16_t u) { return *this = int128(u); }
+    constexpr int128 operator=(uint8_t u) { return *this = int128(u); }
 
-    constexpr int128& operator=(int64_t i) { return *this = int128(i); }
-    constexpr int128& operator=(int32_t i) { return *this = int128(i); }
-    constexpr int128& operator=(int16_t i) { return *this = int128(i); }
-    constexpr int128& operator=(int8_t i) { return *this = int128(i); }
+    constexpr int128 operator=(int64_t i) { return *this = int128(i); }
+    constexpr int128 operator=(int32_t i) { return *this = int128(i); }
+    constexpr int128 operator=(int16_t i) { return *this = int128(i); }
+    constexpr int128 operator=(int8_t i) { return *this = int128(i); }
 
-    constexpr int128& operator=(float f) { return *this = int128(f); }
-    constexpr int128& operator=(double d) { return *this = int128(d); }
-    constexpr int128& operator=(long double ld) { return *this = int128(ld); }
+    constexpr int128 operator=(float f) { return *this = int128(f); }
+    constexpr int128 operator=(double d) { return *this = int128(d); }
+    constexpr int128 operator=(long double ld) { return *this = int128(ld); }
 
     // Conversion operators to other arithmetic types
     constexpr explicit operator bool() const { return upper() || lower(); }
@@ -624,21 +624,21 @@ public:
     }
 
     // Other operators
-    constexpr int128& operator+=(int128 rhs) { return *this = *this + rhs; }
-    constexpr int128& operator-=(int128 rhs) { return *this = *this - rhs; }
-    constexpr int128& operator*=(int128 rhs) { return *this = *this * rhs; }
-    constexpr int128& operator/=(int128 rhs) { return *this = *this / rhs; }
-    constexpr int128& operator%=(int128 rhs) { return *this = *this % rhs; }
-    constexpr int128& operator|=(int128 rhs) { return *this = *this | rhs; }
-    constexpr int128& operator^=(int128 rhs) { return *this = *this ^ rhs; }
-    constexpr int128& operator&=(int128 rhs) { return *this = *this & rhs; }
+    constexpr int128 operator+=(int128 rhs) { return *this = *this + rhs; }
+    constexpr int128 operator-=(int128 rhs) { return *this = *this - rhs; }
+    constexpr int128 operator*=(int128 rhs) { return *this = *this * rhs; }
+    constexpr int128 operator/=(int128 rhs) { return *this = *this / rhs; }
+    constexpr int128 operator%=(int128 rhs) { return *this = *this % rhs; }
+    constexpr int128 operator|=(int128 rhs) { return *this = *this | rhs; }
+    constexpr int128 operator^=(int128 rhs) { return *this = *this ^ rhs; }
+    constexpr int128 operator&=(int128 rhs) { return *this = *this & rhs; }
 
-    constexpr int128& operator<<=(int amount) { return *this = *this << amount; }
-    constexpr int128& operator>>=(int amount) { return *this = *this >> amount; }
+    constexpr int128 operator<<=(int amount) { return *this = *this << amount; }
+    constexpr int128 operator>>=(int amount) { return *this = *this >> amount; }
 
-    constexpr int128& operator++() { return *this = *this + 1; }
+    constexpr int128 operator++() { return *this = *this + 1; }
 
-    constexpr int128& operator--() { return *this = *this - 1; }
+    constexpr int128 operator--() { return *this = *this - 1; }
 
     constexpr int128 operator++(int)
     {

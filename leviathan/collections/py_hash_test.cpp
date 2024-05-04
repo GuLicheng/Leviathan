@@ -1,8 +1,9 @@
-#define CATCH_CONFIG_MAIN
 
 #include <catch2/catch_all.hpp>
 
-#include <leviathan/collections/internal/py_hash.hpp>
+#include "py_hash.hpp"
+#include <leviathan/utils/controllable_value.hpp>
+
 #include <leviathan/struct.hpp>
 #include <leviathan/record_allocator.hpp>
 #include <leviathan/fancy_ptr.hpp>
@@ -16,10 +17,11 @@ using HashT = ::leviathan::collections::hash_set<int>;
 TEST_CASE("element destroy", "[dtor]")
 {
 
-    using Int = Int32<false>;
+    // using Int = Int32<false>;
+    using Int = leviathan::controllable_value<int>;
 
     {
-        ::leviathan::collections::hash_set<Int, Int::HashType> h;
+        ::leviathan::collections::hash_set<Int> h;
 
         // rehash
         for (int i = 0; i < 10; ++i)
@@ -39,17 +41,17 @@ TEST_CASE("exception thrown in constructor", "[emplace][exception]")
 {
     
     {
-        using Int = CopyThrowExceptionInt<false, 2>;
+        // using Int = CopyThrowExceptionInt<false, 2>;
+        using Int = leviathan::controllable_value<int, 2>;
         leviathan::collections::hash_set<
-            Int, 
-            Int::HashType> h;
+            Int> h;
 
         // REQUIRE_THROWS(h.emplace());
         h.emplace();
     }
 
-    auto a = Int32<>::total_construct();
-    auto b = Int32<>::total_destruct();
+    auto a = Int::total_construct();
+    auto b = Int::total_destruct();
 
     REQUIRE(a == b);
     REQUIRE(a != 0);
