@@ -2,7 +2,7 @@
 #include <iostream>
 #include <catch2/catch_all.hpp>
 
-using u128 = leviathan::math::uint128_t;
+using u128 = leviathan::uint128_t;
 
 namespace uconstant
 {
@@ -328,7 +328,7 @@ TEST_CASE("UnsignedIntegerBits")
 
 // ================================================================================================================
 
-using i128 = leviathan::math::int128_t;
+using i128 = leviathan::int128_t;
 
 namespace iconstant
 {

@@ -9,6 +9,7 @@
 #include <compare>
 #include <cstdint>
 #include <bit>
+#include <format>
 
 #include <string>  // TODO
 #include <bitset>  // TODO
@@ -343,39 +344,7 @@ public:
              : std::countr_one(x.lower());
     }
 
-    std::string to_string(int base = 10) const
-    {
-        assert((base == 10  || base == 2 ) && "Only supported dec now.");
-
-        if (base == 2)
-        {
-            std::bitset<64> b1 = upper(), b2 = lower();
-            return b1.to_string() + b2.to_string();
-        }
-
-        static char base10[] = 
-        {
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-        };
-
-        auto current = *this;
-        
-        if (current == 0)
-        {
-            return "0";
-        }
-
-        std::string result;
-
-        while (current)
-        {
-            auto [quotient, remainder] = div_mod(current, 10);
-            result += base10[static_cast<int>(remainder)];
-            current = quotient;
-        }
-
-        return { result.rbegin(), result.rend() };
-    }
+    std::string to_string() const { return std::format("{}", *this); }
 
     constexpr uint64_t hash_code() const { return hash_combine(upper(), lower()); }
 
@@ -650,15 +619,7 @@ public:
         return temp;
     }
 
-    std::string to_string(int base = 10) const
-    {
-        uint128<Endian> u(*this);
-        if (signbit(upper()))
-        {
-            return std::string("-") + (-u).to_string(base);
-        }
-        return u.to_string(base);
-    }
+    std::string to_string() const { return std::format("{}", *this); }
 
     constexpr size_t hash_code() const { return hash_combine(upper(), lower()); }
 
@@ -694,7 +655,7 @@ public:
 
     friend std::ostream& operator<<(std::ostream& os, int128 x) 
     {
-        return os << x.to_string(2);
+        return os << x.to_string();
     }
 
     constexpr auto lower() const { return base::lower(); }
@@ -709,15 +670,7 @@ template class int128<>;
 
 }
 
-namespace leviathan::math
-{
-
-using leviathan::math::numeric::uint128_t;
-using leviathan::math::numeric::int128_t;
-
-}
-
-// Extend std::numeric_limits
+// Specialize for std::numeric_limits
 template <std::endian Endian>
 struct std::numeric_limits<leviathan::math::numeric::uint128<Endian>>
 {
@@ -804,7 +757,7 @@ public:
     static constexpr int128 denorm_min() { return 0; }
 };
 
-// Extend std::hash
+// Specialize for std::hash
 template <std::endian Endian>
 struct std::hash<leviathan::math::numeric::uint128<Endian>> 
 {
@@ -823,6 +776,7 @@ struct std::hash<leviathan::math::numeric::int128<Endian>>
     }
 };
 
+// Specialize for std::formatter
 template <std::endian Endian>
 struct std::formatter<leviathan::math::numeric::uint128<Endian>>
 {
@@ -867,4 +821,10 @@ struct std::formatter<leviathan::math::numeric::int128<Endian>>
     std::formatter<signed __int128> m_fmt;
 };
 
+namespace leviathan
+{
 
+using leviathan::math::numeric::uint128_t;
+using leviathan::math::numeric::int128_t;
+
+}
