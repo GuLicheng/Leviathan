@@ -6,6 +6,7 @@
 
 namespace leviathan::collections
 {
+
 struct avl_node : tree_node_basic_operation<avl_node>
 {
     static constexpr void reset(avl_node* node)
@@ -248,6 +249,7 @@ static_assert(tree_node_interface<avl_node>);
 
 namespace leviathan::collections
 {
+    
 template <typename T, typename Compare = std::less<>, typename Allocator = std::allocator<T>>
 using avl_set = tree_set<T, Compare, Allocator, avl_node>;
 

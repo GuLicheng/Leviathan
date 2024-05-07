@@ -1,10 +1,22 @@
 #include <format>
-#include <leviathan/math/int128.hpp>
+#include <ranges>
+#include <algorithm>
+#include <vector>
+#include <leviathan/collections/avl_tree.hpp>
+#include <leviathan/collections/internal/tree_drawer.hpp>
 
 int main(int argc, char const *argv[])
 {
-    
-    leviathan::int128_t i = 0; 
+    using Tree = leviathan::collections::avl_set<int>;
+    Tree s;
+    s.insert(1);
+    s.insert(2);
+    s.insert(3);
+    s.insert(4);
+    s.insert(5);
+    auto ss = leviathan::collections::draw_tree(s);
+    std::cout << ss << '\n';
 
+    std::puts("Ok");
     return 0;
 }

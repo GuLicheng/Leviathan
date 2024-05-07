@@ -222,7 +222,7 @@ public:
         
         const auto part_hi = upper() * rhs.lower() // H64(A) * L64(B)
                            + lower() * rhs.upper() // L64(A) * H64(B)
-                           + ah * bh;                              // LH32(A) * LH32(B)
+                           + ah * bh;              // LH32(A) * LH32(B)
 
         const auto part_lo = al * bl; // LL32(A) * LL32(B)
 
@@ -564,11 +564,10 @@ public:
         assert(0 < amount && amount < 127 && "int64_t shifts of >= 63 are undefined.");
 
         const auto result = static_cast<uint128<Endian>>(*this) >> amount;
-        const auto is_negative = signbit(upper());
         // Right-shift on signed integral types is an arithmetic right shift, 
-        // which performs sign-extension. So wee must keep sign bit when shifting 
+        // which performs sign-extension. So we must keep sign bit when shifting 
         // signed integer.
-        if (is_negative)
+        if (signbit(upper()))
         {
             return result | (uint128<Endian>::max() << (127 - amount));
         }
@@ -777,8 +776,8 @@ struct std::hash<leviathan::math::numeric::int128<Endian>>
 };
 
 // Specialize for std::formatter
-template <std::endian Endian>
-struct std::formatter<leviathan::math::numeric::uint128<Endian>>
+template <std::endian Endian, typename CharT>
+struct std::formatter<leviathan::math::numeric::uint128<Endian>, CharT>
 {
     using uint128 = leviathan::math::numeric::uint128<Endian>;
 
@@ -796,11 +795,11 @@ struct std::formatter<leviathan::math::numeric::uint128<Endian>>
         return m_fmt.format(v, ctx);
     }   
 
-    std::formatter<unsigned __int128> m_fmt;
+    std::formatter<unsigned __int128, CharT> m_fmt;
 };
 
-template <std::endian Endian>
-struct std::formatter<leviathan::math::numeric::int128<Endian>>
+template <std::endian Endian, typename CharT>
+struct std::formatter<leviathan::math::numeric::int128<Endian>, CharT>
 {
     using int128 = leviathan::math::numeric::int128<Endian>;
 
@@ -818,7 +817,7 @@ struct std::formatter<leviathan::math::numeric::int128<Endian>>
         return m_fmt.format(v, ctx);
     }   
 
-    std::formatter<signed __int128> m_fmt;
+    std::formatter<signed __int128, CharT> m_fmt;
 };
 
 namespace leviathan
@@ -828,3 +827,12 @@ using leviathan::math::numeric::uint128_t;
 using leviathan::math::numeric::int128_t;
 
 }
+
+
+
+
+
+
+
+
+

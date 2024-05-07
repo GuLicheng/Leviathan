@@ -21,16 +21,27 @@ BinaryOp = [
     (or_,  '|'),
 ]
 
+def combine(hi, lo):
+    return (hi << 64) | lo
+
 def generate_random_unsigned128():
     hi, lo = 0, 0
     if random.random() > 0.5:
         hi = random.randint(0, UINT64_MAX)
     if random.random() > 0.5:
         lo = random.randint(0, UINT64_MAX)
-    return hi, lo
+    return combine(hi, lo)
 
-def combine(hi, lo):
-    return (hi << 64) | lo
+class BinaryOperation:
+
+    def __init__(self, op) -> None:
+        self.op = op
+        self.lhs = generate_random_unsigned128()
+        self.rhs = generate_random_unsigned128()
+
+    def __call__(self):
+        pass
+
 
 def test():
 
@@ -39,7 +50,7 @@ def test():
     y1, y2 = generate_random_unsigned128()
     x = combine(x1, x2)
     y = combine(y1, y2)
-    print(f"x={x}, y={y}, op={op[1]} and op(x, y) = {op[0](x, y)}")
+    print(f"x={x}, y={y} and x {op[1]} y = {op[0](x, y)}")
 
 if __name__ == "__main__":
 
