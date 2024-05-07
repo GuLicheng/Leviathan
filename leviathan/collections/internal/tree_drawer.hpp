@@ -15,6 +15,7 @@ template <typename Tree>
 struct row_drawer
 {
     using tree_node = typename Tree::tree_node;
+    using tree_node_base = typename Tree::tree_node_base;
 
     static std::string operator()(const Tree& tree) 
     {
@@ -129,6 +130,7 @@ template <typename Tree>
 struct column_drawer
 {
     using tree_node = typename Tree::tree_node;
+    using tree_node_base = typename Tree::tree_node_base;
 
     static std::string operator()(const Tree& tree)
     {
@@ -138,7 +140,6 @@ struct column_drawer
         }
 
         std::string result;
-
         recurse(tree.root(), "", true, result);
         return result;
     }
@@ -153,11 +154,10 @@ struct column_drawer
             recurse(static_cast<const tree_node*>(node->m_right), new_prefix, false, result);
         }
 
-        result += prefix;
-
-        result += is_tail ? "└── " : "┌── ";
-
-        result += std::format("{}\n", *static_cast<const tree_node*>(node)->value_ptr());
+        result += std::format("{}{}{}\n", 
+            prefix, 
+            (is_tail ? "└── " : "┌── "), 
+            *static_cast<const tree_node*>(node)->value_ptr());
     
         if (node->m_left)
         {
@@ -170,10 +170,15 @@ struct column_drawer
 
 
 template <typename Tree>
-std::string draw_tree(const Tree& tree)
+std::string draw_tree_by_column(const Tree& tree)
 {
-    // return row_drawer<Tree>()(tree);
     return column_drawer<Tree>()(tree);
+}
+
+template <typename Tree>
+std::string draw_tree_by_row(const Tree& tree)
+{
+    return row_drawer<Tree>()(tree);
 }
 
 } // namespace leviathan::collections

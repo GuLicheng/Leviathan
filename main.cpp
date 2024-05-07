@@ -19,7 +19,7 @@ int main(int argc, char const *argv[])
     s.insert(-1);
     s.insert(-2);
     s.insert(-3);
-    auto ss = leviathan::collections::draw_tree(s);
+    auto ss = leviathan::collections::draw_tree_by_column(s);
     std::cout << ss << '\n';
 
     std::puts("Ok");
