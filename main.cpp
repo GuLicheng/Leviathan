@@ -7,6 +7,8 @@
 
 int main(int argc, char const *argv[])
 {
+    system("chcp 65001");
+
     using Tree = leviathan::collections::avl_set<int>;
     Tree s;
     s.insert(1);
@@ -14,6 +16,9 @@ int main(int argc, char const *argv[])
     s.insert(3);
     s.insert(4);
     s.insert(5);
+    s.insert(-1);
+    s.insert(-2);
+    s.insert(-3);
     auto ss = leviathan::collections::draw_tree(s);
     std::cout << ss << '\n';
 
