@@ -9,7 +9,9 @@
 using namespace leviathan::collections;
 
 template <typename T> 
-class AssociativeContainerSet : public associative_container_lookup_interface<true>
+class AssociativeContainerSet : 
+    public associative_container_lookup_interface<true>,
+    public associative_container_insertion_interface
 {
     using base = std::set<T>;
 
@@ -28,6 +30,7 @@ public:
 
     AssociativeContainerSet() = default;
 
+    using value_type = T;
     using iterator = typename base::iterator;
     using const_iterator = typename base::const_iterator;
     using reverse_iterator = typename base::reverse_iterator;
@@ -39,6 +42,13 @@ public:
 
     auto key_comp() const { return m_s.key_comp(); }
 
+    auto begin() { return m_s.begin(); }
+    auto begin() const { return m_s.begin(); }
+
+    auto end() { return m_s.end(); }
+    auto end() const { return m_s.end(); }
+
+    // Lookup interface core APIs
     template <typename U>
     auto lower_bound(const U& x) 
     { 
@@ -51,16 +61,17 @@ public:
         return m_s.lower_bound(x); 
     }
 
-    auto begin() { return m_s.begin(); }
-    auto begin() const { return m_s.begin(); }
-
-    auto end() { return m_s.end(); }
-    auto end() const { return m_s.end(); }
-
+    // Insertion interface core APIs
     template <typename... Args>
-    auto insert(Args&&... args)
+    auto emplace(Args&&... args)
     {
         return m_s.emplace((Args&&) args...); 
+    }
+
+    template <typename... Args>
+    auto emplace_hint(const iterator& pos, Args&&... args)
+    {
+        return m_s.emplace_hint(pos, (Args&&) args...);
     }
 
 };

@@ -31,8 +31,8 @@ private:
 
 public:
 
-    template <typename Self, typename U>
-        requires associative_container<std::remove_cvref_t<Self>>
+    template <typename Self, typename U, typename C = std::remove_cvref_t<Self>>
+        requires associative_container<C>
     auto find(this Self&& self, U&& x)
     {
         // We assume the Compare is empty class.
@@ -41,23 +41,30 @@ public:
         return (lower == self.end() || compare(x, key_extractor(*lower))) ? self.end() : lower;
     }
 
-    template <typename Self, typename U>
-        requires associative_container<std::remove_cvref_t<Self>>
+    template <typename Self, typename U, typename C = std::remove_cvref_t<Self>>
+        requires associative_container<C>
     bool contains(this Self&& self, U&& x)
     {
         return self.find(x) == self.end();
     }
 
-    template <typename Self, typename U>
-        requires associative_container<std::remove_cvref_t<Self>>
+    template <typename Self, typename U, typename C = std::remove_cvref_t<Self>>
+        requires associative_container<C>
     auto count(this Self&& self, U&& x)
     {
-        // FIXME: return type should be size_type
-        return self.find(x) == self.end() ? 0uz : 1uz;
+        const auto c = self.find(x) == self.end() ? 0uz : 1uz;
+        if constexpr (requires { typename C::size_type; })
+        {
+            return static_cast<typename C::size_type>(c);
+        }
+        else    
+        {
+            return c;
+        }
     }
 
-    template <typename Self, typename U>
-        requires associative_container<std::remove_cvref_t<Self>>
+    template <typename Self, typename U, typename C = std::remove_cvref_t<Self>>
+        requires associative_container<C>
     auto equal_range(this Self&& self, U&& x)
     {
         auto [compare, key_extractor] = self.compare_and_extractor();
@@ -66,21 +73,13 @@ public:
         return std::make_pair(lower, upper);
     }
 
-    template <typename Self, typename U>
-        requires associative_container<std::remove_cvref_t<Self>>
+    template <typename Self, typename U, typename C = std::remove_cvref_t<Self>>
+        requires associative_container<C>
     auto upper_bound(this Self&& self, U&& x)
     {
         return self.equal_range(x).second;
     }
 
-};
-
-template <typename X, typename T>
-concept associative_container_emplace = requires (X a)
-{
-    { a.emplace(std::declval<T>()) } -> std::same_as<std::pair<typename X::iterator, bool>>;
-    { a.emplace_hint(std::declval<typename X::const_iterator>(), std::declval<T>()) } 
-        -> std::same_as<std::pair<typename X::iterator, bool>>;
 };
 
 struct associative_container_insertion_interface
