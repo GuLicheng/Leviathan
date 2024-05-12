@@ -76,12 +76,12 @@ public:
 
 };
 
-TEST_CASE("argument type deduction")
+TEST_CASE("associative_container_lookup_interface")
 {
     AssociativeContainerSet<int> s;
 
-    auto ZeroIter = s.insert(0).first;
-    auto TwoIter = s.insert(2).first;
+    auto ZeroIter = s.emplace(0).first;
+    auto TwoIter = s.emplace(2).first;
     auto Sentinel = s.end();
 
     // Search [-1, 0, 1, 2, 3]
@@ -146,3 +146,33 @@ TEST_CASE("argument type deduction")
 
 }
 
+
+TEST_CASE("associative_container_insertion_interface")
+{
+    AssociativeContainerSet<int> s;
+
+    std::array Values = { 0, 1, 2 };
+
+    int x = 0;
+
+    s.insert(x); // (1)
+
+    s.insert(1); // (2)
+
+    // s.insert(s.begin(), x); // (3) ?
+
+    // s.insert(s.begin(), 2); // (4) ?
+
+    s.insert(Values.begin(), Values.end()); // (5)
+
+    s.insert({ 2, 3 }); // (6)
+
+    std::array Results = { 0, 1, 2, 3 };
+
+    auto result = std::ranges::equal(
+        Results.begin(), Results.end(),
+        s.begin(), s.end()
+    );
+
+    CHECK(result);
+}
