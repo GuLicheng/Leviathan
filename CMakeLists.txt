@@ -84,3 +84,10 @@ if (LEVIATHAN_BUILD_COLLECTIONS STREQUAL "ON")
     message(STATUS "Build collections")
     add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/collections)
 endif()
+
+set(LEVIATHAN_BUILD_COLLECTIONS_V2 ON)
+if (LEVIATHAN_BUILD_COLLECTIONS_V2 STREQUAL "ON")
+    message(STATUS "Build collectionsV2")
+    add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/collectionsV2)
+endif()
+

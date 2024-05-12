@@ -8,7 +8,6 @@ namespace leviathan::collections
 {
 
 // Some basic operations on binary search tree node
-
 template <typename TreeNode>
 struct tree_node_basic_operation
 {

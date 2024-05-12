@@ -2,8 +2,7 @@
     this header provide some macro for getting the type of instance
 */
 
-#ifndef __TEMPLATE_INFO_HPP__
-#define __TEMPLATE_INFO_HPP__
+#pragma once
 
 #include <string_view>
 
@@ -70,5 +69,3 @@ constexpr std::string_view type_to_str() noexcept
     (std::cout << type_to_str< type >() << std::endl)
 
 
-
-#endif

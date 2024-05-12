@@ -5,137 +5,137 @@
 namespace leviathan::collections
 {
 
-    struct simple_binary_node : tree_node_basic_operation<simple_binary_node>
+struct simple_binary_node : tree_node_basic_operation<simple_binary_node>
+{
+    static constexpr void reset(simple_binary_node* node)
     {
-        static constexpr void reset(simple_binary_node* node)
+        node->m_parent = nullptr;
+        node->m_left = node->m_right = node;
+    }
+
+    static constexpr void init(simple_binary_node* node)
+    { node->m_left = node->m_right = node->m_parent = nullptr; }
+
+    static constexpr void insert_and_rebalance(bool insert_left,
+                                    simple_binary_node* x,
+                                    simple_binary_node* p,
+                                    simple_binary_node& header)
+    {
+        x->m_parent = p;
+        x->m_left = x->m_right = nullptr;
+
+        if (insert_left)
         {
-            node->m_parent = nullptr;
-            node->m_left = node->m_right = node;
-        }
-
-        static constexpr void init(simple_binary_node* node)
-        { node->m_left = node->m_right = node->m_parent = nullptr; }
-
-        static constexpr void insert_and_rebalance(bool insert_left,
-                                      simple_binary_node* x,
-                                      simple_binary_node* p,
-                                      simple_binary_node& header)
-        {
-            x->m_parent = p;
-            x->m_left = x->m_right = nullptr;
-
-            if (insert_left)
+            p->m_left = x;
+            if (p == &header)
             {
-                p->m_left = x;
-                if (p == &header)
-                {
-                    header.m_parent = x;
-                    header.m_right = x;
-                }
-                else if (p == header.m_left)
-                    header.m_left = x;
+                header.m_parent = x;
+                header.m_right = x;
             }
-            else
-            {
-                p->m_right = x;
-                if (p == header.m_right)
-                    header.m_right = x;
-            }
+            else if (p == header.m_left)
+                header.m_left = x;
         }
-
-        static constexpr bool is_header(simple_binary_node* node)
-        { return node->m_parent == nullptr; }            
-
-        static constexpr void clone(simple_binary_node* x, const simple_binary_node* y)
-        { } 
-
-        static constexpr simple_binary_node* rebalance_for_erase(simple_binary_node* z, simple_binary_node& header)
+        else
         {
-            auto x = z;
+            p->m_right = x;
+            if (p == header.m_right)
+                header.m_right = x;
+        }
+    }
 
-            assert(x && "x should not be nullptr");
+    static constexpr bool is_header(simple_binary_node* node)
+    { return node->m_parent == nullptr; }            
 
-            simple_binary_node*& root = header.m_parent;
-            simple_binary_node*& leftmost = header.m_left;
-            simple_binary_node*& rightmost = header.m_right;
+    static constexpr void clone(simple_binary_node* x, const simple_binary_node* y)
+    { } 
 
-            simple_binary_node* child = nullptr;
-            simple_binary_node* parent = nullptr; // for rebalance
+    static constexpr simple_binary_node* rebalance_for_erase(simple_binary_node* z, simple_binary_node& header)
+    {
+        auto x = z;
 
-            if (x->m_left && x->m_right)
+        assert(x && "x should not be nullptr");
+
+        simple_binary_node*& root = header.m_parent;
+        simple_binary_node*& leftmost = header.m_left;
+        simple_binary_node*& rightmost = header.m_right;
+
+        simple_binary_node* child = nullptr;
+        simple_binary_node* parent = nullptr; // for rebalance
+
+        if (x->m_left && x->m_right)
+        {
+            auto successor = minimum(x->m_right);
+            child = successor->m_right;
+            parent = successor->m_parent;
+            if (child)
             {
-                auto successor = minimum(x->m_right);
-                child = successor->m_right;
-                parent = successor->m_parent;
-                if (child)
-                {
-                    child->m_parent = parent;
-                }
+                child->m_parent = parent;
+            }
 
-                    (successor->m_parent->m_left == successor ? 
-                    successor->m_parent->m_left : 
-                    successor->m_parent->m_right) = child;
+                (successor->m_parent->m_left == successor ? 
+                successor->m_parent->m_left : 
+                successor->m_parent->m_right) = child;
 
 
-                if (successor->m_parent == x)
-                    parent = successor;
-                
-                successor->m_left = x->m_left;
-                successor->m_right = x->m_right;
-                successor->m_parent = x->m_parent;
+            if (successor->m_parent == x)
+                parent = successor;
             
-                if (x == root)
-                    root = successor;
-                else
-                    (x->m_parent->m_left == x ? x->m_parent->m_left : x->m_parent->m_right) = successor;
-                
-                x->m_left->m_parent = successor;
+            successor->m_left = x->m_left;
+            successor->m_right = x->m_right;
+            successor->m_parent = x->m_parent;
+        
+            if (x == root)
+                root = successor;
+            else
+                (x->m_parent->m_left == x ? x->m_parent->m_left : x->m_parent->m_right) = successor;
+            
+            x->m_left->m_parent = successor;
 
-                if (x->m_right)
-                    x->m_right->m_parent = successor;
+            if (x->m_right)
+                x->m_right->m_parent = successor;
 
+        }
+        else
+        {
+            // update leftmost or rightmost
+            if (!x->m_left && !x->m_right) 
+            {
+                // leaf, such as just one root
+                if (x == leftmost)
+                    leftmost = x->m_parent;
+                if (x == rightmost)
+                    rightmost = x->m_parent;
             }
+            else if (x->m_left)
+            {
+                // only left child
+                child = x->m_left;
+                if (x == rightmost)
+                    rightmost = maximum(child);
+            }                
             else
             {
-                // update leftmost or rightmost
-                if (!x->m_left && !x->m_right) 
-                {
-                    // leaf, such as just one root
-                    if (x == leftmost)
-                        leftmost = x->m_parent;
-                    if (x == rightmost)
-                        rightmost = x->m_parent;
-                }
-                else if (x->m_left)
-                {
-                    // only left child
-                    child = x->m_left;
-                    if (x == rightmost)
-                        rightmost = maximum(child);
-                }                
-                else
-                {
-                    // only right child
-                    child = x->m_right;
-                    if (x == leftmost)
-                        leftmost = minimum(child);
-                }
-
-                if (child)
-                    child->m_parent = x->m_parent;
-                if (x == root)
-                    root = child;
-                else
-                    (x->m_parent->m_left == x ? x->m_parent->m_left : x->m_parent->m_right) = child;
-                parent = x->m_parent;
+                // only right child
+                child = x->m_right;
+                if (x == leftmost)
+                    leftmost = minimum(child);
             }
-        
-            return z;
+
+            if (child)
+                child->m_parent = x->m_parent;
+            if (x == root)
+                root = child;
+            else
+                (x->m_parent->m_left == x ? x->m_parent->m_left : x->m_parent->m_right) = child;
+            parent = x->m_parent;
         }
+    
+        return z;
+    }
 
-    };
+};
 
-    static_assert(tree_node_interface<simple_binary_node>);
+static_assert(tree_node_interface<simple_binary_node>);
 
 }
 
@@ -143,16 +143,16 @@ namespace leviathan::collections
 
 namespace leviathan::collections
 {
-    template <typename T, typename Compare = std::less<>, typename Allocator = std::allocator<T>>
-    using binary_set = tree_set<T, Compare, Allocator, simple_binary_node>;
+template <typename T, typename Compare = std::less<>, typename Allocator = std::allocator<T>>
+using binary_set = tree_set<T, Compare, Allocator, simple_binary_node>;
 
-    template <typename T, typename Compare = std::less<>>
-    using pmr_binary_set = tree_set<T, Compare, std::pmr::polymorphic_allocator<T>, simple_binary_node>;  
+template <typename T, typename Compare = std::less<>>
+using pmr_binary_set = tree_set<T, Compare, std::pmr::polymorphic_allocator<T>, simple_binary_node>;  
 
-    template <typename K, typename V, typename Compare = std::less<>, typename Allocator = std::allocator<std::pair<const K, V>>>
-    using binary_map = tree_map<K, V, Compare, Allocator, simple_binary_node>;
+template <typename K, typename V, typename Compare = std::less<>, typename Allocator = std::allocator<std::pair<const K, V>>>
+using binary_map = tree_map<K, V, Compare, Allocator, simple_binary_node>;
 
-    template <typename K, typename V, typename Compare = std::less<>>
-    using pmr_binary_map = tree_map<K, V, Compare, std::pmr::polymorphic_allocator<std::pair<const K, V>>, simple_binary_node>;
+template <typename K, typename V, typename Compare = std::less<>>
+using pmr_binary_map = tree_map<K, V, Compare, std::pmr::polymorphic_allocator<std::pair<const K, V>>, simple_binary_node>;
 
 }
