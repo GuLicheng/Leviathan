@@ -11,6 +11,10 @@
 namespace leviathan::collections
 {
 
+/**
+ * We introduce a parent node to make traverse easier 
+ * and more efficient.
+*/
 struct basic_tree_node_operation
 {
 	template <typename Node>
@@ -203,8 +207,6 @@ struct binary_node_operation : basic_tree_node_operation
         y->rchild(x);
         x->parent(y);
     }
-
-
 
 };
 

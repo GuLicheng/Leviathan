@@ -160,3 +160,29 @@ TEST_CASE("remove elements")
     REQUIRE(h.empty());
 }
 
+TEST_CASE("circle iterator")
+{
+    SECTION("empty tree")
+    {
+        Tree t;
+        auto first = t.begin(), last = t.end();
+        REQUIRE(first == last);
+        ++first;
+        REQUIRE(first == last);
+    }
+
+    SECTION("non-empty tree")
+    {
+        Tree t;
+        t.insert(0);
+        auto first = t.begin(), last = t.end();
+        REQUIRE(*first == 0);
+        ++first;
+        REQUIRE(first == last);
+        ++first;
+        REQUIRE(*first == 0);
+    }
+}
+
+
+

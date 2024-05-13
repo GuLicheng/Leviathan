@@ -7,7 +7,7 @@ using Tree = avl_tree<int>;
 
 
 
-#include "tree_test.ixx"
+#include "tree_test.inc"
 
 
 TEST_CASE("avl_tree_height_test")

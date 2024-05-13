@@ -77,6 +77,30 @@ private:
 		std::is_nothrow_swappable_v<Compare>
 		&& typename node_alloc_traits::is_always_equal();
 
+	/**
+	 * In C++, we should not dereference a end iterator. But what about increment?
+	 * We hope whenever increment a iterator, the program will not abort. We make
+	 * iterator cycle. For instance, the final iterator incrementing will wall to
+	 * the sentinel(end iterator, header in our tree) and next incrementing will walk 
+	 * to the first element which contained by begin iterator.
+	 * 
+	 * In our implementation of `increment`, when the iterator walk to the last element,
+	 * the next step will always stay in place and for an empty tree, increment iterator
+	 * will cause infinity loop. 
+	 * 	E.g.
+	 * 		
+	 * 	std::set<int>().begin()++; // infinity loop
+	 * 	
+	 * 	std::set<int> s{ 1, 2 };
+	 * 	auto it = s.find(2);
+	 * 	it++ == s.end();  // false
+	 * 	it++ == s.end();  // true
+	 * 	it++ == s.end();  // false
+	 * 	it++ == s.end();  // true
+	 * 
+	 * To avoid above cases, we introduce `is_header` to help us check whether current 
+	 * iterator is sentinel.
+	*/
 	struct tree_iterator : postfix_increment_and_decrement_operation, arrow_operation
 	{
 		using link_type = NodeType*;
@@ -105,6 +129,7 @@ private:
 
 		constexpr tree_iterator& operator--()
 		{
+			// if node is header/end/sentinel, we simply make it cycle
 			m_ptr = m_ptr->is_header() ? m_ptr->rchild() : m_ptr->decrement();
 			return *this;
 		}
@@ -507,7 +532,16 @@ private:
 
 	[[no_unique_address]] Compare m_cmp;
 	[[no_unique_address]] node_allocator m_alloc;
+
+	/**
+	 * We use a NodeType which does not have value_type field as header node.
+	 * The parent of node link to root of tree, the left child link to the leftmost of tree
+	 * and the right child link to the rightmost node. For `begin`, we return the leftmost node
+	 * of tree and for `end`, we return the header as sentinel. 
+	*/
 	NodeType m_header;
+
+	/* Size of current tree */
 	size_type m_size;
 };
 

@@ -14,7 +14,7 @@ struct avl_node : binary_node_operation
     // Nodes
     avl_node* m_nodes[3];
 
-    // Height of current node, -1 for header and 1 for leaf
+    // Height of current node, -1 for header, 1 for leaf and 0 for nullptr
     int m_height;
 
 	// Initialize node without value field after calling allocate
@@ -57,7 +57,6 @@ struct avl_node : binary_node_operation
         return m_height == -1;
     }
 
-    // remove x from tree and return removed node
     void erase_node(avl_node* header)
     {
         auto x = this;
