@@ -1,8 +1,6 @@
 #include <iostream>
-#include <leviathan/meta/template_info.hpp>
-
-#include "catch2/catch_all.hpp"
-#include "binary_search_tree.hpp"
+// #include "catch2/catch_all.hpp"
+// #include "binary_search_tree.hpp"
 
 using namespace leviathan::collections;
 
@@ -29,7 +27,7 @@ struct Logger
 
 TEST_CASE("insert value ascending")
 {
-    binary_search_tree<int> tree;
+    Tree tree;
 
     tree.insert(0);
     tree.insert(1);
@@ -46,7 +44,7 @@ TEST_CASE("insert value ascending")
 
 TEST_CASE("insert value descending")
 {
-    binary_search_tree<int> tree;
+    Tree tree;
 
     tree.insert(0);
     tree.insert(-1);
@@ -63,7 +61,7 @@ TEST_CASE("insert value descending")
 
 TEST_CASE("insert only one element")
 {
-    binary_search_tree<int> tree;
+    Tree tree;
     tree.insert(0);
 
     CHECK(tree.size() == 1);
@@ -72,7 +70,7 @@ TEST_CASE("insert only one element")
 
 TEST_CASE("empty tree")
 {
-    binary_search_tree<int> t;
+    Tree t;
     CHECK(t.empty());
     CHECK(t.size() == 0);
 }
@@ -91,7 +89,7 @@ TEST_CASE("test member type")
     using const_reference = const int&;
     using pointer = std::allocator_traits<allocator_type>::pointer;
     using const_pointer = std::allocator_traits<allocator_type>::const_pointer;
-    using SetType = binary_search_tree<int>;
+    using SetType = Tree;
 
 #define CheckTypeIsEqual(type) CHECK(std::is_same_v< typename SetType:: type, type >)
 
@@ -114,7 +112,7 @@ TEST_CASE("test member type")
 
 TEST_CASE("find value")
 {
-    binary_search_tree<int> tree;
+    Tree tree;
 
     auto Zero = tree.insert(0).first;
     auto Positive = tree.insert(2).first;
@@ -138,7 +136,7 @@ TEST_CASE("find value")
 
 TEST_CASE("remove elements")
 {
-    binary_search_tree<int> h;
+    Tree h;
 
     REQUIRE(h.erase(0) == 0);
 

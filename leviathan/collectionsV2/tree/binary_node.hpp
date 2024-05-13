@@ -1,14 +1,16 @@
 #pragma once
 
 #include "tree_node_operation.hpp"
-#include "tree_drawer.hpp"
 
 namespace leviathan::collections
 {
 
 struct binary_node : binary_node_operation
 {
+	// Nodes
 	binary_node* m_nodes[3];
+	
+	// True for header and false for others
 	bool m_sentinel;
 
 	// Initialize node without value field after calling allocate
@@ -126,9 +128,13 @@ struct binary_node : binary_node_operation
 			{
 				// leaf, such as just one root
 				if (x == leftmost)
+				{
 					leftmost = x->parent();
+				}
 				if (x == rightmost)
+				{
 					rightmost = x->parent();
+				}
 			}
 			else if (x->lchild())
 			{
@@ -163,7 +169,7 @@ struct binary_node : binary_node_operation
 					? x->parent()->lchild(child)
 					: x->parent()->rchild(child);
 			}
-			parent = x->parent();
+			// parent = x->parent();
 		}
 		//return z;
 		return this;
@@ -173,5 +179,5 @@ struct binary_node : binary_node_operation
 	{ }
 };
 
-
 }
+

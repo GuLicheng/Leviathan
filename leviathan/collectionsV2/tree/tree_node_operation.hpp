@@ -5,7 +5,7 @@
 #pragma once
 
 #include <type_traits>
-
+#include <memory>
 #include <assert.h>
 
 namespace leviathan::collections
@@ -107,7 +107,7 @@ struct binary_node_operation : basic_tree_node_operation
 
 		if (x->rchild())
 		{
-			return x->child()->minimum();
+			return x->rchild()->minimum();
 		}
 		else
 		{
@@ -127,6 +127,85 @@ struct binary_node_operation : basic_tree_node_operation
 			return x;
 		}
 	}
+
+    /*
+    *     x            y              
+    *       \   =>   /    
+    *         y    x
+    */
+	template <typename Node>	
+    void rotate_left(this Node& self, Node*& root)
+    {
+		auto x = std::addressof(self);
+        auto y = x->rchild();
+
+        x->rchild(y->lchild());
+
+        if (y->lchild())
+		{
+            y->lchild()->parent(x);
+		}
+
+        y->parent(x->parent());
+
+        // x->parent will never be nullptr, since header->parent == root and root->parent == header
+        if (x == root)
+		{
+            root = y;
+		}
+        else if (x == x->parent()->lchild()) 
+        {
+		    x->parent()->lchild(y);
+        }
+		else
+		{
+            x->parent()->rchild(y);
+		}
+		
+        y->lchild(x);
+        x->parent(y);
+    }
+
+
+    /*
+    *     x        y                   
+    *    /     =>    \
+    *   y              x
+    */
+   	template <typename Node>
+    void rotate_right(this Node& self, Node*& root)
+    {
+		auto x = std::addressof(self);
+        auto* y = x->lchild();
+
+        x->lchild(y->rchild());
+		
+        if (y->rchild())
+		{
+            y->rchild()->parent(x);
+		}
+
+        y->parent(x->parent());
+
+        if (x == root)
+		{
+            root = y;
+		}
+        else if (x == x->parent()->rchild())
+		{
+            x->parent()->rchild(y);
+		}
+        else
+		{
+            x->parent()->lchild(y);
+		}
+		
+        y->rchild(x);
+        x->parent(y);
+    }
+
+
+
 };
 
 }

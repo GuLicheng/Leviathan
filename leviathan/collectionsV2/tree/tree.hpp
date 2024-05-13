@@ -2,6 +2,7 @@
 
 #include "../common.hpp"
 #include "../associative_container_interface.hpp"
+#include "tree_drawer.hpp"
 
 namespace leviathan::collections
 { 
@@ -12,10 +13,12 @@ template <typename KeyValue,
 	bool UniqueKey, typename NodeType>
 class tree : public row_drawer, 
 		     public reversible_container_interface, 
-			 public associative_container_insertion_interface 
+			 public associative_container_insertion_interface,
+			 public associative_container_lookup_interface<UniqueKey>
 {
 public:
 
+	using key_value = KeyValue;
 	using value_type = typename KeyValue::value_type;
 	using key_type = typename KeyValue::key_type;
 	using size_type = std::size_t;
@@ -218,12 +221,12 @@ public:
 	}
 
 	iterator erase(const_iterator pos) 
+		requires (!std::same_as<iterator, const_iterator>)
 	{
 		return erase(pos.base());
 	}
 
 	iterator erase(iterator pos) 
-		requires (!std::same_as<iterator, const_iterator>)
 	{
 		auto ret = std::next(pos);
 		erase_by_node(pos.m_ptr);
@@ -283,12 +286,51 @@ public:
 		return &m_header; 
 	}
 
+	tree_node *root()
+	{
+		return static_cast<tree_node*>
+			(header()->parent());
+	}
+
+	const tree_node *root() const
+	{
+		return static_cast<const tree_node*>
+			(header()->parent());
+	}
+
 private:
 
 	using link_type = tree_node*;
 	using const_link_type = const tree_node*;
 	using base_ptr = NodeType*;
 	using const_base_ptr = const NodeType*;
+
+	template <typename K>
+	iterator find_impl(const K& k)
+	{
+		iterator j = lower_bound_impl(k);
+		return (j == end() || m_cmp(k, KeyValue()(*j))) ? end() : j;
+	}
+
+	void erase_by_node(base_ptr x)
+	{      
+		// auto y = NodeType::rebalance_for_erase(x, m_header);
+		auto y = x->rebalance_for_erase(m_header);
+		destroy_node(static_cast<link_type>(y));
+		m_size--;
+	}
+
+	template <typename K>
+	size_type erase_by_key(const K& x)
+	{
+		iterator node = this->find_impl(x);
+		if (node != end())
+		{
+			erase_by_node(node.m_ptr);
+			return 1;
+		}
+		return 0;
+	}
 
 	template <typename K>
 	iterator lower_bound_impl(const K& k)
