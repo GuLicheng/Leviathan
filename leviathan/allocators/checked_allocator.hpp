@@ -10,12 +10,13 @@
 namespace leviathan::alloc
 {
     
-enum alloc_spec
+enum alloc_spec : int
 {
     propagate_on_none = 0,
     propagate_on_copy = 1,
     propagate_on_move = 2,
     propagate_on_swap = 4,
+    propagate_on_all = 7,
 };
 
 namespace detail

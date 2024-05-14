@@ -229,11 +229,27 @@ struct value_handle
 	alignas(T) unsigned char m_raw[sizeof(T)];
 };
 
-template <typename T>
-using maybe_const_iterator_t = std::conditional_t<
-	std::is_const_v<T>,
-	typename T::const_iterator,
-	typename T::iterator
->;
+template <typename Pair, typename Compare>
+struct ordered_map_container_value_compare
+{
+	bool operator()(const Pair& lhs, const Pair& rhs) const
+	{
+		return m_c(lhs.first, rhs.first);
+	}
+
+	ordered_map_container_value_compare(Compare compare) : m_c(compare) { }
+
+	Compare m_c;
+};
+
+template <typename Hasher, typename KeyEqual>
+struct hash_key_equal : public Hash, public KeyEqual
+{
+	using Hasher::operator();
+	using KeyEqual::operator();
+
+	hash_key_equal(const Hasher& hasher, const KeyEqual& ke)
+	 	: Hasher(hasher), KeyEqual(ke) { }
+};
 
 }

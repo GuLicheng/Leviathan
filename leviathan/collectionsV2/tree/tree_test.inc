@@ -184,5 +184,43 @@ TEST_CASE("circle iterator")
     }
 }
 
+// Map
+TEST_CASE("map")
+{
+    TreeMap<std::string, int> map;
+
+    map.try_emplace("Alice", 5);
+
+    auto compare = map.value_comp();
+
+    compare({ "Alice", 1 }, { "Bob", 2 });
+}
+
+
+
+// Memory
+
+#include <leviathan/allocators/checked_allocator.hpp>
+#include <leviathan/allocators/fancy_ptr.hpp>
+
+using namespace leviathan::alloc;
+
+using MemoryRecordAllocator = checked_allocator<int, alloc_spec::propagate_on_all>;
+
+TEST_CASE("allocator alloc and dealloc")
+{
+    SECTION("empty tree")
+    {
+        TreeWithAlloc<int, MemoryRecordAllocator> tree;
+    }
+    CHECK(check_memory_alloc());
+
+    SECTION("non-empty tree")
+    {
+        Tree tree;
+        tree.insert(1);
+    }
+    CHECK(check_memory_alloc());
+}
 
 

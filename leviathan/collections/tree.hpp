@@ -167,11 +167,16 @@ namespace leviathan::collections
 
         tree() : tree(Compare(), Allocator()) { }
 
+        explicit tree(const Allocator& alloc) : tree(Compare(), alloc) { }
+
+        explicit tree(const Compare& compare) : tree(compare, Allocator()) { }
+
         explicit tree(const Compare& compare, const Allocator& allocator)
             : m_alloc{ allocator }, m_cmp{ compare }, m_size{ 0 }
         {
-            NodeType::reset(header());
+            // NodeType::reset(header());
         }
+
 
         tree(const Allocator& alloc)
             : tree(Compare(), alloc) { }
@@ -842,10 +847,7 @@ namespace leviathan::collections
             }
             return { x, false };
         }
-
-
     };
-
 }
 
 

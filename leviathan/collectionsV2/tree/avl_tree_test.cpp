@@ -5,10 +5,8 @@
 using namespace leviathan::collections;
 using Tree = avl_tree<int>;
 
-
-
-#include "tree_test.inc"
-
+template <typename T, typename Alloc>
+using TreeWithAlloc = tree<identity<T>, std::ranges::less, Alloc, true, avl_node>;
 
 TEST_CASE("avl_tree_height_test")
 {
@@ -78,6 +76,9 @@ TEST_CASE("avl_tree_height_test")
 
     Logger::WriteMessage(avl.draw().c_str());
 }
+
+#include "tree_test.inc"
+
 
 
 
