@@ -251,12 +251,12 @@ struct ordered_map_container_value_compare
  * 	
 */
 template <typename Hasher, typename KeyEqual>
-struct hash_key_equal : public Hash, public KeyEqual
+struct hash_key_equal : public Hasher, public KeyEqual
 {
 	using Hasher::operator();
 	using KeyEqual::operator();
 
-	hash_key_equal(const Hasher& hasher, const KeyEqual& ke)
+	explicit hash_key_equal(const Hasher& hasher = Hasher(), const KeyEqual& ke = KeyEqual())
 	 	: Hasher(hasher), KeyEqual(ke) { }
 };
 
