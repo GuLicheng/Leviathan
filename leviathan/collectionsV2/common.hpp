@@ -242,6 +242,14 @@ struct ordered_map_container_value_compare
 	Compare m_c;
 };
 
+/**
+ * https://stackoverflow.com/questions/371328/why-is-it-important-to-override-gethashcode-when-equals-method-is-overridden
+ * In some programming languages such as C#, we may need both overload
+ * GetHashCode and Equals since it usually store a reference.
+ * 
+ * Please make sure for KeyEqual(x, y) == true, Hasher(x) == Hasher(y).
+ * 	
+*/
 template <typename Hasher, typename KeyEqual>
 struct hash_key_equal : public Hash, public KeyEqual
 {
