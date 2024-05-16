@@ -46,6 +46,8 @@ concept node = requires (Node* n, const Node* cn, bool insert_left, Node& header
  * child always link to the rightmost. For empty tree, the left child and right
  * child of header link to itself and parent is null.
  * 
+ * For root node(if exist), its parent always link null.
+ * 
  * @param KeyValue Extractor for key and value. identity<T> for set and select1st<K, V> for map.
  * @param Compare
  * @param Allocator
@@ -164,14 +166,24 @@ protected:
 
         constexpr tree_iterator(link_type ptr) : m_ptr(ptr) { }
 
-        tree_iterator left(this tree_iterator it) 
-        {    
-            return tree_iterator(it->m_ptr->lchild());
+        constexpr link_type link(this tree_iterator it)
+        {
+            return it.m_ptr;
         }
 
-        tree_iterator right(this tree_iterator it)
+        constexpr tree_iterator up(this tree_iterator it)
         {
-            return tree_iterator(it->m_ptr->rchild());
+            return tree_iterator(it.m_ptr->parent());
+        }
+
+        constexpr tree_iterator left(this tree_iterator it) 
+        {    
+            return tree_iterator(it.m_ptr->lchild());
+        }
+
+        constexpr tree_iterator right(this tree_iterator it)
+        {
+            return tree_iterator(it.m_ptr->rchild());
         }
 
         constexpr tree_iterator& operator++()
@@ -317,7 +329,7 @@ public:
         return *this;
     }
 
-    tree& operator=(tree& rhs) noexcept(IsNothrowMoveAssign)
+    tree& operator=(tree&& rhs) noexcept(IsNothrowMoveAssign)
     {
         if (std::addressof(rhs) != this)
         {
@@ -797,7 +809,8 @@ class tree_set : public tree<identity<T>, Compare, Allocator, Unique, NodeType>
 };
 
 template <typename K, typename V, typename Compare, typename Allocator, bool Unique, typename NodeType>
-class tree_map : public tree<select1st<K, V>, Compare, Allocator, Unique, NodeType>
+class tree_map : public tree<select1st<K, V>, Compare, Allocator, Unique, NodeType>,
+                 public unique_associative_container_indexer_interface
 {
     using base = tree<select1st<K, V>, Compare, Allocator, Unique, NodeType>;
 
@@ -822,15 +835,15 @@ public:
         return value_compare(this->m_cmp);
     }
 
-    V &operator[](const K &key)
-    {
-        return this->try_emplace(key).first->second;
-    }
+    // V &operator[](const K &key)
+    // {
+    //     return this->try_emplace(key).first->second;
+    // }
 
-    V &operator[](K &&key)
-    {
-        return this->try_emplace(std::move(key)).first->second;
-    }
+    // V &operator[](K &&key)
+    // {
+    //     return this->try_emplace(std::move(key)).first->second;
+    // }
 
     template <typename... Args>
     std::pair<iterator, bool> try_emplace(const K &k, Args &&...args)
@@ -857,17 +870,17 @@ public:
         return try_emplace_impl(std::move(k), (Args &&)args...);
     }
 
-    template <typename M>
-    std::pair<iterator, bool> insert_or_assign(const K &k, M &&obj)
-    {
-        return insert_or_assign_impl(k, (M &&)obj);
-    }
+    // template <typename M>
+    // std::pair<iterator, bool> insert_or_assign(const K &k, M &&obj)
+    // {
+    //     return insert_or_assign_impl(k, (M &&)obj);
+    // }
 
-    template <typename M>
-    std::pair<iterator, bool> insert_or_assign(K &&k, M &&obj)
-    {
-        return insert_or_assign_impl(std::move(k), (M &&)obj);
-    }
+    // template <typename M>
+    // std::pair<iterator, bool> insert_or_assign(K &&k, M &&obj)
+    // {
+    //     return insert_or_assign_impl(std::move(k), (M &&)obj);
+    // }
 
 protected:
 

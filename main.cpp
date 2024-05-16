@@ -4,19 +4,26 @@
 #include <vector>
 #include <iostream>
 #include <set>
-
-#include <leviathan/collectionsV2/common.hpp> 
+#include <source_location>
+#include <leviathan/collectionsV2/tree/avl_tree.hpp> 
 
 using Hasher = std::hash<int>;
 using KeyEqual = std::ranges::equal_to;
 
 using MyEqualTo = leviathan::collections::hash_key_equal<Hasher, KeyEqual>;
 
+
 int main(int argc, char const *argv[])
 {
-    MyEqualTo a;
 
-    std::cout << a(1) << '\n'; 
-    std::cout << a(1, 1) << '\n'; 
+    leviathan::collections::avl_tree<int> t; 
+
+    t.insert(1);
+    t.insert(2);
+    t.insert(0);
+
+    auto walker = t.end();
+
+    walker.left();
 
 }

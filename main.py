@@ -21,10 +21,13 @@ if __name__ == "__main__":
         QMessageBox.information(window, "Info", "You have clicked me.")
 
     hbox = QHBoxLayout()
+    
     button = make_push_button("ClickMe", show_message)
 
     hbox.addWidget(button)
+    hbox.addWidget(make_push_button("ClickMe2", show_message))
     window.setLayout(hbox)
+    
 
     window.show()
 

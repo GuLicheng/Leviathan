@@ -132,10 +132,7 @@ struct associative_container_insertion_interface
     template <typename Self, typename C = std::remove_cvref_t<Self>>
     auto insert(this Self& self, std::initializer_list<typename C::value_type> ilist)
     {
-        for (const auto& value : ilist)
-        {
-            self.emplace(value);
-        }
+        self.insert(ilist.begin(), ilist.end());
     }
 
     // (7)
@@ -162,9 +159,51 @@ struct associative_container_insertion_interface
     {
         return self.emplace_hint(pos, (K&&) k);
     }
+
+    template <typename Self, typename R, typename C = std::remove_cvref_t<Self>>
+        requires container_compatible_range<R, typename C::value_type>
+    void insert_range(this Self&& self, R&& rg)
+    {
+        self.insert(std::ranges::begin(rg), std::ranges::end(rg));
+    }
+
 };
 
+struct unique_associative_container_indexer_interface
+{
+    // Since try_emplace will provide overload for is_transparent, so we just need pass the
+    template <typename Self, typename K, typename C = std::remove_cvref_t<Self>>
+    auto& operator[](this Self&& self, K&& k)
+    {
+        // This may not perfect, since it is unnecessary for mapped_type constructor
+        // if the container already contains k. A better way is 
+        // 1. Find the location of element to be inserted or updated.
+        // 2. If the element does not in container, try construct a object with 
+        //  default construction.
+        // In this case, a default construction may be avoid in sometimes.
+        return self.try_emplace((K&&) k, typename C::mapped_type()).first->second;
+    }
 
+    template <typename Self, typename K, typename M, typename C = std::remove_cvref_t<Self>>
+    auto insert_or_assign(this Self&& self, K&& k, M&& obj)
+    {
+        auto result = self.try_emplace((K&&) k, (M&&) obj);
+        if (!result.second)
+        {
+            result.first->second = static_cast<typename C::mapped_type>((M&&) obj); 
+        }
+        // The bool component is true if the insertion took place and false if the assignment took place
+        return result;
+    }
+
+    template <typename Self, typename K, typename M, typename C = std::remove_cvref_t<Self>, typename... Args>
+    auto insert_or_assign(this Self&& self, typename C::const_iterator hint, K&& k, Args&&... args )
+    {
+        // Return iterator pointing at the element that was inserted or updated.
+        // And Complexity is same as for emplace_hint.
+        return self.try_emplace(hint, (K&&) k, (Args&&) args...);
+    }
+};
 
 } // namespace leviathan::collections
 

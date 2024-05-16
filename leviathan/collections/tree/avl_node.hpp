@@ -7,7 +7,7 @@
 namespace leviathan::collections
 {
     
-struct avl_node : binary_node_operation
+struct avl_node : basic_tree_node_operation, binary_node_operation
 {
     static constexpr int balance_factor = 2;
 

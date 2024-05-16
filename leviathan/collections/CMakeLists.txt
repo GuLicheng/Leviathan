@@ -1,38 +1,36 @@
-# enable_testing()
+enable_testing()
 
-# add_executable(static_vector_test ${CMAKE_SOURCE_DIR}/leviathan/collections/static_vector_test.cpp)
-# target_link_libraries(static_vector_test PRIVATE Catch2::Catch2WithMain)
-# add_test(NAME static_vector_test COMMAND static_vector_test)
+set(COLLECTIONS_DIRECTORY collections)
 
-# add_executable(ring_buffer_test ${CMAKE_SOURCE_DIR}/leviathan/collections/ring_buffer_test.cpp)
-# target_link_libraries(ring_buffer_test PRIVATE Catch2::Catch2WithMain)
-# add_test(NAME ring_buffer_test COMMAND ring_buffer_test)
+add_executable(binary_search_tree_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/tree/binary_search_tree_test.cpp)
+target_link_libraries(binary_search_tree_test PRIVATE Catch2::Catch2WithMain)
+add_test(NAME binary_search_tree_test COMMAND binary_search_tree_test)
 
-# add_executable(buffer_test ${CMAKE_SOURCE_DIR}/leviathan/collections/buffer_test.cpp)
-# target_link_libraries(buffer_test PRIVATE Catch2::Catch2WithMain)
-# add_test(NAME buffer_test COMMAND buffer_test)
+add_executable(avl_tree_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/tree/avl_tree_test.cpp)
+target_link_libraries(avl_tree_test PRIVATE Catch2::Catch2WithMain)
+add_test(NAME avl_tree_test COMMAND avl_tree_test)
 
-# add_executable(py_hash_test ${CMAKE_SOURCE_DIR}/leviathan/collections/py_hash_test.cpp)
-# target_link_libraries(py_hash_test PRIVATE Catch2::Catch2WithMain)
-# add_test(NAME py_hash_test COMMAND py_hash_test)
+add_executable(red_black_tree_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/tree/red_black_tree_test.cpp)
+target_link_libraries(red_black_tree_test PRIVATE Catch2::Catch2WithMain)
+add_test(NAME red_black_tree_test COMMAND red_black_tree_test)
 
-# add_executable(skip_list_test ${CMAKE_SOURCE_DIR}/leviathan/collections/skip_list_test.cpp)
-# target_link_libraries(skip_list_test PRIVATE Catch2::Catch2WithMain)
-# add_test(NAME skip_list_test COMMAND skip_list_test)
+add_executable(sequence_container_interface_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/sequence_container_interface_test.cpp)
+target_link_libraries(sequence_container_interface_test PRIVATE Catch2::Catch2WithMain)
+add_test(NAME sequence_container_interface_test COMMAND sequence_container_interface_test)
 
-# add_executable(avl_tree_test ${CMAKE_SOURCE_DIR}/leviathan/collections/avl_tree_test.cpp)
-# target_link_libraries(avl_tree_test PRIVATE Catch2::Catch2WithMain)
-# add_test(NAME avl_tree_test COMMAND avl_tree_test)
+add_executable(associative_container_interface_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/associative_container_interface_test.cpp)
+target_link_libraries(associative_container_interface_test PRIVATE Catch2::Catch2WithMain)
+add_test(NAME associative_container_interface_test COMMAND associative_container_interface_test)
 
+add_executable(buffer_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/buffer_test.cpp)
+target_link_libraries(buffer_test PRIVATE Catch2::Catch2WithMain)
+add_test(NAME buffer_test COMMAND buffer_test)
 
+add_executable(ring_buffer_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/ring_buffer_test.cpp)
+target_link_libraries(ring_buffer_test PRIVATE Catch2::Catch2WithMain)
+add_test(NAME ring_buffer_test COMMAND ring_buffer_test)
 
-
-
-
-
-
-
-
-
-
+add_executable(static_vector_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/static_vector_test.cpp)
+target_link_libraries(static_vector_test PRIVATE Catch2::Catch2WithMain)
+add_test(NAME static_vector_test COMMAND static_vector_test)
 

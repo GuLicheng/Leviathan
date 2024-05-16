@@ -185,6 +185,8 @@ TEST_CASE("circle iterator")
 }
 
 // Map
+#ifdef USE_MAP_TEST
+
 TEST_CASE("map")
 {
     TreeMap<std::string, int> map;
@@ -194,11 +196,20 @@ TEST_CASE("map")
     auto compare = map.value_comp();
 
     compare({ "Alice", 1 }, { "Bob", 2 });
+
+    map["Bob"] = 2;
+
+    map.insert_or_assign("Bob", 3);
+    
+    REQUIRE(map["Bob"] == 3);
+    REQUIRE(map["Alice"] == 5);
 }
 
+#endif
 
 
 // Memory
+#ifdef USE_MEMORY_TEST
 
 #include <leviathan/allocators/checked_allocator.hpp>
 #include <leviathan/allocators/fancy_ptr.hpp>
@@ -223,4 +234,4 @@ TEST_CASE("allocator alloc and dealloc")
     CHECK(check_memory_alloc());
 }
 
-
+#endif

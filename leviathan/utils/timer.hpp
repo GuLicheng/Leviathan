@@ -13,7 +13,6 @@ namespace leviathan {
 
 inline namespace time {
 
-
 class timer {
 
     timer(const timer&) = delete;

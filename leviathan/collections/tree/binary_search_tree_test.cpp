@@ -14,6 +14,9 @@ using TreeWithAlloc = tree<identity<T>, std::ranges::less, Alloc, true, binary_n
 template <typename K, typename V>
 using TreeMap = binary_search_tree_map<K, V>;
 
+#define USE_MAP_TEST
+#define USE_MEMORY_TEST
+
 #include "tree_test.inc"
 
 

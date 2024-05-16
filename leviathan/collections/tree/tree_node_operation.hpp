@@ -54,7 +54,7 @@ struct basic_tree_node_operation
 	}
 };
 
-struct binary_node_operation : basic_tree_node_operation
+struct binary_node_operation 
 {
 	// Return rightmost of binary node.
 	template <typename Node>

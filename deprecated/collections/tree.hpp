@@ -763,6 +763,7 @@ namespace leviathan::collections
 
     template <typename K, typename V, typename Compare, typename Allocator, typename NodeType>
     class tree_map : public tree<std::tuple<K, V>, Compare, Allocator, select1st, true, NodeType>
+                     public unique_associative_container_indexer_interface
     {
         using base_tree_type = tree<std::tuple<K, V>, Compare, Allocator, select1st, true, NodeType>;
     public:
@@ -785,11 +786,11 @@ namespace leviathan::collections
         value_compare value_comp() const
         { return value_compare(this->m_cmp); }
 
-        V& operator[](const K& key)
-        { return this->try_emplace(key).first->second; }
+        // V& operator[](const K& key)
+        // { return this->try_emplace(key).first->second; }
 
-        V& operator[](K&& key)
-        { return this->try_emplace(std::move(key)).first->second; }
+        // V& operator[](K&& key)
+        // { return this->try_emplace(std::move(key)).first->second; }
 
         template <typename... Args>
         std::pair<iterator, bool> try_emplace(const K& k, Args&&... args)
@@ -808,13 +809,13 @@ namespace leviathan::collections
         std::pair<iterator, bool> try_emplace(const_iterator, K&& k, Args&&... args)
         { return try_emplace_impl(std::move(k), (Args&&) args...); }
 
-        template <typename M>
-        std::pair<iterator, bool> insert_or_assign(const K& k, M&& obj)
-        { return insert_or_assign_impl(k, (M&&)obj); }
+        // template <typename M>
+        // std::pair<iterator, bool> insert_or_assign(const K& k, M&& obj)
+        // { return insert_or_assign_impl(k, (M&&)obj); }
 
-        template <typename M>
-        std::pair<iterator, bool> insert_or_assign(K&& k, M&& obj)
-        { return insert_or_assign_impl(std::move(k), (M&&)obj); }
+        // template <typename M>
+        // std::pair<iterator, bool> insert_or_assign(K&& k, M&& obj)
+        // { return insert_or_assign_impl(std::move(k), (M&&)obj); }
 
 
     private:

@@ -8,6 +8,11 @@ using Tree = avl_tree<int>;
 template <typename T, typename Alloc>
 using TreeWithAlloc = tree<identity<T>, std::ranges::less, Alloc, true, avl_node>;
 
+template <typename K, typename V>
+using TreeMap = avl_tree<K, V>;
+
+#include "tree_test.inc"
+
 TEST_CASE("avl_tree_height_test")
 {
     Tree avl;
@@ -26,16 +31,23 @@ TEST_CASE("avl_tree_height_test")
               0   2   4   6
     */
 
+    auto check_value_and_height = [](auto it, int value, int height)
+    {
+        REQUIRE(it.link()->m_height == height);
+        REQUIRE(*it == value);
+    };
+
+    auto header = avl.end();
+
+    check_value_and_height(header.up(), 3, 3);
+    check_value_and_height(header.up().left(), 1, 2);
+    check_value_and_height(header.up().right(), 5, 2);
+    check_value_and_height(header.up().left().left(), 0, 1);
+    check_value_and_height(header.up().left().right(), 2, 1);
+    check_value_and_height(header.up().right().left(), 4, 1);
+    check_value_and_height(header.up().right().right(), 6, 1);
 
     auto root = avl.header()->parent();
-
-    REQUIRE(root->m_height == 3);
-    REQUIRE(root->lchild()->m_height == 2);
-    REQUIRE(root->rchild()->m_height == 2);
-    REQUIRE(root->lchild()->lchild()->m_height == 1);
-    REQUIRE(root->lchild()->rchild()->m_height == 1);
-    REQUIRE(root->rchild()->rchild()->m_height == 1);
-    REQUIRE(root->rchild()->lchild()->m_height == 1);
 
     struct HeightChecker
     {
@@ -77,7 +89,6 @@ TEST_CASE("avl_tree_height_test")
     Logger::WriteMessage(avl.draw().c_str());
 }
 
-#include "tree_test.inc"
 
 
 

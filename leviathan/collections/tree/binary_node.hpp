@@ -5,7 +5,7 @@
 namespace leviathan::collections
 {
 
-struct binary_node : binary_node_operation
+struct binary_node : basic_tree_node_operation, binary_node_operation
 {
 	// Nodes
 	binary_node* m_nodes[3];

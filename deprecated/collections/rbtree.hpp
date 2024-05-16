@@ -1,9 +1,6 @@
 /*
     The code is borrow from: 
     https://github.com/gcc-mirror/gcc/blob/master/libstdc%2B%2B-v3/src/c%2B%2B98/tree.cc
-
-    This file and "binary_search_tree.hpp" is just debugging for design.
-
 */
 
 #pragma once
