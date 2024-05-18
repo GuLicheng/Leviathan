@@ -5,25 +5,24 @@
 #include <iostream>
 #include <set>
 #include <source_location>
-#include <leviathan/collectionsV2/tree/avl_tree.hpp> 
+#include <leviathan/collections/list/skiplist.hpp> 
 
-using Hasher = std::hash<int>;
-using KeyEqual = std::ranges::equal_to;
+#include <leviathan/meta/template_info.hpp>
 
-using MyEqualTo = leviathan::collections::hash_key_equal<Hasher, KeyEqual>;
-
+using namespace leviathan::collections;
 
 int main(int argc, char const *argv[])
 {
 
-    leviathan::collections::avl_tree<int> t; 
+    skiplist<identity<int>, std::ranges::less, std::allocator<int>, true> sl;
 
-    t.insert(1);
-    t.insert(2);
-    t.insert(0);
+    std::mt19937 rd;
 
-    auto walker = t.end();
+    std::default_random_engine Engine;
 
-    walker.left();
+    for (auto i = 0; i < 10; ++i)
+    {
+        std::cout << rd() << '\n';
+    } 
 
 }

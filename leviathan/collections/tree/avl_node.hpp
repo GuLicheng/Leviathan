@@ -12,28 +12,27 @@ struct avl_node : basic_tree_node_operation, binary_node_operation
     static constexpr int balance_factor = 2;
 
     // Nodes
-    avl_node* m_nodes[3];
+    avl_node* m_link[3];
 
     // Height of current node, -1 for header, 1 for leaf and 0 for nullptr
     int m_height;
 
-	// Initialize node without value field after calling allocate
-	void init()
-	{
-		this->parent(nullptr);
-		this->lchild(nullptr);
-		this->rchild(nullptr);
-		m_height = 1;
-	}
+    std::string to_string() const   
+    {
+        return std::format("{}", m_height);
+    }
 
-	// Reset header for an empty tree 
-	void as_empty_tree_header()
-	{
-		this->parent(nullptr);
-		this->lchild(this);
-		this->rchild(this);
-		m_height = -1;
-	}
+    // Initialize node without value field after calling allocate
+    void init()
+    {
+        m_height = 1;
+    }
+
+    // Reset header for an empty tree 
+    void as_empty_tree_header()
+    {
+        m_height = -1;
+    }
 
     static int height(const avl_node* node)
     {
@@ -61,9 +60,11 @@ struct avl_node : basic_tree_node_operation, binary_node_operation
     {
         auto x = this;
 
-        avl_node*& root = header->m_nodes[0];
-        avl_node*& leftmost = header->m_nodes[1];
-        avl_node*& rightmost = header->m_nodes[2];
+        // avl_node*& root = header->m_link[0];
+        // avl_node*& leftmost = header->m_link[1];
+        // avl_node*& rightmost = header->m_link[2];
+
+        auto& [root, leftmost, rightmost] = header->m_link;
 
         avl_node* child = nullptr;
         avl_node* parent = nullptr; // for rebalance
@@ -83,82 +84,82 @@ struct avl_node : basic_tree_node_operation, binary_node_operation
                 ? successor->parent()->lchild(child)
                 : successor->parent()->rchild(child);
 
-			if (successor->parent() == x)
-			{
-				parent = successor;
-			}
+            if (successor->parent() == x)
+            {
+                parent = successor;
+            }
             
-			successor->lchild(x->lchild());
-			successor->rchild(x->rchild());
-			successor->parent(x->parent());
+            successor->lchild(x->lchild());
+            successor->rchild(x->rchild());
+            successor->parent(x->parent());
             successor->m_height = x->m_height;
         
-			if (x == root)
-			{
-				root = successor;
-			}
-			else
-			{
-				x->parent()->lchild() == x 
-					? x->parent()->lchild(successor)
-					: x->parent()->rchild(successor);
-			}
+            if (x == root)
+            {
+                root = successor;
+            }
+            else
+            {
+                x->parent()->lchild() == x 
+                    ? x->parent()->lchild(successor)
+                    : x->parent()->rchild(successor);
+            }
 
-			x->lchild()->parent(successor);
+            x->lchild()->parent(successor);
 
-			if (x->rchild())
-			{
-				x->rchild()->parent(successor);
-			}
+            if (x->rchild())
+            {
+                x->rchild()->parent(successor);
+            }
         }
         else
         {
             // update leftmost or rightmost
-			if (!x->lchild() && !x->rchild())
-			{
-				// leaf, such as just one root
-				if (x == leftmost)
-				{
-					leftmost = x->parent();
-				}
-				if (x == rightmost)
-				{
-					rightmost = x->parent();
-				}
-			}
-			else if (x->lchild())
-			{
-				// only left child
-				child = x->lchild();
-				if (x == rightmost)
-				{
-					rightmost = child->maximum();
-				}
-			}
-			else
-			{
-				// only right child
-				child = x->rchild();
-				if (x == leftmost)
-				{
-					leftmost = child->minimum();
-				}
-			}
+            if (!x->lchild() && !x->rchild())
+            {
+                // leaf, such as just one root
+                if (x == leftmost)
+                {
+                    leftmost = x->parent();
+                }
+                if (x == rightmost)
+                {
+                    rightmost = x->parent();
+                }
+            }
+            else if (x->lchild())
+            {
+                // only left child
+                child = x->lchild();
+                if (x == rightmost)
+                {
+                    rightmost = child->maximum();
+                }
+            }
+            else
+            {
+                // only right child
+                child = x->rchild();
+                if (x == leftmost)
+                {
+                    leftmost = child->minimum();
+                }
+            }
 
-			if (child)
-			{
-				child->parent(x->parent());
-			}
-			if (x == root)
-			{
-				root = child;
-			}
-			else
-			{
-				x->parent()->lchild() == x 
-					? x->parent()->lchild(child)
-					: x->parent()->rchild(child);
-			}
+            if (child)
+            {
+                child->parent(x->parent());
+            }
+            if (x == root)
+            {
+                root = child;
+            }
+            else
+            {
+                x->parent()->lchild() == x 
+                    ? x->parent()->lchild(child)
+                    : x->parent()->rchild(child);
+            }
 
             parent = x->parent();
         }
@@ -174,12 +175,12 @@ struct avl_node : basic_tree_node_operation, binary_node_operation
 
         if (lh0 > rh0)
         {
-            r->rotate_right(header->m_nodes[0]);
+            r->rotate_right(header->m_link[0]);
             r->update_height();
             r->parent()->update_height();
         }
 
-        x->rotate_left(header->m_nodes[0]);
+        x->rotate_left(header->m_link[0]);
         x->update_height();
         x->parent()->update_height();
     }
@@ -193,12 +194,12 @@ struct avl_node : basic_tree_node_operation, binary_node_operation
 
         if (lh0 < rh0)
         {
-            l->rotate_left(header->m_nodes[0]);
+            l->rotate_left(header->m_link[0]);
             l->update_height();
             l->parent()->update_height();
         }
 
-        x->rotate_right(header->m_nodes[0]);
+        x->rotate_right(header->m_link[0]);
         x->update_height();
         x->parent()->update_height();
     }
@@ -265,9 +266,7 @@ struct avl_node : basic_tree_node_operation, binary_node_operation
         }
     }
 
-    void insert_and_rebalance(bool insert_left,
-                                    avl_node* p,
-                                    avl_node& header)
+    void insert_and_rebalance(bool insert_left, avl_node* p, avl_node& header)
     {
         auto x = this;
 

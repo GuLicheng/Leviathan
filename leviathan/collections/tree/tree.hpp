@@ -35,29 +35,33 @@ concept node = requires (Node* n, const Node* cn, bool insert_left, Node& header
 } // namespace detail
 
 /**
- * @brief Template tree for binary search tree extension.
+ * @brief Template for extended forms of binary search tree.
  * 
  * This template only provide some searching methods. The actual insertion, deletion
- * and balancing operations are done by node.
+ * and balancing operations are done by Node.
  * 
- * We use NodeType as our header type which contains at least three point link
- * parent, left child and right child separately. The parent of header always
- * link the root of tree, the left child always link to the leftmost and the right
- * child always link to the rightmost. For empty tree, the left child and right
- * child of header link to itself and parent is null.
+ * We use Node as our header type which contains at least three points link
+ * parent, left child and right child separately, to enable constant time begin(),
+ * and to the leftmost node of the tree, to enable linear time performance when
+ * used with generic set algorithms (set_union, etc...). For empty tree, the left 
+ * child and right child of header link to itself and parent is null.
+ * 
+ * When a node being deleted has two children its successor node is relinked into
+ * its place, rather than copied or moved so that the only iterators invalidated
+ * are those referring to the deleted node.
  * 
  * For root node(if exist), its parent always link null.
  * 
- * @param KeyValue Extractor for key and value. identity<T> for set and select1st<K, V> for map.
+ * @param KeyValue Extractor extract key from value. identity<T> for set and select1st<K, V> for map.
  * @param Compare
  * @param Allocator
  * @param UniqueKey True for set/map and False for multiset/multimap.
- * @param NodeType 
+ * @param Node Type of tree node with basic tree operations but value field.
 */
 template <typename KeyValue,
     typename Compare,
     typename Allocator,
-    bool UniqueKey, typename NodeType>
+    bool UniqueKey, typename Node>
 class tree : public row_drawer, 
              public reversible_container_interface, 
              public associative_container_insertion_interface,
@@ -78,7 +82,7 @@ public:
     using pointer = std::allocator_traits<Allocator>::pointer;
     using const_pointer = std::allocator_traits<Allocator>::const_pointer;
 
-    using base_node = NodeType;
+    using base_node = Node;
     struct tree_node : base_node
     {
         value_type m_val;
@@ -93,14 +97,14 @@ public:
             return std::addressof(m_val);
         }
 
-        NodeType* base()
+        Node* base()
         {
-            return static_cast<NodeType*>(this);
+            return static_cast<Node*>(this);
         }
 
-        const NodeType* base() const
+        const Node* base() const
         {
-            return static_cast<const NodeType*>(this);
+            return static_cast<const Node*>(this);
         }
     };
 
@@ -109,9 +113,8 @@ protected:
     using node_allocator = typename std::allocator_traits<Allocator>::template rebind_alloc<tree_node>;
     using node_alloc_traits = std::allocator_traits<node_allocator>;
 
-    static constexpr bool IsTransparent = detail::transparent<Compare>;
-
-    template <typename U> using key_arg_t = detail::key_arg<IsTransparent, U, key_type>;
+    template <typename U> 
+    using key_arg_t = detail::key_arg<detail::transparent<Compare>, U, key_type>;
 
     static constexpr bool IsNothrowMoveConstruct =
         std::is_nothrow_move_constructible_v<Compare>
@@ -151,7 +154,7 @@ protected:
     */
     struct tree_iterator : postfix_increment_and_decrement_operation, arrow_operation
     {
-        using link_type = NodeType*;
+        using link_type = Node*;
         using value_type = value_type;
         using difference_type = std::ptrdiff_t;
         using iterator_category = std::bidirectional_iterator_tag;
@@ -233,7 +236,7 @@ public:
     explicit tree(const Compare& compare, const Allocator& allocator)
         : m_cmp(compare), m_alloc(allocator), m_size(0)
     {
-        header()->as_empty_tree_header();
+        make_header_sentinel();
     }
 
     tree(const tree& rhs, const Allocator& alloc) 
@@ -270,9 +273,9 @@ public:
     {
         if (empty())
         {
-            header->as_empty_tree_header();
+            make_header_sentinel();            
         }
-        rhs.header()->as_empty_tree_header();
+        rhs.make_header_sentinel();
     }    
 
     tree(tree&& rhs, const Allocator& alloc)
@@ -281,7 +284,7 @@ public:
         if (rhs.m_alloc == alloc)
         {
             m_header = rhs.header();
-            rhs.header()->as_empty_tree_header();
+            rhs.make_header_sentinel();
             m_size = std::exchange(rhs.m_size, 0);
         }
         else
@@ -339,12 +342,12 @@ public:
             {
                 m_alloc = std::move(rhs.m_alloc);
                 m_header = rhs.m_header;
-                rhs.header()->as_empty_tree_header();
+                rhs.make_header_sentinel();
             }
             else if (m_alloc == rhs.m_alloc) 
             {
                 m_header = rhs.m_header;
-                rhs.header()->as_empty_tree_header();
+                rhs.make_header_sentinel();
             }
             else
             {
@@ -488,7 +491,7 @@ public:
     }
 
     // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p2077r3.html
-    template <typename K> requires (IsTransparent)
+    template <typename K> requires (detail::transparent<Compare>)
     size_type erase(K&& x) 
     { 
         return erase_by_key(x); 
@@ -506,12 +509,12 @@ public:
         return const_cast<tree &>(*this).lower_bound(x);
     }
 
-    NodeType* header() 
+    Node* header() 
     { 
         return &m_header; 
     }
     
-    const NodeType* header() const 
+    const Node* header() const 
     { 
         return &m_header; 
     }
@@ -532,8 +535,16 @@ protected:
 
     using link_type = tree_node*;
     using const_link_type = const tree_node*;
-    using base_ptr = NodeType*;
-    using const_base_ptr = const NodeType*;
+    using base_ptr = Node*;
+    using const_base_ptr = const Node*;
+
+    void make_header_sentinel()
+    {
+        header()->parent(nullptr);
+        header()->lchild(header());
+        header()->rchild(header());
+        header()->as_empty_tree_header();
+    }
 
     template <typename K>
     iterator find_impl(const K& k)
@@ -544,7 +555,6 @@ protected:
 
     void erase_by_node(base_ptr x)
     {      
-        // auto y = NodeType::rebalance_for_erase(x, m_header);
         auto y = x->rebalance_for_erase(m_header);
         destroy_node(static_cast<link_type>(y));
         m_size--;
@@ -569,12 +579,10 @@ protected:
         while (x)
             if (!m_cmp(keys(x), k))
             {
-                // y = x, x = NodeType::left(x);
                 y = x, x = x->lchild();
             }
             else
             {
-                // x = NodeType::right(x);
                 x = x->rchild();
             }
         return { y };
@@ -594,7 +602,7 @@ protected:
     void reset()
     {
         dfs_deconstruct(header()->parent());
-        header()->as_empty_tree_header();
+        make_header_sentinel();
         m_size = 0;
     }
 
@@ -624,7 +632,6 @@ protected:
     iterator insert_node(base_ptr x, base_ptr p, link_type z)
     {
         bool insert_left = (x != 0 || p == &m_header || m_cmp(keys(z), keys(p)));
-        //NodeType::insert_and_rebalance(insert_left, z, p, m_header);
         z->insert_and_rebalance(insert_left, p, m_header);
         ++m_size;
         return iterator(z);
@@ -638,7 +645,6 @@ protected:
 
         link_type z = create_node((Arg&&)v);
 
-        //NodeType::insert_and_rebalance(insert_left, z, p, m_header);
         z->insert_and_rebalance(insert_left, p, m_header);
         ++m_size;
         return iterator(z);
@@ -704,7 +710,9 @@ protected:
     {
         try
         {
-            //NodeType::init(node);
+            node->parent(nullptr);
+            node->lchild(nullptr);
+            node->rchild(nullptr);
             node->init();
             node_alloc_traits::construct(m_alloc, node->value_ptr(), (Args&&)args...);
         }
@@ -788,31 +796,31 @@ protected:
     [[no_unique_address]] node_allocator m_alloc;
 
     /**
-     * We use a NodeType which does not have value_type field as header node.
+     * We use a Node which does not have value_type field as header node.
      * The parent of node link to root of tree, the left child link to the leftmost of tree
      * and the right child link to the rightmost node. For `begin`, we return the leftmost node
      * of tree and for `end`, we return the header as sentinel. For empty tree, the parent
      * of m_header link nullptr, the left and right link to itself. 
     */
-    NodeType m_header;
+    Node m_header;
 
     /* Size of current tree */
     size_type m_size;
 };
 
-template <typename T, typename Compare, typename Allocator, bool Unique, typename NodeType>
-class tree_set : public tree<identity<T>, Compare, Allocator, Unique, NodeType>
+template <typename T, typename Compare, typename Allocator, bool Unique, typename Node>
+class tree_set : public tree<identity<T>, Compare, Allocator, Unique, Node>
 {
-    using base = tree<identity<T>, Compare, Allocator, Unique, NodeType>;
+    using base = tree<identity<T>, Compare, Allocator, Unique, Node>;
     using base::base;
     using base::operator=;
 };
 
-template <typename K, typename V, typename Compare, typename Allocator, bool Unique, typename NodeType>
-class tree_map : public tree<select1st<K, V>, Compare, Allocator, Unique, NodeType>,
+template <typename K, typename V, typename Compare, typename Allocator, bool Unique, typename Node>
+class tree_map : public tree<select1st<K, V>, Compare, Allocator, Unique, Node>,
                  public unique_associative_container_indexer_interface
 {
-    using base = tree<select1st<K, V>, Compare, Allocator, Unique, NodeType>;
+    using base = tree<select1st<K, V>, Compare, Allocator, Unique, Node>;
 
 public:
 

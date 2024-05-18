@@ -130,13 +130,13 @@ using example_variant = std::variant<T0, T1>;
 // we use two arguments to test whether compiler is able to inline the individual visitor functions.
 int do_visit(example_variant v1, example_variant v2)
 {
-	return std::visit(overloaded {
-	// return Visit(overloaded {
-		[](T0 , T0) { return 3; },
-		[](T1,  T0) { return 5; },
-		[](T0,  T1) { return 8; },
-		[](T1,  T1) { return 13; },
-	}, v1, v2);
+    return std::visit(overloaded {
+    // return Visit(overloaded {
+        [](T0 , T0) { return 3; },
+        [](T1,  T0) { return 5; },
+        [](T0,  T1) { return 8; },
+        [](T1,  T1) { return 13; },
+    }, v1, v2);
 }
 
 // void test_variant_visit()

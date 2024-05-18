@@ -79,26 +79,26 @@ void BitTest()
 {
     //auto bit_count = [](unsigned int x)
     //{
-    //	int res = 0;
-    //	while (x)
-    //	{
-    //		res += x & 1;
-    //		x >>= 1;
-    //	}
-    //	return res;
+    //    int res = 0;
+    //    while (x)
+    //    {
+    //        res += x & 1;
+    //        x >>= 1;
+    //    }
+    //    return res;
     //};
     //for (int i = 0; i < 1; ++i)
     //{
-    //	unsigned int k = rd();
-    //	integer b{ static_cast<int64_t>(k) };
-    //	if (bit_count(k) != b.bit_count())
-    //	{
-    //		std::bitset<32> bit = k;
-    //		std::cout << bit.to_string() << '\n';
-    //		std::cout << bit_count(k) << '\n';
-    //		std::cout << b.bit_count() << '\n';
-    //		break;
-    //	}
+    //    unsigned int k = rd();
+    //    integer b{ static_cast<int64_t>(k) };
+    //    if (bit_count(k) != b.bit_count())
+    //    {
+    //        std::bitset<32> bit = k;
+    //        std::cout << bit.to_string() << '\n';
+    //        std::cout << bit_count(k) << '\n';
+    //        std::cout << b.bit_count() << '\n';
+    //        break;
+    //    }
     //}
 
     std::cout << "BitTest() is OK\n";

@@ -73,6 +73,7 @@ TEST_CASE("empty tree")
     Tree t;
     CHECK(t.empty());
     CHECK(t.size() == 0);
+    CHECK_FALSE(t.begin() != t.end());
 }
 
 TEST_CASE("test member type")

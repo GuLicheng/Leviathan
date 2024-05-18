@@ -22,16 +22,16 @@ namespace leviathan::collections
 template <typename T>
 struct identity
 {
-	using key_type = T;
+    using key_type = T;
 
-	using value_type = T;
+    using value_type = T;
 
-	// For set<T>, the key_type is value_type.
-	template <typename U>
-	static constexpr auto&& operator()(U&& x)
-	{
-		return (U&&)x;
-	}
+    // For set<T>, the key_type is value_type.
+    template <typename U>
+    static constexpr auto&& operator()(U&& x)
+    {
+        return (U&&)x;
+    }
 };
 
 /**
@@ -43,15 +43,15 @@ struct identity
 template <typename T1, typename T2>
 struct select1st
 {
-	using key_type = T1;
+    using key_type = T1;
 
-	using value_type = std::pair<T1, T2>;
+    using value_type = std::pair<T1, T2>;
 
-	template <typename U>
-	static constexpr auto&& operator()(U&& x)
-	{
-		return ((U&&)x).first;
-	}
+    template <typename U>
+    static constexpr auto&& operator()(U&& x)
+    {
+        return ((U&&)x).first;
+    }
 };
 
 namespace detail
@@ -89,15 +89,15 @@ concept transparent = (has_transparent<Ts> && ...);
 template <bool IsTransparent>
 struct key_arg_helper
 {
-	template <typename K1, typename K2>
-	using type = K1;
+    template <typename K1, typename K2>
+    using type = K1;
 };
 
 template <>
 struct key_arg_helper<false>
 {
-	template <typename K1, typename K2>
-	using type = K2;
+    template <typename K1, typename K2>
+    using type = K2;
 };
 
 template <bool IsTransparent, class K1, class K2>
@@ -117,13 +117,13 @@ using key_arg = typename key_arg_helper<IsTransparent>::template type<K1, K2>;
 template <typename T, typename... Args>
 struct emplace_helper
 {
-	static constexpr bool value = []() 
-	{
-		if constexpr (sizeof...(Args) != 1)
-			return false;
-		else
-			return std::conjunction_v<std::is_same<T, std::remove_cvref_t<Args>>...>;
-	}();
+    static constexpr bool value = []() 
+    {
+        if constexpr (sizeof...(Args) != 1)
+            return false;
+        else
+            return std::conjunction_v<std::is_same<T, std::remove_cvref_t<Args>>...>;
+    }();
 };
 
 }
@@ -143,10 +143,10 @@ namespace detail
 template <typename T, typename Alloc>
 auto allocate(Alloc& alloc, std::size_t n)
 {
-	using alloc_traits = typename std::allocator_traits<Alloc>::template rebind_traits<T>;
-	using alloc_type = typename std::allocator_traits<Alloc>::template rebind_alloc<T>;
-	alloc_type a(alloc);
-	return alloc_traits::allocate(a, n);
+    using alloc_traits = typename std::allocator_traits<Alloc>::template rebind_traits<T>;
+    using alloc_type = typename std::allocator_traits<Alloc>::template rebind_alloc<T>;
+    alloc_type a(alloc);
+    return alloc_traits::allocate(a, n);
 }
 
 /**
@@ -160,12 +160,12 @@ auto allocate(Alloc& alloc, std::size_t n)
 template <typename Alloc, typename Pointer>
 void deallocate(Alloc& alloc, Pointer p, std::size_t n)
 {
-	using value_type = typename std::pointer_traits<Pointer>::element_type;
-	assert(p != nullptr && "p should not be nullptr");
-	using alloc_traits = typename std::allocator_traits<Alloc>::template rebind_traits<value_type>;
-	using alloc_type = typename std::allocator_traits<Alloc>::template rebind_alloc<value_type>;
-	alloc_type a(alloc);
-	alloc_traits::deallocate(a, p, n);
+    using value_type = typename std::pointer_traits<Pointer>::element_type;
+    assert(p != nullptr && "p should not be nullptr");
+    using alloc_traits = typename std::allocator_traits<Alloc>::template rebind_traits<value_type>;
+    using alloc_type = typename std::allocator_traits<Alloc>::template rebind_alloc<value_type>;
+    alloc_type a(alloc);
+    alloc_traits::deallocate(a, p, n);
 }
 
 /**
@@ -179,8 +179,8 @@ void deallocate(Alloc& alloc, Pointer p, std::size_t n)
 template <typename T, typename Alloc>
 auto rebind_allocator(Alloc& alloc)
 {
-	typename std::allocator_traits<Alloc>::template rebind_alloc<T> target(alloc);
-	return target;
+    typename std::allocator_traits<Alloc>::template rebind_alloc<T> target(alloc);
+    return target;
 }
 
 }
@@ -203,76 +203,102 @@ auto rebind_allocator(Alloc& alloc)
 template <typename T, typename Allocator>
 struct value_handle
 {
-	static_assert(std::is_same_v<T, std::remove_cvref_t<T>>);
-	static_assert(std::is_same_v<Allocator, std::remove_cvref_t<Allocator>>);
+    static_assert(std::is_same_v<T, std::remove_cvref_t<T>>);
+    static_assert(std::is_same_v<Allocator, std::remove_cvref_t<Allocator>>);
 
-	using allocator_type = Allocator;
-	using alloc_traits = std::allocator_traits<allocator_type>;
-	// using pointer = T*;
-	using value_type = T;
+    using allocator_type = Allocator;
+    using alloc_traits = std::allocator_traits<allocator_type>;
+    // using pointer = T*;
+    using value_type = T;
 
-	template <typename... Args>
-	value_handle(const allocator_type& alloc, Args&&... args)
-		: m_alloc(alloc)
-	{
-		alloc_traits::construct(m_alloc, reinterpret_cast<T*>(&m_raw), (Args&&)args...);
-	}
+    template <typename... Args>
+    value_handle(const allocator_type& alloc, Args&&... args)
+        : m_alloc(alloc)
+    {
+        alloc_traits::construct(m_alloc, reinterpret_cast<T*>(&m_raw), (Args&&)args...);
+    }
 
-	value_handle(const value_handle&) = delete;
-	value_handle(value_handle&&) = delete;
+    value_handle(const value_handle&) = delete;
+    value_handle(value_handle&&) = delete;
 
-	~value_handle()
-	{
-		alloc_traits::destroy(m_alloc, reinterpret_cast<T*>(&m_raw));
-	}
+    ~value_handle()
+    {
+        alloc_traits::destroy(m_alloc, reinterpret_cast<T*>(&m_raw));
+    }
 
-	value_type&& operator*()
-	{
-		return std::move(*reinterpret_cast<T*>(&m_raw));
-	}
+    value_type&& operator*()
+    {
+        return std::move(*reinterpret_cast<T*>(&m_raw));
+    }
 
-	allocator_type m_alloc;
-	alignas(T) unsigned char m_raw[sizeof(T)];
-};
-
-template <typename Pair, typename Compare>
-struct ordered_map_container_value_compare
-{
-	bool operator()(const Pair& lhs, const Pair& rhs) const
-	{
-		return m_c(lhs.first, rhs.first);
-	}
-
-	ordered_map_container_value_compare(Compare compare) : m_c(compare) { }
-
-	Compare m_c;
+    allocator_type m_alloc;
+    alignas(T) unsigned char m_raw[sizeof(T)];
 };
 
 /**
+ * @brief A help class to generate map container's value_compare
+ * 
+ * @param Pair typename Container::value_type
+ * @param Compare typename Container::key_compare
+ * 
+ * E.g.
+ *     struct value_compare : ordered_map_container_value_compare<value_type, Compare> 
+ *     { 
+ *     protected:
+ *         friend class MapContainer; 
+ *         value_compare(Compare compare) : ordered_map_container_value_compare<value_type, Compare>(compare) { }
+ *     };
+ * 
+ * https://en.cppreference.com/w/cpp/named_req/Compare
+ * Maybe the Compare is always empty class?
+*/
+template <typename Pair, typename Compare>
+struct ordered_map_container_value_compare
+{
+    bool operator()(const Pair& lhs, const Pair& rhs) const
+    {
+        return m_c(lhs.first, rhs.first);
+    }
+
+    ordered_map_container_value_compare(Compare compare) : m_c(compare) { }
+
+    Compare m_c;
+};
+
+/**
+ * @brief A helper class for combining GetHashCode and Equals for hashtable.
+ * 
+ * @param Hasher hash function, accept one object and return its hash code.
+ * @param KeyEqual equal function, check whether two objects are equal.
+ * 
  * https://stackoverflow.com/questions/371328/why-is-it-important-to-override-gethashcode-when-equals-method-is-overridden
  * In some programming languages such as C#, we may need both overload
  * GetHashCode and Equals since it usually store a reference.
  * 
  * Please make sure for KeyEqual(x, y) == true, Hasher(x) == Hasher(y).
- * 	
+ *     
 */
 template <typename Hasher, typename KeyEqual>
 struct hash_key_equal : public Hasher, public KeyEqual
 {
-	using Hasher::operator();
-	using KeyEqual::operator();
+    using Hasher::operator();
+    using KeyEqual::operator();
 
-	explicit hash_key_equal(const Hasher& hasher = Hasher(), const KeyEqual& ke = KeyEqual())
-	 	: Hasher(hasher), KeyEqual(ke) { }
+    explicit hash_key_equal(const Hasher& hasher = Hasher(), const KeyEqual& ke = KeyEqual())
+         : Hasher(hasher), KeyEqual(ke) { }
 };
+
+template <typename T> 
+struct cache_hash_code : std::true_type { };
+
 
 
 // Meta
 // https://en.cppreference.com/w/cpp/ranges/to
 template <typename R, typename T>
 concept container_compatible_range = 
-	std::ranges::input_range<R> &&
-	std::convertible_to<std::ranges::range_reference_t<R>, T>;
+    std::ranges::input_range<R> &&
+    std::convertible_to<std::ranges::range_reference_t<R>, T>;
 
 
 }

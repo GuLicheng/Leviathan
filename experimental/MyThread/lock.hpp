@@ -331,25 +331,25 @@ template <typename Lock1, typename... Locks>
 static void TryLockImpl(int& idx, Lock1& lock1, Locks&... locks)
 {
     idx ++;
-	if constexpr (sizeof...(Locks) > 0)
-	{
-		UniqueLock<Lock1> lock(lock1, try_to_lock);
-		if (lock.owns_lock())
-		{
-			TryLockImpl(idx, locks...);
-			if (idx == -1)
-				lock.release();
-		}
-	}
-	else
-	{
-		UniqueLock<Lock1> lock(lock1, try_to_lock);
-		if (lock.owns_lock())
-		{
-			lock.release();
-			idx = -1;
-		}
-	}
+    if constexpr (sizeof...(Locks) > 0)
+    {
+        UniqueLock<Lock1> lock(lock1, try_to_lock);
+        if (lock.owns_lock())
+        {
+            TryLockImpl(idx, locks...);
+            if (idx == -1)
+                lock.release();
+        }
+    }
+    else
+    {
+        UniqueLock<Lock1> lock(lock1, try_to_lock);
+        if (lock.owns_lock())
+        {
+            lock.release();
+            idx = -1;
+        }
+    }
 }
 
 template<typename Lock1, typename Lock2, typename... Lock3>

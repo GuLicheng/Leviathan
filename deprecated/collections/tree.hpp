@@ -208,16 +208,16 @@ namespace leviathan::collections
         tree(const tree& rhs, const allocator_type& a) 
             : tree(Compare(), a)
         {
-			try 
-			{
+            try 
+            {
                 copy_from_other(rhs);
                 m_size = rhs.m_size;
-			}
-			catch (...)
-			{
-				clear();
-				throw; // rethrow exception
-			}
+            }
+            catch (...)
+            {
+                clear();
+                throw; // rethrow exception
+            }
         }
 
         tree(const tree& rhs) 
@@ -241,34 +241,34 @@ namespace leviathan::collections
         }
 
         tree(tree&& rhs) noexcept(IsNothrowMoveConstruct)
-			: m_cmp{ std::move(rhs.m_cmp) }, m_alloc{ std::move(rhs.m_alloc) }, m_size{ rhs.m_size }, m_header{ rhs.m_header }
-		{
+            : m_cmp{ std::move(rhs.m_cmp) }, m_alloc{ std::move(rhs.m_alloc) }, m_size{ rhs.m_size }, m_header{ rhs.m_header }
+        {
             if (!rhs.root())
                 NodeType::reset(header());
             NodeType::reset(rhs.header());
-		}        
+        }        
 
         tree& operator=(const tree& rhs)
         {
             if (std::addressof(rhs) != this)
-			{
+            {
                 clear();
                 // copy member
                 m_size = rhs.m_size;
                 m_cmp = rhs.m_cmp;
-				if constexpr (typename node_alloc_traits::propagate_on_container_copy_assignment())
-					m_alloc = rhs.m_alloc;
-				try
-				{
+                if constexpr (typename node_alloc_traits::propagate_on_container_copy_assignment())
+                    m_alloc = rhs.m_alloc;
+                try
+                {
                     copy_from_other(rhs);
-				}
-				catch (...)
-				{
-					clear();
-					throw;
-				}
-			}
-			return *this;
+                }
+                catch (...)
+                {
+                    clear();
+                    throw;
+                }
+            }
+            return *this;
         }
 
         // TODO
@@ -301,14 +301,14 @@ namespace leviathan::collections
 
         void swap(tree &rhs) noexcept(IsNothrowSwap)
         {
-			if (this != std::addressof(rhs))
-			{
+            if (this != std::addressof(rhs))
+            {
                 swap_impl(rhs);
-				if constexpr (typename node_alloc_traits::propagate_on_container_swap())
-				{
-					std::swap(m_alloc, rhs.m_alloc);
-				}
-			}
+                if constexpr (typename node_alloc_traits::propagate_on_container_swap())
+                {
+                    std::swap(m_alloc, rhs.m_alloc);
+                }
+            }
         }
 
         // Iterators
