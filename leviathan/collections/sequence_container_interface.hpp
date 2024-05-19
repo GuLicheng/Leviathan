@@ -3,6 +3,7 @@
 #include <utility>
 #include <iterator>
 #include <concepts>
+#include <type_traits>
 
 namespace leviathan::collections
 {
@@ -86,6 +87,52 @@ struct reversible_container_interface : sequence_container_interface
         return std::make_reverse_iterator(std::as_const(c).begin());
     }
 };
+
+// Generate push_back/push_front by emplace_back/emplace_front
+// For sequence container, use emplace-family methods implement insertion may not
+// efficient. For std::vector::insert_range, the best way is check capacity
+// first if possibly.
+struct sequence_container_insertion_interface
+{
+    template <typename Self, typename C = std::remove_cvref_t<Self>>
+    void push_back(this Self&& self, const typename C::value_type& x)
+    {
+        self.emplace_back(x);
+    }
+
+    template <typename Self, typename C = std::remove_cvref_t<Self>>
+    void push_back(this Self&& self, typename C::value_type&& x)
+    {
+        self.emplace_back(std::move(x));
+    }
+
+    template <typename Self, typename C = std::remove_cvref_t<Self>>
+    void push_front(this Self&& self, const typename C::value_type& x)
+    {
+        self.emplace_front(x);
+    }
+
+    template <typename Self, typename C = std::remove_cvref_t<Self>>
+    void push_front(this Self&& self, typename C::value_type&& x)
+    {
+        self.emplace_front(std::move(x));
+    }
+
+    template <typename Self, typename C = std::remove_cvref_t<Self>>
+    auto insert(this Self&& self, typename C::const_iterator pos, const typename C::value_type& x)
+    {
+        return self.emplace(pos, x);
+    }
+
+    template <typename Self, typename C = std::remove_cvref_t<Self>>
+    auto insert(this Self&& self, typename C::const_iterator pos, typename C::value_type&& x)
+    {
+        return self.emplace(pos, std::move(x));
+    }
+
+
+    
+}
 
 // --------------------------------- Iterator operations ---------------------------------
 // Generate i++ by ++i.

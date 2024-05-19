@@ -1,34 +1,22 @@
-#include <format>
-#include <ranges>
-#include <algorithm>
-#include <vector>
 #include <iostream>
-#include <set>
-#include <source_location>
-#include <leviathan/collections/list/skiplist.hpp> 
 
-#include <leviathan/meta/template_info.hpp>
+struct B
+{
+    template <typename Self>
+    void do_(this Self&& self, int i) { std::cout << "Base\n"; }
+};
 
-using namespace leviathan::collections;
+struct D : B
+{
+    using B::do_;
+    void do_(double i) { std::cout << "Base\n"; }
+};
 
 int main(int argc, char const *argv[])
 {
 
-    skiplist<identity<int>, std::ranges::less, std::allocator<int>, true> sl;
+    D d;
 
-    sl.insert(9);
-    sl.insert(1);
-    sl.insert(7);
-    sl.insert(3);
-    sl.insert(5);
-
-    sl.show();
-
-
-    auto it1 = sl.lower_bound(1);
-    auto it2 = sl.end();
-
-    std::cout << std::format("sl.lower_bound(1) = {}\n", *it1);
-
+    d.do_(1);
 
 }
