@@ -45,7 +45,7 @@ public:
         requires associative_container<C>
     bool contains(this Self&& self, U&& x)
     {
-        return self.find(x) == self.end();
+        return self.find(x) != self.end();
     }
 
     template <typename Self, typename U, typename C = std::remove_cvref_t<Self>>

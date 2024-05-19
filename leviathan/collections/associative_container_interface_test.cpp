@@ -139,7 +139,7 @@ TEST_CASE("associative_container_lookup_interface")
         std::array ContainsResults = { 0, 1, 0, 1, 0 };
         auto result = std::ranges::equal(SearchedValues, ContainsResults, [&](auto v, bool c) 
         {
-            return s.contains(v) == !c;
+            return s.contains(v) == c;
         });
         CHECK(result);
     }

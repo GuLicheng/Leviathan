@@ -16,13 +16,19 @@ int main(int argc, char const *argv[])
 
     skiplist<identity<int>, std::ranges::less, std::allocator<int>, true> sl;
 
-    std::mt19937 rd;
+    sl.insert(9);
+    sl.insert(1);
+    sl.insert(7);
+    sl.insert(3);
+    sl.insert(5);
 
-    std::default_random_engine Engine;
+    sl.show();
 
-    for (auto i = 0; i < 10; ++i)
-    {
-        std::cout << rd() << '\n';
-    } 
+
+    auto it1 = sl.lower_bound(1);
+    auto it2 = sl.end();
+
+    std::cout << std::format("sl.lower_bound(1) = {}\n", *it1);
+
 
 }

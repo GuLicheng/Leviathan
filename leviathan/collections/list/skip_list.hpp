@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.hpp"
+#include "../common.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -92,7 +92,7 @@ class skip_list
 
     };
 
-    static constexpr bool IsTransparent = leviathan::collections::detail::is_transparent<Compare>;
+    static constexpr bool IsTransparent = leviathan::collections::detail::transparent<Compare>;
     
     using Key = typename KeyOfValue::template key_type<TypePack>;
 

@@ -38,6 +38,16 @@ class skiplist : public associative_container_insertion_interface,
 
     static int get_level()
     {
+        // return get_level_debug(); // debug
+        static std::random_device rd;
+        constexpr auto p = rd.max() / Ratio;
+        int level = 1;
+        for (; rd() < p; ++level);
+        return std::min(MaxLevel, level);
+    }
+
+    static int get_level1()
+    {
         static RandomNumberGenerator rd;
         constexpr typename RandomNumberGenerator::result_type p = std::lerp(
             RandomNumberGenerator::min(), 
@@ -156,14 +166,14 @@ private:
             return *(m_ptr->value_ptr());
         }
 
-        friend bool operator==(skiplist_iterator lhs, skiplist_iterator rhs)
+        bool operator==(this skiplist_iterator lhs, skiplist_iterator rhs)
         {
             return lhs.m_ptr == rhs.m_ptr;
         }
 
         constexpr skiplist_iterator skip(difference_type i) const
         {
-            return {m_ptr->m_next[i]};
+            return skiplist_iterator(m_ptr->m_next[i]);
         }
 
         constexpr skiplist_iterator &skip_to(difference_type i)
@@ -215,14 +225,17 @@ public:
 
     skiplist() : skiplist(Compare(), Allocator()) { }
 
+    // TODO
     skiplist(const skiplist&) = delete;
+    skiplist(const skiplist&, const allocator_type&) = delete;
     skiplist(skiplist&&) = delete;
+    skiplist(skiplist&&, const allocator_type&) = delete;
     skiplist& operator=(const skiplist&) = delete;
     skiplist& operator=(skiplist&&) = delete;
 
     ~skiplist()
     {
-
+        clear();
     }
 
     iterator begin()
@@ -285,7 +298,7 @@ public:
     iterator lower_bound(const key_arg_t<K>& x)
     {
         auto [node, exist] = find_node(x);
-        return exist ? iterator(node) : std::next(iterator(node));
+        return exist ? iterator(node) : std::next(node);
     }
 
     template <typename K = key_type>
@@ -308,6 +321,31 @@ public:
         }
     }
 
+    // void show() const
+    // {
+    //     constexpr auto width = 5;
+    //     std::cout << "Header: " << header()->m_cnt << " Level: " << current_level() << '\n';
+    //     for (auto iter = begin(); iter != end(); ++iter)
+    //     {
+    //         std::string ss = std::to_string(*iter);
+    //         if (ss.size() < width)
+    //             ss.append(width - ss.size(), ' ');
+    //         std::cout << "Value = " << ss << " (" << iter.m_ptr->m_cnt << ")";
+    //         for (int i = 0; i < m_level; ++i)
+    //         {
+    //             std::string s = std::to_string(*iter);
+    //             if (s.size() < width)
+    //                 s.append(width - s.size(), ' ');
+    //             if (i < iter.m_ptr->m_cnt)
+    //                 std::cout << " -> " << s.substr(0, width);
+    //             else if (header()->m_next[i] != iter.m_ptr)
+    //                 std::cout << "    " << "|    ";
+    //         }
+    //         std::cout << "\n";
+    //     }
+    //     std::cout << "\n"; 
+    // }
+
     void clear()
     {
         reset();
@@ -329,9 +367,13 @@ public:
     iterator erase(iterator first, iterator last)
     {
         if (first == begin() && last == end()) 
+        {
             clear();
+        }
         else
+        {
             for (; first != last; first = erase(first));
+        }
         return last;
     }
 
@@ -395,7 +437,9 @@ private:
         for (int i = 0; i < level; ++i)
         {
             if (i >= m_level)
+            {
                 head.set_next(i, worker);
+            }
             else
             {
                 worker.set_next(i, prev[i].skip(i));
@@ -423,7 +467,7 @@ private:
         {
             for (; cur.skip(i) != sent && m_cmp(KeyValue()(*cur.skip(i)), val); cur.skip_to(i));
             auto next = cur.skip(i);
-            if (next != end() && !m_cmp(val, KeyValue()(*next)))
+            if (next != sent && !m_cmp(val, KeyValue()(*next)))
             {
                 return { next, true };
             }
@@ -534,6 +578,14 @@ private:
     int m_level;
     skiplist_node* m_header;
 };
+
+// We can check our skiplist in Leetcode 1206 in the future.
+// https://leetcode.cn/problems/design-skiplist/description/
+// C++ apply C++20 standard using clang 17 with libstdc++ provided by GCC 11.
+// We at least need C++23 standard using clang 18 with libstdc++ provided by GCC14.
+// However, C# already use C#12 run on .NET 8.
+// Date: 2024/05/19 
+
 
 } // namespace leviathan::collections
 

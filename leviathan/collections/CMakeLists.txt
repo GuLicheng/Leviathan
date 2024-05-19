@@ -2,6 +2,10 @@ enable_testing()
 
 set(COLLECTIONS_DIRECTORY collections)
 
+add_executable(skiplist_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/list/skiplist_test.cpp)
+target_link_libraries(skiplist_test PRIVATE Catch2::Catch2WithMain)
+add_test(NAME skiplist_test COMMAND skiplist_test)
+
 add_executable(binary_search_tree_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/tree/binary_search_tree_test.cpp)
 target_link_libraries(binary_search_tree_test PRIVATE Catch2::Catch2WithMain)
 add_test(NAME binary_search_tree_test COMMAND binary_search_tree_test)
