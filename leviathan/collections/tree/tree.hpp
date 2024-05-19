@@ -152,7 +152,7 @@ protected:
      * To avoid above cases, we introduce `is_header` to help us check whether current 
      * iterator is sentinel.
     */
-    struct tree_iterator : postfix_increment_and_decrement_operation, arrow_operation
+    struct tree_iterator : bidirectional_iterator_interface
     {
         using link_type = Node*;
         using value_type = value_type;
@@ -196,7 +196,7 @@ protected:
             return *this;
         }
 
-        using postfix_increment_and_decrement_operation::operator++;
+        using bidirectional_iterator_interface::operator++;
 
         constexpr tree_iterator& operator--()
         {
@@ -205,7 +205,7 @@ protected:
             return *this;
         }
 
-        using postfix_increment_and_decrement_operation::operator--;
+        using bidirectional_iterator_interface::operator--;
 
         constexpr reference operator*(this tree_iterator it) 
         {

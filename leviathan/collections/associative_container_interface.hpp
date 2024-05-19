@@ -16,6 +16,7 @@ concept associative_container = sequence_container<X> && requires (X x)
 
 };
 
+// Generate find/upper_bound/equal_range/contains by lower_bound.
 template <bool IsUnique> 
 struct associative_container_lookup_interface
 {
@@ -82,6 +83,7 @@ public:
 
 };
 
+// Generate insertion operations by emplace/emplace_hint.
 struct associative_container_insertion_interface
 {
     // (1)
@@ -169,6 +171,7 @@ struct associative_container_insertion_interface
 
 };
 
+// Generate operator[] and insert_or_assign by try_emplace.
 struct unique_associative_container_indexer_interface
 {
     // Since try_emplace will provide overload for is_transparent, so we just need pass the

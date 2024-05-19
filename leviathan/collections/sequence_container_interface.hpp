@@ -36,6 +36,8 @@ concept sequence_container = sequence_container_iterator<X>;
 template <typename X>
 concept reversible_container = reversible_container_iterator<X>;
 
+// --------------------------------- Container operations ---------------------------------
+// Generate cbegin/cend by begin/end.
 struct sequence_container_interface
 {
     template <typename Container>
@@ -53,6 +55,7 @@ struct sequence_container_interface
     }
 };
 
+// Generate rbegin/rend/rcbegin/rcend by begin/end.
 struct reversible_container_interface : sequence_container_interface
 {
     template <typename Container>
@@ -84,6 +87,8 @@ struct reversible_container_interface : sequence_container_interface
     }
 };
 
+// --------------------------------- Iterator operations ---------------------------------
+// Generate i++ by ++i.
 struct postfix_increment_operation
 {
     template <typename I>
@@ -95,6 +100,7 @@ struct postfix_increment_operation
     }
 };
 
+// Generate i-- by --i.
 struct postfix_decrement_operation
 {
     template <typename I>
@@ -106,10 +112,7 @@ struct postfix_decrement_operation
     }
 };
 
-struct postfix_increment_and_decrement_operation
-    : postfix_increment_operation, postfix_decrement_operation
-{ };
-
+// Generate i-> by *i.
 struct arrow_operation
 {
     template <typename I>
@@ -119,5 +122,12 @@ struct arrow_operation
     }
 };
 
+struct forward_iterator_interface
+    : postfix_increment_operation, arrow_operation 
+{ };
+
+struct bidirectional_iterator_interface 
+    : forward_iterator_interface, postfix_decrement_operation
+{ };
 
 }

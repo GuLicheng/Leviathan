@@ -131,7 +131,7 @@ private:
     template <typename U> 
     using key_arg_t = detail::key_arg<detail::transparent<Compare>, U, key_type>;
 
-    struct skiplist_iterator : postfix_increment_and_decrement_operation, arrow_operation
+    struct skiplist_iterator : bidirectional_iterator_interface
     {
         using link_type = skiplist_node*;
         using value_type = value_type;
@@ -151,7 +151,7 @@ private:
             return *this;
         }
 
-        using postfix_increment_and_decrement_operation::operator++;
+        using bidirectional_iterator_interface::operator++;
 
         skiplist_iterator& operator--()
         {
@@ -159,7 +159,7 @@ private:
             return *this;
         }
 
-        using postfix_increment_and_decrement_operation::operator--;
+        using bidirectional_iterator_interface::operator--;
 
         reference operator*() const
         {
@@ -583,7 +583,7 @@ private:
 // https://leetcode.cn/problems/design-skiplist/description/
 // C++ apply C++20 standard using clang 17 with libstdc++ provided by GCC 11.
 // We at least need C++23 standard using clang 18 with libstdc++ provided by GCC14.
-// However, C# already use C#12 run on .NET 8.
+// However, C# already use C#12(latest) run on .NET 8.
 // Date: 2024/05/19 
 
 
