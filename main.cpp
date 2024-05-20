@@ -1,22 +1,26 @@
 #include <iostream>
+#include <ranges>
+#include <functional>
+#include <algorithm>
+#include <vector>
+#include <list>
+#include <print>
+#include <leviathan/ranges/action.hpp>
 
-struct B
-{
-    template <typename Self>
-    void do_(this Self&& self, int i) { std::cout << "Base\n"; }
-};
-
-struct D : B
-{
-    using B::do_;
-    void do_(double i) { std::cout << "Base\n"; }
-};
+namespace action = leviathan::action;
 
 int main(int argc, char const *argv[])
 {
+    auto v = std::vector{1, 2, 3};
+    // auto a = std::vector{1, 2, 3} | action::min;
 
-    D d;
+    auto print = [](const auto& x) 
+    {
+        std::cout << std::format("{}", x);
+    };
 
-    d.do_(1);
+    v | action::reverse | action::for_each(print);
+
+    // std::cout << a << '\n';
 
 }
