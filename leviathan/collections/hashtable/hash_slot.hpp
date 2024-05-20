@@ -42,6 +42,7 @@ struct storage_impl<T, true> : storage_impl<T, false>
 
 namespace detail
 {
+    
 template <typename T> 
 struct cache_hash_code : std::true_type { };
 
