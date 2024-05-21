@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (
 )
 
 import sys
+import functools
 
 def make_push_button(text, action):
     button = QPushButton(text)
@@ -28,7 +29,6 @@ if __name__ == "__main__":
     hbox.addWidget(make_push_button("ClickMe2", show_message))
     window.setLayout(hbox)
     
-
     window.show()
 
     sys.exit(app.exec())

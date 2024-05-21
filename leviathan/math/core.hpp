@@ -6,7 +6,7 @@
 #include <concepts>
 #include <compare>
 #include <cinttypes>
-
+#include <cstdlib>
 #include <type_traits>
 #include <bit>
 

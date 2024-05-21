@@ -106,26 +106,26 @@ public:
     constexpr uint128(long double ld) : uint128(make_uint128_from_float(ld)) { }
     
     // Assignment operator from arithmetic types
-    constexpr uint128 operator=(uint128 rhs)
+    constexpr uint128& operator=(uint128 rhs)
     { 
         this->m_data[0] = rhs.m_data[0];
         this->m_data[1] = rhs.m_data[1];
         return *this;
     }
 
-    constexpr uint128 operator=(uint64_t u) { return *this = uint128(u); }
-    constexpr uint128 operator=(uint32_t u) { return *this = uint128(u); }
-    constexpr uint128 operator=(uint16_t u) { return *this = uint128(u); }
-    constexpr uint128 operator=(uint8_t u) { return *this = uint128(u); }
+    constexpr uint128& operator=(uint64_t u) { return *this = uint128(u); }
+    constexpr uint128& operator=(uint32_t u) { return *this = uint128(u); }
+    constexpr uint128& operator=(uint16_t u) { return *this = uint128(u); }
+    constexpr uint128& operator=(uint8_t u) { return *this = uint128(u); }
 
-    constexpr uint128 operator=(int64_t i) { return *this = uint128(i); }
-    constexpr uint128 operator=(int32_t i) { return *this = uint128(i); }
-    constexpr uint128 operator=(int16_t i) { return *this = uint128(i); }
-    constexpr uint128 operator=(int8_t i) { return *this = uint128(i); }
+    constexpr uint128& operator=(int64_t i) { return *this = uint128(i); }
+    constexpr uint128& operator=(int32_t i) { return *this = uint128(i); }
+    constexpr uint128& operator=(int16_t i) { return *this = uint128(i); }
+    constexpr uint128& operator=(int8_t i) { return *this = uint128(i); }
 
-    constexpr uint128 operator=(float f) { return *this = uint128(f); }
-    constexpr uint128 operator=(double d) { return *this = uint128(d); }
-    constexpr uint128 operator=(long double ld) { return *this = uint128(ld); }
+    constexpr uint128& operator=(float f) { return *this = uint128(f); }
+    constexpr uint128& operator=(double d) { return *this = uint128(d); }
+    constexpr uint128& operator=(long double ld) { return *this = uint128(ld); }
 
     // Conversion operators to other arithmetic types
     constexpr explicit operator bool() const { return lower() || upper(); }
@@ -160,41 +160,41 @@ public:
     constexpr explicit operator long double() const { return make_float_from_uint128<long double>(); }
 
     // Unary operators
-    constexpr uint128 operator+() const { return *this; }
+    constexpr uint128 operator+(this uint128 x) { return x; }
     
-    constexpr uint128 operator-() const 
+    constexpr uint128 operator-(this uint128 x)  
     {
-        const auto hi = ~upper() + static_cast<uint64_t>(lower() == 0);
-        const auto lo = ~lower() + 1;
+        const auto hi = ~x.upper() + static_cast<uint64_t>(x.lower() == 0);
+        const auto lo = ~x.lower() + 1;
         return uint128(hi, lo);
     }
 
-    constexpr bool operator!() const { return !static_cast<bool>(*this); }
+    constexpr bool operator!(this uint128 x) { return !static_cast<bool>(x); }
 
-    constexpr uint128 operator~() const { return uint128(~upper(), ~lower()); }
+    constexpr uint128 operator~(this uint128 x) { return uint128(~x.upper(), ~x.lower()); }
 
     // Binary operators
-    constexpr uint128 operator|(uint128 rhs) const { return bit_op(std::bit_or<>(), *this, rhs); }
-    constexpr uint128 operator&(uint128 rhs) const { return bit_op(std::bit_and<>(), *this, rhs); }
-    constexpr uint128 operator^(uint128 rhs) const { return bit_op(std::bit_xor<>(), *this, rhs); }
+    constexpr uint128 operator|(this uint128 lhs, uint128 rhs) { return bit_op(std::bit_or<>(), lhs, rhs); }
+    constexpr uint128 operator&(this uint128 lhs, uint128 rhs) { return bit_op(std::bit_and<>(), lhs, rhs); }
+    constexpr uint128 operator^(this uint128 lhs, uint128 rhs) { return bit_op(std::bit_xor<>(), lhs, rhs); }
 
-    constexpr uint128 operator+(uint128 rhs) const
+    constexpr uint128 operator+(this uint128 lhs, uint128 rhs) 
     {
-        const auto lo = lower() + rhs.lower();
-        const auto carry = (lo < lower() ? 1 : 0);
-        const auto hi = upper() + rhs.upper() + carry;
+        const auto lo = lhs.lower() + rhs.lower();
+        const auto carry = (lo < lhs.lower() ? 1 : 0);
+        const auto hi = lhs.upper() + rhs.upper() + carry;
         return uint128(hi, lo);
     }
 
-    constexpr uint128 operator-(uint128 rhs) const
+    constexpr uint128 operator-(this uint128 lhs, uint128 rhs) 
     {
-        const auto lo = lower() - rhs.lower();
-        const auto carry = (lo <= lower() ? 0 : 1);
-        const auto hi = upper() - rhs.upper() - carry;
+        const auto lo = lhs.lower() - rhs.lower();
+        const auto carry = (lo <= lhs.lower() ? 0 : 1);
+        const auto hi = lhs.upper() - rhs.upper() - carry;
         return uint128(hi, lo);
     }
 
-    constexpr uint128 operator*(uint128 rhs) const
+    constexpr uint128 operator*(this uint128 lhs, uint128 rhs) 
     {
         // We split uint128 into three parts: 
         // High64bit(H64), Low-High32bit(LH32) and Low-Low32bit(LL32)
@@ -214,14 +214,14 @@ public:
 
         constexpr uint64_t mask = 0xffffffff;   // mask low 64-bit
 
-        const uint64_t ah = lower() >> 32;
-        const uint64_t al = lower() & mask;
+        const uint64_t ah = lhs.lower() >> 32;
+        const uint64_t al = lhs.lower() & mask;
 
         const uint64_t bh = rhs.lower() >> 32;
         const uint64_t bl = rhs.lower() & mask;
         
-        const auto part_hi = upper() * rhs.lower() // H64(A) * L64(B)
-                           + lower() * rhs.upper() // L64(A) * H64(B)
+        const auto part_hi = lhs.upper() * rhs.lower() // H64(A) * L64(B)
+                           + lhs.lower() * rhs.upper() // L64(A) * H64(B)
                            + ah * bh;              // LH32(A) * LH32(B)
 
         const auto part_lo = al * bl; // LL32(A) * LL32(B)
@@ -234,28 +234,38 @@ public:
         return result;
     }
 
-    constexpr uint128 operator/(uint128 rhs) const  { return div_mod(*this, rhs).quotient; }
+    constexpr uint128 operator/(this uint128 lhs, uint128 rhs) { return div_mod(lhs, rhs).quotient; }
 
-    constexpr uint128 operator%(uint128 rhs) const  { return div_mod(*this, rhs).remainder; }
+    constexpr uint128 operator%(this uint128 lhs, uint128 rhs) { return div_mod(lhs, rhs).remainder; }
 
-    constexpr uint128 operator<<(int amount) const
+    constexpr uint128 operator<<(this uint128 lhs, uint64_t amount) 
     {
-        assert(0 < amount && amount < 128 && "");
+        // We use uint64_t instead of int to make amount is non-negative.
+        // Guarantee "defined" behavior for shifts larger than 128.
+        if (amount >= 128)
+        {
+            return 0;
+        }
 
-        const auto hi = upper();
-        const auto lo = lower();
+        const auto hi = lhs.upper();
+        const auto lo = lhs.lower();
 
         return amount >= 64 
              ? uint128(lo << (amount - 64), 0)
              : uint128((hi << amount) | (lo >> (64 - amount)), lo << amount);
     }
 
-    constexpr uint128 operator>>(int amount) const
+    constexpr uint128 operator>>(this uint128 lhs, int amount) 
     {
-        assert(0 < amount && amount < 128 && "");
+        // We use uint64_t instead of int to make amount is non-negative.
+        // Guarantee "defined" behavior for shifts larger than 128.
+        if (amount >= 128)
+        {
+            return 0;
+        }
 
-        const auto hi = upper();
-        const auto lo = lower();
+        const auto hi = lhs.upper();
+        const auto lo = lhs.lower();
 
         return amount >= 64 
              ? uint128(0, hi >> (amount - 64)) 
@@ -263,35 +273,35 @@ public:
     }
 
     // Comparision
-    constexpr bool operator==(uint128 rhs) const 
+    constexpr bool operator==(this uint128 lhs, uint128 rhs)  
     { 
-        return lower() == rhs.lower()
-            && upper() == rhs.upper();
+        return lhs.lower() == rhs.lower()
+            && lhs.upper() == rhs.upper();
     }
 
-    constexpr auto operator<=>(uint128 rhs) const
+    constexpr auto operator<=>(this uint128 lhs, uint128 rhs) 
     {
-        return upper() != rhs.upper()
-            ? upper() <=> rhs.upper()
-            : lower() <=> rhs.lower();
+        return lhs.upper() != rhs.upper()
+             ? lhs.upper() <=> rhs.upper()
+             : lhs.lower() <=> rhs.lower();
     }
 
     // Other operators
-    constexpr uint128 operator+=(uint128 rhs) { return *this = *this + rhs; }
-    constexpr uint128 operator-=(uint128 rhs) { return *this = *this - rhs; }
-    constexpr uint128 operator*=(uint128 rhs) { return *this = *this * rhs; }
-    constexpr uint128 operator/=(uint128 rhs) { return *this = *this / rhs; }
-    constexpr uint128 operator%=(uint128 rhs) { return *this = *this % rhs; }
-    constexpr uint128 operator|=(uint128 rhs) { return *this = *this | rhs; }
-    constexpr uint128 operator^=(uint128 rhs) { return *this = *this ^ rhs; }
-    constexpr uint128 operator&=(uint128 rhs) { return *this = *this & rhs; }
+    constexpr uint128& operator+=(uint128 rhs) { return *this = *this + rhs; }
+    constexpr uint128& operator-=(uint128 rhs) { return *this = *this - rhs; }
+    constexpr uint128& operator*=(uint128 rhs) { return *this = *this * rhs; }
+    constexpr uint128& operator/=(uint128 rhs) { return *this = *this / rhs; }
+    constexpr uint128& operator%=(uint128 rhs) { return *this = *this % rhs; }
+    constexpr uint128& operator|=(uint128 rhs) { return *this = *this | rhs; }
+    constexpr uint128& operator^=(uint128 rhs) { return *this = *this ^ rhs; }
+    constexpr uint128& operator&=(uint128 rhs) { return *this = *this & rhs; }
 
-    constexpr uint128 operator<<=(int amount) { return *this = *this << amount; }
-    constexpr uint128 operator>>=(int amount) { return *this = *this >> amount; }
+    constexpr uint128& operator<<=(int amount) { return *this = *this << amount; }
+    constexpr uint128& operator>>=(int amount) { return *this = *this >> amount; }
 
-    constexpr uint128 operator++() { return *this = *this + 1; }
+    constexpr uint128& operator++() { return *this = *this + 1; }
 
-    constexpr uint128 operator--() { return *this = *this - 1; }
+    constexpr uint128& operator--() { return *this = *this - 1; }
 
     constexpr uint128 operator++(int)
     {
@@ -470,26 +480,26 @@ public:
     constexpr int128(double d) : int128(make_int128_from_float(d)) { }
     constexpr int128(long double ld) : int128(make_int128_from_float(ld)) { }
 
-    constexpr int128 operator=(int128 rhs)
+    constexpr int128& operator=(int128 rhs)
     {
         this->m_data[0] = rhs.m_data[0];
         this->m_data[1] = rhs.m_data[1];
         return *this;
     }
 
-    constexpr int128 operator=(uint64_t u) { return *this = int128(u); }
-    constexpr int128 operator=(uint32_t u) { return *this = int128(u); }
-    constexpr int128 operator=(uint16_t u) { return *this = int128(u); }
-    constexpr int128 operator=(uint8_t u) { return *this = int128(u); }
+    constexpr int128& operator=(uint64_t u) { return *this = int128(u); }
+    constexpr int128& operator=(uint32_t u) { return *this = int128(u); }
+    constexpr int128& operator=(uint16_t u) { return *this = int128(u); }
+    constexpr int128& operator=(uint8_t u) { return *this = int128(u); }
 
-    constexpr int128 operator=(int64_t i) { return *this = int128(i); }
-    constexpr int128 operator=(int32_t i) { return *this = int128(i); }
-    constexpr int128 operator=(int16_t i) { return *this = int128(i); }
-    constexpr int128 operator=(int8_t i) { return *this = int128(i); }
+    constexpr int128& operator=(int64_t i) { return *this = int128(i); }
+    constexpr int128& operator=(int32_t i) { return *this = int128(i); }
+    constexpr int128& operator=(int16_t i) { return *this = int128(i); }
+    constexpr int128& operator=(int8_t i) { return *this = int128(i); }
 
-    constexpr int128 operator=(float f) { return *this = int128(f); }
-    constexpr int128 operator=(double d) { return *this = int128(d); }
-    constexpr int128 operator=(long double ld) { return *this = int128(ld); }
+    constexpr int128& operator=(float f) { return *this = int128(f); }
+    constexpr int128& operator=(double d) { return *this = int128(d); }
+    constexpr int128& operator=(long double ld) { return *this = int128(ld); }
 
     // Conversion operators to other arithmetic types
     constexpr explicit operator bool() const { return upper() || lower(); }
@@ -524,85 +534,93 @@ public:
     constexpr explicit operator long double() const { return make_float_from_int128<long double>(); }
 
     // Unary operators
-    constexpr int128 operator+() const { return *this; }
+    constexpr int128 operator+(this int128 x) { return x; }
 
-    constexpr int128 operator-() const 
+    constexpr int128 operator-(this int128 x) 
     {
-        const uint128<Endian> u = *this;
+        const uint128<Endian> u = x;
         return -u;
     }
 
-    constexpr bool operator!() const { return !static_cast<bool>(*this); }
+    constexpr bool operator!(this int128 x) { return !static_cast<bool>(x); }
 
-    constexpr int128 operator~() const { return int128(~upper(), ~lower()); }
+    constexpr int128 operator~(this int128 x) { return int128(~x.upper(), ~x.lower()); }
 
     // Binary operators
-    constexpr int128 operator|(int128 rhs) const { return do_as_uint128(std::bit_or<>(), *this, rhs); }
-    constexpr int128 operator&(int128 rhs) const { return do_as_uint128(std::bit_and<>(), *this, rhs); }
-    constexpr int128 operator^(int128 rhs) const { return do_as_uint128(std::bit_xor<>(), *this, rhs); }
+    constexpr int128 operator|(this int128 lhs, int128 rhs) { return do_as_uint128(std::bit_or<>(), lhs, rhs); }
+    constexpr int128 operator&(this int128 lhs, int128 rhs) { return do_as_uint128(std::bit_and<>(), lhs, rhs); }
+    constexpr int128 operator^(this int128 lhs, int128 rhs) { return do_as_uint128(std::bit_xor<>(), lhs, rhs); }
 
-    constexpr int128 operator+(int128 rhs) const { return do_as_uint128(std::plus<>(), *this, rhs); }
+    constexpr int128 operator+(this int128 lhs, int128 rhs) { return do_as_uint128(std::plus<>(), lhs, rhs); }
 
-    constexpr int128 operator-(int128 rhs) const { return do_as_uint128(std::minus<>(), *this, rhs); }
+    constexpr int128 operator-(this int128 lhs, int128 rhs) { return do_as_uint128(std::minus<>(), lhs, rhs); }
 
-    constexpr int128 operator*(int128 rhs) const { return do_as_uint128(std::multiplies<>(), *this, rhs); }
+    constexpr int128 operator*(this int128 lhs, int128 rhs) { return do_as_uint128(std::multiplies<>(), lhs, rhs); }
     
-    constexpr int128 operator/(int128 rhs) const { return div_mod(*this, rhs).quotient; }
+    constexpr int128 operator/(this int128 lhs, int128 rhs) { return div_mod(lhs, rhs).quotient; }
 
-    constexpr int128 operator%(int128 rhs) const { return div_mod(*this, rhs).remainder; }
+    constexpr int128 operator%(this int128 lhs, int128 rhs) { return div_mod(lhs, rhs).remainder; }
 
-    constexpr int128 operator<<(int amount) const
+    constexpr int128 operator<<(this int128 lhs, uint64_t amount) 
     {
-        assert(0 < amount && amount < 127 && "int64_t shifts of >= 63 are undefined.");
-
+        // We use uint64_t instead of int to make amount is non-negative.
+        // Guarantee "defined" behavior for shifts larger than 128.
         // The shift operation in signed integer and unsigned are same.
-        return static_cast<uint128<Endian>>(*this) << amount;
+        return static_cast<uint128<Endian>>(lhs) << amount;
     }
 
-    constexpr int128 operator>>(int amount) const
+    // The only difference between signed and unsigned is right shift operation.
+    constexpr int128 operator>>(this int128 lhs, uint64_t amount) 
     {
-        assert(0 < amount && amount < 127 && "int64_t shifts of >= 63 are undefined.");
+        // We use uint64_t instead of int to make amount is non-negative.
+        // Guarantee "defined" behavior for shifts larger than 128.
+        if (amount >= 128)
+        {
+            return signbit(lhs.upper()) 
+                  ? int128(-1)
+                  : int128(0);
+        }
 
-        const auto result = static_cast<uint128<Endian>>(*this) >> amount;
+        const auto result = static_cast<uint128<Endian>>(lhs) >> amount;
         // Right-shift on signed integral types is an arithmetic right shift, 
         // which performs sign-extension. So we must keep sign bit when shifting 
         // signed integer.
-        if (signbit(upper()))
+        if (signbit(lhs.upper()))
         {
             return result | (uint128<Endian>::max() << (127 - amount));
         }
         return result;
     }
 
-    constexpr bool operator==(int128 rhs) const
+    constexpr bool operator==(this int128 lhs, int128 rhs) 
     {
-        return upper() == rhs.upper()
-            && lower() == rhs.lower();
+        return lhs.upper() == rhs.upper()
+            && lhs.lower() == rhs.lower();
     }
 
-    constexpr auto operator<=>(int128 rhs) const
+    constexpr auto operator<=>(this int128 lhs, int128 rhs) 
     {
-        return upper() == rhs.upper()
-             ? lower() <=> rhs.lower()
-             : upper() <=> rhs.upper();
+        return lhs.upper() == rhs.upper()
+             ? lhs.lower() <=> rhs.lower()
+             : lhs.upper() <=> rhs.upper();
     }
 
     // Other operators
-    constexpr int128 operator+=(int128 rhs) { return *this = *this + rhs; }
-    constexpr int128 operator-=(int128 rhs) { return *this = *this - rhs; }
-    constexpr int128 operator*=(int128 rhs) { return *this = *this * rhs; }
-    constexpr int128 operator/=(int128 rhs) { return *this = *this / rhs; }
-    constexpr int128 operator%=(int128 rhs) { return *this = *this % rhs; }
-    constexpr int128 operator|=(int128 rhs) { return *this = *this | rhs; }
-    constexpr int128 operator^=(int128 rhs) { return *this = *this ^ rhs; }
-    constexpr int128 operator&=(int128 rhs) { return *this = *this & rhs; }
+    constexpr int128& operator+=(int128 rhs) { return *this = *this + rhs; }
+    constexpr int128& operator-=(int128 rhs) { return *this = *this - rhs; }
+    constexpr int128& operator*=(int128 rhs) { return *this = *this * rhs; }
+    constexpr int128& operator/=(int128 rhs) { return *this = *this / rhs; }
+    constexpr int128& operator%=(int128 rhs) { return *this = *this % rhs; }
+    constexpr int128& operator|=(int128 rhs) { return *this = *this | rhs; }
+    constexpr int128& operator^=(int128 rhs) { return *this = *this ^ rhs; }
+    constexpr int128& operator&=(int128 rhs) { return *this = *this & rhs; }
 
-    constexpr int128 operator<<=(int amount) { return *this = *this << amount; }
-    constexpr int128 operator>>=(int amount) { return *this = *this >> amount; }
+    constexpr int128& operator<<=(int amount) { return *this = *this << amount; }
+    constexpr int128& operator>>=(int amount) { return *this = *this >> amount; }
 
-    constexpr int128 operator++() { return *this = *this + 1; }
+    constexpr int128& operator++() { return *this = *this + 1; }
 
-    constexpr int128 operator--() { return *this = *this - 1; }
+    constexpr int128& operator--() { return *this = *this - 1; }
 
     constexpr int128 operator++(int)
     {
@@ -666,6 +684,8 @@ using int128_t = int128<>;
 using uint128_t = uint128<>;
 template class uint128<>;
 template class int128<>;
+
+
 
 }
 

@@ -533,8 +533,277 @@ TEST_CASE("SignedIntegerBinaryOperation")
 
 }
 
+// Follow testing is copied from https://github.com/chfast/intx/blob/master/test/unittests/test_int128.cpp
+// ================================================================================================================
+#include <string>
 
+template <typename T>
+[[noreturn]] inline void throw_(const char* what)
+{
+#if __cpp_exceptions
+    throw T{what};
+#else
+    std::fputs(what, stderr);
+    std::abort();
+#endif
+}
 
+inline constexpr int from_dec_digit(char c)
+{
+    if (c < '0' || c > '9')
+        throw_<std::invalid_argument>("invalid digit");
+    return c - '0';
+}
 
+inline constexpr int from_hex_digit(char c)
+{
+    if (c >= 'a' && c <= 'f')
+        return c - ('a' - 10);
+    if (c >= 'A' && c <= 'F')
+        return c - ('A' - 10);
+    return from_dec_digit(c);
+}
 
+template <typename Int>
+inline constexpr Int from_string(const char* str)
+{
+    auto s = str;
+    auto x = Int{};
+    int num_digits = 0;
 
+    if (s[0] == '0' && s[1] == 'x')
+    {
+        s += 2;
+        while (const auto c = *s++)
+        {
+            if (++num_digits > int{sizeof(x) * 2})
+                throw_<std::out_of_range>(str);
+            x = (x << uint64_t{4}) | from_hex_digit(c);
+        }
+        return x;
+    }
+
+    while (const auto c = *s++)
+    {
+        if (num_digits++ > std::numeric_limits<Int>::digits10)
+            throw_<std::out_of_range>(str);
+
+        const auto d = from_dec_digit(c);
+        x = x * Int{10} + d;
+        if (x < d)
+            throw_<std::out_of_range>(str);
+    }
+
+    return x;
+}
+
+template <typename Int>
+inline constexpr Int from_string(const std::string& s)
+{
+    return from_string<Int>(s.c_str());
+}
+
+struct Uint128Wrapper
+{
+    u128 value;
+
+    constexpr Uint128Wrapper(uint64_t lo, uint64_t hi) : value(hi, lo) { }
+
+    constexpr Uint128Wrapper(u128 u) : value(u) { }
+
+    template <std::integral Int>
+    constexpr Uint128Wrapper(Int i) : value(i) { }
+};
+
+constexpr Uint128Wrapper operator""_u128(const char* s)
+{
+    return from_string<u128>(s);
+}
+
+namespace intx
+{
+
+struct ArithTestCase
+{
+    Uint128Wrapper x;
+    Uint128Wrapper y;
+    Uint128Wrapper sum;
+    Uint128Wrapper difference;
+    Uint128Wrapper product;
+};
+
+static ArithTestCase arith_test_cases[] = {
+    {0, 0, 0, 0, 0},
+    {0, 1, 1, 0xffffffffffffffffffffffffffffffff_u128, 0},
+    {1, 0, 1, 1, 0},
+    {1, 1, 2, 0, 1},
+    {1, 0xffffffffffffffff, {0, 1}, 0xffffffffffffffff0000000000000002_u128, 0xffffffffffffffff},
+    {0xffffffffffffffff, 1, {0, 1}, 0xfffffffffffffffe, 0xffffffffffffffff},
+    {0xffffffffffffffff, 0xffffffffffffffff, 0x1fffffffffffffffe_u128, 0,
+     0xfffffffffffffffe0000000000000001_u128},
+    {0x8000000000000000, 0x8000000000000000, {0, 1}, 0, 0x40000000000000000000000000000000_u128},
+    {0x18000000000000000_u128, 0x8000000000000000, 0x20000000000000000_u128,
+     0x10000000000000000_u128, 0xc0000000000000000000000000000000_u128},
+    {0x8000000000000000, 0x18000000000000000_u128, 0x20000000000000000_u128,
+     0xffffffffffffffff0000000000000000_u128, 0xc0000000000000000000000000000000_u128},
+    {{0, 1}, 0xffffffffffffffff, 0x1ffffffffffffffff_u128, 1, 0xffffffffffffffff0000000000000000_u128},
+    {{0, 1}, {0, 1}, 0x20000000000000000_u128, 0, 0},
+};
+}
+
+void EXPECT_EQ(u128 x, u128 y, auto message)
+{
+    INFO("" << message);
+    CHECK(x == y);
+}
+
+void EXPECT_EQ(u128 x, u128 y)
+{
+    CHECK(x == y);
+}
+
+TEST_CASE("intx add")
+{
+    for (const auto& t : intx::arith_test_cases)
+    {
+        EXPECT_EQ(t.x.value + t.y.value, t.sum.value);
+        EXPECT_EQ(t.y.value + t.x.value, t.sum.value);
+    }
+}
+
+TEST_CASE("intx sub")
+{
+    for (const auto& t : intx::arith_test_cases)
+    {
+        EXPECT_EQ(t.x.value - t.y.value, t.difference.value);
+    }
+}
+
+TEST_CASE("intx mul")
+{
+    for (const auto& t : intx::arith_test_cases)
+    {
+        EXPECT_EQ(t.x.value * t.y.value, t.product.value);
+        EXPECT_EQ(t.y.value * t.x.value, t.product.value);
+        auto z = t.x.value;
+        EXPECT_EQ(z *= t.y.value, t.product.value);
+        EXPECT_EQ(z, t.product.value);
+    }
+}
+
+void Check(auto a, auto b)
+{
+    auto aa = std::format("{}", a); 
+    auto bb = std::format("{}", b); 
+    CHECK(aa == bb);
+}
+
+unsigned __int128 MakeBuiltin(size_t hi, size_t lo)
+{
+    return static_cast<unsigned __int128>(hi) << 64 | static_cast<unsigned __int128>(lo);
+}
+
+void RandomTestForDivAndMod()
+{
+    static std::random_device rd;
+
+    const auto hi1 = rd();
+    const auto lo1 = rd();
+
+    const auto a1 = MakeBuiltin(hi1, lo1);
+    const auto b1 = u128(hi1, lo1);
+
+    const auto hi2 = rd();
+    const auto lo2 = rd();
+
+    const auto a2 = MakeBuiltin(hi2, lo2);
+    const auto b2 = u128(hi2, lo2);
+
+    Check(a1, b1);
+    Check(a2, b2);
+
+    if (a1 == 0)
+    {
+        return; // Avoid divide-by-zero.
+    }
+
+    Check(a2 / a1, b2 / b1);
+    Check(a2 % a1, b2 % b1);
+
+    const auto [q, r] = u128::div_mod(b1, b2);
+    auto c = b2 * q + r;
+    CHECK(b1 == c);
+}
+
+TEST_CASE("DivideAndModRandomInputs")
+{
+    const int kNumIters = 1 << 18;
+    for (int i = 0; i < kNumIters; ++i) 
+    {
+        RandomTestForDivAndMod();
+    }
+}
+
+TEST_CASE("DivideAndMod")
+{
+    using std::swap;
+
+    // a := q * b + r
+    u128 a, b, q, r;
+
+    // Zero test.
+    a = 0;
+    b = 123;
+    q = a / b;
+    r = a % b;
+    EXPECT_EQ(0, q);
+    EXPECT_EQ(0, r);
+
+    a = u128(0x530eda741c71d4c3, 0xbf25975319080000);
+    q = u128(0x4de2cab081, 0x14c34ab4676e4bab);
+    b = u128(0x1110001);
+    r = u128(0x3eb455);
+    EXPECT_EQ(a, q * b + r); // Sanity-check.
+
+    u128 result_q, result_r;
+    result_q = a / b;
+    result_r = a % b;
+    EXPECT_EQ(q, result_q);
+    EXPECT_EQ(r, result_r);
+
+    // Try the other way around.
+    swap(q, b);
+    result_q = a / b;
+    result_r = a % b;
+    EXPECT_EQ(q, result_q);
+    EXPECT_EQ(r, result_r);
+    // Restore.
+    swap(b, q);
+
+    // Dividend < divisor; result should be q:0 r:<dividend>.
+    swap(a, b);
+    result_q = a / b;
+    result_r = a % b;
+    EXPECT_EQ(0, result_q);
+    EXPECT_EQ(a, result_r);
+    // Try the other way around.
+    swap(a, q);
+    result_q = a / b;
+    result_r = a % b;
+    EXPECT_EQ(0, result_q);
+    EXPECT_EQ(a, result_r);
+    // Restore.
+    swap(q, a);
+    swap(b, a);
+
+    // Try a large remainder.
+    b = a / 2 + 1;
+    u128 expected_r = u128(0x29876d3a0e38ea61, 0xdf92cba98c83ffff);
+    // Sanity checks.
+    EXPECT_EQ(a / 2 - 1, expected_r);
+    EXPECT_EQ(a, b + expected_r);
+    result_q = a / b;
+    result_r = a % b;
+    EXPECT_EQ(1, result_q);
+    EXPECT_EQ(expected_r, result_r);
+}
