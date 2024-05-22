@@ -1,6 +1,7 @@
 // https://github.com/abseil/abseil-cpp/blob/master/absl/numeric/int128.h
 // https://github.com/dotnet/runtime/blob/5535e31a712343a63f5d7d796cd874e563e5ac14/src/libraries/System.Private.CoreLib/src/System/UInt128.cs
 // https://stackoverflow.com/questions/13150449/efficient-unsigned-to-signed-cast-avoiding-implementation-defined-behavior
+// https://eisenwave.github.io/cpp-proposals/int-least128.html#example-30d55124
 #pragma once
 
 #include "core.hpp"
@@ -67,10 +68,10 @@ class uint128 : int128_layout<false, Endian>
     }
 
     template <typename T>
-    constexpr T make_float_from_uint128() const
+    constexpr static T make_float_from_uint128(uint128 x) 
     { 
-        return static_cast<T>(lower()) 
-             + std::ldexp(static_cast<T>(upper()), 64); 
+        return static_cast<T>(x.lower()) 
+             + std::ldexp(static_cast<T>(x.upper()), 64); 
     }
 
     template <typename Fn>
@@ -128,36 +129,36 @@ public:
     constexpr uint128& operator=(long double ld) { return *this = uint128(ld); }
 
     // Conversion operators to other arithmetic types
-    constexpr explicit operator bool() const { return lower() || upper(); }
+    constexpr explicit operator bool(this uint128 x) { return x.lower() || x.upper(); }
     
-    constexpr explicit operator char() const { return static_cast<char>(lower()); }
-    constexpr explicit operator wchar_t() const { return static_cast<wchar_t>(lower()); }
+    constexpr explicit operator char(this uint128 x) { return static_cast<char>(x.lower()); }
+    constexpr explicit operator wchar_t(this uint128 x) { return static_cast<wchar_t>(x.lower()); }
 
-    constexpr explicit operator char8_t() const { return static_cast<char8_t>(lower()); }
-    constexpr explicit operator char16_t() const { return static_cast<char16_t>(lower()); }
-    constexpr explicit operator char32_t() const { return static_cast<char32_t>(lower()); }
+    constexpr explicit operator char8_t(this uint128 x) { return static_cast<char8_t>(x.lower()); }
+    constexpr explicit operator char16_t(this uint128 x) { return static_cast<char16_t>(x.lower()); }
+    constexpr explicit operator char32_t(this uint128 x) { return static_cast<char32_t>(x.lower()); }
 
-    constexpr explicit operator int8_t() const { return static_cast<int8_t>(lower()); }
-    constexpr explicit operator int16_t() const { return static_cast<int16_t>(lower()); }
-    constexpr explicit operator int32_t() const { return static_cast<int32_t>(lower()); }
-    constexpr explicit operator int64_t() const { return static_cast<int64_t>(lower()); }
+    constexpr explicit operator int8_t(this uint128 x) { return static_cast<int8_t>(x.lower()); }
+    constexpr explicit operator int16_t(this uint128 x) { return static_cast<int16_t>(x.lower()); }
+    constexpr explicit operator int32_t(this uint128 x) { return static_cast<int32_t>(x.lower()); }
+    constexpr explicit operator int64_t(this uint128 x) { return static_cast<int64_t>(x.lower()); }
 
-    constexpr explicit operator int128<Endian>() const 
+    constexpr explicit operator int128<Endian>(this uint128 x) 
     { 
         return int128<Endian>(
-            static_cast<int64_t>(upper()),
-            lower()
+            static_cast<int64_t>(x.upper()),
+            x.lower()
         );
     }
 
-    constexpr explicit operator uint8_t() const { return static_cast<uint8_t>(lower()); }
-    constexpr explicit operator uint16_t() const { return static_cast<uint16_t>(lower()); }
-    constexpr explicit operator uint32_t() const { return static_cast<uint32_t>(lower()); }
-    constexpr explicit operator uint64_t() const { return static_cast<uint64_t>(lower()); }
+    constexpr explicit operator uint8_t(this uint128 x) { return static_cast<uint8_t>(x.lower()); }
+    constexpr explicit operator uint16_t(this uint128 x) { return static_cast<uint16_t>(x.lower()); }
+    constexpr explicit operator uint32_t(this uint128 x) { return static_cast<uint32_t>(x.lower()); }
+    constexpr explicit operator uint64_t(this uint128 x) { return static_cast<uint64_t>(x.lower()); }
 
-    constexpr explicit operator float() const { return make_float_from_uint128<float>(); }
-    constexpr explicit operator double() const { return make_float_from_uint128<double>(); }
-    constexpr explicit operator long double() const { return make_float_from_uint128<long double>(); }
+    constexpr explicit operator float(this uint128 x) { return make_float_from_uint128<float>(x); }
+    constexpr explicit operator double(this uint128 x) { return make_float_from_uint128<double>(x); }
+    constexpr explicit operator long double(this uint128 x) { return make_float_from_uint128<long double>(x); }
 
     // Unary operators
     constexpr uint128 operator+(this uint128 x) { return x; }
@@ -368,9 +369,15 @@ public:
              : std::countr_one(x.lower());
     }
 
-    std::string to_string() const { return std::format("{}", *this); }
+    std::string to_string(this uint128 x) 
+    {
+        return std::format("{}", x);
+    }
 
-    constexpr uint64_t hash_code() const { return hash_combine(upper(), lower()); }
+    constexpr uint64_t hash_code(this uint128 x)
+    {
+        return hash_combine(x.upper(), x.lower());
+    }
 
     static consteval uint128 max() 
     { 
@@ -437,7 +444,7 @@ class int128 : int128_layout<true, Endian>
     using base = int128_layout<true, Endian>;
 
     template <typename T>
-    constexpr int128 make_int128_from_float(T v)
+    static constexpr int128 make_int128_from_float(T v)
     {
         // Conversion when v is NaN or cannot fit into int128 would be undefined
         // behavior if using an intrinsic 128-bit integer.
@@ -450,7 +457,7 @@ class int128 : int128_layout<true, Endian>
     }
 
     template <typename T>
-    constexpr T make_float_from_int128() const
+    static constexpr T make_float_from_int128(int128 x) 
     {
         // We must convert the absolute value and then negate as needed, because
         // floating point types are typically sign-magnitude. Otherwise, the
@@ -458,9 +465,9 @@ class int128 : int128_layout<true, Endian>
         // complement overwhelms the precision of the mantissa.
         //
         // Also check to make sure we don't negate Int128Min()
-        return upper() < 0 && *this != int128::min()
-            ? -static_cast<T>(-*this)
-            : static_cast<T>(lower()) + std::ldexp(static_cast<T>(upper()), 64);
+        return x.upper() < 0 && x != int128::min()
+            ? -static_cast<T>(-x)
+            : static_cast<T>(x.lower()) + std::ldexp(static_cast<T>(x.upper()), 64);
     }
 
     template <typename Fn>
@@ -516,36 +523,36 @@ public:
     constexpr int128& operator=(long double ld) { return *this = int128(ld); }
 
     // Conversion operators to other arithmetic types
-    constexpr explicit operator bool() const { return upper() || lower(); }
+    constexpr explicit operator bool(this int128 x) { return x.upper() || x.lower(); }
     
-    constexpr explicit operator char() const { return static_cast<char>(static_cast<int64_t>(*this)); }
-    constexpr explicit operator wchar_t() const { return static_cast<wchar_t>(static_cast<int64_t>(*this)); }
+    constexpr explicit operator char(this int128 x) { return static_cast<char>(static_cast<int64_t>(x)); }
+    constexpr explicit operator wchar_t(this int128 x) { return static_cast<wchar_t>(static_cast<int64_t>(x)); }
 
-    constexpr explicit operator char8_t() const { return static_cast<char8_t>(lower()); }
-    constexpr explicit operator char16_t() const { return static_cast<char16_t>(lower()); }
-    constexpr explicit operator char32_t() const { return static_cast<char32_t>(lower()); }
+    constexpr explicit operator char8_t(this int128 x) { return static_cast<char8_t>(x.lower()); }
+    constexpr explicit operator char16_t(this int128 x) { return static_cast<char16_t>(x.lower()); }
+    constexpr explicit operator char32_t(this int128 x) { return static_cast<char32_t>(x.lower()); }
 
-    constexpr explicit operator int8_t() const { return static_cast<int8_t>(static_cast<int64_t>(*this)); }
-    constexpr explicit operator int16_t() const { return static_cast<int16_t>(static_cast<int64_t>(*this)); }
-    constexpr explicit operator int32_t() const { return static_cast<int32_t>(static_cast<int64_t>(*this)); }
-    constexpr explicit operator int64_t() const { return static_cast<int64_t>(lower()); }
+    constexpr explicit operator int8_t(this int128 x) { return static_cast<int8_t>(static_cast<int64_t>(x)); }
+    constexpr explicit operator int16_t(this int128 x) { return static_cast<int16_t>(static_cast<int64_t>(x)); }
+    constexpr explicit operator int32_t(this int128 x) { return static_cast<int32_t>(static_cast<int64_t>(x)); }
+    constexpr explicit operator int64_t(this int128 x) { return static_cast<int64_t>(x.lower()); }
 
-    constexpr explicit operator uint8_t() const { return static_cast<uint8_t>(lower()); }
-    constexpr explicit operator uint16_t() const { return static_cast<uint16_t>(lower()); }
-    constexpr explicit operator uint32_t() const { return static_cast<uint32_t>(lower()); }
-    constexpr explicit operator uint64_t() const { return static_cast<uint64_t>(lower()); }
+    constexpr explicit operator uint8_t(this int128 x) { return static_cast<uint8_t>(x.lower()); }
+    constexpr explicit operator uint16_t(this int128 x) { return static_cast<uint16_t>(x.lower()); }
+    constexpr explicit operator uint32_t(this int128 x) { return static_cast<uint32_t>(x.lower()); }
+    constexpr explicit operator uint64_t(this int128 x) { return static_cast<uint64_t>(x.lower()); }
 
-    constexpr explicit operator uint128<Endian>() const 
+    constexpr explicit operator uint128<Endian>(this int128 x) 
     {
         return uint128<Endian>(
-            static_cast<int64_t>(upper()),
-            lower()
+            static_cast<int64_t>(x.upper()),
+            x.lower()
         );
     }
 
-    constexpr explicit operator float() const { return make_float_from_int128<float>(); }
-    constexpr explicit operator double() const { return make_float_from_int128<double>(); }
-    constexpr explicit operator long double() const { return make_float_from_int128<long double>(); }
+    constexpr explicit operator float(this int128 x) { return make_float_from_int128<float>(x); }
+    constexpr explicit operator double(this int128 x) { return make_float_from_int128<double>(x); }
+    constexpr explicit operator long double(this int128 x) { return make_float_from_int128<long double>(x); }
 
     // Unary operators
     constexpr int128 operator+(this int128 x) { return x; }
@@ -649,9 +656,10 @@ public:
         return temp;
     }
 
-    std::string to_string() const { return std::format("{}", *this); }
-
-    constexpr size_t hash_code() const { return hash_combine(upper(), lower()); }
+    constexpr size_t hash_code(this int128 x)
+    {
+        return hash_combine(x.upper(), x.lower());
+    }
 
     static consteval int128 max() 
     { 
@@ -682,6 +690,11 @@ public:
 
         return { static_cast<int128>(quot), static_cast<int128>(rem) };
     }
+
+    std::string to_string(this int128 x)
+    {
+        return std::format("{}", x);
+    } 
 
     friend std::ostream& operator<<(std::ostream& os, int128 x) 
     {
