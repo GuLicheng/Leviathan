@@ -651,14 +651,11 @@ static ArithTestCase arith_test_cases[] = {
 };
 }
 
-void EXPECT_EQ(u128 x, u128 y, auto message)
-{
-    INFO("" << message);
-    CHECK(x == y);
-}
 
-void EXPECT_EQ(u128 x, u128 y)
+void EXPECT_EQ(auto a, auto b)
 {
+    auto x = std::format("{}", a);
+    auto y = std::format("{}", b);
     CHECK(x == y);
 }
 
@@ -698,7 +695,7 @@ void Check(auto a, auto b)
     CHECK(aa == bb);
 }
 
-unsigned __int128 MakeBuiltin(size_t hi, size_t lo)
+unsigned __int128 MakeBuiltinUnsigned(size_t hi, size_t lo)
 {
     return static_cast<unsigned __int128>(hi) << 64 | static_cast<unsigned __int128>(lo);
 }
@@ -710,13 +707,13 @@ void RandomTestForDivAndMod()
     const auto hi1 = rd();
     const auto lo1 = rd();
 
-    const auto a1 = MakeBuiltin(hi1, lo1);
+    const auto a1 = MakeBuiltinUnsigned(hi1, lo1);
     const auto b1 = u128(hi1, lo1);
 
     const auto hi2 = rd();
     const auto lo2 = rd();
 
-    const auto a2 = MakeBuiltin(hi2, lo2);
+    const auto a2 = MakeBuiltinUnsigned(hi2, lo2);
     const auto b2 = u128(hi2, lo2);
 
     Check(a1, b1);
@@ -807,3 +804,124 @@ TEST_CASE("DivideAndMod")
     EXPECT_EQ(1, result_q);
     EXPECT_EQ(expected_r, result_r);
 }
+
+// As we all known, some complier provide builtin type __int128, we
+// can use it to help us test.
+namespace builtin_type_test
+{
+
+enum BinOp : int
+{
+    Add = 0,
+    Sub = 1,
+    Mul = 2,
+    Div = 3,
+    Mod = 4,    
+
+    Size,
+};
+
+std::pair<unsigned __int128, u128> RandUint128()
+{
+    static std::random_device rd;
+    const auto hi = rd(), lo = rd();
+
+    const auto a = MakeBuiltinUnsigned(hi, lo);
+    const auto b = u128(hi, lo);
+    
+    return { a, b };
+}
+
+void BinInvokeTest(auto fn, auto a1, auto a2, auto b1, auto b2)
+{
+    const auto a = fn(a1, a2);
+    const auto b = fn(b1, b2);
+    EXPECT_EQ(a, b);
+}
+
+void UnInvokeTest(auto fn, auto a1, auto b1)
+{
+    EXPECT_EQ(fn(a1), fn(b1));
+}
+
+void RandomOperationTest()
+{
+    auto [a1, b1] = RandUint128();
+    auto [a2, b2] = RandUint128();
+
+    constexpr auto Inverse = [](auto x) static 
+    {
+        return ~x;
+    };
+
+    constexpr auto Increment = [](auto x) static
+    {
+        ++x;
+        x++;
+        return x;
+    };  
+
+    constexpr auto Decrement = [](auto x) static
+    {
+        --x;
+        x--;
+        return x;
+    };  
+
+    // TODO
+    constexpr auto ShiftLeft = [](auto x, auto amount) static
+    {
+        return x << ((amount) % 128);
+    };
+
+    constexpr auto ShiftRight = [](auto x, auto amount) static
+    {
+        return x >> ((amount) % 128);
+    };
+
+    UnInvokeTest(std::negate<>(), a1, b1);
+    UnInvokeTest(std::bit_not<>(), a1, b1);
+    UnInvokeTest(Inverse, a1, b1);
+    UnInvokeTest(Increment, a1, b1);
+    UnInvokeTest(Decrement, a1, b1);
+
+    static std::random_device rd;
+    const auto amount = rd();
+    BinInvokeTest(ShiftLeft, a1, amount, b1, amount);
+    BinInvokeTest(ShiftRight, a1, amount, b1, amount);
+
+
+    BinInvokeTest(std::plus<>(), a1, a2, b1, b2);
+    BinInvokeTest(std::minus<>(), a1, a2, b1, b2);
+    BinInvokeTest(std::multiplies<>(), a1, a2, b1, b2);
+    BinInvokeTest(std::bit_and<>(), a1, a2, b1, b2);
+    BinInvokeTest(std::bit_or<>(), a1, a2, b1, b2);
+    BinInvokeTest(std::bit_xor<>(), a1, a2, b1, b2);
+
+    BinInvokeTest(std::equal_to<>(), a1, a2, b1, b2);
+    BinInvokeTest(std::not_equal_to<>(), a1, a2, b1, b2);
+    BinInvokeTest(std::less<>(), a1, a2, b1, b2);
+    BinInvokeTest(std::less_equal<>(), a1, a2, b1, b2);
+    BinInvokeTest(std::greater<>(), a1, a2, b1, b2);
+    BinInvokeTest(std::greater_equal<>(), a1, a2, b1, b2);
+
+    
+    if (a2 != 0)
+    {
+        BinInvokeTest(std::minus<>(), a1, a2, b1, b2);
+        BinInvokeTest(std::modulus<>(), a1, a2, b1, b2);
+    }
+}
+
+} // namespace builtin_test
+
+TEST_CASE("RandomTestWithBuiltinType")
+{
+    for (int i = 0; i < 10000; ++i)
+    {
+        builtin_type_test::RandomOperationTest();
+    }
+}
+
+
+

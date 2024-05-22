@@ -9,10 +9,13 @@ unsigned __int128 MakeBuiltin(size_t hi, size_t lo)
 
 using leviathan::uint128_t;
 
-void Check(auto a, auto b)
+void Check(auto a, auto b, auto c)
 {
     if (std::format("{}", a) != std::format("{}", b))
-        throw "Error";
+    {
+        std::cout << std::format("a={:b}\nb={:b}\nc={}\n", a, b, c);
+        exit(0);
+    }        
 }
 
 void Test128()
@@ -24,23 +27,21 @@ void Test128()
 
     const auto a1 = MakeBuiltin(hi1, lo1);
     const auto b1 = uint128_t(hi1, lo1);
+    const auto amount = 0;
 
-    const auto hi2 = rd();
-    const auto lo2 = rd();
+    std::cout << std::format(
+        "a1=   {:b}\nb1=   {:b}\na1>>0={:b}\nb1>>0={:b}\n",
+        a1,b1,a1<<amount,b1<<amount
+    );
 
-    const auto a2 = MakeBuiltin(hi2, lo2);
-    const auto b2 = uint128_t(hi2, lo2);
-
-    Check(a1, b1);
-    Check(a2, b2);
-    Check(a2 / a1, b2 / b1);
-    Check(a2 % a1, b2 % b1);
+    // Check(a1 >> amount, b1 >> amount, amount);
+    // Check(a1 << amount, b1 << amount, amount);
 }
 
 int main(int argc, char const *argv[])
 {
-    auto N = 10000;
-    for (int i = 0; i < N; ++i)
+    auto N = 1000;
+    for (int i = 0; i < 1; ++i)
     {
         Test128();
     }

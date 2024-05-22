@@ -240,36 +240,50 @@ public:
 
     constexpr uint128 operator<<(this uint128 lhs, uint64_t amount) 
     {
-        // We use uint64_t instead of int to make amount is non-negative.
-        // Guarantee "defined" behavior for shifts larger than 128.
-        if (amount >= 128)
-        {
-            return 0;
-        }
+        // We use uint64_t instead of int to make amount non-negative.
+        // The result is undefined if the right operand is negative, or 
+        // greater than or equal to the number of bits in the left expression's type.
+        assert(amount < 128 && "");
 
         const auto hi = lhs.upper();
         const auto lo = lhs.lower();
-
-        return amount >= 64 
-             ? uint128(lo << (amount - 64), 0)
-             : uint128((hi << amount) | (lo >> (64 - amount)), lo << amount);
+        
+        if (amount >= 64)
+        {
+            return uint128(lo << (amount - 64), 0);
+        }
+        else if (amount > 0)
+        {
+            return uint128((hi << amount) | (lo >> (64 - amount)), lo << amount);
+        }
+        else
+        {
+            return lhs;
+        }
     }
 
-    constexpr uint128 operator>>(this uint128 lhs, int amount) 
+    constexpr uint128 operator>>(this uint128 lhs, uint64_t amount) 
     {
-        // We use uint64_t instead of int to make amount is non-negative.
-        // Guarantee "defined" behavior for shifts larger than 128.
-        if (amount >= 128)
-        {
-            return 0;
-        }
+        // We use uint64_t instead of int to make amount non-negative.
+        // The result is undefined if the right operand is negative, or 
+        // greater than or equal to the number of bits in the left expression's type.
+        assert(amount < 128 && "");
 
         const auto hi = lhs.upper();
         const auto lo = lhs.lower();
 
-        return amount >= 64 
-             ? uint128(0, hi >> (amount - 64)) 
-             : uint128(hi >> amount, (lo >> amount) | (hi << (64 - amount)));
+        if (amount >= 64)
+        {
+            return uint128(0, hi >> (amount - 64));
+        }
+        else if (amount > 0)
+        {
+            return uint128(hi >> amount, (lo >> amount) | (hi << (64 - amount)));
+        }
+        else
+        {
+            return lhs;
+        }
     }
 
     // Comparision
@@ -563,8 +577,11 @@ public:
 
     constexpr int128 operator<<(this int128 lhs, uint64_t amount) 
     {
-        // We use uint64_t instead of int to make amount is non-negative.
-        // Guarantee "defined" behavior for shifts larger than 128.
+        // We use uint64_t instead of int to make amount non-negative.
+        // The result is undefined if the right operand is negative, or 
+        // greater than or equal to the number of bits in the left expression's type.
+        assert(amount < 128 && "");
+        
         // The shift operation in signed integer and unsigned are same.
         return static_cast<uint128<Endian>>(lhs) << amount;
     }
@@ -572,14 +589,10 @@ public:
     // The only difference between signed and unsigned is right shift operation.
     constexpr int128 operator>>(this int128 lhs, uint64_t amount) 
     {
-        // We use uint64_t instead of int to make amount is non-negative.
-        // Guarantee "defined" behavior for shifts larger than 128.
-        if (amount >= 128)
-        {
-            return signbit(lhs.upper()) 
-                  ? int128(-1)
-                  : int128(0);
-        }
+        // We use uint64_t instead of int to make amount non-negative.
+        // The result is undefined if the right operand is negative, or 
+        // greater than or equal to the number of bits in the left expression's type.
+        assert(amount < 128 && "");
 
         const auto result = static_cast<uint128<Endian>>(lhs) >> amount;
         // Right-shift on signed integral types is an arithmetic right shift, 
