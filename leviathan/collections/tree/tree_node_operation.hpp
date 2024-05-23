@@ -157,7 +157,8 @@ struct binary_node_operation
 
         y->parent(x->parent());
 
-        // x->parent will never be nullptr, since header->parent == root and root->parent == header
+        // x->parent will never be nullptr, since header->parent == root 
+        // and root->parent == header
         if (x == root)
         {
             root = y;
@@ -181,7 +182,7 @@ struct binary_node_operation
     *    /     =>    \
     *   y              x
     */
-       template <typename Node>
+    template <typename Node>
     void rotate_right(this Node& self, Node*& root)
     {
         auto x = std::addressof(self);
@@ -196,6 +197,8 @@ struct binary_node_operation
 
         y->parent(x->parent());
 
+        // x->parent will never be nullptr, since header->parent == root 
+        // and root->parent == header
         if (x == root)
         {
             root = y;

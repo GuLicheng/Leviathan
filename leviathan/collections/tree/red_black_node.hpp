@@ -143,7 +143,7 @@ struct _Rb_tree_node_base : binary_node_operation
                 __header._M_right = __x; // maintain rightmost pointing to max node
         }
         // Rebalance.
-        while (__x != __root && __x->_M_parent->_M_color  == _S_red)
+        while (__x != __root && __x->_M_parent->_M_color == _S_red)
         {
             _Rb_tree_node_base *const __xpp = __x->_M_parent->_M_parent;
 
