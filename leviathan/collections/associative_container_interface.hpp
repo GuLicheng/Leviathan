@@ -208,5 +208,8 @@ struct unique_associative_container_indexer_interface
     }
 };
 
+using unordered_associative_container_insertion_interface 
+    = associative_container_insertion_interface;
+
 } // namespace leviathan::collections
 

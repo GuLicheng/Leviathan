@@ -5,17 +5,13 @@
 namespace leviathan::collections
 {
     
-template <typename T, bool Cache>
-struct storage_impl
+template <typename Slot, bool CacheHashCode>
+struct hash_cell;
+
+template <typename Slot>
+struct hash_cell<Slot, false>
 {
-    T m_value;
-
-    storage_impl(const storage_impl&) = delete;
-
-    storage_impl(storage_impl&&) = delete;
-
-    template <typename... Args>
-    storage_impl(Args&&... args) : m_value((Args&&)args...) { }
+    Slot m_value;
 
     constexpr auto& value()  
     { return m_value; }
@@ -30,14 +26,14 @@ struct storage_impl
     { return std::addressof(m_value); }
 };
 
-template <typename T>
-struct storage_impl<T, true> : storage_impl<T, false>
+template <typename Slot>
+struct hash_cell<Slot, true> : hash_cell<Slot, false>
 {
     std::size_t m_hash_code;
 
     template <typename... Args>
-    constexpr storage_impl(std::size_t hash_code, Args&&... args)
-        : storage_impl<T, false>((Args&&) args...), m_hash_code{ hash_code } { }
+    constexpr hash_cell(std::size_t hash_code, Args&&... args)
+        : hash_cell<Slot, false>((Args&&) args...), m_hash_code{ hash_code } { }
 };
 
 namespace detail

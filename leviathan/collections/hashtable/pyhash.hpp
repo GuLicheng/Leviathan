@@ -1,36 +1,37 @@
 /**
- * We implement a hashtable align with Python. There are some difference between Python.
+ * We implement a hashtable align with Python. There are some differences between Python.
  * 1. This hashtable is C++ style and the key and value will never split.
  * 2. Python dict use two array to save elements. One for indices(arr1) and another for elements(arr2). 
  * When removing an element, set value of arr1 to -2 and arr2 to nullptr(each element in Python is a PyObject*) is OK. 
  * But the element type in C++ does not require for pointer type. In such way, the iterator is not as efficient as Python.
 */
+#pragma once
 
+#include "hash_slot.hpp"
 #include "../common.hpp"
-
-#include <bit>
+#include "../associative_container_interface.hpp"
 
 namespace leviathan::collections
 {
-
-template <typename TypePack, 
-    typename HashFunction, 
-    typename KeyEqual, 
-    typename Allocator, 
+    
+template <typename KeyValue, 
+    typename Hasher, 
+    typename KeyEqual,
+    typename Allocator,
     typename HashGenerator,
-    typename KeyOfValue,
-    bool IsUniqueKey>
-class hash_table 
+    bool Unique>
+class py_hashtable : public reversible_container_interface,
+                     public unordered_associative_container_insertion_interface
 {
-    static_assert(IsUniqueKey, "Only support unique-key now.");
+    static_assert(Unique, "Only support unique-key now.");
 
 public:
 
     using hasher = HashFunction;
     using key_equal = KeyEqual;
     using allocator_type = Allocator;
-    using key_type = typename KeyOfValue::template key_type<TypePack>;
-    using value_type = typename KeyOfValue::template value_type<TypePack>;
+    using key_type = typename KeyValue::key_type;
+    using value_type = typename KeyValue::value_type;
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
     using reference = value_type&;
@@ -40,22 +41,21 @@ public:
 
 protected:
 
-    static constexpr bool IsTransparent = detail::is_transparent<hasher> && detail::is_transparent<key_equal>;
+    static constexpr bool IsTransparent = detail::transparent<hasher, key_equal>;
     
     template <typename U>
     using key_arg_t = detail::key_arg<IsTransparent, U, key_type>;
 
-    static constexpr bool CacheHashCode = true;
+    static constexpr bool CacheHashCode = detail::cache_hash_code<value_type>::value;
+
     using index_type = std::size_t;
-    using slot_type = detail::storage_impl<value_type, CacheHashCode>;
+    using slot_type = hash_cell<value_type, CacheHashCode>;
     using hash_generator_type = HashGenerator;
 
     using slot_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<slot_type>;
     using slot_alloc_traits = std::allocator_traits<slot_allocator>;
-
     using indices_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<index_type>;
     using indices_alloc_traits = std::allocator_traits<indices_allocator>;
-
     using alloc_traits = std::allocator_traits<allocator_type>;
 
     static constexpr index_type SlotUnused = static_cast<index_type>(-1);
@@ -80,41 +80,31 @@ protected:
                 && typename slot_alloc_traits::is_always_equal()
                 && typename indices_alloc_traits::is_always_equal();
 
-    template <bool Const>
-    struct hash_iterator 
+    struct hash_iterator : bidirectional_iterator_interface
     {
-        using link_type = std::conditional_t<Const, const hash_table*, hash_table*>;
-
+        using link_type = py_hashtable*;
         using iterator_category = std::bidirectional_iterator_tag;
-        using value_type = std::conditional_t<Const, const value_type, value_type>;
-        using reference = value_type&;
+        using value_type = value_type;
+        using reference = std::conditional_t<std::is_same_v<key_type, value_type>, const value_type&, value_type&>;
         using difference_type = std::ptrdiff_t;
 
-
-        link_type m_c;
-        std::size_t m_idx;
-
+        link_type m_link;
+        size_type m_idx;
+    
         constexpr hash_iterator() = default;
 
         constexpr hash_iterator(const hash_iterator&) = default;
 
-        constexpr hash_iterator(link_type c, std::size_t idx)  
-            : m_c{ c }, m_idx{ idx } { }
+        constexpr hash_iterator(link_type link, std::size_t idx)  
+            : m_link(link), m_idx(idx) { }
 
-        constexpr hash_iterator(const hash_iterator<!Const>& rhs) requires (Const)
-            : m_c{ rhs.m_c }, m_idx{ rhs.m_idx } { }
+        constexpr bool operator==(const hash_iterator&) const = default;        
 
-
-        constexpr bool operator==(const hash_iterator&) const = default;
-
-        constexpr reference operator*() const 
+        constexpr reference operator*() const
         {
-            auto pos = m_c->m_indices[m_idx];
-            return m_c->m_slots[pos].value();
+            auto pos = m_link->m_indices[m_idx];
+            return m_link->m_slots[pos].value();
         }
-
-        constexpr auto operator->() const 
-        { return std::addressof(**this); }
 
         constexpr hash_iterator& operator++()
         {
@@ -123,12 +113,7 @@ protected:
             return *this;
         }
 
-        constexpr hash_iterator operator++(int) 
-        {
-            auto old = *this;
-            ++*this;
-            return old;
-        }
+        using bidirectional_iterator_interface::operator++;
 
         constexpr hash_iterator& operator--()
         {
@@ -137,20 +122,13 @@ protected:
             return *this;   
         }
 
-        constexpr hash_iterator operator--(int) 
-        {
-            auto old = *this;
-            --*this;
-            return old;
-        }
-
+        using bidirectional_iterator_interface::operator--;
     };
 
 public:
 
-    using iterator = hash_iterator<false>;
-    using const_iterator = hash_iterator<true>;
-    // using const_iterator = std::const_iterator<iterator>; 
+    using iterator = hash_iterator;
+    using const_iterator = std::const_iterator<iterator>;
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -164,11 +142,11 @@ protected:
         if constexpr (CacheHashCode)
         {
             return hash_code == m_slots[pos].m_hash_code 
-                && m_ke(x, KeyOfValue()(m_slots[pos].value()));
+                && m_hk(x, KeyValue()(m_slots[pos].value()));
         }
         else
         {
-            return m_ke(x, KeyOfValue()(m_slots[pos].value()));
+            return m_hk(x, KeyValue()(m_slots[pos].value()));
         }
     }
 
@@ -208,7 +186,7 @@ protected:
             // If the slot is deleted, we just skip it. 
             // If the slot is active, we try to compare it with element
 
-            if (state != SlotDeleted && check_equal(hash_code, m_indices[offset], KeyOfValue()(u)))
+            if (state != SlotDeleted && check_equal(hash_code, m_indices[offset], KeyValue()(u)))
             {
                 // The element is exist.
                 return { offset, true };
@@ -260,7 +238,7 @@ protected:
     std::pair<std::size_t, bool> insert_impl(U&& x)
     {
         rehash_and_growth_if_necessary();
-        const auto hash = m_hash(KeyOfValue()(x));
+        const auto hash = m_hk(KeyValue()(x));
         return insert_with_hash_code((U&&) x, hash);
     }
 
@@ -305,7 +283,7 @@ protected:
 
         struct exception_helper
         {
-            hash_table* t;
+            py_hashtable* t;
 
             index_type* indices;      
             slot_type* slots;         
@@ -360,7 +338,7 @@ protected:
                 }
                 else
                 {
-                    hash_code = m_hash(KeyOfValue()(old_slots[pos].value()));
+                    hash_code = m_hk(KeyValue()(old_slots[pos].value()));
                 }
 
                 rehash_insert_with_hash_code(std::move_if_noexcept(old_slots[pos].value()), hash_code);
@@ -384,7 +362,7 @@ protected:
     std::size_t find_slot_by_key(const K& x) const 
     {
         
-        auto hash_code = m_hash(x);
+        auto hash_code = m_hk(x);
 
         auto offset = find_slot_by_key_aux(x, hash_code);
         
@@ -450,128 +428,28 @@ protected:
         std::unreachable();
     }
 
+
 public:
 
-    hash_table() =  default;
+    py_hashtable() 
+        : py_hashtable(Hasher(), KeyEqual(), Allocator()) { }
 
-    hash_table(const hasher& hash, const key_equal& ke, const allocator_type& alloc)
-        : m_hash(hash), m_ke(ke), m_alloc(alloc)
+    py_hashtable(const hasher& hash, const key_equal& ke, const allocator_type& alloc)
+        : m_hk(hash, ke), m_alloc(alloc) { }
+
+    py_hashtable(const allocator_type& alloc) : py_hashtable(Hasher(), KeyEqual(), alloc) { }
+
+    ~py_hashtable()
     {
+        clear();
     }
 
-    hash_table(const allocator_type& alloc) : hash_table(hasher(), key_equal(), alloc) { }
-
-    hash_table(const hash_table& rhs, const allocator_type& alloc) 
-        : hash_table(rhs.m_hash, rhs.m_ke, alloc)
-    {
-        assign_from(rhs.cbegin(), rhs.cend());
-    }
-
-    hash_table(hash_table&& rhs, const allocator_type& alloc) 
-        : m_hash(std::move(rhs.m_hash)), m_ke(std::move(rhs.m_ke)), m_alloc(alloc)
-    {
-        if (m_alloc == rhs.m_alloc)
-        {
-            move_impl_and_reset_other(rhs);
-        }
-        else
-        {
-            assign_from(std::make_move_iterator(rhs.begin()), std::make_move_iterator(rhs.end()));
-            rhs.clear();
-        }
-    }
-
-    template <typename I, typename S>
-    void assign_from(I first, S last)
-    {
-        assert(!m_slots && !m_indices && m_size == 0 && "Table should be empty.");
-        for (auto iter = first; iter != last; ++iter)
-            insert(*iter);
-    }
-
-    void move_impl_and_reset_other(hash_table& rhs)
-    {
-        m_indices = std::exchange(rhs.m_indices, nullptr);
-        m_slots = std::exchange(rhs.m_slots, nullptr);
-        m_size = std::exchange(rhs.m_size, 0);
-        m_capacity = std::exchange(rhs.m_capacity, 0);
-        m_used = std::exchange(rhs.m_used, 0);
-    }
-
-    hash_table(const hash_table& rhs)
-        : hash_table(rhs, std::allocator_traits<allocator_type>::select_on_container_copy_construction(rhs.m_alloc))
-    { }
-
-    hash_table(hash_table&& rhs) noexcept(IsNothrowMoveConstruct)
-        : m_hash(std::move(rhs.m_hash)), m_ke(std::move(rhs.m_ke)), m_alloc(std::move(rhs.m_alloc))
-    {
-        move_impl_and_reset_other(rhs);
-    }
-
-    hash_table& operator=(const hash_table& rhs) 
-    {
-        if (std::addressof(rhs) != this)
-        {
-            clear();
-            // copy member
-            m_ke = rhs.m_ke;
-            m_hash = rhs.m_hash;
-            if constexpr (typename alloc_traits::propagate_on_container_copy_assignment())
-            {
-                m_alloc = rhs.m_alloc;
-            }
-            try
-            {
-                assign_from(rhs.begin(), rhs.end());
-            }
-            catch (...)
-            {
-                clear();
-                throw;
-            }
-        }
-        return *this;
-    }
-
-    hash_table& operator=(hash_table&& rhs) noexcept(IsNothrowMoveAssign)
-    {
-        if (this != std::addressof(rhs))
-        {
-            clear();
-            m_hash = std::move(rhs.m_hash);
-            m_ke = std::move(rhs.m_ke);
-
-            if constexpr (typename alloc_traits::propagate_on_container_move_assignment())
-            {
-                m_alloc = std::move(rhs.m_alloc);
-                move_impl_and_reset_other(rhs);
-            }
-            else
-            {
-                if (m_alloc == rhs.m_alloc)
-                {
-                    move_impl_and_reset_other(rhs);
-                }
-                else
-                {
-                    assign_from(std::make_move_iterator(rhs.begin()), std::make_move_iterator(rhs.end()));
-                    rhs.clear();
-                }
-            }
-        }
-        return *this;
-    }
-
-    ~hash_table()
-    { clear(); }
-
-    void swap(hash_table& rhs) 
+    void swap(py_hashtable& rhs) noexcept(IsNothrowSwap)
     {
         using std::swap;
         swap(m_capacity, rhs.m_capacity);
-        swap(m_hash, rhs.m_hash);
+        swap(m_hk, rhs.m_hk);
         swap(m_indices, rhs.m_indices);
-        swap(m_ke, rhs.m_ke);
         swap(m_size, rhs.m_size);
         swap(m_slots, rhs.m_slots);
         swap(m_used, rhs.m_used);
@@ -581,41 +459,56 @@ public:
         }
     }
 
-    std::size_t size() const 
-    { return m_size; }
+    friend void swap(py_hashtable& lhs, py_hashtable& rhs)
+        noexcept(noexcept(lhs.swap(rhs)))
+    {
+        lhs.swap(rhs);
+    }
 
-    bool empty() const 
-    { return size() == 0; }
+    std::size_t size() const
+    {
+        return m_size;
+    }
 
-    std::size_t capacity() const 
-    { return m_capacity; }
+    bool empty() const
+    {
+        return size() == 0;
+    }
 
-    hasher hash_function() const 
-    { return m_hash; }
+    std::size_t capacity() const
+    {
+        return m_capacity;
+    }
 
-    key_equal key_eq() const 
-    { return m_ke; }
+    hasher hash_function() const
+    {
+        return static_cast<hasher>(m_hk);
+    }
 
-    allocator_type get_allocator() const 
-    { return m_alloc; }
+    key_equal key_eq() const
+    {
+        return static_cast<key_equal>(m_hk);
+    }
 
-    const index_type* indices() const
-    { return m_indices; }
+    allocator_type get_allocator() const
+    {
+        return m_alloc;
+    }
 
-    const slot_type* slots() const
-    { return m_slots; }
+    const index_type *indices() const
+    {
+        return m_indices;
+    }
 
-    // float load_factor() const 
-    // { return empty() ? 0.0 : (float)m_size / m_capacity; }
+    const slot_type *slots() const
+    {
+        return m_slots;
+    }
 
-    // float max_load_factor() const 
-    // { return (float)HashPolicy::factor; }
-
-    // void max_load_factor(float) 
-    // { /* Does nothing. */ }
-
-    size_t max_size() const 
-    { return static_cast<std::size_t>(-1) - 2; }
+    size_t max_size() const
+    {
+        return static_cast<std::size_t>(-1) - 2;
+    }
 
     iterator begin()
     {
@@ -625,49 +518,19 @@ public:
     }
 
     iterator end()
-    { return { this, m_capacity }; }
+    {
+        return {this, m_capacity};
+    }
 
     const_iterator begin() const
-    { return const_cast<hash_table&>(*this).begin(); }
+    {
+        return const_cast<py_hashtable &>(*this).begin();
+    }
 
     const_iterator end() const
-    { return const_cast<hash_table&>(*this).end(); }
-
-    const_iterator cbegin() const 
-    { return begin(); }
-
-    const_iterator cend() const 
-    { return end(); }
-
-    reverse_iterator rbegin()
-    { return std::make_reverse_iterator(end()); }
-    
-    reverse_iterator rend()
-    { return std::make_reverse_iterator(begin()); }
-    
-    const_reverse_iterator rbegin() const
-    { return std::make_reverse_iterator(end()); }
-
-    const_reverse_iterator rend() const
-    { return std::make_reverse_iterator(begin()); }
-
-    const_reverse_iterator rcbegin() const
-    { return std::make_reverse_iterator(end()); }
-
-    const_reverse_iterator rcend() const
-    { return std::make_reverse_iterator(begin()); }
-
-    std::pair<iterator, bool> insert(const value_type& x)
-    { return emplace(x); }
-
-    std::pair<iterator, bool> insert(value_type&& x)
-    { return emplace(std::move(x)); }
-
-    iterator insert(const_iterator, const value_type& x) 
-    { return insert(x).first; }
-
-    iterator insert(const_iterator, value_type&& x) 
-    { return insert(std::move(x)).first; }
+    {
+        return const_cast<py_hashtable &>(*this).end();
+    }
 
     template <typename... Args>
     std::pair<iterator, bool> emplace(Args&&... args)
@@ -704,31 +567,45 @@ public:
     }
 
     template <typename... Args>
-    iterator emplace_hint(const_iterator, Args&&... args)
-    { return emplace((Args&&) args...).first; }
+    iterator emplace_hint(const_iterator, Args &&...args)
+    {
+        return emplace((Args &&)args...).first;
+    }
 
     template <typename K = key_type>
-    bool contains(const key_arg_t<K>& x) const
-    { return find(x) != end(); }
+    bool contains(const key_arg_t<K> &x) const
+    {
+        return find(x) != end();
+    }
 
     template <typename K = key_type>
-    iterator find(const key_arg_t<K>& x) 
-    { return { this, find_slot_by_key(x) }; }
+    iterator find(const key_arg_t<K> &x)
+    {
+        return {this, find_slot_by_key(x)};
+    }
 
     template <typename K = key_type>
-    const_iterator find(const key_arg_t<K>& x) const
-    { return const_cast<hash_table&>(*this).find(x); }
+    const_iterator find(const key_arg_t<K> &x) const
+    {
+        return const_cast<py_hashtable &>(*this).find(x);
+    }
 
     iterator erase(iterator pos)
-    { return remove_by_iterator(pos); }
+    {
+        return remove_by_iterator(pos);
+    }
 
     iterator erase(const_iterator pos)
-    { return remove_by_iterator(pos); }
+    {
+        return remove_by_iterator(pos);
+    }
 
     // iterator erase( const_iterator first, const_iterator last );
 
-    size_type erase(const key_type& x)
-    { return remove_by_key(x); }
+    size_type erase(const key_type &x)
+    {
+        return remove_by_key(x);
+    }
 
     template <typename K>
         requires (IsTransparent && 
@@ -748,7 +625,9 @@ public:
         // Destroy elements
         slot_allocator alloc { m_alloc };
         for (std::size_t i = 0; i < m_used; ++i)
+        {
             slot_alloc_traits::destroy(alloc, m_slots + i);
+        }
 
         // Free memory
         detail::deallocate(m_alloc, m_indices, m_capacity);
@@ -762,177 +641,19 @@ public:
         m_used = 0;
     }
 
-protected:
+private:
 
-    [[no_unique_address]] hasher m_hash;
-    [[no_unique_address]] key_equal m_ke;
     [[no_unique_address]] allocator_type m_alloc;
+    [[no_unique_address]] hash_key_equal<Hasher, KeyEqual> m_hk;
 
     index_type* m_indices = nullptr;      // store indices or state
     slot_type* m_slots = nullptr;         // store entries
     std::size_t m_size = 0;               // number of elements
     std::size_t m_capacity = 0;           // table capacity
     std::size_t m_used = 0;               // used slots, always point the end of m_slots
+
 };
 
-template <typename T, typename HashFunction = std::hash<T>, 
-    typename KeyEqual = std::equal_to<T>, typename Allocator = std::allocator<T>>
-using hash_set = hash_table<
-    std::tuple<T>, 
-    HashFunction, 
-    KeyEqual, 
-    Allocator, 
-    detail::py_hash_generator<>, 
-    identity, 
-    true
->;
 
-template <typename K, typename V, 
-    typename HashFunction = std::hash<K>, 
-    typename KeyEqual = std::equal_to<K>, 
-    typename Allocator = std::allocator<std::pair<const K, V>>>
-class hash_map : public hash_table<
-    std::tuple<K, V>,
-    HashFunction,
-    KeyEqual,
-    Allocator,
-    detail::py_hash_generator<>,
-    select1st,
-    true>
-{
-
-    using base_hash_type = hash_table<
-        std::tuple<K, V>,
-        HashFunction,
-        KeyEqual,
-        Allocator,
-        detail::py_hash_generator<>,
-        select1st,
-        true>;
-
-    using base_hash_type::CacheHashCode;
-    using base_hash_type::IsTransparent;
-    using base_hash_type::SlotUnused;
-    using base_hash_type::key_arg_t;
-
-public:
-
-    using mapped_type = V;
-    using typename base_hash_type::key_type;
-    using typename base_hash_type::value_type;
-    using typename base_hash_type::iterator;
-    using typename base_hash_type::const_iterator;
-    using typename base_hash_type::index_type;
-    using typename base_hash_type::slot_allocator;
-    using typename base_hash_type::slot_alloc_traits;
-
-
-    V& operator[](const K& key)
-    { return try_emplace(key).first->second; }
-
-    V& operator[](K&& key)
-    { return try_emplace(std::move(key)).first->second; }
-
-    template <typename... Args>
-    std::pair<iterator, bool> try_emplace(const K& k, Args&&... args)
-    { return try_emplace_impl(k, (Args&&) args...); }
-
-    template <typename... Args>
-    std::pair<iterator, bool> try_emplace(K&& k, Args&&... args)
-    { return try_emplace_impl(std::move(k), (Args&&) args...); }
-
-    template <typename... Args>
-    std::pair<iterator, bool> try_emplace(const_iterator, const K& k, Args&&... args)
-    { return try_emplace_impl(k, (Args&&) args...); }
-
-    template <typename... Args>
-    std::pair<iterator, bool> try_emplace(const_iterator, K&& k, Args&&... args)
-    { return try_emplace_impl(std::move(k), (Args&&) args...); }
-
-    template <typename M>
-    std::pair<iterator, bool> insert_or_assign(const key_type& k, M&& obj)
-    { return insert_or_assign_impl(k, (M&&)obj); }
-
-    template <typename M>
-    std::pair<iterator, bool> insert_or_assign(key_type&& k, M&& obj)
-    { return insert_or_assign_impl(std::move(k), (M&&)obj); }
-
-private:
-
-    template <typename KK, typename M>
-    std::pair<iterator, bool> insert_or_assign_impl(KK&& k, M&& obj)
-    {
-        this->rehash_and_growth_if_necessary();
-
-        auto hash_code = this->m_hash(k);
-        auto offset = this->find_slot_by_key_aux(k, hash_code);
-
-        auto& state = this->m_indices[offset];
-        if (state == SlotUnused)
-        {
-            slot_allocator alloc { this->m_alloc };
-            if constexpr (CacheHashCode)
-            {
-                slot_alloc_traits::construct(alloc, this->m_slots + this->m_used, hash_code, (KK&) k, (M&&) obj); 
-            }
-            else
-            {
-                slot_alloc_traits::construct(alloc, this->m_slots + this->m_used, (KK&) k, (M&&) obj); 
-            }
-            state = this->m_used;
-            this->m_used++;
-            this->m_size++;
-            return { iterator(this, state), true };
-        }
-        else
-        {
-            this->m_slots[state].value().second = (M&&)obj;
-            return { iterator(this, state), false };
-        }
-    }
-
-    template <typename KK, typename... Args>
-    std::pair<iterator, bool> try_emplace_impl(KK&& k, Args&&... args)
-    {
-        this->rehash_and_growth_if_necessary();
-
-        auto hash_code = this->m_hash(k);
-        auto offset = this->find_slot_by_key_aux(k, hash_code);
-
-        auto& state = this->m_indices[offset];
-        if (state == SlotUnused)
-        {
-            slot_allocator alloc { this->m_alloc };
-            if constexpr (CacheHashCode)
-            {
-                slot_alloc_traits::construct(
-                    alloc, 
-                    this->m_slots + this->m_used, 
-                    hash_code, 
-                    std::piecewise_construct, 
-                    std::forward_as_tuple((KK&) k),
-                    std::forward_as_tuple((Args&&) args...)); 
-            }
-            else
-            {
-                slot_alloc_traits::construct(
-                    alloc, 
-                    this->m_slots + this->m_used, 
-                    std::piecewise_construct, 
-                    std::forward_as_tuple((KK&) k),
-                    std::forward_as_tuple((Args&&) args...)); 
-            }
-            state = this->m_used;
-            this->m_used++;
-            this->m_size++;
-            return { iterator(this, state), true };
-        }
-        else
-        {
-            return { iterator(this, state), false };
-        }
-    }
-};
-
-}
+} // namespace leviathan::collections::hashtable
 
