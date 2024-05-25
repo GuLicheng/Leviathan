@@ -3,10 +3,12 @@
 
 #include "tree_node_operation.hpp"
 
+#include <random>
+
 namespace leviathan::collections
 {
 
-template <typename RandomGenerator>
+template <typename RandomGenerator = std::random_device>
 struct treap_node : basic_tree_node_operation, binary_node_operation
 {
     // All node share one random generator

@@ -258,7 +258,6 @@ public:
             clear();
             throw;  
         }
-        
     }
 
     tree(const tree& rhs) 
@@ -284,8 +283,8 @@ public:
         if (rhs.m_alloc == alloc)
         {
             m_header = rhs.header();
-            rhs.make_header_sentinel();
             m_size = std::exchange(rhs.m_size, 0);
+            rhs.make_header_sentinel();
         }
         else
         {

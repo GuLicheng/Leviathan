@@ -2,6 +2,10 @@ enable_testing()
 
 set(COLLECTIONS_DIRECTORY collections)
 
+add_executable(pyhash_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/hashtable/pyhash_test.cpp)
+target_link_libraries(pyhash_test PRIVATE Catch2::Catch2WithMain)
+add_test(NAME pyhash_test COMMAND pyhash_test)
+
 add_executable(skiplist_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/list/skiplist_test.cpp)
 target_link_libraries(skiplist_test PRIVATE Catch2::Catch2WithMain)
 add_test(NAME skiplist_test COMMAND skiplist_test)

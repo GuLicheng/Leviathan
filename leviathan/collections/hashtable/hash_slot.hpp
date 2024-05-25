@@ -19,10 +19,10 @@ struct hash_cell<Slot, false>
     constexpr auto& value() const 
     { return m_value; }
 
-    constexpr T* value_ptr() 
+    constexpr Slot* value_ptr() 
     { return std::addressof(m_value); }
 
-    constexpr const T* value_ptr() const
+    constexpr const Slot* value_ptr() const
     { return std::addressof(m_value); }
 };
 

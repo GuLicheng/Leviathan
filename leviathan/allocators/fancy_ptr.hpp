@@ -196,7 +196,8 @@ public:
 };
 
 template<typename T>
-class trivial_allocator {
+class trivial_allocator 
+{
 public:
     using pointer = fancy_ptr<T>;
     using value_type = T;
@@ -204,9 +205,9 @@ public:
     trivial_allocator() = default;
 
     template<typename Other>
-    trivial_allocator(const trivial_allocator<Other> &) {}
+    trivial_allocator(const trivial_allocator<Other>&) {}
 
-    trivial_allocator(const trivial_allocator &alloc) = default;
+    trivial_allocator(const trivial_allocator&) = default;
 
     pointer allocate(size_t n) {
         std::allocator<T> alloc;
@@ -216,12 +217,12 @@ public:
         std::allocator<T> alloc;
         // std::to_address(ptr) instead of ptr.operator-> in C++20
         // std::allocator_traits<std::allocator<T>>::deallocate(alloc, ptr.operator->(), n*sizeof(T));
-        std::allocator_traits<std::allocator<T>>::deallocate(alloc, std::to_address(ptr), n*sizeof(T));
+        std::allocator_traits<std::allocator<T>>::deallocate(alloc, std::to_address(ptr), n * sizeof(T));
     }
 
     bool operator==(const trivial_allocator &) const { return true; }
 
-    bool operator!=(const trivial_allocator &) const { return false; }
+    // bool operator!=(const trivial_allocator &) const { return false; }
 };
 
 }

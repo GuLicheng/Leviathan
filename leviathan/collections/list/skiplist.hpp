@@ -36,7 +36,8 @@ class skiplist : public associative_container_insertion_interface,
     using node_allocator = std::allocator_traits<Allocator>::template rebind_alloc<char>;
     using node_alloc_traits = std::allocator_traits<node_allocator>;
 
-    static int get_level()
+    [[deprecated("use get_level instead")]]	
+    static int get_level1()
     {
         // return get_level_debug(); // debug
         static std::random_device rd;
@@ -46,7 +47,7 @@ class skiplist : public associative_container_insertion_interface,
         return std::min(MaxLevel, level);
     }
 
-    static int get_level1()
+    static int get_level()
     {
         static RandomNumberGenerator rd;
         constexpr typename RandomNumberGenerator::result_type p = std::lerp(

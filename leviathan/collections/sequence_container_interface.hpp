@@ -129,10 +129,7 @@ struct sequence_container_insertion_interface
     {
         return self.emplace(pos, std::move(x));
     }
-
-
-    
-}
+};
 
 // --------------------------------- Iterator operations ---------------------------------
 // Generate i++ by ++i.

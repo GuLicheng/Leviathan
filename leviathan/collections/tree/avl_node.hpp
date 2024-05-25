@@ -14,7 +14,7 @@ struct avl_node : basic_tree_node_operation, binary_node_operation
     // Nodes
     avl_node* m_link[3];
 
-    // Height of current node, -1 for header, 1 for leaf and 0 for nullptr
+    // Height(balance factor) of current node, -1 for header, 1 for leaf and 0 for nullptr
     int m_height;
 
     std::string to_string() const   

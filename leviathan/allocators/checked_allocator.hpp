@@ -64,7 +64,6 @@ struct alloc_state
 template <typename T, alloc_spec Spec>
 struct checked_allocator
 {
-
     using value_type = T;
     using size_type = size_t;
     using difference_type = ptrdiff_t;

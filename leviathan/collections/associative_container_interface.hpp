@@ -208,8 +208,91 @@ struct unique_associative_container_indexer_interface
     }
 };
 
-using unordered_associative_container_insertion_interface 
-    = associative_container_insertion_interface;
+struct unordered_associative_container_insertion_interface 
+{
+    // (1)
+    // We disable this overload directly since the overload(9) 
+    // is equivalent to this.
+    template <typename Self, typename C = std::remove_cvref_t<Self>>
+        requires (!detail::transparent<typename C::hasher, typename C::key_equal>)
+    auto insert(this Self& self, const typename C::value_type& x)
+    {
+        return self.emplace(x);
+    }
+
+    // (2)
+    // We disable this overload directly since the overload(9) 
+    // is equivalent to this.
+    template <typename Self, typename C = std::remove_cvref_t<Self>>
+        requires (!detail::transparent<typename C::hasher, typename C::key_equal>)
+    auto insert(this Self& self, typename C::value_type&& x)
+    {
+        return self.emplace(std::move(x));
+    }
+
+    // (3)
+    template <typename Self, typename C = std::remove_cvref_t<Self>>
+    auto insert(this Self& self, typename C::const_iterator pos, const typename C::value_type& x)
+    {
+        return self.emplace_hint(pos, std::move(x));
+    }
+
+    // (4)
+    template <typename Self, typename C = std::remove_cvref_t<Self>>
+    auto insert(this Self& self, typename C::const_iterator pos, typename C::value_type&& x)
+    {
+        return self.emplace_hint(pos, std::move(x));
+    }
+
+    // (5)
+    template <typename Self, std::input_iterator I, typename C = std::remove_cvref_t<Self>>
+    auto insert(this Self& self, I first, I last)
+    {
+        for (; first != last; ++first)
+        {
+            self.emplace(*first);
+        } 
+    }
+
+    // (6)
+    template <typename Self, typename C = std::remove_cvref_t<Self>>
+    auto insert(this Self& self, std::initializer_list<typename C::value_type> ilist)
+    {
+        self.insert(ilist.begin(), ilist.end());
+    }
+
+    // (7)
+    // template <typename Self, typename C = std::remove_cvref_t<Self>>
+    // auto insert(this Self& self, typename C::node_type&& nh);
+
+    // (8)
+    // template <typename Self, typename C = std::remove_cvref_t<Self>>
+    // auto insert(this Self& self, typename C::const_iterator pos, typename C::node_type&& nh);
+
+    // (9)
+    template <typename Self, typename K, typename C = std::remove_cvref_t<Self>>
+        requires (detail::transparent<typename C::hasher, typename C::key_equal>)
+    auto insert(this Self& self, K&& k)
+    {
+        // std::cout << "MyTreeShouldCallThisFunction\n";
+        return self.emplace((K&&) k);
+    }
+
+    // (10)
+    template <typename Self, typename K, typename C = std::remove_cvref_t<Self>>
+        requires (detail::transparent<typename C::hasher, typename C::key_equal>)
+    auto insert(this Self& self, typename C::const_iterator pos, K&& k)
+    {
+        return self.emplace_hint(pos, (K&&) k);
+    }
+
+    template <typename Self, typename R, typename C = std::remove_cvref_t<Self>>
+        requires container_compatible_range<R, typename C::value_type>
+    void insert_range(this Self&& self, R&& rg)
+    {
+        self.insert(std::ranges::begin(rg), std::ranges::end(rg));
+    }
+};
 
 } // namespace leviathan::collections
 

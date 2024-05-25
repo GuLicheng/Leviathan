@@ -18,8 +18,8 @@ template <typename KeyValue,
     typename Hasher, 
     typename KeyEqual,
     typename Allocator,
-    typename HashGenerator,
-    bool Unique>
+    typename HashGenerator = detail::py_hash_generator<>,
+    bool Unique = true>
 class py_hashtable : public reversible_container_interface,
                      public unordered_associative_container_insertion_interface
 {
@@ -27,7 +27,7 @@ class py_hashtable : public reversible_container_interface,
 
 public:
 
-    using hasher = HashFunction;
+    using hasher = Hasher;
     using key_equal = KeyEqual;
     using allocator_type = Allocator;
     using key_type = typename KeyValue::key_type;
@@ -109,7 +109,7 @@ protected:
         constexpr hash_iterator& operator++()
         {
             m_idx++;
-            for (; m_idx < m_c->m_capacity && m_c->m_indices[m_idx] >= SlotDeleted; m_idx++);
+            for (; m_idx < m_link->m_capacity && m_link->m_indices[m_idx] >= SlotDeleted; m_idx++);
             return *this;
         }
 
@@ -118,7 +118,7 @@ protected:
         constexpr hash_iterator& operator--()
         {
             m_idx--;
-            for (; m_idx != static_cast<std::size_t>(-1) && m_c->m_indices[m_idx] >= SlotDeleted; m_idx--);
+            for (; m_idx != static_cast<std::size_t>(-1) && m_link->m_indices[m_idx] >= SlotDeleted; m_idx--);
             return *this;   
         }
 
@@ -439,6 +439,17 @@ public:
 
     py_hashtable(const allocator_type& alloc) : py_hashtable(Hasher(), KeyEqual(), alloc) { }
 
+    py_hashtable(const py_hashtable& rhs) 
+        : py_hashtable(rhs, alloc_traits::select_on_container_copy_construction(rhs.m_alloc)) 
+    { } 
+
+    // TODO
+    py_hashtable(const py_hashtable& rhs, const allocator_type& alloc);
+    py_hashtable(py_hashtable&& rhs);
+    py_hashtable(py_hashtable&& rhs, const allocator_type& alloc);
+    py_hashtable& operator=(const py_hashtable&);
+    py_hashtable& operator=(py_hashtable&&);
+
     ~py_hashtable()
     {
         clear();
@@ -596,6 +607,7 @@ public:
     }
 
     iterator erase(const_iterator pos)
+        requires (!std::same_as<iterator, const_iterator>)
     {
         return remove_by_iterator(pos);
     }
@@ -643,8 +655,8 @@ public:
 
 private:
 
-    [[no_unique_address]] allocator_type m_alloc;
     [[no_unique_address]] hash_key_equal<Hasher, KeyEqual> m_hk;
+    [[no_unique_address]] allocator_type m_alloc;
 
     index_type* m_indices = nullptr;      // store indices or state
     slot_type* m_slots = nullptr;         // store entries

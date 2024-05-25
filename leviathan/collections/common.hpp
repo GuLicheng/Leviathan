@@ -45,7 +45,7 @@ struct select1st
 {
     using key_type = T1;
 
-    using value_type = std::pair<T1, T2>;
+    using value_type = std::pair<const T1, T2>;
 
     template <typename U>
     static constexpr auto&& operator()(U&& x)
@@ -100,7 +100,7 @@ struct key_arg_helper<false>
     using type = K2;
 };
 
-template <bool IsTransparent, class K1, class K2>
+template <bool IsTransparent, typename K1, typename K2>
 using key_arg = typename key_arg_helper<IsTransparent>::template type<K1, K2>;
 
 /**
@@ -291,8 +291,6 @@ struct hash_key_equal : public Hasher, public KeyEqual
 template <typename T> 
 struct cache_hash_code : std::true_type { };
 
-
-
 // Meta
 // https://en.cppreference.com/w/cpp/ranges/to
 template <typename R, typename T>
@@ -300,5 +298,7 @@ concept container_compatible_range =
     std::ranges::input_range<R> &&
     std::convertible_to<std::ranges::range_reference_t<R>, T>;
 
-
 }
+
+
+
