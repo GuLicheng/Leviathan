@@ -210,29 +210,169 @@ TEST_CASE("map")
 
 
 // Memory
-#ifdef USE_MEMORY_TEST
+// #define USE_MEMORY_TEST 
+#ifdef USE_MEMORY_TEST 
 
 #include <leviathan/allocators/checked_allocator.hpp>
 #include <leviathan/allocators/fancy_ptr.hpp>
+#include <leviathan/utils/controllable_value.hpp>
 
 using namespace leviathan::alloc;
 
-using MemoryRecordAllocator = checked_allocator<int, alloc_spec::propagate_on_all>;
-
-TEST_CASE("allocator alloc and dealloc")
+TEST_CASE("propagate allocator")
 {
-    SECTION("empty tree")
-    {
-        TreeWithAlloc<int, MemoryRecordAllocator> tree;
-    }
+    using Int32 = leviathan::controllable_value<int>;
+    using StdAllocator = std_allocator<Int32>;
+
+    CHECK(std::allocator_traits<StdAllocator>::propagate_on_container_copy_assignment());
+    CHECK(std::allocator_traits<StdAllocator>::propagate_on_container_move_assignment());
+    CHECK(std::allocator_traits<StdAllocator>::propagate_on_container_swap());
+
     CHECK(check_memory_alloc());
 
     SECTION("non-empty tree")
     {
-        Tree tree;
+        TreeWithAlloc<Int32, std_allocator<Int32>> tree;
         tree.insert(1);
+        tree.insert(2);
+        tree.insert(3);
     }
+
+    CHECK(Int32::total_ctor() == Int32::total_dtor());
     CHECK(check_memory_alloc());
+
+    SECTION("copy constructor")
+    {
+        TreeWithAlloc<Int32, StdAllocator> tree1;
+
+        tree1.insert(1);
+        tree1.insert(2);
+        tree1.insert(3);
+        tree1.insert(4);
+        tree1.insert(5);
+
+        TreeWithAlloc<Int32, StdAllocator> tree2 = tree1;  // Copy
+
+        CHECK(tree1.size() == tree2.size());
+        tree1.clear();
+
+        CHECK(tree1.size() == 0);
+        CHECK(tree2.contains(1));
+        CHECK(tree2.contains(2));
+        CHECK(tree2.contains(3));
+        CHECK(tree2.contains(4));
+        CHECK(tree2.contains(5));
+    }
+
+    CHECK(Int32::total_ctor() == Int32::total_dtor());
+    CHECK(check_memory_alloc());
+
+    SECTION("move construct")
+    {
+        TreeWithAlloc<Int32, StdAllocator> tree1;
+
+        tree1.insert(1);
+        tree1.insert(2);
+        tree1.insert(3);
+        tree1.insert(4);
+        tree1.insert(5);
+
+        TreeWithAlloc<Int32, StdAllocator> tree2 = std::move(tree1);
+
+        CHECK(tree1.empty());
+        CHECK(tree2.size() == 5);
+        CHECK(tree2.contains(1));
+        CHECK(tree2.contains(2));
+        CHECK(tree2.contains(3));
+        CHECK(tree2.contains(4));
+        CHECK(tree2.contains(5));
+    }
+
+    CHECK(Int32::total_ctor() == Int32::total_dtor());
+    CHECK(check_memory_alloc());
+
+    SECTION("swap")
+    {
+        TreeWithAlloc<Int32, StdAllocator> tree1, tree2;
+        
+        tree1.insert(1);
+        tree1.insert(2);
+        CHECK(tree1.size() == 2);
+
+        tree2.insert(3);
+        tree2.insert(4);
+        tree2.insert(5);
+        CHECK(tree2.size() == 3);
+
+        tree1.swap(tree2);
+        CHECK(tree1.size() == 3);
+        CHECK(tree2.size() == 2);
+
+        CHECK(tree1.contains(3));
+        CHECK(tree1.contains(4));
+        CHECK(tree1.contains(5));
+
+        CHECK(tree2.contains(1));
+        CHECK(tree2.contains(2));
+    }
+
+    CHECK(Int32::total_ctor() == Int32::total_dtor());
+    CHECK(check_memory_alloc());
+
+    SECTION("copy assign")
+    {
+        TreeWithAlloc<Int32, StdAllocator> tree1, tree2;
+
+        tree1.insert(0);
+        tree1.insert(1);
+        tree2 = tree1;
+
+        CHECK(tree2.size() == 2);
+        CHECK(tree2.contains(0));
+        CHECK(tree2.contains(1));
+    }
+
+    CHECK(Int32::total_ctor() == Int32::total_dtor());
+    CHECK(check_memory_alloc());
+
+    SECTION("move assign")
+    {
+        TreeWithAlloc<Int32, StdAllocator> tree1, tree2;
+
+        tree1.insert(0);
+        tree1.insert(1);
+        tree2 = std::move(tree1);
+
+        CHECK(tree2.size() == 2);
+        CHECK(tree2.contains(0));
+        CHECK(tree2.contains(1));
+
+        CHECK(tree1.empty());
+        CHECK(!tree1.contains(0));
+        CHECK(!tree1.contains(1));
+    }
+
+    CHECK(Int32::total_ctor() == Int32::total_dtor());
+    CHECK(check_memory_alloc());
+}
+
+TEST_CASE("non-propagate allocator")
+{
+    using Int32 = leviathan::controllable_value<int>;
+    using PmrAllocator = std_pmr_allocator<Int32>;
+
+    CHECK(!std::allocator_traits<PmrAllocator>::propagate_on_container_copy_assignment());
+    CHECK(!std::allocator_traits<PmrAllocator>::propagate_on_container_move_assignment());
+    CHECK(!std::allocator_traits<PmrAllocator>::propagate_on_container_swap());
+
+    SECTION("non-empty tree")
+    {
+        TreeWithAlloc<Int32, std_pmr_allocator<Int32>> tree;
+        tree.insert(1);
+        tree.insert(2);
+        tree.insert(3);
+    }
+
 }
 
 #endif

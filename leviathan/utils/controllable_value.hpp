@@ -7,8 +7,13 @@
 namespace leviathan
 {
 
-struct controllable_value_exception 
-{ };
+struct controllable_value_exception : std::exception
+{
+    virtual const char* what() const noexcept override
+    {
+        return "controllable_value_exception";
+    }
+};
 
 /*
 Value  =>
@@ -38,6 +43,16 @@ struct controllable_value
 
     inline static int dtor = 0;
 
+    static bool total_ctor()
+    {
+        return copy_ctor + move_ctor + value_ctor + default_ctor;
+    }
+
+    static bool total_dtor()
+    {
+        return dtor;
+    }
+
     template <int Count>
     static void throw_exception(int& num)
     {
@@ -61,7 +76,7 @@ struct controllable_value
         return dtor;
     }
 
-    explicit controllable_value(T x) : m_value(std::move(x)) 
+    controllable_value(T x) : m_value(std::move(x)) 
     {
         ++value_ctor;
     }
@@ -109,6 +124,12 @@ struct controllable_value
 
     T m_value;
 };
+
+template <typename T, int CopyCtorCount>
+using copy_throw_value = controllable_value<T, CopyCtorCount>;
+
+template <typename T, int MoveCtorCount>
+using move_throw_value = controllable_value<T, 0, MoveCtorCount>;
 
 } // namespace leviathan
 

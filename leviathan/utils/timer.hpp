@@ -9,11 +9,14 @@
 #include <chrono>
 #include <string>
 
-namespace leviathan {
+namespace leviathan 
+{
 
-inline namespace time {
+inline namespace time 
+{
 
-class timer {
+class timer 
+{
 
     timer(const timer&) = delete;
     timer(timer &&) = delete;

@@ -1,32 +1,33 @@
-#include <leviathan/math/int128.hpp>
 #include <iostream>
-#include <random>
-#include <map>
+#include <ranges>
+#include <algorithm>
+#include <vector>
+#include <string>
+#include <utility>
+#include <leviathan/print.hpp>
+#include <leviathan/ranges/action.hpp>
+
+#include <memory_resource>
 
 struct Double
 {
     double value;
-
-    constexpr explicit operator double(this Double x)
-    {
-        return x.value;
-    }
-
+    constexpr auto operator<=>(const Double&) const = default;
 };
 
 int main(int argc, char const *argv[])
 {
-    Double d = { .value = 0.1 };
 
-    auto dd = static_cast<double>(d);
-
-    std::cout << dd << '\n';
-
-    using T = std::map<int, int>::key_type;
-
-    std::random_device rd;
+    std::pmr::polymorphic_allocator<int> alloc;
 
     std::puts("OK1");
+
+    constexpr Double d1(0.1);
+    constexpr Double d2(0.2);
+
+    static_assert(d1 < d2);
+
+    // std::count_if
 
     return 0;
 }

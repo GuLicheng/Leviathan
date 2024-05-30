@@ -121,8 +121,10 @@ struct checked_allocator
         return std::allocator<T>().deallocate(ptr, n);
     }
 
-    friend bool operator==(const checked_allocator& lhs, const checked_allocator& rhs) 
-    { return lhs.m_id == rhs.m_id; }
+    friend bool operator==(const checked_allocator &lhs, const checked_allocator &rhs)
+    {
+        return lhs.m_id == rhs.m_id;
+    }
 
     size_t num_allocs() const { return m_state->m_num_allocs; }
 
@@ -135,11 +137,15 @@ struct checked_allocator
         swap(m_state, other.m_state);
     }
 
-    friend void swap(checked_allocator& lhs, checked_allocator& rhs)
-    { lhs.swap(rhs); }
+    friend void swap(checked_allocator &lhs, checked_allocator &rhs)
+    {
+        lhs.swap(rhs);
+    }
 
     std::string to_string() const
-    { return std::format("alloc({})", m_id); }
+    {
+        return std::format("alloc({})", m_id);
+    }
 
     void track_alloc(void* ptr)
     {
@@ -178,6 +184,12 @@ struct checked_allocator
     size_t m_id = static_cast<size_t>(-1);
     std::shared_ptr<alloc_state> m_state = std::make_shared<alloc_state>();
 };
+
+template <typename T>
+using std_allocator = checked_allocator<T, propagate_on_all>;
+
+template <typename T>
+using std_pmr_allocator = checked_allocator<T, propagate_on_none>;
 
 
 } // namespace leviathan::alloc

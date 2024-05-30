@@ -267,8 +267,8 @@ public:
     tree(tree&& rhs) noexcept(IsNothrowMoveConstruct)
         : m_cmp(std::move(rhs.m_cmp)), 
           m_alloc(std::move(rhs.m_alloc)), 
-          m_size(std::exchange(rhs.m_size, 0)), 
-          m_header(rhs.m_header)
+          m_header(rhs.m_header),
+          m_size(std::exchange(rhs.m_size, 0)) 
     {
         if (empty())
         {
@@ -294,7 +294,6 @@ public:
                 header()->lchild(header()->parent()->minimum());
                 header()->rchild(header()->parent()->maximum());
             }
-            
             m_size = rhs.size();
             rhs.clear();
         }
@@ -337,7 +336,7 @@ public:
         {
             clear();
             m_cmp = std::move(rhs.m_cmp);
-            if (typename node_alloc_traits::propagate_on_container_move_assignment())
+            if constexpr (typename node_alloc_traits::propagate_on_container_move_assignment())
             {
                 m_alloc = std::move(rhs.m_alloc);
                 m_header = rhs.m_header;
@@ -351,7 +350,10 @@ public:
             else
             {
                 // Exceptions may thrown
-                move_from_other(std::move(rhs));
+                // move_from_other(std::move(rhs));
+                header()->parent(move_tree(header()->parent(), header(), rhs.header()->parent()));
+                header()->lchild(header()->parent()->minimum());
+                header()->rchild(header()->parent()->maximum());
                 rhs.clear();
             }
             m_size = std::exchange(rhs.m_size, 0);
@@ -359,16 +361,21 @@ public:
         return *this;
     }
 
-    friend void swap(tree& lhs, tree& rhs) noexcept(IsNothrowSwap)
+    void swap(tree& rhs) noexcept(IsNothrowSwap)
     {
         using std::swap;
-        swap(lhs.m_header, rhs.m_header);
-        swap(lhs.m_cmp, rhs.m_cmp);
-        swap(lhs.m_size, rhs.m_size);
+        swap(m_header, rhs.m_header);
+        swap(m_cmp, rhs.m_cmp);
+        swap(m_size, rhs.m_size);
         if constexpr (typename node_alloc_traits::propagate_on_container_swap())
         {
-            swap(lhs.m_alloc, rhs.m_alloc);
+            swap(m_alloc, rhs.m_alloc);
         }
+    }
+
+    friend void swap(tree& lhs, tree& rhs) noexcept(IsNothrowSwap)
+    {
+        lhs.swap(rhs);
     }
 
     ~tree()
@@ -576,6 +583,7 @@ protected:
     {
         base_ptr y = &m_header, x = header()->parent();
         while (x)
+        {
             if (!m_cmp(keys(x), k))
             {
                 y = x, x = x->lchild();
@@ -584,6 +592,7 @@ protected:
             {
                 x = x->rchild();
             }
+        }
         return { y };
     }
 
@@ -771,7 +780,7 @@ protected:
      * @param p: Parent of current node
      * @param y: Moved node
     */
-    base_node* move_tree(base_node* x, base_node* p, const base_node* y)
+    base_node* move_tree(base_node* x, base_node* p, base_node* y)
     {
         if (!y)
         {

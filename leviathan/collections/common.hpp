@@ -231,7 +231,7 @@ struct value_handle
         return std::move(*reinterpret_cast<T*>(&m_raw));
     }
 
-    allocator_type m_alloc;
+    [[no_unique_address]] allocator_type m_alloc;
     alignas(T) unsigned char m_raw[sizeof(T)];
 };
 
@@ -262,7 +262,7 @@ struct ordered_map_container_value_compare
 
     ordered_map_container_value_compare(Compare compare) : m_c(compare) { }
 
-    Compare m_c;
+    [[no_unique_address]] Compare m_c;
 };
 
 /**
