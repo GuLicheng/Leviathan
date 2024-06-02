@@ -696,11 +696,6 @@ public:
         return std::format("{}", x);
     } 
 
-    friend std::ostream& operator<<(std::ostream& os, int128 x) 
-    {
-        return os << x.to_string();
-    }
-
     constexpr auto lower() const { return base::lower(); }
 
     constexpr auto upper() const { return base::upper(); }
@@ -708,10 +703,20 @@ public:
 
 using int128_t = int128<>;
 using uint128_t = uint128<>;
-template class uint128<>;
-template class int128<>;
+// template class uint128<>;
+// template class int128<>;
 
+template <std::endian Endian>
+std::ostream& operator<<(std::ostream& os, uint128<Endian> x)
+{
+    return os << x.to_string();
+}
 
+template <std::endian Endian>
+std::ostream& operator<<(std::ostream& os, int128<Endian> x)
+{
+    return os << x.to_string();
+}
 
 }
 

@@ -32,6 +32,11 @@ struct std::formatter<View, CharT>
     std::formatter<std::ranges::range_value_t<View>, CharT> m_fmt;
 };
 
+// template <std::__pair_like Pair, typename CharT>
+// struct std::formatter<Pair, CharT> 
+// {
+
+// };
 
 template <typename... Args>
 void print(std::format_string<Args...> fmt, Args&&... args)
@@ -45,3 +50,8 @@ void println(std::format_string<Args...> fmt, Args&&... args)
     ::puts(std::format(fmt, (Args&&) args...).c_str());
 }
 
+template <typename... Args>
+void write_line(Args&&... args) 
+{
+    std::cout << ((std::format("{}", (Args&&) args)) + ...) << '\n';
+}
