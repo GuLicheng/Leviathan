@@ -545,8 +545,10 @@ private:
         }
     }
 
-    void put_node(skiplist_node* p)
-    { skiplist_node::deallocate(m_alloc, p); }
+    void put_node(skiplist_node *p)
+    {
+        skiplist_node::deallocate(m_alloc, p);
+    }
 
     template <typename... Args>
     skiplist_node* create_node(Args&&... args)

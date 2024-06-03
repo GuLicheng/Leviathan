@@ -1,6 +1,8 @@
 // https://medium.com/carpanese/a-visual-introduction-to-treap-data-structure-part-1-6196d6cc12ee
 #pragma once
 
+#if 0
+
 #include "tree_node_operation.hpp"
 
 #include <random>
@@ -168,3 +170,4 @@ struct treap_node : basic_tree_node_operation, binary_node_operation
 
 } // namespace leviathan::collections
 
+#endif

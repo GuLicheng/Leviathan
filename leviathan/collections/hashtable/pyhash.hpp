@@ -98,7 +98,10 @@ protected:
         constexpr hash_iterator(link_type link, std::size_t idx)  
             : m_link(link), m_idx(idx) { }
 
-        constexpr bool operator==(const hash_iterator&) const = default;        
+        constexpr bool operator==(this hash_iterator lhs, hash_iterator rhs)  
+        {
+            return lhs.m_link == rhs.m_link && lhs.m_idx == rhs.m_idx;
+        }     
 
         constexpr reference operator*() const
         {
@@ -279,7 +282,6 @@ protected:
         auto old_mused = m_used;
 
         initialize(new_capacity); 
-
 
         struct exception_helper
         {
