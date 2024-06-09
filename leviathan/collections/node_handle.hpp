@@ -168,7 +168,6 @@ struct node_base_handle_map : node_base_handle<Node, Allocator>
     {
         return this->m_handle->value_ptr()->second;
     }
-
 };
 
 template <typename Iterator, typename NodeType>

@@ -4,16 +4,12 @@
 #include <chrono>
 #include <string>
 
-namespace leviathan 
-{
-
-inline namespace time 
+namespace leviathan::time
 {
 
 template <typename Clock = std::chrono::high_resolution_clock> 
 class timer 
 {
-
     timer(const timer&) = delete;
     timer(timer &&) = delete;
 
@@ -58,7 +54,7 @@ auto get_system_rtime(const std::chrono::duration<RepType, PeriodType>& rtime)
     return rt;
 }
 
-} // namespace time
-
 } // namespace leviathan
+
+
 #endif
