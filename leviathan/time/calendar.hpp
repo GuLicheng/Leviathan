@@ -8,7 +8,7 @@ namespace leviathan::time
 
 constexpr const char* weekday_name(std::chrono::weekday w)
 {
-    static constexpr const char* names[] = 
+    static const char* names[] = 
     {
         "Monday",
         "Tuesday",
