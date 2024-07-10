@@ -7,7 +7,7 @@ int main()
 {
     const char* path = "D:\\Library\\Leviathan\\a.log";
 
-    logging::logger logger("root", logging::level::Warning);
+    logging::logger logger("root", logging::level::warning);
 
     // auto file_handler = logging::make_handler<logging::file_handler>("file", path);
 
@@ -16,7 +16,7 @@ int main()
     file_handler->set_formatter(logging::make_formatter<logging::pattern_formatter>
         ("pattern_formatter", "Time: %(time) - %(level) : %(message) %(file)%(line)."));
 
-    auto console_handler = logging::make_handler<logging::console_handler>("console");
+    auto console_handler = logging::make_handler<logging::console_handler>("console", std::clog);
 
     logger.add_handler(std::move(file_handler));
 

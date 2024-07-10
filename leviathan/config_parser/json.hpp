@@ -592,16 +592,16 @@ using namespace ::leviathan::config::json;
 template <typename CharT>
 struct std::formatter<leviathan::json::json_value, CharT> 
 {
-static_assert(std::is_same_v<CharT, char>, "Only support char");
+    static_assert(std::is_same_v<CharT, char>, "Only support char");
 
-template <typename ParseContext>
-constexpr typename ParseContext::iterator parse(ParseContext& ctx)
-{ return ctx.begin(); }
+    template <typename ParseContext>
+    constexpr typename ParseContext::iterator parse(ParseContext& ctx)
+    { return ctx.begin(); }
 
-template <typename FmtContext>
-typename FmtContext::iterator format(const leviathan::json::json_value& val, FmtContext& ctx) const
-{
-    std::basic_string<CharT> result = leviathan::json::dump(val);
-    return std::ranges::copy(result, ctx.out()).out;
+    template <typename FmtContext>
+    typename FmtContext::iterator format(const leviathan::json::json_value& val, FmtContext& ctx) const
+    {
+        std::basic_string<CharT> result = leviathan::json::dump(val);
+        return std::ranges::copy(result, ctx.out()).out;
 }
 };

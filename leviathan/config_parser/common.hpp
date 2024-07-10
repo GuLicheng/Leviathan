@@ -14,6 +14,7 @@
 
 namespace leviathan::config
 {
+    
 inline std::string read_file_contents(const char* filename)
 {
     std::fstream ifs(filename, std::ios_base::in | std::ios_base::binary);
@@ -32,6 +33,7 @@ inline std::string read_file_contents(const char* filename)
     }
     return contents;
 }
+
 }
 
 namespace leviathan::config

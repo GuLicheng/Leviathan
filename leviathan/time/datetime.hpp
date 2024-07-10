@@ -24,8 +24,6 @@ std::optional<TimePoint> parse(const char* fmt)
 // https://doc.qt.io/qt-6/qdatetime.html
 // class datetime
 // {
-//     std::chrono::year_month_day m_date;
-//     std::chrono::hh_mm_ss< m_time;
 // };
 
 } // namespace leviathan::time

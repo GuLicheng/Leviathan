@@ -10,6 +10,12 @@
 
 namespace leviathan::logging
 {
+    template <typename... Args>
+    auto unmove_make_format_args(Args&&... args)
+    {
+        return std::make_format_args(args...);
+    }
+
     class logger;
 
     class basic_formatter;
@@ -20,18 +26,19 @@ namespace leviathan::logging
 
     enum class level : int
     {
-        Debug    = 0,
-        Info     = 1,
-        Warning  = 2,
-        Error    = 3,
-        Critical = 4,
+        debug    = 0,
+        info     = 1,
+        warning  = 2,
+        error    = 3,
+        critical = 4,
     };
 
     using level_underlying_type = std::underlying_type_t<level>;
 
     std::string_view level_to_string(level l)
     {
-        static std::string_view names[] = {
+        static std::string_view names[] = 
+        {
             "DEBUG",
             "INFO",
             "WARNING",
@@ -41,7 +48,7 @@ namespace leviathan::logging
         return names[static_cast<int>(l)];
     }
 
-    using clock_type = std::chrono::gps_clock;
+    using clock_type = std::chrono::system_clock;
 
     struct record
     {

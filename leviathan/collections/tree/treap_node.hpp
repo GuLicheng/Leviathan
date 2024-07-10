@@ -1,7 +1,7 @@
 // https://medium.com/carpanese/a-visual-introduction-to-treap-data-structure-part-1-6196d6cc12ee
 #pragma once
 
-#if 0
+#if 1
 
 #include "tree_node_operation.hpp"
 

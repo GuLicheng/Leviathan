@@ -1241,13 +1241,13 @@ using namespace ::leviathan::config::toml;
 template <typename CharT>
 struct std::formatter<leviathan::toml::toml_value, CharT>
 {
-constexpr auto parse(auto& ctx) 
-{ return ctx.begin(); }
+    constexpr auto parse(auto& ctx) 
+    { return ctx.begin(); }
 
-auto format(const auto& x, auto& ctx) const
-{
-    auto jv = leviathan::config::toml2json(x);
-    return std::formatter<leviathan::config::json::json_value, CharT>().format(jv, ctx);
-}
+    auto format(const auto& x, auto& ctx) const
+    {
+        auto jv = leviathan::config::toml2json(x);
+        return std::formatter<leviathan::config::json::json_value, CharT>().format(jv, ctx);
+    }
 
 };

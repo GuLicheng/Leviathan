@@ -24,12 +24,10 @@ add_executable(main main.cpp)
 set(LEVIATHAN_BUILD_BENCHMARK ON)
 set(LEVIATHAN_BUILD_TEST ON)
 
-
 if(LEVIATHAN_BUILD_BENCHMARK STREQUAL "ON")
     message(STATUS "Build benchmark")
     add_subdirectory(benchmark)
 endif()
-    
 
 if(LEVIATHAN_BUILD_TEST STREQUAL "ON")
     message(STATUS "Build test")
@@ -85,4 +83,8 @@ if (LEVIATHAN_BUILD_COLLECTIONS STREQUAL "ON")
     add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/collections)
 endif()
 
-
+set(LEVIATHAN_BUILD_ROOT ON)
+if (LEVIATHAN_BUILD_ROOT STREQUAL "ON")
+    message(STATUS "Build root")
+    add_subdirectory(${PROJECT_ROOT_PATH}/leviathan)
+endif()

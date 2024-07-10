@@ -29,28 +29,28 @@ namespace leviathan::logging
 
     public:
 
-        logger(std::string name, level lv = level::Info) 
+        logger(std::string name, level lv = level::info) 
             : m_name(std::move(name)), m_level(lv) { }
 
         template <typename... Args>
         void info(format_string_with_source_location fmt, Args&&... args) 
-        { log(level::Info, fmt.m_value, fmt.m_sl, (Args&&) args...); }
+        { log(level::info, fmt.m_value, fmt.m_sl, (Args&&) args...); }
 
         template <typename... Args>
         void debug(format_string_with_source_location fmt, Args&&... args) 
-        { log(level::Debug, fmt.m_value, fmt.m_sl, (Args&&) args...); }
+        { log(level::debug, fmt.m_value, fmt.m_sl, (Args&&) args...); }
 
         template <typename... Args>
         void warn(format_string_with_source_location fmt, Args&&... args) 
-        { log(level::Warning, fmt.m_value, fmt.m_sl, (Args&&) args...); }
+        { log(level::warning, fmt.m_value, fmt.m_sl, (Args&&) args...); }
 
         template <typename... Args>
         void error(format_string_with_source_location fmt, Args&&... args) 
-        { log(level::Error, fmt.m_value, fmt.m_sl, (Args&&) args...); }
+        { log(level::error, fmt.m_value, fmt.m_sl, (Args&&) args...); }
 
         template <typename... Args>
         void critical(format_string_with_source_location fmt, Args&&... args) 
-        { log(level::Critical, fmt.m_value, fmt.m_sl, (Args&&) args...); }
+        { log(level::critical, fmt.m_value, fmt.m_sl, (Args&&) args...); }
 
         void add_handler(std::unique_ptr<basic_handler> h)
         { m_handlers.emplace_back(std::move(h)); }
@@ -84,7 +84,8 @@ namespace leviathan::logging
             // cartesian_product is much slower than for-loop
             std::ranges::for_each(
                 std::views::cartesian_product(m_handlers, invalid_records),
-                [](auto&& hr) { hr.first->do_handle(hr.second); }
+                // [](auto&& hr) { hr.first->do_handle(hr.second); }
+                [](auto&& hr) { std::get<0>(hr)->do_handle(std::get<1>(hr)); }
             );
         }
 

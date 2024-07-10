@@ -31,10 +31,12 @@ namespace leviathan::logging
         std::string do_format(const record& r) override 
         { 
             auto message = std::vformat(m_pattern, 
-                std::make_format_args(r.m_tp, level_to_string(r.m_level), r.m_message, r.m_sl.line(), r.m_sl.file_name()));
+                unmove_make_format_args(r.m_tp, level_to_string(r.m_level), r.m_message, r.m_sl.line(), r.m_sl.file_name()));
 
             if (m_newline)
+            {
                 message += '\n';
+            }
             return message; 
         }
 
@@ -64,9 +66,9 @@ namespace leviathan::logging
                     const char ch = *m_curr;
                     switch (ch)
                     {
-                    case '\\': parse_escape(); break;
-                    case '%': parse_context(); break;
-                    default: m_result += ch;
+                        case '\\': parse_escape(); break;
+                        case '%': parse_context(); break;
+                        default: m_result += ch;
                     }
                 }
                 return m_result;

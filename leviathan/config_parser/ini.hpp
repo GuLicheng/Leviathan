@@ -41,78 +41,78 @@ using hashmap = std::unordered_map<
 // We define some helper function here
 namespace detail
 {
-    // inline constexpr const char linefeed = '\n';
-    inline constexpr std::string_view linefeed = "\n";
+// inline constexpr const char linefeed = '\n';
+inline constexpr std::string_view linefeed = "\n";
 
-    inline constexpr const char* comment = ";#"; 
+inline constexpr const char* comment = ";#"; 
 
-    inline constexpr const char eq = '=';
+inline constexpr const char eq = '=';
 
-    inline constexpr const char lbracket = '[';     // left section
+inline constexpr const char lbracket = '[';     // left section
 
-    inline constexpr const char rbracket = ']';    // right section
+inline constexpr const char rbracket = ']';    // right section
 
-    inline constexpr auto get_section_or_entry_context = [](auto line) static {
+inline constexpr auto get_section_or_entry_context = [](auto line) static {
 
-        // line is std::subrange<std::string::iterator, std::string::iterator, std::ranges::subrange::sized>
+    // line is std::subrange<std::string::iterator, std::string::iterator, std::ranges::subrange::sized>
 
-        // for empty line or line just with comments, return "".
+    // for empty line or line just with comments, return "".
 
-        auto str = string_view(line);
+    auto str = string_view(line);
 
-        auto end_of_line = str.find_first_of(comment);  // find comment
+    auto end_of_line = str.find_first_of(comment);  // find comment
 
-        auto new_line = str.substr(0, end_of_line); // remove comment
+    auto new_line = str.substr(0, end_of_line); // remove comment
 
-        auto line_after_trimming = trim(new_line);
+    auto line_after_trimming = trim(new_line);
 
-        return line_after_trimming;
-    };
+    return line_after_trimming;
+};
 
-    inline constexpr auto is_section = [](auto context) static {
-        return context.front() == lbracket;
-    };
+inline constexpr auto is_section = [](auto context) static {
+    return context.front() == lbracket;
+};
 
-    inline constexpr auto is_entry = [](auto context) static {
-        return !is_section(context);
-    };
+inline constexpr auto is_entry = [](auto context) static {
+    return !is_section(context);
+};
 
-    inline constexpr auto chunk_section_and_entries = [](auto l, auto r) {
-        return (is_section(l) && is_entry(r)) || (is_entry(l) && is_entry(r));
-    };
+inline constexpr auto chunk_section_and_entries = [](auto l, auto r) {
+    return (is_section(l) && is_entry(r)) || (is_entry(l) && is_entry(r));
+};
 
-    inline constexpr auto split_entry_to_key_value = [](auto context) static {
+inline constexpr auto split_entry_to_key_value = [](auto context) static {
 
-        auto equal = context.find_first_of(eq);
+    auto equal = context.find_first_of(eq);
 
-        assert(equal != 0 && "The key should not be empty.");
-        assert(equal != context.npos && "There must be a '=' in entry.");
+    assert(equal != 0 && "The key should not be empty.");
+    assert(equal != context.npos && "There must be a '=' in entry.");
 
-        auto key = context.substr(0, equal);
+    auto key = context.substr(0, equal);
 
-        auto value = context.substr(equal + 1);
+    auto value = context.substr(equal + 1);
 
-        return std::make_pair(rtrim(key), ltrim(value));
-    };
+    return std::make_pair(rtrim(key), ltrim(value));
+};
 
-    inline constexpr auto map_entries_to_dict = [](auto lines) static {
-        hashmap<string_view, string_view> dict;
-        std::ranges::for_each(lines, [&](auto line) {
-            auto [k, v] = detail::split_entry_to_key_value(line);
-            dict[k] = v; // If some keys appear twice at one sections, the former will be recovered.
-        });
-        return dict;
-    };
+inline constexpr auto map_entries_to_dict = [](auto lines) static {
+    hashmap<string_view, string_view> dict;
+    std::ranges::for_each(lines, [&](auto line) {
+        auto [k, v] = detail::split_entry_to_key_value(line);
+        dict[k] = v; // If some keys appear twice at one sections, the former will be recovered.
+    });
+    return dict;
+};
 
-    inline constexpr auto to_section = [](auto lines) static {
-        auto section = *lines.begin();
-        assert(section.front() == lbracket && section.back() == rbracket && "each section should started with '[' and end with ']'");
-        auto entries = map_entries_to_dict(lines | std::views::drop(1));
-        return std::make_pair(
-            section.substr(1, section.size() - 2),
-            std::move(entries)
-        );
-    };
+inline constexpr auto to_section = [](auto lines) static {
+    auto section = *lines.begin();
+    assert(section.front() == lbracket && section.back() == rbracket && "each section should started with '[' and end with ']'");
+    auto entries = map_entries_to_dict(lines | std::views::drop(1));
+    return std::make_pair(
+        section.substr(1, section.size() - 2),
+        std::move(entries)
+    );
+};
 
 } // namespace detail
 
