@@ -38,11 +38,27 @@ struct Object : ObjectBase
         return m_data;
     }
 
+    template <typename T>
+    static bool equal_impl(const Object& x, const Object& y) 
+    {
+        if (x.is<T>())
+        {
+            return x.as<T>() == y.as<T>();
+        }
+        return false;
+    }
+
     friend bool operator==(const Object& x, const Object& y) 
     {
-        // Error but enough
-        return x.is<String>() && y.is<String>()
-            && x.as<String>() == y.as<String>();
+        if (x.m_data.index() != y.m_data.index())
+        {
+            return false;
+        }
+        return equal_impl<None>(x, y)
+            || equal_impl<Number>(x, y) 
+            || equal_impl<String>(x, y) 
+            || equal_impl<List>(x, y) 
+            || equal_impl<Dict>(x, y); 
     };
 };
 
@@ -91,6 +107,10 @@ TEST_CASE("object dictionary")
     dict.as<Dict>().try_emplace(std::move(name), std::move(age));
 
     REQUIRE(dict.as<Dict>().size() == 1);
+
+    Object target = String("Alice");
+
+    REQUIRE(dict.as<Dict>().contains(target));
 }
 
 

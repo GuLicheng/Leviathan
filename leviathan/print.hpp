@@ -6,6 +6,7 @@
 #include <format>
 #include <cstdio>
 #include <string>
+#include <variant>
 
 // Not support std::generator
 template <std::ranges::range View, typename CharT>
@@ -31,6 +32,26 @@ struct std::formatter<View, CharT>
     }
 
     std::formatter<std::ranges::range_value_t<View>, CharT> m_fmt;
+};
+
+template <typename... Ts, typename CharT>
+struct std::formatter<std::variant<Ts...>, CharT>
+{
+    template <typename ParseContext>
+    constexpr typename ParseContext::iterator parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    typename FormatContext::iterator format(const std::variant<Ts...>& v, FormatContext& ctx) const
+    {
+        return std::visit(
+            [&](const auto& value) { 
+                return std::format_to(ctx.out(), "{}", value);
+            }, v
+        );
+    }
 };
 
 enum ConsoleColor : int
@@ -63,11 +84,6 @@ enum ConsoleFont : int
     SlowBlink  = 16,
     RapidBlink = 32,
 };
-
-// constexpr ConsoleFont operator|(ConsoleFont x, ConsoleFont y)
-// {
-//     return ConsoleFont(std::to_underlying(x) | std::to_underlying(y));
-// }
 
 template <>
 inline constexpr bool leviathan::operators::enum_enable_pipe<ConsoleFont> = true;

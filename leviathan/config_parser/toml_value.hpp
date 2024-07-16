@@ -26,7 +26,7 @@ struct bad_toml_value_access : std::exception
 template <typename... Args>
 [[noreturn]] void throw_toml_parse_error(std::string_view fmt, Args&&... args)
 {
-    auto msg = std::vformat(fmt, std::make_format_args((Args&&) args...));
+    auto msg = std::vformat(fmt, std::make_format_args(args...));
     throw toml_parse_error(msg);
 }
 
@@ -36,57 +36,59 @@ class toml_value;
 
 namespace detail
 {
-    template <typename T>
-    class toml_array_base : public std::vector<T>
-    {
-        using base = std::vector<T>;
 
-        bool m_locked = false;  // for fixed array or table array
+template <typename T>
+class toml_array_base : public std::vector<T>
+{
+    using base = std::vector<T>;
 
-    public:
+    bool m_locked = false;  // for fixed array or table array
 
-        toml_array_base() = default;
+public:
 
-        template <typename... Args>
-        explicit toml_array_base(bool locked, Args&&... args) 
-            : base((Args&&) args...), m_locked(locked) { }
+    toml_array_base() = default;
 
-        bool is_table_array() const 
-        { return !m_locked; }
+    template <typename... Args>
+    explicit toml_array_base(bool locked, Args&&... args) 
+        : base((Args&&) args...), m_locked(locked) { }
 
-        bool is_array() const
-        { return m_locked; }
-    };
+    bool is_table_array() const 
+    { return !m_locked; }
 
-    template <typename K, typename V>
-    class toml_table_base : public std::unordered_map<K, V, string_hash_key_equal, string_hash_key_equal>
-    {
-        using base = std::unordered_map<K, V, string_hash_key_equal, string_hash_key_equal>;
+    bool is_array() const
+    { return m_locked; }
+};
 
-        bool m_locked = false;   // for table or inline table
+template <typename K, typename V>
+class toml_table_base : public std::unordered_map<K, V, string_hash_key_equal, string_hash_key_equal>
+{
+    using base = std::unordered_map<K, V, string_hash_key_equal, string_hash_key_equal>;
 
-        bool m_defined = false;  // for defining a super-table afterward 
+    bool m_locked = false;   // for table or inline table
 
-    public:
+    bool m_defined = false;  // for defining a super-table afterward 
 
-        toml_table_base() = default;
+public:
 
-        template <typename... Args>
-        explicit toml_table_base(bool locked, Args&&... args) 
-            : base((Args&&) args...), m_locked(locked) { }
+    toml_table_base() = default;
 
-        bool is_inline_table() const 
-        { return m_locked; }
+    template <typename... Args>
+    explicit toml_table_base(bool locked, Args&&... args) 
+        : base((Args&&) args...), m_locked(locked) { }
 
-        bool is_table() const
-        { return !m_locked; }
-    
-        bool is_defined() const
-        { return m_defined; }
+    bool is_inline_table() const 
+    { return m_locked; }
 
-        void define_table()
-        { m_defined = true; }
-    };
+    bool is_table() const
+    { return !m_locked; }
+
+    bool is_defined() const
+    { return m_defined; }
+
+    void define_table()
+    { m_defined = true; }
+};
+
 }
 
 using toml_boolean = bool;

@@ -53,7 +53,9 @@ constexpr const char* report_error(error_code ec)
 struct bad_json_value_access : std::exception
 {
     const char* what() const noexcept override
-    { return "bad_json_value_access"; }
+    {
+        return "bad_json_value_access";
+    }
 };
 
 class json_value;
@@ -69,7 +71,7 @@ public:
 
 private:
 
-    enum struct number_type 
+    enum struct number_kind 
     {
         signed_integer,
         unsigned_integer,
@@ -88,9 +90,9 @@ private:
     {
         switch (m_type)
         {
-            case number_type::floating: return static_cast<T>(m_f);
-            case number_type::signed_integer: return static_cast<T>(m_i);
-            case number_type::unsigned_integer: return static_cast<T>(m_u);
+            case number_kind::floating: return static_cast<T>(m_f);
+            case number_kind::signed_integer: return static_cast<T>(m_i);
+            case number_kind::unsigned_integer: return static_cast<T>(m_u);
             default: std::unreachable();
         }
     }
@@ -99,23 +101,23 @@ public:
 
     json_number() = delete;
 
-    explicit json_number(std::signed_integral auto i) : m_i(i), m_type(number_type::signed_integer) { }
+    explicit json_number(std::signed_integral auto i) : m_i(i), m_type(number_kind::signed_integer) { }
 
-    explicit json_number(std::floating_point auto f) : m_f(f), m_type(number_type::floating) { }
+    explicit json_number(std::floating_point auto f) : m_f(f), m_type(number_kind::floating) { }
 
-    explicit json_number(std::unsigned_integral auto u) : m_u(u), m_type(number_type::unsigned_integer) { }
+    explicit json_number(std::unsigned_integral auto u) : m_u(u), m_type(number_kind::unsigned_integer) { }
 
     bool is_signed_integer() const
-    { return m_type == number_type::signed_integer; }
+    { return m_type == number_kind::signed_integer; }
 
     bool is_unsigned_integer() const
-    { return m_type == number_type::unsigned_integer; }
+    { return m_type == number_kind::unsigned_integer; }
 
     bool is_integer() const
-    { return m_type != number_type::floating; }
+    { return m_type != number_kind::floating; }
 
     bool is_floating() const
-    { return m_type == number_type::floating; }
+    { return m_type == number_kind::floating; }
 
     float_type as_floating() const  
     { return static_cast<float_type>(*this); }
@@ -142,7 +144,7 @@ public:
             return false;
         }
         
-        using enum json_number::number_type;
+        using enum json_number::number_kind;
 
         switch (x.m_type)
         {

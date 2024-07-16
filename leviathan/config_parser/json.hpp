@@ -603,5 +603,6 @@ struct std::formatter<leviathan::json::json_value, CharT>
     {
         std::basic_string<CharT> result = leviathan::json::dump(val);
         return std::ranges::copy(result, ctx.out()).out;
-}
+    }
+
 };

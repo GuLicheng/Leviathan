@@ -9,6 +9,9 @@ namespace leviathan::operators
 template <typename T>
 inline constexpr bool enum_enable_pipe = false;
 
+// template <typename T>
+// inline constexpr bool variant_enable_equal = false;
+
 }
 
 template <typename Enum>
@@ -18,4 +21,10 @@ constexpr Enum operator|(Enum x, Enum y)
     return Enum(std::to_underlying(x) | std::to_underlying(y));
 }
 
+// template <typename Variant>
+//     requires (leviathan::operators::variant_enable_equal<Variant>)
+// constexpr bool operator==(const Variant& x, const Variant& y)
+// {
+    
+// }
 

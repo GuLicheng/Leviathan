@@ -1,5 +1,7 @@
 #pragma once
 
+#include <leviathan/meta/is_specialization_of.hpp>
+
 #include <type_traits>
 #include <variant>
 #include <memory>
@@ -10,13 +12,13 @@ namespace leviathan
 /**
  * @brief
  * 
- * @param Fn Store pointer of type T with large object and value with small object.
+ * @param Fn Adaptor, convert value to storage type and access object.
  * @param Ts... Object types.
  */
 template <typename Fn, typename... Ts>
 class value
 {
-protected:
+public:
 
     template <typename T>
     struct actual
@@ -25,6 +27,8 @@ protected:
 
         static_assert(std::is_same_v<type, std::remove_cvref_t<type>>);
     };
+
+protected:
 
     template <typename T>
     struct declaration
@@ -42,7 +46,7 @@ public:
 
     template <typename Arg>
         requires (declaration<Arg>::value)
-    constexpr value(Arg arg) : m_data(Fn::from(std::move(arg))) { }
+    constexpr value(Arg arg) : m_data(Fn::from_value(std::move(arg))) { }
 
     constexpr value(const value&) = delete;
     constexpr value& operator=(const value&) = delete;
@@ -68,30 +72,22 @@ public:
     template <typename T>
     constexpr const T* as_ptr() const
     {
-        return const_cast<value&>(*this).as_ptr();
+        return const_cast<value&>(*this).as_ptr<T>();
     }
 
-    template <typename T>
-    constexpr T& as()
+    template <typename T, typename Self>
+    constexpr auto&& as(this Self&& self)
     {
-        return *as_ptr<T>();
+        auto ptr = self.template as_ptr<T>(); 
+        return std::forward_like<Self>(*ptr);
     }
 
-    template <typename T>
-    constexpr T& as() const
+    template <typename Self>
+    constexpr auto&& data(this Self&& self)
     {
-        return const_cast<value&>(*this).as<T>();
+        return ((Self&&)self).m_data;
     }
 };
-
-template <typename T, template <typename...> typename Primary>
-struct is_specialization_of : std::false_type { };
-
-template <template <typename...> typename Primary, typename... Args>
-struct is_specialization_of<Primary<Args...>, Primary> : std::true_type { };
-
-template <typename T, template <typename...> typename Primary>
-inline constexpr bool is_specialization_of_v = is_specialization_of<T, Primary>::value;
 
 template <size_t N>
 struct to_unique_ptr_if_large_than
@@ -100,7 +96,7 @@ struct to_unique_ptr_if_large_than
     using type = std::conditional_t<(sizeof(U) > N), std::unique_ptr<U>, U>;
 
     template <typename T>
-    static constexpr auto from(T t) 
+    static constexpr auto from_value(T t) 
     {
         if constexpr (sizeof(T) > N)
         {
@@ -115,7 +111,7 @@ struct to_unique_ptr_if_large_than
     template <typename T>
     static constexpr auto to_address(T* t) 
     {
-        if constexpr (!is_specialization_of_v<std::remove_cv_t<T>, std::unique_ptr>)
+        if constexpr (!meta::is_specialization_of_v<std::remove_cv_t<T>, std::unique_ptr>)
         {
             return t;
         }
@@ -125,6 +121,25 @@ struct to_unique_ptr_if_large_than
         }
     }
 };
+
+struct store_self
+{
+    template <typename U>
+    using type = U;
+
+    template <typename T>
+    static constexpr auto&& from_value(T&& t)
+    {
+        return (T&&)t;
+    } 
+
+    template <typename T>
+    static constexpr auto to_address(T* t) 
+    {
+        return t;
+    }
+};
+
 
 } // namespace leviathan
 
