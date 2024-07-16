@@ -484,10 +484,9 @@ private:
 
 };
 
-template <typename Decoder, typename CharT = char>
+template <typename Decoder>
 class parser
 {
-    // static_assert(std::is_same_v<CharT, char>)
 public:
 
     parser() = default;
@@ -500,7 +499,7 @@ public:
 
 private:
 
-    std::basic_string<CharT> m_content;
+    std::string m_content;
 };
 
 inline json_value loads(std::string source)

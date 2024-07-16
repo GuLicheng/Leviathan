@@ -28,6 +28,15 @@ public:
         static_assert(std::is_same_v<type, std::remove_cvref_t<type>>);
     };
 
+    struct accessor
+    {
+        template <typename T>
+        constexpr static auto operator()(const T& x)
+        {
+            return Fn::to_address(std::addressof(x));
+        }
+    };
+
 protected:
 
     template <typename T>

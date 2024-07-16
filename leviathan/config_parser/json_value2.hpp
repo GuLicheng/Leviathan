@@ -275,14 +275,13 @@ struct dump_helper
         );
     }
 
-    void operator()(const typename json_value::actual<json_string>::type& strptr, int count) 
+    void operator()(const json_string& strptr, int count) 
     {
-        m_result += std::format("\"{}\"", *strptr);
+        m_result += std::format("\"{}\"", strptr);
     }
 
-    void operator()(const std::unique_ptr<json_array>& arrptr, int count) 
+    void operator()(const json_array& arr, int count) 
     {
-        auto& arr = *arrptr;
         m_result += '[';
 
         for (std::size_t i = 0; i < arr.size(); ++i)
@@ -307,9 +306,8 @@ struct dump_helper
         m_result.append("null"); 
     }
 
-    void operator()(const typename json_value::actual<json_object>::type& objptr, int count) 
+    void operator()(const json_object& object, int count) 
     {
-        auto& object = *objptr;
         m_result += '{';
         for (auto it = object.begin(); it != object.end(); ++it)
         {
@@ -330,8 +328,9 @@ struct dump_helper
 
     void operator()(const json_value& value, int count) 
     {
-        std::visit([count, this]<typename T>(const T& t) {
-            this->operator()(t, count);
+        std::visit([count, this]<typename T>(const T& x) {
+            auto ptr = json_value::accessor()(x);
+            this->operator()(*ptr, count);
         }, value.data());
     }
 };

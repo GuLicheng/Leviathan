@@ -5,6 +5,7 @@
 #pragma once
 
 #include <string_view>
+#include <iostream>
 
 // Only Support cl, gcc and clang
 // Use std::source_location::filename make it general.
