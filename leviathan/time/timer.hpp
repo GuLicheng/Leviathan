@@ -57,4 +57,3 @@ auto get_system_rtime(const std::chrono::duration<RepType, PeriodType>& rtime)
 } // namespace leviathan
 
 
-#endif

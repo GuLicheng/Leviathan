@@ -30,7 +30,7 @@ inline std::string read_file_contents(const char* filename)
         ifs.seekg(0, std::ios::beg);
         ifs.read(&contents[0], contents.size());
     }
-    
+
     return contents;
 }
 

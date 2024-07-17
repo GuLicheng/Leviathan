@@ -1,7 +1,7 @@
 #pragma once
 
 #include <leviathan/meta/is_specialization_of.hpp>
-
+#include <functional>
 #include <type_traits>
 #include <variant>
 #include <memory>
@@ -31,9 +31,10 @@ public:
     struct accessor
     {
         template <typename T>
-        constexpr static auto operator()(const T& x)
+        constexpr static decltype(auto) operator()(T&& x)
         {
-            return Fn::to_address(std::addressof(x));
+            auto ptr = Fn::to_address(std::addressof(x));
+            return std::forward_like<T>(*ptr);
         }
     };
 

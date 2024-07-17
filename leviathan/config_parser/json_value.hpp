@@ -1,17 +1,26 @@
 #pragma once
 
-#include "value.hpp"
+#include <leviathan/value.hpp>
+#include <leviathan/string/string_extend.hpp>
 
 #include <utility>
 #include <memory>
 #include <vector>
 #include <iostream>
 #include <compare>
+#include <format>
 #include <unordered_map>
 #include <type_traits>
 
 namespace leviathan::config::json
 {
+
+template <typename T>
+concept arithmetic = std::is_arithmetic_v<T>;
+
+using leviathan::string::string_viewable;
+using leviathan::string::string_hash_key_equal;
+
 enum class error_code
 {
     ok,
@@ -50,120 +59,112 @@ constexpr const char* report_error(error_code ec)
     return error_infos[static_cast<int>(ec)];
 }
 
-struct bad_json_value_access : std::exception
-{
-    const char* what() const noexcept override
-    {
-        return "bad_json_value_access";
-    }
-};
-
 class json_value;
 
 // std::variant<int64_t, uint64_t, double>
-class json_number
+class json_number : public leviathan::value<leviathan::store_self, int64_t, uint64_t, double>
 {
+    using base = leviathan::value<leviathan::store_self, int64_t, uint64_t, double>;
+
+    template <typename T>
+    constexpr T convert_to() const
+    {
+        return std::visit(
+            [](const auto number) { return static_cast<T>(number); },
+            m_data
+        );
+    }
+
 public:
 
     using int_type = int64_t;
     using uint_type = uint64_t;
     using float_type = double;
 
-private:
+    constexpr json_number() = delete;
 
-    enum struct number_kind 
-    {
-        signed_integer,
-        unsigned_integer,
-        floating,
-    } m_type;
-    
-    union 
-    {
-        float_type m_f;
-        int_type m_i;
-        uint_type m_u;
-    };
+    constexpr explicit json_number(std::signed_integral auto i) : base(int_type(i)) { }
 
-    template <typename T>
-    T as() const
+    constexpr explicit json_number(std::floating_point auto f) : base(float_type(f)) { }
+
+    constexpr explicit json_number(std::unsigned_integral auto u) : base(uint_type(u)) { }
+
+    constexpr bool is_signed_integer() const
     {
-        switch (m_type)
-        {
-            case number_kind::floating: return static_cast<T>(m_f);
-            case number_kind::signed_integer: return static_cast<T>(m_i);
-            case number_kind::unsigned_integer: return static_cast<T>(m_u);
-            default: std::unreachable();
-        }
+        return std::holds_alternative<int_type>(m_data);
     }
 
-public:
-
-    json_number() = delete;
-
-    explicit json_number(std::signed_integral auto i) : m_i(i), m_type(number_kind::signed_integer) { }
-
-    explicit json_number(std::floating_point auto f) : m_f(f), m_type(number_kind::floating) { }
-
-    explicit json_number(std::unsigned_integral auto u) : m_u(u), m_type(number_kind::unsigned_integer) { }
-
-    bool is_signed_integer() const
-    { return m_type == number_kind::signed_integer; }
-
-    bool is_unsigned_integer() const
-    { return m_type == number_kind::unsigned_integer; }
-
-    bool is_integer() const
-    { return m_type != number_kind::floating; }
-
-    bool is_floating() const
-    { return m_type == number_kind::floating; }
-
-    float_type as_floating() const  
-    { return static_cast<float_type>(*this); }
-
-    uint_type as_unsigned_integer() const
-    { return static_cast<uint_type>(*this); }
-
-    int_type as_signed_integer() const
-    { return static_cast<int_type>(*this); }
-
-    explicit operator float_type() const
-    { return as<float_type>(); }
-
-    explicit operator int_type() const
-    { return as<int_type>(); }
-
-    explicit operator uint_type() const
-    { return as<uint_type>(); }
-
-    friend bool operator==(const json_number& x, const json_number& y) 
+    constexpr bool is_unsigned_integer() const
     {
-        if (x.m_type != y.m_type)
-        {
-            return false;
-        }
-        
-        using enum json_number::number_kind;
-
-        switch (x.m_type)
-        {
-            case floating: return std::abs(x.as_floating() - y.as_floating()) < 1e-5; // Is Ok?
-            case signed_integer: return x.as_signed_integer() == y.as_signed_integer();
-            case unsigned_integer: return x.as_unsigned_integer() == y.as_unsigned_integer();
-        }
+        return std::holds_alternative<uint_type>(m_data);
     }
 
-    template <typename Char, typename Traits>
-    friend std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& os, const json_number& x)
+    constexpr bool is_integer() const
     {
-        if (x.is_floating())
-            os << x.as_floating();
-        else if (x.is_signed_integer())
-            os << x.as_signed_integer();
+        return !is_floating();
+    }
+
+    constexpr bool is_floating() const
+    {
+        return std::holds_alternative<float_type>(m_data);
+    }
+
+    constexpr float_type as_floating() const
+    {
+        return convert_to<float_type>();
+    }
+
+    constexpr uint_type as_unsigned_integer() const
+    {
+        return convert_to<uint_type>();
+    }
+
+    constexpr int_type as_signed_integer() const
+    {
+        return convert_to<int_type>();
+    }
+
+    constexpr explicit operator float_type() const
+    {
+        return as_floating();
+    }
+
+    constexpr explicit operator int_type() const
+    {
+        return as_signed_integer();
+    }
+
+    constexpr explicit operator uint_type() const
+    {
+        return as_unsigned_integer();
+    }
+
+    constexpr friend bool operator==(const json_number& x, const json_number& y) 
+    {
+        if (x.is_integer() && y.is_integer())
+        {
+            if (x.is_signed_integer() && y.is_signed_integer())
+            {
+                return std::cmp_equal(x.as_signed_integer(), y.as_signed_integer());
+            }
+            else if (x.is_unsigned_integer() && y.is_signed_integer())
+            {
+                return std::cmp_equal(x.as_unsigned_integer(), y.as_signed_integer());
+            }
+            else if (x.is_signed_integer() && y.is_unsigned_integer())
+            {
+                return std::cmp_equal(x.as_signed_integer(), y.as_unsigned_integer());
+            }
+            else
+            {
+                return std::cmp_equal(x.as_unsigned_integer(), y.as_unsigned_integer());
+            }
+        }
         else
-            os << x.as_unsigned_integer();
-        return os;
+        {
+            constexpr double epsilon = 1e-5;
+            return std::abs(x.as_floating() - y.as_floating()) < epsilon;
+        }
     }
 };
 
@@ -176,12 +177,8 @@ using json_boolean = bool;
 using json_array = std::vector<json_value>;
 using json_object = std::unordered_map<json_string, json_value, string_hash_key_equal, string_hash_key_equal>;
 
-// The std::shared_ptr may cause memory leak for cycling reference
-// and the raw pointer may free memory twice for cycling reference.
-using to_pointer = to_unique_ptr_if_large_than<16>;
-
-using json_value_base = value_base<
-    to_pointer, 
+using json_value_base = leviathan::value<
+    to_unique_ptr_if_large_than<16>, 
     json_null,
     json_boolean,
     json_number,
@@ -196,28 +193,6 @@ class json_value : public json_value_base
 {
 public:
 
-    using typename json_value_base::value_type;
-
-    auto& data() 
-    { return m_data; }
-
-    auto& data() const
-    { return m_data; }
-
-    template <typename T>
-    optional<T&> try_as()
-    {
-        if (!is<T>())
-        {
-            return nullopt;
-        }
-        return as<T>();
-    }
-
-public:
-
-    json_value() : json_value_base(error_code::uninitialized) { }
-
     using json_value_base::json_value_base;
     using json_value_base::operator=;
 
@@ -225,9 +200,7 @@ public:
     json_value& operator[](const Svs&... svs) 
     {
         std::string_view views[] = { std::string_view(svs)... };
-
         json_value* target = this;
-
         json_object default_object = json_object();
 
         for (auto sv : views)
@@ -239,44 +212,6 @@ public:
 
         return *target;
     }
-
-    template <typename T>
-    T* as_ptr()
-    {
-        using U = typename mapped<T>::type;
-        auto ptr = std::get_if<U>(&m_data);
-        if constexpr (is_mapped<T>)
-            return ptr ? std::to_address(*ptr) : nullptr;
-        else
-            return ptr;
-    }
-
-    template <typename T, bool NoThrow = true>
-    T& as() 
-    {
-        if constexpr (!NoThrow)
-        {
-            if (!is<T>())
-                throw bad_json_value_access();
-            return as<T, NoThrow>();
-        }
-        else
-        {
-            if constexpr (!is_mapped<T>)
-            {
-                return *std::get_if<T>(&m_data);
-            }
-            else 
-            {
-                using U = typename mapped<T>::type;
-                return *(*std::get_if<U>(&m_data)).get();
-            }
-        }
-    }
-
-    template <typename T, bool NoThrow = true>
-    const T& as() const
-    { return const_cast<json_value&>(*this).as<T>(); }
 
     bool is_integer() const
     {
@@ -310,50 +245,113 @@ public:
         auto code = std::get_if<error_code>(&m_data);
         return code ? *code : error_code::ok;
     }
-
-    optional<json_number&> as_number()
-    { return try_as<json_number>(); }
-
-    optional<json_boolean&> as_boolean()
-    { return try_as<json_boolean>(); }
-
-    optional<json_null&> as_null() 
-    { return try_as<json_null>(); }
-
-    optional<json_array&> as_array()
-    { return try_as<json_array>(); }
-
-    optional<json_object&> as_object()
-    { return try_as<json_object>(); }
-
-    optional<json_string&> as_string()
-    { return try_as<json_string>(); }
-    
 };
 
-json_value make(json_null)
-{ return json_null(); }
+template <typename Object, typename... Args>
+json_value make_json(Args&&... args)
+{
+    return Object((Args&&) args...);
+}
 
-json_value make(json_string str)
-{ return str; }
+}
 
-json_value make(json_array arr)
-{ return arr; }
+namespace leviathan::json
+{
+using namespace ::leviathan::config::json;
+}
 
-json_value make(json_object obj)
-{ return obj; }
+namespace leviathan::config::json::detail
+{
 
-json_value make(arithmetic auto num)
-{ return json_number(num); }
+struct dump_helper
+{
+    std::string m_result;
 
-json_value make(json_boolean b)
-{ return b; }
+    void operator()(const json_number& number, int count)
+    {
+        m_result += std::visit(
+            [](const auto& x) { return std::format("{}", x); },
+            number.data()
+        );
+    }
 
-json_value make(error_code ec)
-{ return ec; }
+    void operator()(const json_string& str, int count) 
+    {
+        m_result += std::format("\"{}\"", str);
+    }
 
-json_value make(const char* str)
-{ return json_string(str); }  
+    void operator()(const json_array& arr, int count) 
+    {
+        m_result += '[';
 
-} // namespace leviathan::config::json
+        for (std::size_t i = 0; i < arr.size(); ++i)
+        {
+            if (i != 0) 
+            {
+                m_result.append(", ");
+            }
+            this->operator()(arr[i], 0);
+        }
+
+        m_result += ']';
+    }
+
+    void operator()(const json_boolean& boolean, int count) 
+    {
+        m_result.append((boolean ? "true" : "false"));
+    }
+
+    void operator()(const json_null&, int count) 
+    {
+        m_result.append("null"); 
+    }
+
+    void operator()(const json_object& object, int count) 
+    {
+        m_result += '{';
+        for (auto it = object.begin(); it != object.end(); ++it)
+        {
+            if (it != object.begin()) 
+            {
+                m_result += ", ";
+            }
+            m_result += std::format(R"("{}" : )", it->first);
+            this->operator()(it->second, count + 1);
+        }
+        m_result += '}';
+    }
+
+    void operator()(const error_code& ec, int count)
+    {
+        std::unreachable();
+    }
+
+    void operator()(const json_value& value, int count) 
+    {
+        std::visit([count, this]<typename T>(const T& x) {
+            this->operator()(json_value::accessor()(x), count);
+        }, value.data());
+    }
+};
+
+}
+
+template <typename CharT>
+struct std::formatter<leviathan::json::json_value, CharT> 
+{
+    template <typename ParseContext>
+    constexpr typename ParseContext::iterator parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FmtContext>
+    typename FmtContext::iterator format(const leviathan::json::json_value& value, FmtContext& ctx) const
+    {
+        leviathan::json::detail::dump_helper dumper;
+        dumper(value, 0);
+        return std::ranges::copy(dumper.m_result, ctx.out()).out;
+    }   
+};
+
 
