@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.hpp"
+#include "parser.hpp"
 #include "json_value.hpp"
 #include <string_view>
 
@@ -484,28 +485,9 @@ private:
 
 };
 
-template <typename Decoder>
-class parser
-{
-public:
-
-    parser() = default;
-
-    json_value parse(std::string source) 
-    {
-        m_content = std::move(source);
-        return Decoder(m_content)();
-    }
-
-private:
-
-    std::string m_content;
-};
-
 inline json_value loads(std::string source)
 {
-    parser<json_decoder> p;
-    return p.parse(std::move(source));
+    return parser<json_decoder>()(std::move(source));
 }
 
 inline json_value load(const char* filename)

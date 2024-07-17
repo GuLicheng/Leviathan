@@ -1,7 +1,7 @@
 #pragma once
 
-#include <leviathan/value.hpp>
-#include <leviathan/string/string_extend.hpp>
+#include "../value.hpp"
+#include "../string/string_extend.hpp"
 
 #include <utility>
 #include <memory>
