@@ -16,7 +16,7 @@ namespace leviathan
  * @param Ts... Object types.
  */
 template <typename Fn, typename... Ts>
-class value
+class variable
 {
 public:
 
@@ -52,17 +52,17 @@ protected:
 
 public:
 
-    constexpr value() = default;
+    constexpr variable() = default;
 
     template <typename Arg>
         requires (declaration<Arg>::value)
-    constexpr value(Arg arg) : m_data(Fn::from_value(std::move(arg))) { }
+    constexpr variable(Arg arg) : m_data(Fn::from_value(std::move(arg))) { }
 
-    constexpr value(const value&) = delete;
-    constexpr value& operator=(const value&) = delete;
+    constexpr variable(const variable&) = delete;
+    constexpr variable& operator=(const variable&) = delete;
     
-    constexpr value(value&&) = default;
-    constexpr value& operator=(value&&) = default;
+    constexpr variable(variable&&) = default;
+    constexpr variable& operator=(variable&&) = default;
 
     template <typename T>
     constexpr bool is() const
@@ -82,7 +82,7 @@ public:
     template <typename T>
     constexpr const T* as_ptr() const
     {
-        return const_cast<value&>(*this).as_ptr<T>();
+        return const_cast<variable&>(*this).as_ptr<T>();
     }
 
     template <typename T, typename Self>

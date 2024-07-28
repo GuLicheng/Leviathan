@@ -1,0 +1,19 @@
+ml-literal-string-newline-after-delim = '''
+Hello
+World
+'''
+
+ml-literal-string-non-newline-after-delim = '''SomeContexts
+'''
+
+ml-literal-string-non-newline-after-delim1 = '''
+ContextWithSlash\
+'''
+
+ml-literal-string-non-newline-after-delim2 = '''
+ContextWithSlashAndOtherContexts\ A
+'''
+
+ml-literal-string-non-newline-after-delim3 = '''
+ContextWithSlashAndWithespace\  
+'''

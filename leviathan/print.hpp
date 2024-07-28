@@ -243,5 +243,9 @@ public:
         Font = font;
     }
 
+    static void SetCodePoint()
+    {
+        system("chcp 65001");
+    }
 };
 

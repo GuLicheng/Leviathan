@@ -249,7 +249,7 @@ read_only_configuration parse_configuration(const char* filename)
     std::fstream ifs(filename, std::ios_base::in | std::ios_base::binary);
     
     // auto context = std::make_unique<string>(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
-    auto context = std::make_unique<string>(read_file_contents(filename));
+    auto context = std::make_unique<string>(read_file_context(filename));
 
     auto sections = *context
         | std::views::split(detail::linefeed)

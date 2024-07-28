@@ -1,4 +1,4 @@
-#include <leviathan/config_parser/json.hpp>
+#include "json.hpp"
 #include <catch2/catch_all.hpp>
 
 #include <numeric>
@@ -7,27 +7,27 @@
 
 namespace json = leviathan::json;
 
-using json::json_null;
-using json::json_number;
-using json::json_boolean;
-using json::json_array;
-using json::json_object;
-using json::json_value;
-using json::json_string;
+// using json::null;
+// using json::number;
+// using json::boolean;
+// using json::array;
+// using json::object;
+// using json::value;
+// using json::string;
 using json::error_code;
 using json::make_json;
 
 TEST_CASE("json_make")
 {
-    json_value value1 = make_json<json_number>(3);
-    json_value value2 = make_json<json_boolean>(true);
-    json_value value3 = make_json<json_string>("HelloWorld");
-    json_value value4 = make_json<json_array>();
-    json_value value5 = make_json<json_object>();
-    json_value value6 = make_json<error_code>(error_code::uninitialized);
-    json_value value7 = make_json<json_null>(nullptr);
-    json_value value8 = make_json<json_number>(3ull);
-    json_value value9 = make_json<json_number>(3.14);
+    json::value value1 = make_json<json::number>(3);
+    json::value value2 = make_json<json::boolean>(true);
+    json::value value3 = make_json<json::string>("HelloWorld");
+    json::value value4 = make_json<json::array>();
+    json::value value5 = make_json<json::object>();
+    json::value value6 = make_json<error_code>(error_code::uninitialized);
+    json::value value7 = make_json<json::null>(nullptr);
+    json::value value8 = make_json<json::number>(3ull);
+    json::value value9 = make_json<json::number>(3.14);
 
     REQUIRE(value1.is_number());
     REQUIRE(value1.is_integer());
@@ -40,14 +40,14 @@ TEST_CASE("json_make")
     REQUIRE(value8.is_number());
     REQUIRE(value9.is_number());
 
-    REQUIRE(value1.as<json_number>().as_signed_integer() == 3);
-    REQUIRE(value2.as<json_boolean>() == true);
-    REQUIRE(value3.as<json_string>() == "HelloWorld");
-    REQUIRE(value4.as<json_array>().empty());
-    REQUIRE(value5.as<json_object>().empty());
-    REQUIRE(value7.as<json_null>() == json::json_null());
-    REQUIRE(value8.as<json_number>().is_unsigned_integer());
-    REQUIRE(value9.as<json_number>().is_floating());
+    REQUIRE(value1.as<json::number>().as_signed_integer() == 3);
+    REQUIRE(value2.as<json::boolean>() == true);
+    REQUIRE(value3.as<json::string>() == "HelloWorld");
+    REQUIRE(value4.as<json::array>().empty());
+    REQUIRE(value5.as<json::object>().empty());
+    REQUIRE(value7.as<json::null>() == json::null());
+    REQUIRE(value8.as<json::number>().is_unsigned_integer());
+    REQUIRE(value9.as<json::number>().is_floating());
 }
 
 TEST_CASE("number")
@@ -63,7 +63,7 @@ TEST_CASE("number")
     auto check = []<typename T>(std::string s, T expected) {
         auto root = json::loads(std::move(s));
         REQUIRE(root.is_array());
-        return root.as<json_array>()[0].as<json_number>() == json_number(expected);
+        return root.as<json::array>()[0].as<json::number>() == json::number(expected);
     };
 
     REQUIRE(check(numbers[0], 123));
@@ -105,8 +105,8 @@ TEST_CASE("string")
             std::string s = key;
             auto list = json::loads(std::format("[{}]", s));
             REQUIRE(list);
-            auto& root = list.as<json_array>()[0];
-            return root.is_string() && root.as<json_string>() == target;
+            auto& root = list.as<json::array>()[0];
+            return root.is_string() && root.as<json::string>() == target;
         };
 
         auto src1 = R"("!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~")";
@@ -145,9 +145,9 @@ TEST_CASE("literal")
     auto value = json::loads(s);
 
     REQUIRE(value.is_array());
-    REQUIRE(value.as<json_array>().at(0).as<json_boolean>() == true);
-    REQUIRE(value.as<json_array>().at(1).as<json_boolean>() == false);
-    REQUIRE(value.as<json_array>().at(2).is_null());
+    REQUIRE(value.as<json::array>().at(0).as<json::boolean>() == true);
+    REQUIRE(value.as<json::array>().at(1).as<json::boolean>() == false);
+    REQUIRE(value.as<json::array>().at(2).is_null());
 }
 
 TEST_CASE("annotation")
@@ -160,7 +160,7 @@ TEST_CASE("annotation")
 
     REQUIRE(root.is_object());
 
-    auto& object = root.as<json_object>()["00000_FV.json"].as<json_object>();
+    auto& object = root.as<json::object>()["00000_FV.json"].as<json::object>();
 
     std::string keys[] = {
         "annotation",
@@ -182,7 +182,7 @@ TEST_CASE("annotation")
 
     auto check_number = [&](const char* name, int value) {
         REQUIRE(object[name].is_number());
-        REQUIRE(object[name].as<json_number>().as_signed_integer() == value);
+        REQUIRE(object[name].as<json::number>().as_signed_integer() == value);
     };
 
     check_number("image_channels", 3);
@@ -192,13 +192,13 @@ TEST_CASE("annotation")
     check_number("job_id", 212425942);
 
     REQUIRE(object["status"].is_string());
-    REQUIRE(object["status"].as<json_string>() == "finished");
+    REQUIRE(object["status"].as<json::string>() == "finished");
 
     REQUIRE(object["annotation-tags"].is_array());
-    auto& annotags = object["annotation-tags"].as<json_array>();
+    auto& annotags = object["annotation-tags"].as<json::array>();
 
-    std::ranges::sort(annotags, {}, [](json::json_value& value) {
-        return value.as<json_string>();
+    std::ranges::sort(annotags, {}, [](json::value& value) {
+        return value.as<json::string>();
     });
 
     std::string tags[] = {
@@ -230,11 +230,11 @@ TEST_CASE("annotation")
 
     for (size_t i = 0; i < annotags.size(); ++i)
     {
-        REQUIRE(annotags[i].as<json_string>() == tags[i]);
+        REQUIRE(annotags[i].as<json::string>() == tags[i]);
     }
 
     REQUIRE(object["annotation"].is_array());
-    auto& anno = object["annotation"].as<json_array>();
+    auto& anno = object["annotation"].as<json::array>();
 
     int id = 0;
 
@@ -242,7 +242,7 @@ TEST_CASE("annotation")
     {
         if (val.is_object())
         {
-            id += val.as<json_object>().count("id");
+            id += val.as<json::object>().count("id");
         }
     }
 
@@ -251,7 +251,7 @@ TEST_CASE("annotation")
 
 TEST_CASE("multi-dim operator[]")
 {
-    auto obj = json::make_json<json_object>();
+    auto obj = json::make_json<json::object>();
 
     obj["Hello", "World"];
 

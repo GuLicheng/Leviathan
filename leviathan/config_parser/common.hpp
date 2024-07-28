@@ -19,7 +19,7 @@
 namespace leviathan::config
 {
     
-using leviathan::read_file_contents;
+using leviathan::read_file_context;
 using leviathan::encode_unicode_to_utf8;
 using leviathan::is_utf8;
 using leviathan::is_unicode;
@@ -99,7 +99,7 @@ namespace detail
 template <size_t N> 
 constexpr unsigned decode_unicode_from_char(const char* p)
 {
-    static_assert(N == 4 || N == 8);
+    static_assert(N == 2 || N == 4 || N == 8);
 
     auto to_digit = [](char ch) -> unsigned
     {
@@ -111,7 +111,13 @@ constexpr unsigned decode_unicode_from_char(const char* p)
     };
 
     unsigned i = 0;
-    if constexpr (N == 4)
+
+    if constexpr (N == 2)
+    {
+        i |= to_digit(p[0]) << 4;
+        i |= to_digit(p[1]);
+    }
+    else if constexpr (N == 4)
     {
         i |= to_digit(p[0]) << 12;
         i |= to_digit(p[1]) << 8;

@@ -1226,7 +1226,7 @@ inline toml_value load(string context)
 { return parser(std::move(context))(); }
 
 inline toml_value parse_toml(const char* filename)
-{ return load(read_file_contents(filename)); }
+{ return load(read_file_context(filename)); }
 
 } // namespace leviathan::config::toml
 

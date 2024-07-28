@@ -1,4 +1,3 @@
-
 def bind_front(adaptor, function):
     def closure(*args):
         return adaptor(function, *args)

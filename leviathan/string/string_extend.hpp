@@ -3,8 +3,6 @@
 #include <string>
 #include <string_view>
 #include <concepts>
-#include <optional>
-#include <charconv>
 
 namespace leviathan::string
 {
@@ -95,6 +93,11 @@ constexpr std::string_view take_while(std::string_view sv, Pred pred)
 
 inline std::string replace(std::string str, std::string_view from, std::string_view to)
 {
+    if (from == to)
+    {
+        return str;
+    }
+
     size_t pos = 0;
     while ((pos = str.find(from, pos)) != str.npos)
     {

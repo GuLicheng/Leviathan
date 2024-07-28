@@ -263,7 +263,7 @@ using namespace ::leviathan::config::json;
 namespace leviathan::config::json::detail
 {
 
-struct dump_helper
+struct encoder
 {
     std::string m_result;
 
@@ -348,9 +348,9 @@ struct std::formatter<leviathan::json::json_value, CharT>
     template <typename FmtContext>
     typename FmtContext::iterator format(const leviathan::json::json_value& value, FmtContext& ctx) const
     {
-        leviathan::json::detail::dump_helper dumper;
-        dumper(value, 0);
-        return std::ranges::copy(dumper.m_result, ctx.out()).out;
+        leviathan::json::detail::encoder encoder;
+        encoder(value, 0);
+        return std::ranges::copy(encoder.m_result, ctx.out()).out;
     }   
 };
 
