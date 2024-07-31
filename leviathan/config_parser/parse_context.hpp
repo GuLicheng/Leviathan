@@ -150,7 +150,7 @@ struct parse_context
     constexpr void locate_character(char ch)
     {
         const auto idx = m_ctx.find(ch);
-        advance_unchecked(idx == m_ctx.npos() ? m_ctx.size() : idx);
+        advance_unchecked(idx == m_ctx.npos ? m_ctx.size() : idx);
     }
 
     constexpr size_t locate(char ch) const

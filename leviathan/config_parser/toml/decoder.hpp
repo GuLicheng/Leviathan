@@ -43,6 +43,8 @@ namespace detail
 inline constexpr std::string_view wschar = "\r ";
 inline constexpr std::string_view ml_literal_string_delim = "'''";
 inline constexpr std::string_view ml_basic_string_delim = "\"\"\"";
+inline constexpr std::string_view array_table_open = "[[";
+inline constexpr std::string_view array_table_close = "]]";
 
 // For convenience, we keep linefeed be '\n' during reading file.
 inline constexpr char newline = '\n';
@@ -50,11 +52,18 @@ inline constexpr char quotation_mark = '"';
 inline constexpr char apostrophe = '\'';
 inline constexpr char dot_sep = '.';
 inline constexpr char escaped = '\\';
+inline constexpr char keyval_sep = '=';
+inline constexpr char comment_start_symbol = '#';
+inline constexpr char std_table_open = '[';
+inline constexpr char std_table_close = ']';
+inline constexpr char array_open = '[';
+inline constexpr char array_close = ']';
+inline constexpr char array_sep = ',';
 
 template <typename InputIterator, size_t N>
 void decode_unicode(InputIterator dest, parse_context& ctx) 
 {
-    if (sv.size() != N)
+    if (ctx.size() != N)
     {
         throw_toml_parse_error("Too small characters for unicode");
     }
@@ -81,7 +90,7 @@ string parse_basic_string_impl(parse_context& ctx, Fn fn)
                 throw_toml_parse_error("Escaped cannot at the end.");
             }
 
-            switch (&ctx)
+            switch (*ctx)
             {
                 case '"': out += '"'; break;    // quote
                 case '\\': out += '\\'; break;  // reverse solidus
@@ -91,8 +100,8 @@ string parse_basic_string_impl(parse_context& ctx, Fn fn)
                 case 'n': out += '\n'; break;   // linefeed
                 case 'r': out += '\r'; break;   // carriage return
                 case 't': out += '\t'; break;   // horizontal tab
-                case 'u': decode_unicode<4>(std::back_inserter(out), ctx.slice(1, 4)); break;
-                case 'U': decode_unicode<8>(std::back_inserter(out), ctx.slice(1, 8)); break;
+                case 'u': decode_unicode<4>(std::back_inserter(out), ctx); break;
+                case 'U': decode_unicode<8>(std::back_inserter(out), ctx); break;
                 // TODO: \x -> two digits
                 default: throw_toml_parse_error("Illegal character after escaped.");
             }
@@ -117,20 +126,41 @@ string parse_basic_string_impl(parse_context& ctx, Fn fn)
 
 class decoder
 {
-    parse_context m_ctx;
-    table m_global; 
-    std::vector<string> m_section_names;
-    std::vector<string> m_key_names;
+    enum kind { global, table, array_table };
 
-    static bool non_ascii(char ch)
+    // Current status
+    kind m_kind;
+
+    // Context
+    parse_context m_ctx;  
+
+    // Root, always be table
+    value m_global;         
+
+    // Section names
+    std::vector<string> m_table_keys;
+
+    // Entry keys
+    std::vector<string> m_entry_keys;
+
+    static bool non_ascii(int ch)
     {
         return (0x80 <= ch && ch <= 0xD7FF)
-            || (0xE000 <= x && x <= 0x10FFFF);
+            || (0xE000 <= ch && ch <= 0x10FFFF);
     }
 
 public:
 
-    decoder(std::string_view context) : m_ctx(context) { }
+    decoder(std::string_view context) 
+        : m_kind(kind::global),
+          m_ctx(context),
+          m_global(table()) { }
+
+    value operator()()
+    {
+        parse();
+        return std::move(m_global);
+    }
 
     void parse()
     {
@@ -150,7 +180,7 @@ public:
 
     void parse_wschar()
     {
-        m_ctx.skip(wschar);
+        m_ctx.skip(detail::wschar);
     }
 
     void parse_expression()
@@ -168,12 +198,50 @@ public:
         parse_comment_optional();
     }
 
+    void parse_table()
+    {
+        // Clear table and put new keys during parsing.
+        m_table_keys.clear();
+
+        if (m_ctx.match(detail::array_table_open))
+        {
+            parse_array_table();
+            m_kind = kind::array_table;
+        }
+        else
+        {
+            parse_std_table();
+            m_kind = kind::table;
+        }
+    }
+
+    void parse_array_table()
+    {
+        m_ctx.consume(detail::array_table_open);
+        parse_wschar();
+        m_table_keys = parse_key();
+        parse_wschar();
+        check_and_throw(m_ctx.consume(detail::array_table_close), "Expected ]] after array table");
+    }
+
+    void parse_std_table()
+    {
+        m_ctx.consume(detail::std_table_open);
+        parse_wschar();
+        m_table_keys = parse_key();
+        parse_wschar();
+        check_and_throw(m_ctx.consume(detail::std_table_close), "Expected ] after std table.");
+    }
+
     void parse_keyval()
     {
-        parse_key();
+        auto keys = parse_key();
         parse_keyval_sep();
-        parse_val();
+        auto value = parse_val();
+        try_add_value_to_root(keys, value);
     }
+
+    void try_add_value_to_root(const std::vector<string>& keys, value x);
 
     value parse_val()
     {
@@ -194,9 +262,70 @@ public:
         }
     }
 
-    value parse_number_or_date_time();
+    value parse_array()
+    {
+        m_ctx.consume(detail::array_open);
+        skip_ws_comment_newline();
 
-    value parse_basic_string_or_multiline();
+        array retval;
+
+        if (m_ctx.match(detail::array_close))
+        {
+            m_ctx.advance_unchecked(1); // eat ']'
+            return retval;
+        }
+        else
+        {
+            while (1)
+            {
+                retval.emplace_back(parse_val());
+                skip_ws_comment_newline();
+
+                if (m_ctx.match(detail::array_close))
+                {
+                    m_ctx.advance_unchecked(1);
+                    return retval;
+                }
+
+                if (!m_ctx.match(detail::array_sep))
+                {
+                    throw_toml_parse_error("Expected ] after array.");
+                }
+                skip_ws_comment_newline();
+            }
+        }
+    }
+
+    void skip_ws_comment_newline()
+    {
+        // ws-comment-newline = *( wschar / [ comment ] newline )
+        m_ctx.skip_whitespace();
+
+        while (m_ctx.match(detail::comment_start_symbol))
+        {
+            parse_comment();
+            m_ctx.skip_whitespace(); 
+        }
+    }
+
+    value parse_inline_table();
+
+    value parse_number_or_date_time()
+    {
+        throw_toml_parse_error("Unimplemented.");
+    }
+
+    value parse_basic_string_or_multiline()
+    {
+        return m_ctx.match(detail::ml_basic_string_delim)
+             ? parse_ml_basic_string()
+             : parse_basic_string();
+    }
+
+    value parse_ml_basic_string()
+    {
+        throw_toml_parse_error("Not implemented");
+    }
 
     value parse_literal_string_or_multiline()
     {
@@ -298,14 +427,17 @@ public:
         parse_wschar();
     }
 
-    void parse_key()
+    std::vector<string> parse_key()
     {
-        parse_simple_key();
+        std::vector<string> keys;
+
+        keys.emplace_back(parse_simple_key());
 
         while (parse_dot_sep())
         {
-            parse_simple_key();
+            keys.emplace_back(parse_simple_key());
         }
+        return keys;
     }
 
     bool parse_dot_sep()
@@ -345,7 +477,7 @@ public:
             return ch == 0x09
                 || (0x20 <= ch && ch <= 0x26)
                 || (0x28 <= ch && ch <= 0x7E)
-                || non_ascii(n);
+                || non_ascii(ch);
         };
 
         string retval;
@@ -361,13 +493,13 @@ public:
     string parse_basic_string()
     {
         m_ctx.consume(detail::quotation_mark);
-        auto basic_unescaped = [](char ch) static {
+        auto basic_unescaped = [](int ch) static {
             return ch == 0x21
                 || ch == ' '
                 || ch == '\t'
                 || (0x23 <= ch && ch <= 0x5B)
                 || (0x5D <= ch && ch <= 0x7E)
-                || non_ascii(n);
+                || non_ascii(ch);
         };
         string retval = detail::parse_basic_string_impl(m_ctx, basic_unescaped);
         check_and_throw(m_ctx.consume(detail::quotation_mark), "literal string must end with \".");
@@ -376,7 +508,7 @@ public:
     string parse_unquoted_key()
     {
         string retval;
-        auto unquoted_key_char = [](char ch) static {
+        auto unquoted_key_char = [](int ch) static {
             static std::string_view special = "\x2D\x5F\xB2\xB3\xB9";
             return ::isalnum(ch) 
                 || special.contains(ch); //  FIXME
@@ -396,21 +528,37 @@ public:
 
         if (m_ctx.is_newline())
         {
-            m_ctx.skip(newline);
+            m_ctx.skip(detail::newline);
         }
         else
         {
-            if (!m_ctx.match('#'))
+            if (!m_ctx.match(detail::comment_start_symbol))
             {
                 throw_toml_parse_error("comment should start with #, but got {}.", m_ctx.current());
             }
-            m_ctx.consume('#');
-            m_ctx.locate_character('\n');
-            m_ctx.advance_unchecked(1);
+            parse_comment();
         }
+    }
+
+    void parse_comment()
+    {
+        m_ctx.consume(detail::comment_start_symbol);
+        m_ctx.locate_character(detail::newline);
+        m_ctx.advance_unchecked(1);
     }
 };
 
+inline value loads(std::string source)
+{
+    return decoder(source)();
+}
+
+inline value load(const char* filename)
+{
+    // Windows
+    constexpr const char* linefeed = "\r\n";
+    return loads(leviathan::read_file_context(filename, linefeed));
+}
 
 } // namespace leviathan::config::toml
 

@@ -95,6 +95,7 @@ public:
 
         array arr;
 
+        // FIXME: match -> current
         if (m_ctx.current() == ']')
         {
             m_ctx.advance_unchecked(1); // eat ']'
@@ -412,7 +413,7 @@ private:
 
 inline value loads(std::string source)
 {
-    return decoder(std::move(source))();
+    return decoder(source)();
 }
 
 inline value load(const char* filename)
