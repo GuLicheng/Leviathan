@@ -99,7 +99,7 @@ public:
         if (m_ctx.current() == ']')
         {
             m_ctx.advance_unchecked(1); // eat ']'
-            return make_json<array>(std::move(arr));
+            return arr;
         }   
         else 
         {
@@ -118,7 +118,7 @@ public:
                 if (m_ctx.current() == ']')
                 {
                     m_ctx.advance_unchecked(1); // eat ']'
-                    return make_json<array>(std::move(arr));
+                    return arr;
                 }
 
                 if (!m_ctx.match_and_advance(','))
@@ -139,7 +139,7 @@ public:
         if (m_ctx.current() == '}')
         {
             m_ctx.advance_unchecked(1); // eat '}'
-            return make_json<object>();
+            return object();
         }
         else if (m_ctx.current() == '\"')
         {
@@ -176,7 +176,7 @@ public:
                 if (m_ctx.current() == '}')
                 {
                     m_ctx.advance_unchecked(1); // eat '}'
-                    return make_json<json::object>(std::move(obj));
+                    return obj;
                 }
 
                 if (!m_ctx.match_and_advance(','))

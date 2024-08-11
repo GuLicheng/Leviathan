@@ -14,28 +14,6 @@ Reference:
 namespace leviathan::config::toml
 {
 
-struct toml_parse_error : std::runtime_error
-{
-    using std::runtime_error::runtime_error;
-};
-
-template <typename... Args>
-[[noreturn]] void throw_toml_parse_error(std::string_view fmt, Args&&... args)
-{
-    auto msg = std::vformat(fmt, std::make_format_args(args...));
-    throw toml_parse_error(msg);
-}
-
-template <typename... Args>
-[[noreturn]] void check_and_throw(bool thrown, std::string_view fmt, Args&&... args)
-{
-    if (thrown)
-    {
-        auto msg = std::vformat(fmt, std::make_format_args(args...));
-        throw toml_parse_error(msg);
-    }
-}
-
 namespace detail
 {
 
@@ -59,8 +37,11 @@ inline constexpr char std_table_close = ']';
 inline constexpr char array_open = '[';
 inline constexpr char array_close = ']';
 inline constexpr char array_sep = ',';
+inline constexpr char inline_table_open = '{';
+inline constexpr char inline_table_close = '}';
+inline constexpr char inline_table_sep = ',';
 
-template <typename InputIterator, size_t N>
+template <size_t N, typename InputIterator>
 void decode_unicode(InputIterator dest, parse_context& ctx) 
 {
     if (ctx.size() != N)
@@ -126,7 +107,7 @@ string parse_basic_string_impl(parse_context& ctx, Fn fn)
 
 class decoder
 {
-    enum kind { global, table, array_table };
+    enum kind { global, std_table, array_table };
 
     // Current status
     kind m_kind;
@@ -185,18 +166,90 @@ public:
 
     void parse_expression()
     {
-        parse_wschar();
-
-        if (m_ctx.match('['))
+        while (!m_ctx.eof())
         {
-            parse_table();
+            // Skip empty line.
+            m_ctx.skip_whitespace(); 
+
+            if (m_ctx.match(detail::std_table_open))
+            {
+                parse_table();
+                // check_table_name();
+            }
+            else
+            {
+                auto [keys, v] = parse_keyval();
+                
+                if (m_kind == kind::std_table)
+                {
+
+                }
+                else if (m_kind == kind::array_table)
+                {
+
+                }
+                else
+                {
+                    // m_global.as<table>().
+                }
+            }
+            parse_comment_optional();
+            m_ctx.skip_whitespace(); 
+        }
+    }
+
+    void try_add_value(value* super, std::vector<string> keys, value x)
+    {
+        [[assume(super != nullptr)]];
+
+        if (super->is<table>())
+        {
+            // For global and std-table, super is table
+            // and we collect all entries as paths 
+        
+        }
+        else if (super->is<array>())
+        {
+            // For array-table, super is array, 
+            // and we collect all entries a table
         }
         else
         {
-            parse_keyval();
+            throw_toml_parse_error("What are you doing? Passing an error pointer?");
         }
-        parse_comment_optional();
     }
+
+    // void try_put_value(std::vector<string> keys, toml_value&& val, toml_table* table = nullptr)
+    // {
+    //     bool ok = false;
+
+    //     auto t = table ? table : m_cur_table;
+
+    //     for (size_t i = 0; i < keys.size() - 1; ++i)
+    //     {
+    //         auto [it, succeed] = t->try_emplace(toml_string(keys[i]), toml_table());
+
+    //         if (!succeed)
+    //         {
+    //             if (!it->second.is<toml_table>())
+    //             {
+    //                 throw_toml_parse_error("Key conflict");
+    //             }
+    //             if (it->second.as_ptr<toml_table>()->is_inline_table())
+    //             {
+    //                 throw_toml_parse_error("Inline table cannot be modified.");
+    //             }
+    //         }
+
+    //         ok = ok || succeed;
+    //         t = it->second.as_ptr<toml_table>();
+    //     }
+
+    //     if (!t->try_emplace(toml_string(keys.back()), std::move(val)).second)
+    //     {
+    //         throw_toml_parse_error("Value already exits");
+    //     }
+    // }
 
     void parse_table()
     {
@@ -211,7 +264,7 @@ public:
         else
         {
             parse_std_table();
-            m_kind = kind::table;
+            m_kind = kind::std_table;
         }
     }
 
@@ -233,15 +286,14 @@ public:
         check_and_throw(m_ctx.consume(detail::std_table_close), "Expected ] after std table.");
     }
 
-    void parse_keyval()
+    std::pair<std::vector<string>, value>
+    parse_keyval()
     {
         auto keys = parse_key();
         parse_keyval_sep();
         auto value = parse_val();
-        try_add_value_to_root(keys, value);
+        return std::make_pair(std::move(keys), std::move(value));
     }
-
-    void try_add_value_to_root(const std::vector<string>& keys, value x);
 
     value parse_val()
     {
@@ -260,6 +312,42 @@ public:
             case '\'': return parse_literal_string_or_multiline();
             default: return parse_number_or_date_time();
         }
+    }
+
+    value parse_inline_table()
+    {
+        m_ctx.consume(detail::inline_table_open);
+        parse_wschar();
+
+        if (m_ctx.match(detail::inline_table_close))
+        {
+            return table();
+        }
+        else
+        {
+            table t;
+
+            while (1)
+            {
+                auto [keys, v] = parse_keyval();
+                // t.add_value(std::move(keys), std::move(v)); //  FIXME
+                parse_wschar();
+
+                if (m_ctx.match(detail::inline_table_close))
+                {
+                    return t;
+                }
+                else if (m_ctx.match(detail::inline_table_sep))
+                {
+                    m_ctx.advance_unchecked(1); // eat ','
+                    continue;
+                }
+                throw_toml_parse_error("Expected ] or , after value.");                
+            }
+        }
+
+        skip_ws_comment_newline();
+        check_and_throw(m_ctx.consume(detail::inline_table_close), "Expected } after inline table.");
     }
 
     value parse_array()
@@ -307,8 +395,6 @@ public:
             m_ctx.skip_whitespace(); 
         }
     }
-
-    value parse_inline_table();
 
     value parse_number_or_date_time()
     {
@@ -503,6 +589,7 @@ public:
         };
         string retval = detail::parse_basic_string_impl(m_ctx, basic_unescaped);
         check_and_throw(m_ctx.consume(detail::quotation_mark), "literal string must end with \".");
+        return retval;
     }
 
     string parse_unquoted_key()
@@ -514,7 +601,7 @@ public:
                 || special.contains(ch); //  FIXME
         };
 
-        for (; m_ctx; ++m_ctx)
+        for (; m_ctx && unquoted_key_char(*m_ctx); ++m_ctx)
         {
             retval += *m_ctx;
         }
@@ -528,7 +615,8 @@ public:
 
         if (m_ctx.is_newline())
         {
-            m_ctx.skip(detail::newline);
+            // m_ctx.skip(detail::newline);
+            m_ctx.advance_unchecked(1);
         }
         else
         {

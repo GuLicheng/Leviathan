@@ -45,6 +45,28 @@ value make_toml(Args&&... args)
     return Object((Args&&) args...);
 }
 
+struct toml_parse_error : std::runtime_error
+{
+    using std::runtime_error::runtime_error;
+};
+
+template <typename... Args>
+[[noreturn]] void throw_toml_parse_error(std::string_view fmt, Args&&... args)
+{
+    auto msg = std::vformat(fmt, std::make_format_args(args...));
+    throw toml_parse_error(msg);
+}
+
+template <typename... Args>
+void check_and_throw(bool ok, std::string_view fmt, Args&&... args)
+{
+    if (!ok)
+    {
+        auto msg = std::vformat(fmt, std::make_format_args(args...));
+        throw toml_parse_error(msg);
+    }
+}
+
 struct encoder
 {
 

@@ -41,6 +41,12 @@ public:
     {
         m_defined = true;
     }
+
+    // template <typename Keys>
+    // bool add_value(const Keys&... key, value x)
+    // {
+    //     throw "Not implement";
+    // }
 };
 
 } // namespace leviathan::config::toml::detail

@@ -5,28 +5,36 @@
 #include <leviathan/ranges/concat.hpp>
 #include <deque>
 #include <numeric>
+#include <unordered_map>
+#include <leviathan/config_parser/toml/collector.hpp>
+#include <leviathan/config_parser/value_cast.hpp>
+#include <leviathan/config_parser/json/encoder.hpp>
 
-auto Average = [](auto subrange) {
-    return std::ranges::fold_left(subrange, 0.0, std::plus<>()) / subrange.size();
-};
-
-auto CalculateAverage(std::ranges::range auto& R, int count)
-{
-    return leviathan::ranges::concat(std::views::repeat(0, 4), R) 
-         | std::views::slide(count)
-         | std::views::transform(Average);
-}
+namespace toml = leviathan::toml;
 
 int main(int argc, char const *argv[])
 {
-    std::deque<double> price = {11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1,};
+    toml::collector coll;
 
-    auto rg = CalculateAverage(price, 5);
+    coll.add_entry({"GameMode"}, toml::make_toml<toml::string>("Battle"));    
 
-    for (auto sr : rg)
-    {
-        Console::WriteLine(sr);
-    }
+    coll.switch_to_std_table({"std-table"});
+    coll.add_entry({"Hero", "Hp"}, toml::make_toml<toml::integer>(500));
+
+    coll.switch_to_array_table({"array-table"});
+    coll.add_entry({"Primary", "Damage"}, toml::make_toml<toml::integer>(100));
+    coll.add_entry({"Secondary", "Damage"}, toml::make_toml<toml::integer>(150));
+    coll.collect();
+
+    auto global = coll.dispose();
+
+    // auto caster = leviathan::config::detail::toml2json();
+    auto caster = leviathan::config::value_cast<leviathan::json::value, toml::value>();
+
+    auto json = caster(global);
+
+    Console::WriteLine(json);
+    Console::WriteLine("Ok");
 
     return 0;
 }

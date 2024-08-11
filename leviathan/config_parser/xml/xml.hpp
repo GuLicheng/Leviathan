@@ -26,7 +26,7 @@
 namespace leviathan::config::xml
 {
     class document;
-
+    class attribute;
     class elements;
 } // namespace leviathan::config::xml
 

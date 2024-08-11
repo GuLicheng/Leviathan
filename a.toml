@@ -1,6 +1,12 @@
-a = [ 
-    true, 
+GameMode = "Battle"
 
-    # Hello
-    # World
-]
+[[array-table]]
+Primary.Damage = 100
+Secondary.Damage = 150  
+
+[std-table]
+Hero.Hp = 500
+
+[""]
+"1" = 5
+
