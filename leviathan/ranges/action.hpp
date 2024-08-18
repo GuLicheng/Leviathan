@@ -50,5 +50,7 @@ inline constexpr adaptor with =
     return std::invoke((F&&)f, (R&&)r, (Args&&) args...);
 };
 
+// inline constexpr auto 
+
 } // namespace leviathan::action
 

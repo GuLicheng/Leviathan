@@ -54,9 +54,9 @@ struct toml2json
     static json::value operator()(const toml::table& x)
     {
         auto retval = x 
-                    | std::views::transform([](const auto& kv) /* -> std::pair<json::string, json::value> */ {
+                    | std::views::transform([=](const auto& kv) /* -> std::pair<json::string, json::value> */ {
                         return std::make_pair(
-                            kv.first,
+                            toml2json::convert_string(kv.first),
                             toml2json::operator()(kv.second)); })
                     | std::ranges::to<json::object>();
         return json::make_json<json::object>(std::move(retval));
@@ -66,6 +66,20 @@ struct toml2json
     {
         throw "Not implement";
     }
+
+private:
+
+    static toml::string convert_string(const toml::string& x) 
+    {
+        if constexpr (std::is_same_v<json::string, toml::string>)
+        {
+            return x;
+        }
+        else
+        {
+            return toml2json::operator()(x).template as<json::string>();
+        }
+    };
 }; 
 
 }

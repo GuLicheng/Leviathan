@@ -39,7 +39,11 @@ struct parse_context
         }
 
         bool result = current() == ch;
-        advance_unchecked(1);
+
+        if (result)
+        {
+            advance_unchecked(1);
+        }
         return result;
     }
 
@@ -60,7 +64,19 @@ struct parse_context
 
     constexpr char peek(int n) const
     {
-        return m_ctx[n];
+        return n >= m_ctx.size() ? 0 : m_ctx[n];
+    }
+
+    constexpr void advance(size_t n)
+    {
+        if (size() >= n)
+        {
+            advance_unchecked(n);
+        }
+        else
+        {
+            m_ctx = ""; // Reset context
+        }
     }
 
     constexpr void advance_unchecked(size_t n)
@@ -133,6 +149,8 @@ struct parse_context
 
     constexpr std::string_view slice(size_t offset = 0, size_t count = -1) const
     {
+        offset = std::min(offset, m_ctx.size());
+        // Exceptions: std::out_of_range if pos > size().
         return m_ctx.substr(offset, count);
     }
 

@@ -221,14 +221,6 @@ public:
         files = Read(dir, ".toml");
     }
 
-    void ErrorFile(const char* file)
-    {
-        std::erase_if(files, [=](const std::string& filename)
-        {
-            return filename.ends_with(file);
-        });
-    }
-
     void TestFile(std::string filename)
     {
         filename += ".toml";
@@ -267,19 +259,16 @@ public:
 void TestToml()
 {
     const char* dirs[] = {
-        R"(D:\code\toml-test\tests\valid\array)",
-        R"(D:\code\toml-test\tests\valid\bool)",
-        R"(D:\code\toml-test\tests\valid\comment)",
-        R"(D:\code\toml-test\tests\valid\datetime)",
         R"(D:\code\toml-test\tests\valid\float)",
-        R"(D:\code\toml-test\tests\valid\inline-table)",
+        R"(D:\code\toml-test\tests\valid\bool)",
+        R"(D:\code\toml-test\tests\valid\float)",
         R"(D:\code\toml-test\tests\valid\integer)",
+        R"(D:\code\toml-test\tests\valid\array)",
     };
     
     for (auto dir : dirs) 
     {
         Tester tester(dir);
-        // tester.ErrorFile("newline");
         tester.TestFiles();
         tester.ReportFailure();
     }
@@ -296,8 +285,6 @@ int main(int argc, char const *argv[])
     TestToml();
 
     // DebugFile(R"(D:\code\toml-test\tests\valid\array\string-with-comma-2.toml)");
-
-    DebugFile("../a.toml");
 
     return 0;
 }

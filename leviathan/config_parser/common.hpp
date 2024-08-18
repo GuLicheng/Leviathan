@@ -34,6 +34,7 @@ using leviathan::string::whitespace_delimiters;
 
 namespace leviathan::config
 {
+
 template <std::integral I>
 constexpr optional<I> from_chars_to_optional(const char* startptr, const char* endptr, int base = 10)
 {
@@ -137,6 +138,9 @@ constexpr unsigned decode_unicode_from_char(const char* p)
     }
     return i;
 }
+
+template <typename Value>
+struct value_parser;
 
 }
 

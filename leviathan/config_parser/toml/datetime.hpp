@@ -1,5 +1,8 @@
 #pragma once
 
+#include "../common.hpp"
+#include "../parse_context.hpp"
+
 #include <chrono>
 #include <string>
 #include <string_view>
@@ -21,33 +24,69 @@ namespace leviathan::config::toml
 
 struct date
 {
-    std::chrono::year_month_day m_ymd;
+    uint16_t m_year = 0;
+    uint8_t m_month = 0;
+    uint8_t m_day = 0;
+
+    std::string to_string() const
+    {
+        // YYYY-MM-DD
+        return std::format("{:04}-{:02}-{:02}", m_year, m_month, m_day);
+    }
 };  
 
 struct time
 {
-    int m_hour;
-    int m_minute;
-    int m_second;
-    int m_nanosecond;
+    uint8_t m_hour = 0;
+    uint8_t m_minute = 0;
+    uint8_t m_second = 0;
+    uint32_t m_nanosecond = 0;
+
+    std::string to_string() const
+    {
+        // HH:MM:SS.XXX
+        std::string result = std::format("{:02}:{:02}:{:02}", m_hour, m_minute, m_second);
+
+        if (m_nanosecond != 0)
+        {
+            result += std::format(".{}", m_nanosecond);
+        }
+        return result;
+    }
 };
 
+// Z or minutes
 struct offset
 {
-    int m_hour;
-    int m_minute;
+    // 12 x 60 = 720
+    int16_t m_minute = 0;
+
+    std::string to_string() const
+    {
+        // Z or [+|-]HH:SS
+        if (m_minute == 0)
+        {
+            return "Z";
+        }
+        else
+        {
+            char sign = m_minute > 0 ? '+' : '-';
+            auto dm = std::div(std::abs((int)m_minute), 60);
+            return std::format("{}{}:{}", sign, dm.quot, dm.rem);
+        }
+    }
 };
 
 struct datetime
 {
-    std::optional<date> m_data;
-    std::optional<time> m_time;
-    std::optional<offset> m_offset;
-};
+    date m_data;
+    time m_time;
+    offset m_offset;
 
-datetime parse_datetime(std::string_view context)
-{
-    return {};
-}
+    std::string to_string() const
+    {
+        return std::format("{}T{}{}", m_data.to_string(), m_time.to_string(), m_offset.to_string());
+    }
+};
 
 }

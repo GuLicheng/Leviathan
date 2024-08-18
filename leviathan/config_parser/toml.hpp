@@ -324,6 +324,7 @@ namespace detail
             }
         }
     };
+
 }
 
 class parser

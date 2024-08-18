@@ -9,120 +9,20 @@ Reference:
 #pragma once
 
 #include "value.hpp"
+#include "collector.hpp"
 #include "../parse_context.hpp"
+#include "utilis.hpp"
 
 namespace leviathan::config::toml
 {
 
-namespace detail
-{
-
-// We define some constant values here.
-inline constexpr std::string_view wschar = "\r ";
-inline constexpr std::string_view ml_literal_string_delim = "'''";
-inline constexpr std::string_view ml_basic_string_delim = "\"\"\"";
-inline constexpr std::string_view array_table_open = "[[";
-inline constexpr std::string_view array_table_close = "]]";
-
-// For convenience, we keep linefeed be '\n' during reading file.
-inline constexpr char newline = '\n';
-inline constexpr char quotation_mark = '"';
-inline constexpr char apostrophe = '\'';
-inline constexpr char dot_sep = '.';
-inline constexpr char escaped = '\\';
-inline constexpr char keyval_sep = '=';
-inline constexpr char comment_start_symbol = '#';
-inline constexpr char std_table_open = '[';
-inline constexpr char std_table_close = ']';
-inline constexpr char array_open = '[';
-inline constexpr char array_close = ']';
-inline constexpr char array_sep = ',';
-inline constexpr char inline_table_open = '{';
-inline constexpr char inline_table_close = '}';
-inline constexpr char inline_table_sep = ',';
-
-template <size_t N, typename InputIterator>
-void decode_unicode(InputIterator dest, parse_context& ctx) 
-{
-    if (ctx.size() != N)
-    {
-        throw_toml_parse_error("Too small characters for unicode");
-    }
-
-    auto codepoint = decode_unicode_from_char<N>(ctx.data());
-    encode_unicode_to_utf8(dest, codepoint);
-    ctx.advance_unchecked(N);
-}
-
-template <typename Fn>
-string parse_basic_string_impl(parse_context& ctx, Fn fn)
-{
-    ctx.consume('\"');
-    std::string out;
-
-    while (ctx)
-    {
-        if (*ctx == detail::escaped)
-        {
-            ++ctx; // eat '\\'
-            
-            if (!ctx)
-            {
-                throw_toml_parse_error("Escaped cannot at the end.");
-            }
-
-            switch (*ctx)
-            {
-                case '"': out += '"'; break;    // quote
-                case '\\': out += '\\'; break;  // reverse solidus
-                case '/': out += '/'; break;    // solidus
-                case 'b': out += '\b'; break;   // backspace
-                case 'f': out += '\f'; break;   // formfeed
-                case 'n': out += '\n'; break;   // linefeed
-                case 'r': out += '\r'; break;   // carriage return
-                case 't': out += '\t'; break;   // horizontal tab
-                case 'u': decode_unicode<4>(std::back_inserter(out), ctx); break;
-                case 'U': decode_unicode<8>(std::back_inserter(out), ctx); break;
-                // TODO: \x -> two digits
-                default: throw_toml_parse_error("Illegal character after escaped.");
-            }
-            ++ctx;
-        }
-        else if (*ctx == '\"') 
-        {
-            return out;
-        }
-        else
-        {
-            check_and_throw(fn(*ctx), "Invalid character {}.", *ctx);
-            out += *ctx;
-            ++ctx;
-        }
-    }
-
-    throw_toml_parse_error("Basic string should end with \".");
-}
-
-} // namespace detail
-
 class decoder
 {
-    enum kind { global, std_table, array_table };
-
-    // Current status
-    kind m_kind;
-
     // Context
     parse_context m_ctx;  
 
-    // Root, always be table
-    value m_global;         
-
-    // Section names
-    std::vector<string> m_table_keys;
-
-    // Entry keys
-    std::vector<string> m_entry_keys;
+    // Used for merging sections and entries
+    collector m_coll;    
 
     static bool non_ascii(int ch)
     {
@@ -132,15 +32,12 @@ class decoder
 
 public:
 
-    decoder(std::string_view context) 
-        : m_kind(kind::global),
-          m_ctx(context),
-          m_global(table()) { }
+    decoder(std::string_view context) : m_ctx(context) { }
 
     value operator()()
     {
         parse();
-        return std::move(m_global);
+        return m_coll.dispose();
     }
 
     void parse()
@@ -170,101 +67,35 @@ public:
         {
             // Skip empty line.
             m_ctx.skip_whitespace(); 
-
-            if (m_ctx.match(detail::std_table_open))
+            
+            if (m_ctx.match(detail::comment_start_symbol))
+            {
+                parse_comment_optional();
+                continue;
+            }
+            else if (m_ctx.match(detail::std_table_open))
             {
                 parse_table();
-                // check_table_name();
             }
             else
             {
                 auto [keys, v] = parse_keyval();
-                
-                if (m_kind == kind::std_table)
-                {
-
-                }
-                else if (m_kind == kind::array_table)
-                {
-
-                }
-                else
-                {
-                    // m_global.as<table>().
-                }
+                m_coll.add_entry(std::move(keys), std::move(v));
             }
             parse_comment_optional();
             m_ctx.skip_whitespace(); 
         }
     }
 
-    void try_add_value(value* super, std::vector<string> keys, value x)
-    {
-        [[assume(super != nullptr)]];
-
-        if (super->is<table>())
-        {
-            // For global and std-table, super is table
-            // and we collect all entries as paths 
-        
-        }
-        else if (super->is<array>())
-        {
-            // For array-table, super is array, 
-            // and we collect all entries a table
-        }
-        else
-        {
-            throw_toml_parse_error("What are you doing? Passing an error pointer?");
-        }
-    }
-
-    // void try_put_value(std::vector<string> keys, toml_value&& val, toml_table* table = nullptr)
-    // {
-    //     bool ok = false;
-
-    //     auto t = table ? table : m_cur_table;
-
-    //     for (size_t i = 0; i < keys.size() - 1; ++i)
-    //     {
-    //         auto [it, succeed] = t->try_emplace(toml_string(keys[i]), toml_table());
-
-    //         if (!succeed)
-    //         {
-    //             if (!it->second.is<toml_table>())
-    //             {
-    //                 throw_toml_parse_error("Key conflict");
-    //             }
-    //             if (it->second.as_ptr<toml_table>()->is_inline_table())
-    //             {
-    //                 throw_toml_parse_error("Inline table cannot be modified.");
-    //             }
-    //         }
-
-    //         ok = ok || succeed;
-    //         t = it->second.as_ptr<toml_table>();
-    //     }
-
-    //     if (!t->try_emplace(toml_string(keys.back()), std::move(val)).second)
-    //     {
-    //         throw_toml_parse_error("Value already exits");
-    //     }
-    // }
-
     void parse_table()
     {
-        // Clear table and put new keys during parsing.
-        m_table_keys.clear();
-
         if (m_ctx.match(detail::array_table_open))
         {
             parse_array_table();
-            m_kind = kind::array_table;
         }
         else
         {
             parse_std_table();
-            m_kind = kind::std_table;
         }
     }
 
@@ -272,7 +103,7 @@ public:
     {
         m_ctx.consume(detail::array_table_open);
         parse_wschar();
-        m_table_keys = parse_key();
+        m_coll.switch_to_array_table(parse_key());
         parse_wschar();
         check_and_throw(m_ctx.consume(detail::array_table_close), "Expected ]] after array table");
     }
@@ -281,7 +112,7 @@ public:
     {
         m_ctx.consume(detail::std_table_open);
         parse_wschar();
-        m_table_keys = parse_key();
+        m_coll.switch_to_std_table(parse_key());
         parse_wschar();
         check_and_throw(m_ctx.consume(detail::std_table_close), "Expected ] after std table.");
     }
@@ -316,11 +147,15 @@ public:
 
     value parse_inline_table()
     {
+        // TODO:
+        // TOML 1.1 supports newlines in inline tables and trailing commas.
+
         m_ctx.consume(detail::inline_table_open);
         parse_wschar();
 
         if (m_ctx.match(detail::inline_table_close))
         {
+            m_ctx.advance_unchecked(1);
             return table();
         }
         else
@@ -330,16 +165,18 @@ public:
             while (1)
             {
                 auto [keys, v] = parse_keyval();
-                // t.add_value(std::move(keys), std::move(v)); //  FIXME
+                try_generate_path(std::move(keys), std::move(v), &t);
                 parse_wschar();
 
                 if (m_ctx.match(detail::inline_table_close))
                 {
+                    m_ctx.advance_unchecked(1); // eat '}'
                     return t;
                 }
                 else if (m_ctx.match(detail::inline_table_sep))
                 {
                     m_ctx.advance_unchecked(1); // eat ','
+                    parse_wschar();
                     continue;
                 }
                 throw_toml_parse_error("Expected ] or , after value.");                
@@ -353,34 +190,23 @@ public:
     value parse_array()
     {
         m_ctx.consume(detail::array_open);
-        skip_ws_comment_newline();
-
         array retval;
 
-        if (m_ctx.match(detail::array_close))
+        while (1)
         {
-            m_ctx.advance_unchecked(1); // eat ']'
-            return retval;
-        }
-        else
-        {
-            while (1)
+            skip_ws_comment_newline();
+            check_and_throw(!m_ctx.eof(), "Expected ] after array.");
+
+            if (m_ctx.consume(detail::array_close))
             {
-                retval.emplace_back(parse_val());
-                skip_ws_comment_newline();
-
-                if (m_ctx.match(detail::array_close))
-                {
-                    m_ctx.advance_unchecked(1);
-                    return retval;
-                }
-
-                if (!m_ctx.match(detail::array_sep))
-                {
-                    throw_toml_parse_error("Expected ] after array.");
-                }
-                skip_ws_comment_newline();
+                return retval;
             }
+            retval.emplace_back(parse_val());
+            skip_ws_comment_newline();
+            check_and_throw(
+                m_ctx.match(detail::array_sep) || m_ctx.match(detail::array_close), 
+                "Expected , or ], but got {}", m_ctx.current());
+            m_ctx.consume(detail::array_sep);
         }
     }
 
@@ -398,7 +224,37 @@ public:
 
     value parse_number_or_date_time()
     {
-        throw_toml_parse_error("Unimplemented.");
+        // +-_.:eZTt [0-9|0x|0o|0b|inf|nan]
+        constexpr std::string_view starts = "+-0123456789in";
+
+        check_and_throw(
+            starts.contains(m_ctx.current()),
+            "Unknown character {} for value.", m_ctx.current()
+        );
+
+        constexpr std::string_view invalid = "=\r\n#,]}";
+        size_t idx = 0;
+
+        for (; idx < m_ctx.size() && !invalid.contains(m_ctx.peek(idx)); ++idx);
+
+        auto sv = trim(m_ctx.slice(0, idx));
+        m_ctx.advance_unchecked(idx);
+
+        // We simply parse it as int, double and datetime separately.
+        if (auto op = detail::parse_integer(sv); op)
+        {
+            return make_toml<integer>(op.value());
+        }
+        if (auto op = detail::parse_float(sv); op)
+        {
+            return make_toml<floating>(op.value());
+        }
+        if (auto op = detail::parse_datetime(sv); op)
+        {
+            // throw std::runtime_error("Not implemented.");
+            return make_toml<datetime>(op.value());
+        }
+        throw_toml_parse_error("Error toml value.");
     }
 
     value parse_basic_string_or_multiline()
@@ -410,7 +266,92 @@ public:
 
     value parse_ml_basic_string()
     {
-        throw_toml_parse_error("Not implemented");
+        m_ctx.consume(detail::ml_basic_string_delim); // eat """
+        string retval;
+        check_and_throw(!m_ctx.eof(), "Expected basic body.");
+
+        if (m_ctx.current() == detail::newline)
+        {
+            m_ctx.advance_unchecked(1);   
+        }
+
+        // If a line end with '\\' after trim right, the linefeed 
+        // will be ignored.
+        while (!m_ctx.eof())
+        {
+            const auto ch = m_ctx.current();
+            
+            if (ch == detail::quotation_mark)
+            {
+                size_t count = 0;
+                for (; m_ctx.peek(count) == detail::quotation_mark; ++count);
+                check_and_throw(count < 6, "Too much quote.");
+
+                if (count >= 3)
+                {
+                    retval.append(count - 3, detail::quotation_mark);
+                    m_ctx.advance_unchecked(count - 3);
+                    m_ctx.consume(detail::ml_basic_string_delim);
+                    return retval;
+                }
+                else
+                {
+                    retval.append(count, detail::apostrophe);
+                    m_ctx.advance_unchecked(count);
+                }
+            }
+            else if (ch == '\\')
+            {
+                m_ctx.advance_unchecked(1);
+                check_and_throw(!m_ctx.eof(), "Error EOF multiline basic string.");
+
+                if (*m_ctx == detail::newline)
+                {
+                    auto view = m_ctx.slice(1);
+                    size_t i = 0;
+                    for (; i < view.size() && detail::wschar.contains(view[i]); ++i);
+                    check_and_throw(i < view.size(), "Expected ''' after multiline literal string.");
+
+                    // Check whether current line is end with '\\' after trim.
+                    // Since the index is started with 0, And the first 
+                    // character is '\\', so we add two.
+                    auto offset = i + 2;
+                    
+                    if (view[i] == detail::newline)
+                    {
+                        m_ctx.advance_unchecked(offset);
+                    }
+                    else
+                    {
+                        retval += m_ctx.slice(0, offset);
+                        m_ctx.advance_unchecked(offset);
+                    }   
+                }
+                else
+                {
+                    switch (*m_ctx)
+                    {
+                        case 'b': retval += '\b'; ++m_ctx; break;
+                        case 't': retval += '\t'; ++m_ctx; break;
+                        case 'n': retval += '\n'; ++m_ctx; break;
+                        case 'f': retval += '\f'; ++m_ctx; break;
+                        case 'r': retval += '\r'; ++m_ctx; break;
+                        case '"': retval += '"'; ++m_ctx; break;
+                        case '\\': retval += '\\'; ++m_ctx; break;
+                        case 'u': detail::decode_unicode<4>(std::back_inserter(retval), ++m_ctx); break;
+                        case 'U': detail::decode_unicode<8>(std::back_inserter(retval), ++m_ctx); break;
+                        default: throw_toml_parse_error("Illegal character {} after \\", m_ctx.current());
+                    }
+                }
+
+            }
+            else
+            {
+                retval += ch;
+                m_ctx.advance_unchecked(1);
+            }
+        }
+        throw_toml_parse_error("Expected \"\"\" after multi-line basic string.");
     }
 
     value parse_literal_string_or_multiline()
@@ -440,7 +381,7 @@ public:
             if (ch == detail::apostrophe)
             {
                 size_t count = 0;
-                for (; !m_ctx.eof() && m_ctx.current() == detail::apostrophe; ++count);
+                for (; m_ctx.peek(count) == detail::apostrophe; ++count);
                 check_and_throw(count < 6, "Too much quote.");
         
                 if (count >= 3)
@@ -484,7 +425,6 @@ public:
                 m_ctx.advance_unchecked(1);
             }
         }
-
         throw_toml_parse_error("Expected ''' after multiline literal string.");
     }
 
@@ -516,7 +456,6 @@ public:
     std::vector<string> parse_key()
     {
         std::vector<string> keys;
-
         keys.emplace_back(parse_simple_key());
 
         while (parse_dot_sep())
@@ -545,7 +484,7 @@ public:
         {
             return parse_literal_string();
         }
-        else if (m_ctx.match(detail::escaped))
+        else if (m_ctx.match(detail::quotation_mark))
         {
             return parse_basic_string();
         }
@@ -613,6 +552,11 @@ public:
     {
         parse_wschar();
 
+        if (m_ctx.eof())
+        {
+            return;
+        }
+
         if (m_ctx.is_newline())
         {
             // m_ctx.skip(detail::newline);
@@ -632,7 +576,7 @@ public:
     {
         m_ctx.consume(detail::comment_start_symbol);
         m_ctx.locate_character(detail::newline);
-        m_ctx.advance_unchecked(1);
+        m_ctx.advance(1);
     }
 };
 
@@ -650,5 +594,17 @@ inline value load(const char* filename)
 
 } // namespace leviathan::config::toml
 
+namespace leviathan::config
+{
 
+template <>
+struct value_parser<toml::value>
+{
+    static toml::value operator()(std::string source)
+    {
+        return toml::decoder(source).parse_val();
+    }
+};
+
+}
 

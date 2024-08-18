@@ -107,6 +107,9 @@ class Console
             auto s = std::format("{}", x);
             ::printf("%s", s.c_str());
         }
+
+        static void operator()()
+        { }
     };
 
     inline static const char* ForegroundColors[] = 

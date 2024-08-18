@@ -423,3 +423,16 @@ inline value load(const char* filename)
 
 } // namespace leviathan::config::json
 
+namespace leviathan::config
+{
+
+template <>
+struct value_parser<json::value>
+{
+    static json::value operator()(std::string source)
+    {
+        return json::decoder(source).parse_value();
+    }
+};
+
+}
