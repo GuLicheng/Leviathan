@@ -64,7 +64,7 @@ struct toml2json
 
     static json::value operator()(const toml::datetime& x)
     {
-        throw "Not implement";
+        return json::string(x.to_string());
     }
 
 private:

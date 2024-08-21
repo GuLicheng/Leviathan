@@ -95,13 +95,11 @@ struct encoder2
     static std::string operator()(const array& arr) 
     {
         std::string retval = "[";
+        const char* delimiter = "";
 
         for (std::size_t i = 0; i < arr.size(); ++i)
         {
-            if (i != 0) 
-            {
-                retval += ',';
-            }
+            retval += std::exchange(delimiter, ", ");
             retval += operator()(arr[i]);
         }
 
@@ -121,20 +119,18 @@ struct encoder2
     static std::string operator()(const object& object) 
     {
         std::string retval = "{";
+        const char* delimiter = "";
 
         for (auto it = object.begin(); it != object.end(); ++it)
         {
-            if (it != object.begin()) 
-            {
-                retval += ',';
-            }
-            retval += std::format("{}:{}", operator()(it->first), operator()(it->second));
+            retval += std::exchange(delimiter, ", ");
+            retval += std::format("{}: {}", operator()(it->first), operator()(it->second));
         }
 
         return retval += '}';
     }
 
-    static std::string operator()(const error_code& ec)
+    [[noreturn]] static std::string operator()(const error_code& ec)
     {
         std::unreachable();
     }

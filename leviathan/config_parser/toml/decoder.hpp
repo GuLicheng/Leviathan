@@ -11,7 +11,7 @@ Reference:
 #include "value.hpp"
 #include "collector.hpp"
 #include "../parse_context.hpp"
-#include "utilis.hpp"
+#include "parser_helper.hpp"
 
 namespace leviathan::config::toml
 {
@@ -156,16 +156,16 @@ public:
         if (m_ctx.match(detail::inline_table_close))
         {
             m_ctx.advance_unchecked(1);
-            return table();
+            return table(true);
         }
         else
         {
-            table t;
+            table t(true);
 
             while (1)
             {
                 auto [keys, v] = parse_keyval();
-                try_generate_path(std::move(keys), std::move(v), &t);
+                try_put_value(std::move(keys), std::move(v), &t);
                 parse_wschar();
 
                 if (m_ctx.match(detail::inline_table_close))
@@ -190,7 +190,7 @@ public:
     value parse_array()
     {
         m_ctx.consume(detail::array_open);
-        array retval;
+        array retval(true);
 
         while (1)
         {

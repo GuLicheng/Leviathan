@@ -62,7 +62,7 @@ struct parse_context
         return false;
     }
 
-    constexpr char peek(int n) const
+    constexpr char peek(size_t n) const
     {
         return n >= m_ctx.size() ? 0 : m_ctx[n];
     }
@@ -157,7 +157,8 @@ struct parse_context
     constexpr bool is_newline() const
     {
         return m_ctx.starts_with('\n')
-            || m_ctx.starts_with("\r\n");
+            || m_ctx.starts_with('\r')
+            || m_ctx.starts_with("\r\n");  // The last case is not necessary.
     }
 
     constexpr bool eof() const

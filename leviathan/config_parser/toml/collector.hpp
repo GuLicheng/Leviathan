@@ -15,19 +15,21 @@ struct table_maker
 
     operator value() const
     {
-        return table();
+        return table(false);
     }
 };
 
-inline void remove_empty_table(array& arr)
+struct array_maker
 {
-    std::erase_if(arr, [](const value& x)
-    {
-        return x.is<table>() && x.as<table>().empty();
-    });
-}    
+    constexpr explicit array_maker() = default;
 
-inline value* try_generate_path(std::vector<string> keys, value val, table* super)
+    operator value() const
+    {
+        return array(false);
+    }
+};
+
+inline value* try_put_value(std::vector<string> keys, value val, table* super)
 {
     assert(super && "super cannot be nullptr.");
     
@@ -49,7 +51,7 @@ inline value* try_generate_path(std::vector<string> keys, value val, table* supe
             {
                 throw_toml_parse_error("Key conflict");
             }
-            if (it->second.as_ptr<table>()->is_inline_table())
+            if (it->second.as_ptr<table>()->is_locked())
             {
                 throw_toml_parse_error("Inline table cannot be modified.");
             }
@@ -68,12 +70,18 @@ inline value* try_generate_path(std::vector<string> keys, value val, table* supe
     return &(it->second);
 }
 
-inline value* generate_section_path(std::vector<string> keys, value val, value* super)
+template <typename T>
+inline bool is_unlocked(const toml::value& x)
+{
+    return x.is<T>() && !x.as<T>().is_locked();
+}
+
+inline value* insert_section(std::vector<string> keys, value* super, bool table_or_array)
 {
     assert(super && "super cannot be nullptr.");
     [[assume(super != nullptr)]];
 
-    for (size_t i = 0; i < keys.size(); ++i)
+    for (size_t i = 0; i < keys.size() - 1; ++i)
     {
         auto [it, succeed] = super->as<table>().try_emplace(std::move(keys[i]), table_maker());
 
@@ -81,35 +89,53 @@ inline value* generate_section_path(std::vector<string> keys, value val, value* 
         {
             super = &(it->second);
         }
-        else
+        else    
         {
-            if (it->second.is<array>() && it->second.as<array>().is_table_array())
+            if (is_unlocked<array>(it->second))
             {
-                super = &(it->second.as<array>().emplace_back(table_maker()));
-                super->as<table>().emplace(std::move(keys[i]), table_maker());
-                // remove_empty_table(it->second.as<array>());
+                super = &(it->second.as<array>().back());
             }
-            else if (it->second.is<table>())
+            else if (is_unlocked<table>(it->second))
             {
-                if (it->second.as<table>().is_inline_table())
-                {
-                    throw_toml_parse_error("Inline table cannot be modified.");
-                }
-                else
-                {
-                    super = &(it->second);
-                }
+                super = &(it->second);
             }
-            else
+            else    
             {
-                throw_toml_parse_error("Key conflict");
+                throw_toml_parse_error("Key conflict.");
             }
         }
     }
 
-    if (val.is<array>())
+    if (table_or_array)
     {
-        *super = std::move(val);
+        auto [it, succeed] = super->as<table>().try_emplace(std::move(keys.back()), table_maker());
+        
+        if (succeed)
+        {
+            super = &(it->second);
+        }
+        else
+        {
+            throw_toml_parse_error("Table define conflict.");
+        }
+    }
+    else
+    {
+        // array always ref the last value.
+        if (super->is<array>())
+        {
+            super = &(super->as<array>().back());
+        }
+        auto [it, succeed] = super->as<table>().try_emplace(std::move(keys.back()), array_maker());
+
+        if (succeed || is_unlocked<array>(it->second))
+        {
+            super = &(it->second.as<array>().emplace_back(table_maker()));
+        }
+        else
+        {
+            throw_toml_parse_error("Array define conflict.");
+        }
     }
 
     return super;
@@ -127,33 +153,30 @@ class collector
     // and release after parsing.
     value* m_table;
 
-    enum { std_table, array_table, global } m_mode;
-
 public:
 
     collector() 
     {
-        m_global = make_toml<table>();
-        m_mode = global; 
+        m_global = make_toml<table>(false);
         m_table = &m_global;
     }
 
     void switch_to_std_table(std::vector<string> section)
     {
-        m_mode = std_table;
-        m_table = generate_section_path(std::move(section), table(), &m_global);
+        // m_table = generate_section_path(std::move(section), table(false), &m_global);
+        m_table = insert_section(std::move(section), &m_global, true);
     }
 
     void switch_to_array_table(std::vector<string> section)
     {
-        m_mode = array_table;
-        auto parr = generate_section_path(std::move(section), array(), &m_global);
-        m_table = &(parr->as<array>().emplace_back(table_maker()));
+        // auto parr = generate_section_path(std::move(section), array(false), &m_global);
+        // m_table = &(parr->as<array>().emplace_back(table_maker()));
+        m_table = insert_section(std::move(section), &m_global, false);
     }
 
     void add_entry(std::vector<string> keys, value x)
     {
-        try_generate_path(std::move(keys), std::move(x), m_table->as_ptr<table>());
+        try_put_value(std::move(keys), std::move(x), m_table->as_ptr<table>());
     }
 
     value dispose()

@@ -206,46 +206,88 @@ inline std::optional<datetime> as_option_if(bool ok, const datetime& dt)
     }
 }
 
-inline std::optional<datetime> parse_time(std::string_view sv)
+inline std::optional<datetime> parse_offset(std::string_view sv)
 {
     datetime dt;
     parse_context ctx(sv);
 
-    // HH:MM:SS.PRECISION OFFSET
-    if (ctx.peek(2) == ':')
+    if (ctx.match('Z') || ctx.match('z'))
     {
-        // HH:MM:SS or HH:MM:SS.PRECISION
-        auto hh = from_chars_to_optional<uint8_t>(ctx.slice(0, 2));
-        auto mm = from_chars_to_optional<uint8_t>(ctx.slice(3, 2));
+        // z must be last character of context.
+        dt.m_offset.m_minute = 0;
+        return as_option_if(ctx.size() == 1, dt);
+    }
+    else if (ctx.match('+') || ctx.match('-'))
+    {
+        int sign = ctx.match('+') ? 1 : -1;
+        ctx.advance_unchecked(1);
 
-        if (hh && mm)
+        // -07:00 -> HH:SS
+        auto hhh = from_chars_to_optional<int>(ctx.slice(0, 2));
+        auto sss = from_chars_to_optional<int>(ctx.slice(3, 2));
+
+        if (hhh && sss)
         {
-            dt.m_time.m_hour = hh.value();
-            dt.m_time.m_minute = mm.value();
+            dt.m_offset.m_minute = (hhh.value() * 60 + sss.value()) * sign;
         }
         else
         {
             return std::nullopt;
         }
 
-        // https://github.com/toml-lang/toml/blob/main/toml.abnf
-        // partial-time   = time-hour ":" time-minute [ ":" time-second [ time-secfrac ] ]
-        ctx.advance_unchecked(5);
+        // The offset should be last part.
+        return as_option_if(ctx.size() == 5, dt);
+    }
+    return std::nullopt;
+}
 
-        if (ctx.match(':'))
+inline std::optional<datetime> parse_time(std::string_view sv)
+{
+    datetime dt;
+    parse_context ctx(sv);
+
+    // HH:MM:SS.PRECISION OFFSET
+    if (ctx.peek(2) != ':')
+    {
+        return std::nullopt;
+    }
+
+    auto hh = from_chars_to_optional<uint8_t>(ctx.slice(0, 2));
+    auto mm = from_chars_to_optional<uint8_t>(ctx.slice(3, 2));
+
+    if (hh && mm)
+    {
+        dt.m_time.m_hour = hh.value();
+        dt.m_time.m_minute = mm.value();
+    }
+    else
+    {
+        return std::nullopt;
+    }
+
+    // https://github.com/toml-lang/toml/blob/main/toml.abnf
+    // partial-time   = time-hour ":" time-minute [ ":" time-second [ time-secfrac ] ]
+    ctx.advance_unchecked(5);
+
+    if (ctx.match(':'))
+    {
+        auto ss = from_chars_to_optional<uint8_t>(ctx.slice(1, 2));
+
+        if (ss)
         {
-            auto ss = from_chars_to_optional<uint8_t>(ctx.slice(1, 2));
+            dt.m_time.m_second = ss.value();
+        }
+        else
+        {
+            return std::nullopt;
+        }
 
-            if (ss)
-            {
-                dt.m_time.m_second = ss.value();
-            }
-            else
-            {
-                return std::nullopt;
-            }
+        ctx.advance_unchecked(3);
 
-            ctx.advance_unchecked(3);
+        // HH:SS:MM only
+        if (ctx.eof())
+        {
+            return dt;
         }
 
         // Precision
@@ -260,6 +302,21 @@ inline std::optional<datetime> parse_time(std::string_view sv)
             {
                 dt.m_time.m_nanosecond = nano.value();
                 ctx.advance_unchecked(i);
+            }
+            else
+            {
+                return std::nullopt;
+            }
+
+            if (ctx.eof())
+            {
+                return dt;
+            }
+            auto offset = parse_offset(ctx.slice());
+            
+            if (offset)
+            {
+                dt.m_offset = offset->m_offset;
                 return dt;
             }
             else
@@ -267,40 +324,32 @@ inline std::optional<datetime> parse_time(std::string_view sv)
                 return std::nullopt;
             }
         }
-        else if (ctx.match('Z') || ctx.match('z'))
-        {
-            // z must be last character of context.
-            dt.m_offset.m_minute = 0;
-            return as_option_if(ctx.size() == 1, dt);
-        }
-        else if (ctx.match('+') || ctx.match('-'))
-        {
-            int sign = ctx.match('+') ? 1 : -1;
-            ctx.advance_unchecked(1);
-
-            // -07:00 -> HH:SS
-            auto hhh = from_chars_to_optional<int>(ctx.slice(0, 2));
-            auto sss = from_chars_to_optional<int>(ctx.slice(3, 2));
-
-            if (hhh && sss)
-            {
-                dt.m_offset.m_minute = (hhh.value() * 60 + sss.value()) * sign;
-            }
-            else
-            {
-                return std::nullopt;
-            }
-
-            // The offset should be last part.
-            return as_option_if(ctx.size() == 5, dt);
-        }
         else 
         {
-            return as_option_if(ctx.eof(), dt);
+            auto offset = parse_offset(ctx.slice());
+
+            if (offset)
+            {
+                dt.m_offset = offset->m_offset;
+                return dt;
+            }
+            return std::nullopt;
         }
+    }
+    else if (ctx.eof())
+    {
+        return dt;
     }
     else
     {
+        // Offset or precision
+        auto offset = parse_offset(ctx.slice());
+
+        if (offset)
+        {
+            dt.m_offset = offset->m_offset;
+            return dt;
+        }
         return std::nullopt;
     }
 }

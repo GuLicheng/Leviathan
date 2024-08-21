@@ -69,9 +69,7 @@ public:
 
     value parse_value()
     {
-        m_ctx.skip_whitespace(); // necessary?
-
-        if (m_ctx.is_at_end())
+        if (m_ctx.eof())
         {
             return make_error_code(error_code::eof_error);
         }
@@ -423,16 +421,3 @@ inline value load(const char* filename)
 
 } // namespace leviathan::config::json
 
-namespace leviathan::config
-{
-
-template <>
-struct value_parser<json::value>
-{
-    static json::value operator()(std::string source)
-    {
-        return json::decoder(source).parse_value();
-    }
-};
-
-}

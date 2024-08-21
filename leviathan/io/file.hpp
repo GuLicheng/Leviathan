@@ -18,6 +18,10 @@ namespace leviathan
  *  not brief.
  * 
  * @param filename Path for source
+ * @param newline Manner of interpreting text streams in which 
+ *  all of the following are recognized as ending a line: the Unix 
+ *  convention, '\n', the Windows convention, '\r\n', and the old Macintosh 
+ *  convention, '\r'.
  * 
  * @return Empty string if file is cannot opened or empty file.
  */

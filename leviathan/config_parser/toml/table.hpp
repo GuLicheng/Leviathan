@@ -5,6 +5,8 @@
 namespace leviathan::config::toml::detail
 {
     
+// The locked table will inserted as value.
+// The unlocked table will inserted as section.
 template <typename K, typename V, typename HasherKeyEqual>
 class toml_table_base : public std::unordered_map<K, V, HasherKeyEqual, HasherKeyEqual>
 {
@@ -12,41 +14,18 @@ class toml_table_base : public std::unordered_map<K, V, HasherKeyEqual, HasherKe
 
     bool m_locked = false;   // for table or inline table
 
-    bool m_defined = false;  // for defining a super-table afterward 
-
 public:
 
-    toml_table_base() = default;
+    // toml_table_base() = default;
 
     template <typename... Args>
     explicit toml_table_base(bool locked, Args&&... args) 
         : base((Args&&) args...), m_locked(locked) { }
 
-    bool is_inline_table() const
+    bool is_locked() const
     {
         return m_locked;
     }
-
-    bool is_table() const
-    {
-        return !m_locked;
-    }
-
-    bool is_defined() const
-    {
-        return m_defined;
-    }
-
-    void define_table()
-    {
-        m_defined = true;
-    }
-
-    // template <typename Keys>
-    // bool add_value(const Keys&... key, value x)
-    // {
-    //     throw "Not implement";
-    // }
 };
 
 } // namespace leviathan::config::toml::detail

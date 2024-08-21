@@ -1,61 +1,235 @@
 // https://github.com/toml-lang/toml-test/tree/master
 
 #include "toml.hpp"
+#include "../json/json.hpp"
+#include "../value_cast.hpp"
+
 #include <catch2/catch_all.hpp>
 
+#include <leviathan/print.hpp>
 #include <numeric>
 #include <iostream>
 #include <functional>
 
 namespace toml = leviathan::toml;
+namespace json = leviathan::json;
 
-TEST_CASE("toml_make")
+using JsonDecoder = json::decoder;
+using TomlDecoder = toml::decoder;
+using JsonFormatter = leviathan::config::detail::toml2json;
+
+toml::value ParseAsTomlValue(const char* context)
 {
-    toml::value value1 = toml::make_toml<toml::integer>(3);
-    toml::value value2 = toml::make_toml<toml::boolean>(true);
-    toml::value value3 = toml::make_toml<toml::string>("HelloWorld");
-    toml::value value4 = toml::make_toml<toml::array>();
-    toml::value value5 = toml::make_toml<toml::table>();
-    toml::value value6 = toml::make_toml<toml::floating>(3.14);
-    // Datetime
-
-    REQUIRE(value1.as<toml::integer>() == 3);
-    REQUIRE(value2.as<toml::boolean>() == true);
-    REQUIRE(value3.as<toml::string>() == "HelloWorld");
-    REQUIRE(value4.as<toml::array>().empty());
-    REQUIRE(value5.as<toml::table>().empty());
-    REQUIRE(value6.as<toml::floating>() == 3.14);
-}
-
-bool CheckTableSize(const toml::value& root, size_t size)
-{
-    return root.is<toml::table>()
-        && root.as<toml::table>().size() == size;
-}
-
-bool CheckArraySize(const toml::value& root, size_t size)
-{
-    return root.is<toml::array>()
-        && root.as<toml::array>().size() == size;
+    return TomlDecoder(context).parse_val();
 }
 
 template <typename TomlValueType, typename Expected>
-bool TestSingleValue(const toml::value& root, const char* key, Expected expected)
+bool TestSingleValue(const char* context, Expected expected)
 {
-    REQUIRE(root.is<toml::table>());
-    auto it = root.as<toml::table>().find(key);
-    return it != root.as<toml::table>().end()
-        && it->second.as<TomlValueType>() == expected;
+    auto tv = ParseAsTomlValue(context);
+    return tv.is<TomlValueType>() && tv.as<TomlValueType>() == expected;
 }
 
-bool TestSingleValueIsNaNOrInf(const toml::value& root, const char* key, bool nan_or_inf)
+TEST_CASE("valid-boolean")
 {
-    REQUIRE(root.is<toml::table>());
-    auto it = root.as<toml::table>().find(key);
-    return it != root.as<toml::table>().end()
-        && (nan_or_inf 
-            ? std::isnan(it->second.as<toml::floating>()) 
-            : std::isinf(it->second.as<toml::floating>()));
+    SECTION("valid")
+    {
+        const char* contexts[] = 
+        {
+            "true",
+            "false"
+        };
+
+        CHECK(TestSingleValue<toml::boolean>(contexts[0], true));
+        CHECK(TestSingleValue<toml::boolean>(contexts[1], false));
+    }
+}
+
+TEST_CASE("valid-floating")
+{
+    auto TomlFloatingCompare = [](const char* context, double actual) static
+    {
+        return TestSingleValue<toml::floating>(context, actual);
+    };
+
+    // Zero
+    CHECK(TomlFloatingCompare("0.0", 0));
+    CHECK(TomlFloatingCompare("+0.0", 0));
+    CHECK(TomlFloatingCompare("-0.0", 0));
+    CHECK(TomlFloatingCompare("0e0", 0));
+    CHECK(TomlFloatingCompare("0e00", 0));
+    CHECK(TomlFloatingCompare("+0e0", 0));
+    CHECK(TomlFloatingCompare("-0e0", 0));
+
+    // Underscore
+    CHECK(TomlFloatingCompare("3_141.5927", 3'141.5927));
+    CHECK(TomlFloatingCompare("3141.592_7", 3141.592'7));
+    CHECK(TomlFloatingCompare("3e1_4", 3e1'4));
+
+    // Max-int
+    CHECK(TomlFloatingCompare("9_007_199_254_740_991.0", 9'007'199'254'740'991.0));
+    CHECK(TomlFloatingCompare("-9_007_199_254_740_991.0", -9'007'199'254'740'991.0));
+
+    // Long
+    CHECK(TomlFloatingCompare("3.141592653589793", 3.141592653589793));
+    CHECK(TomlFloatingCompare("-3.141592653589793", -3.141592653589793));
+
+    // Inf-and-nan
+
+    auto IsTomlFloatingInf = [](const char* context) static
+    {
+        auto tv = ParseAsTomlValue(context);
+        // Does sign matter?
+        return tv.is<toml::floating>() 
+            && std::isinf(tv.as<toml::floating>());
+    };
+
+    CHECK(IsTomlFloatingInf("inf"));
+    CHECK(IsTomlFloatingInf("+inf"));
+    CHECK(IsTomlFloatingInf("-inf"));
+
+    auto IsTomlFloatingNaN = [](const char* context) static
+    {
+        auto tv = ParseAsTomlValue(context);
+        // Does sign matter?
+        return tv.is<toml::floating>() 
+            && std::isnan(tv.as<toml::floating>());
+    };
+
+    CHECK(IsTomlFloatingNaN("nan"));
+    CHECK(IsTomlFloatingNaN("+nan"));
+    CHECK(IsTomlFloatingNaN("-nan"));
+
+    // Float
+    CHECK(TomlFloatingCompare("3.14", 3.14));
+    CHECK(TomlFloatingCompare("+3.14", 3.14));
+    CHECK(TomlFloatingCompare("-3.14", -3.14));
+    CHECK(TomlFloatingCompare("0.123", 0.123));
+
+    // Exponent
+    CHECK(TomlFloatingCompare("3e2", 3e2));
+    CHECK(TomlFloatingCompare("3E2", 3e2));
+    CHECK(TomlFloatingCompare("3e-2", 3e-2));
+    CHECK(TomlFloatingCompare("3E+2", 3e+2));
+    CHECK(TomlFloatingCompare("3e0", 3e0));
+    CHECK(TomlFloatingCompare("3.1e2", 3.1e2));
+    CHECK(TomlFloatingCompare("3.1E2", 3.1E2));
+    CHECK(TomlFloatingCompare("-1E-1", -1E-1));
+}
+
+TEST_CASE("valid-integer")
+{
+    auto TomlIntegerCompare = [](const char* context, int64_t actual) static
+    {
+        return TestSingleValue<toml::integer>(context, actual);
+    };
+
+    // Zero
+    CHECK(TomlIntegerCompare("0", 0));
+    CHECK(TomlIntegerCompare("+0", 0));
+    CHECK(TomlIntegerCompare("-0", 0));
+    CHECK(TomlIntegerCompare("0x0", 0));
+    CHECK(TomlIntegerCompare("0x00", 0));
+    CHECK(TomlIntegerCompare("0x00000", 0));
+    CHECK(TomlIntegerCompare("0o0", 0));
+    CHECK(TomlIntegerCompare("0o00", 0));
+    CHECK(TomlIntegerCompare("0o00000", 0));
+    CHECK(TomlIntegerCompare("0b0", 0));
+    CHECK(TomlIntegerCompare("0b00", 0));
+    CHECK(TomlIntegerCompare("0b00000", 0));
+
+    // Underscore
+    CHECK(TomlIntegerCompare("1_000", 1'000));
+    CHECK(TomlIntegerCompare("1_1_1_1", 1'1'1'1));
+
+    // Long
+    CHECK(TomlIntegerCompare("9223372036854775807", std::numeric_limits<int64_t>::max()));
+    CHECK(TomlIntegerCompare("-9223372036854775808", std::numeric_limits<int64_t>::min()));
+
+    // Integer
+    CHECK(TomlIntegerCompare("42", 42));
+    CHECK(TomlIntegerCompare("+42", 42));
+    CHECK(TomlIntegerCompare("-42", -42));
+    CHECK(TomlIntegerCompare("0", 0));
+
+    // Literals
+    CHECK(TomlIntegerCompare("0b11010110", 0b11010110));
+    CHECK(TomlIntegerCompare("0b1_0_1", 0b1'0'1));
+    CHECK(TomlIntegerCompare("0o01234567", 01234567));
+    CHECK(TomlIntegerCompare("0o755", 0755));
+    CHECK(TomlIntegerCompare("0o7_6_5", 0765));
+    CHECK(TomlIntegerCompare("0xDEADBEEF", 0xDEADBEEF));
+    CHECK(TomlIntegerCompare("0xdeadbeef", 0xdeadbeef));
+    CHECK(TomlIntegerCompare("0xdead_beef", 0xdeadbeef));
+    CHECK(TomlIntegerCompare("0x00987", 0x00987));
+
+    // Float64-max
+    CHECK(TomlIntegerCompare("9_007_199_254_740_991", 9'007'199'254'740'991));
+    CHECK(TomlIntegerCompare("-9_007_199_254_740_991", -9'007'199'254'740'991));
+}
+
+TEST_CASE("valid-datetime")
+{
+    auto CheckTomlDatetime = [](const char* context,
+        int year, int month, int day, 
+        int hour = 0, int minute = 0, int second = 0, 
+        int nanosecond = 0, int offset = 0) static
+    {
+        auto root = ParseAsTomlValue(context);
+        auto& dt = root.as<toml::datetime>();
+        auto [date, time, off] = dt;
+
+        return (date.m_year == year)
+            && (date.m_month == month)
+            && (date.m_day == day)
+            && (time.m_hour == hour)
+            && (time.m_minute == minute)
+            && (time.m_second == second)
+            && (off.m_minute == offset);
+    };
+
+    CHECK(CheckTomlDatetime("1987-07-05 17:45:00Z", 1987, 7, 5, 17, 45, 0));
+    CHECK(CheckTomlDatetime("1987-07-05t17:45:00z", 1987, 7, 5, 17, 45, 0));
+
+    CHECK(CheckTomlDatetime("0001-01-01 00:00:00Z", 1, 1, 1));
+    CHECK(CheckTomlDatetime("0001-01-01 00:00:00", 1, 1, 1));
+    CHECK(CheckTomlDatetime("0001-01-01", 1, 1, 1));
+
+    CHECK(CheckTomlDatetime("9999-12-31 23:59:59Z", 9999, 12, 31, 23, 59, 59));
+    CHECK(CheckTomlDatetime("9999-12-31 23:59:59", 9999, 12, 31, 23, 59, 59));
+    CHECK(CheckTomlDatetime("9999-12-31", 9999, 12, 31));
+
+    CHECK(CheckTomlDatetime("2000-02-29 15:15:15Z", 2000, 2, 29, 15, 15, 15));
+    CHECK(CheckTomlDatetime("2000-02-29 15:15:15", 2000, 2, 29, 15, 15, 15));
+    CHECK(CheckTomlDatetime("2000-02-29", 2000, 2, 29));
+
+    CHECK(CheckTomlDatetime("2024-02-29 15:15:15Z", 2024, 2, 29, 15, 15, 15));
+    CHECK(CheckTomlDatetime("2024-02-29 15:15:15", 2024, 2, 29, 15, 15, 15));
+    CHECK(CheckTomlDatetime("2024-02-29", 2024, 2, 29));
+
+    CHECK(CheckTomlDatetime("1987-07-05", 1987, 7, 5));
+    CHECK(CheckTomlDatetime("17:45:00", 0, 0, 0, 17, 45));
+    CHECK(CheckTomlDatetime("10:32:00.555", 0, 0, 0, 10, 32, 0, 555));
+
+    CHECK(CheckTomlDatetime("1987-07-05T17:45:00", 1987, 7, 5, 17, 45));
+    CHECK(CheckTomlDatetime("1977-12-21T10:32:00.555", 1977, 12, 21, 10, 32, 0, 555));
+    CHECK(CheckTomlDatetime("1987-07-05 17:45:00", 1987, 7, 5, 17, 45));
+
+    CHECK(CheckTomlDatetime("1987-07-05T17:45:56.123Z", 1987, 7, 5, 17, 45, 56, 123));
+    CHECK(CheckTomlDatetime("1987-07-05T17:45:56.6Z", 1987, 7, 5, 17, 45, 56, 6));
+    CHECK(CheckTomlDatetime("1987-07-05T17:45:56.123+08:00", 1987, 7, 5, 17, 45, 56, 123, 480));
+    CHECK(CheckTomlDatetime("1987-07-05T17:45:56.6+08:00", 1987, 7, 5, 17, 45, 56, 6, 480));
+    
+    CHECK(CheckTomlDatetime("13:37", 0, 0, 0, 13, 37));
+    CHECK(CheckTomlDatetime("1979-05-27 07:32Z", 1979, 5, 27, 7, 32));
+    CHECK(CheckTomlDatetime("1979-05-27 07:32-07:00", 1979, 5, 27, 7, 32, 0, 0, -420));
+    CHECK(CheckTomlDatetime("1979-05-27T07:32", 1979, 5, 27, 7, 32));
+
+    CHECK(CheckTomlDatetime("1987-07-05T17:45:56Z", 1987, 7, 5, 17, 45, 56));
+    CHECK(CheckTomlDatetime("1987-07-05T17:45:56-05:00", 1987, 7, 5, 17, 45, 56, 0, -300));
+    CHECK(CheckTomlDatetime("1987-07-05T17:45:56+12:00", 1987, 7, 5, 17, 45, 56, 0, 720));
+    CHECK(CheckTomlDatetime("1987-07-05T17:45:56+13:00", 1987, 7, 5, 17, 45, 56, 0, 780));
+
 }
 
 const toml::value* ExtractOneElementByIndex(const toml::value& root, const char* key)
@@ -69,7 +243,7 @@ const toml::value* ExtractOneElementByIndex(const toml::value& root, size_t inde
 }
 
 template <typename Key1, typename... Keys>
-const toml::value* AutomaticSearchTableOrArray(const toml::value& root, Key1 key1, Keys... keys)
+const toml::value* SearchTableOrArray(const toml::value& root, Key1 key1, Keys... keys)
 {
     if constexpr (sizeof...(Keys) == 0)
     {
@@ -78,580 +252,218 @@ const toml::value* AutomaticSearchTableOrArray(const toml::value& root, Key1 key
     else
     {
         const toml::value* next = ExtractOneElementByIndex(root, key1);
-        return ExtractOneElementByIndex(*next, keys...);
+        return SearchTableOrArray(*next, keys...);
     }
 }
 
-template <typename TomlValueType, typename Expected, typename... Keys>
-bool ExtractTomlArrayOrTableElementAndCompare(const toml::value& root, Expected expected, Keys... keys)
+template <typename TomlValueType, typename Actual, typename... Keys>
+bool LoadTomlValueAndExtract(const char* context, Actual actual, Keys... keys)
 {
-    const toml::value* node = AutomaticSearchTableOrArray(root, keys...);
-    return node->is<TomlValueType>() && node->as<TomlValueType>() == expected;
+    auto tv = ParseAsTomlValue(context);
+    const toml::value* node = SearchTableOrArray(tv, keys...);
+    return node->is<TomlValueType>() && node->as<TomlValueType>() == actual;
 }
 
-template <typename TomlValueType, typename Expected>
-bool ExtractTomlArrayElementAndCompare(const toml::value& root, std::initializer_list<int> indices, Expected expected)
+template <typename TomlValueType, typename Actual, typename... Keys>
+bool LoadTomlValueAndExtract(const toml::value& root, Actual actual, Keys... keys)
 {
-    const toml::value* cur = &root;
-    for (const auto index : indices)
-    {
-        cur = &(cur->as<toml::array>()[index]);
-    }
-    return cur->is<TomlValueType>() && cur->as<TomlValueType>() == expected;
+    const toml::value* node = SearchTableOrArray(root, keys...);
+    return node->is<TomlValueType>() && node->as<TomlValueType>() == actual;
 }
 
-TEST_CASE("boolean")
+TEST_CASE("valid-array")
 {
-    SECTION("valid")
-    {
-        constexpr const char* context = R"(
-        
-        t = true
-        f = false
-        
-        )";
+    const char* context = "[true, false]";
+    CHECK(LoadTomlValueAndExtract<toml::boolean>(context, true, 0));
+    CHECK(LoadTomlValueAndExtract<toml::boolean>(context, false, 1));
 
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 2));
-        CHECK(TestSingleValue<toml::boolean>(root, "t", true));
-        CHECK(TestSingleValue<toml::boolean>(root, "f", false));
-    }
+    context = "[[1, 2], [\"a\", \"b\"], [1.1, 2.1]]";
+    CHECK(LoadTomlValueAndExtract<toml::integer>(context, 1, 0, 0));
+    CHECK(LoadTomlValueAndExtract<toml::integer>(context, 2, 0, 1));
+    CHECK(LoadTomlValueAndExtract<toml::string>(context, "a", 1, 0));
+    CHECK(LoadTomlValueAndExtract<toml::string>(context, "b", 1, 1));
+    CHECK(LoadTomlValueAndExtract<toml::floating>(context, 1.1, 2, 0));
+    CHECK(LoadTomlValueAndExtract<toml::floating>(context, 2.1, 2, 1));
+
+    context = "[1, [\"Arrays are not integers.\"]]";
+    CHECK(LoadTomlValueAndExtract<toml::integer>(context, 1, 0));
+    CHECK(LoadTomlValueAndExtract<toml::string>(context, "Arrays are not integers.", 1, 0));
+
+    context = "[1, 1.1]";
+    CHECK(LoadTomlValueAndExtract<toml::integer>(context, 1, 0));
+    CHECK(LoadTomlValueAndExtract<toml::floating>(context, 1.1, 1));
+
+    context = "[\"hi\", 42]";
+    CHECK(LoadTomlValueAndExtract<toml::string>(context, "hi", 0));
+    CHECK(LoadTomlValueAndExtract<toml::integer>(context, 42, 1));
+
+    context = R"([["a"], ["b"]])";
+    CHECK(LoadTomlValueAndExtract<toml::string>(context, "a", 0, 0));
+    CHECK(LoadTomlValueAndExtract<toml::string>(context, "b", 1, 0));
+
+    context = R"([ { bar="\"{{baz}}\""} ])";
+    CHECK(LoadTomlValueAndExtract<toml::string>(context, "\"{{baz}}\"", 0, "bar"));
+
+    context = R"([ { b = {} } ])";
+    auto root = ParseAsTomlValue(context);
+    auto t = SearchTableOrArray(root, 0, "b");
+    REQUIRE(t->is<toml::table>());
+    REQUIRE(t->as<toml::table>().empty());
+
+    context = R"(
+        nested-array = [[[[[]]]]]
+        contributors = [
+            "Foo Bar <foo@example.com>",
+            { name = "Baz Qux", email = "bazqux@example.com", url = "https://example.com/bazqux" }
+        ]
+
+        # Start with a table as the first element. This tests a case that some libraries
+        # might have where they will check if the first entry is a table/map/hash/assoc
+        # array and then encode it as a table array. This was a reasonable thing to do
+        # before TOML 1.0 since arrays could only contain one type, but now it's no
+        # longer.
+        mixed = [{k="a"}, "b", 1]
+    )";
+
+    root = toml::loads(context);
+    auto nested_array = SearchTableOrArray(root, "nested-array", 0, 0, 0, 0);
+    REQUIRE(nested_array->is<toml::array>());
+    REQUIRE(nested_array->as<toml::array>().empty());
+
+    REQUIRE(LoadTomlValueAndExtract<toml::string>(root, "a", "mixed", 0, "k"));
+    REQUIRE(LoadTomlValueAndExtract<toml::string>(root, "b", "mixed", 1));
+    REQUIRE(LoadTomlValueAndExtract<toml::integer>(root, 1, "mixed", 2));
+
+    CHECK(LoadTomlValueAndExtract<toml::string>(root, "Foo Bar <foo@example.com>", "contributors", 0));
+    CHECK(LoadTomlValueAndExtract<toml::string>(root, "Baz Qux", "contributors", 1, "name"));
+    CHECK(LoadTomlValueAndExtract<toml::string>(root, "bazqux@example.com", "contributors", 1, "email"));
+    CHECK(LoadTomlValueAndExtract<toml::string>(root, "https://example.com/bazqux", "contributors", 1, "url"));
 }
 
-TEST_CASE("floating")
+TEST_CASE("valid-table")
 {
-    SECTION("valid-zero")
-    {
-        constexpr const char* context = R"(
-            zero = 0.0
-            signed-pos = +0.0
-            signed-neg = -0.0
-            exponent = 0e0
-            exponent-two-0 = 0e00
-            exponent-signed-pos = +0e0
-            exponent-signed-neg = -0e0
-        )";
 
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 7));
-        CHECK(TestSingleValue<toml::floating>(root, "zero", 0.0));
-        CHECK(TestSingleValue<toml::floating>(root, "signed-pos", +0.0));
-        CHECK(TestSingleValue<toml::floating>(root, "signed-neg", -0.0));
-        CHECK(TestSingleValue<toml::floating>(root, "exponent", 0e0));
-        CHECK(TestSingleValue<toml::floating>(root, "exponent-two-0", 0e00));
-        CHECK(TestSingleValue<toml::floating>(root, "exponent-signed-pos", +0e0));
-        CHECK(TestSingleValue<toml::floating>(root, "exponent-signed-neg", -0e0));
-    }
-
-    SECTION("valid-underscore")
-    {
-        constexpr const char* context = R"(
-            before = 3_141.5927
-            after = 3141.592_7
-            exponent = 3e1_4
-        )";
-
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 3));
-        CHECK(TestSingleValue<toml::floating>(root, "before", 3'141.5927));
-        CHECK(TestSingleValue<toml::floating>(root, "after", 3141.592'7));
-        CHECK(TestSingleValue<toml::floating>(root, "exponent", 3e1'4));
-    }
-
-    SECTION("valid-max-int")
-    {
-        constexpr const char* context = R"(
-            # Maximum and minimum safe natural numbers.
-            max_float =  9_007_199_254_740_991.0
-            min_float = -9_007_199_254_740_991.0
-        )";
-
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 2));
-        CHECK(TestSingleValue<toml::floating>(root, "max_float", 9'007'199'254'740'991.0));
-        CHECK(TestSingleValue<toml::floating>(root, "min_float", -9'007'199'254'740'991.0));
-    }
-
-    SECTION("valid-long")
-    {
-        constexpr const char* context = R"(
-            longpi = 3.141592653589793
-            neglongpi = -3.141592653589793
-        )";
-
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 2));
-        CHECK(TestSingleValue<toml::floating>(root, "longpi", 3.141592653589793));
-        CHECK(TestSingleValue<toml::floating>(root, "neglongpi", -3.141592653589793));
-    }
-    
-    SECTION("valid-inf-and-nan")
-    {
-        constexpr const char* context = R"(
-            # We don't encode +nan and -nan back with the signs; many languages don't
-            # support a sign on NaN (it doesn't really make much sense).
-            nan = nan
-            nan_neg = -nan
-            nan_plus = +nan
-            infinity = inf
-            infinity_neg = -inf
-            infinity_plus = +inf
-        )";
-
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 6));
-        CHECK(TestSingleValueIsNaNOrInf(root, "nan", true));
-        CHECK(TestSingleValueIsNaNOrInf(root, "nan_neg", true));
-        CHECK(TestSingleValueIsNaNOrInf(root, "nan_plus", true));
-        CHECK(TestSingleValueIsNaNOrInf(root, "infinity", false));
-        CHECK(TestSingleValueIsNaNOrInf(root, "infinity_neg", false));
-        CHECK(TestSingleValueIsNaNOrInf(root, "infinity_plus", false));
-    }
-
-    SECTION("valid-float")
-    {
-        constexpr const char* context = R"(
-            pi = 3.14
-            pospi = +3.14
-            negpi = -3.14
-            zero-intpart = 0.123
-        )";
-
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 4));
-        CHECK(TestSingleValue<toml::floating>(root, "pi", 3.14));
-        CHECK(TestSingleValue<toml::floating>(root, "pospi", 3.14));
-        CHECK(TestSingleValue<toml::floating>(root, "negpi", -3.14));
-        CHECK(TestSingleValue<toml::floating>(root, "zero-intpart", 0.123));
-    }
-
-    SECTION("valid-exponent")
-    {
-        constexpr const char* context = R"(
-            lower = 3e2
-            upper = 3E2
-            neg = 3e-2
-            pos = 3E+2
-            zero = 3e0
-            pointlower = 3.1e2
-            pointupper = 3.1E2
-            minustenth = -1E-1
-        )";
-
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 8));
-        CHECK(TestSingleValue<toml::floating>(root, "lower", 3e2));
-        CHECK(TestSingleValue<toml::floating>(root, "upper", 3E2));
-        CHECK(TestSingleValue<toml::floating>(root, "neg", 3e-2));
-        CHECK(TestSingleValue<toml::floating>(root, "pos", 3e+2));
-        CHECK(TestSingleValue<toml::floating>(root, "zero", 3e0));
-        CHECK(TestSingleValue<toml::floating>(root, "pointlower", 3.1e2));
-        CHECK(TestSingleValue<toml::floating>(root, "pointupper", 3.1E2));
-        CHECK(TestSingleValue<toml::floating>(root, "minustenth", -1E-1));
-    }
 }
 
-TEST_CASE("integer")
+// https://github.com/toml-lang/toml-test/tree/master/tests
+const char* directory = R"(D:\code\toml-test\tests)";
+
+json::value ParseAsJsonValue(std::string context)
 {
-    SECTION("valid-zero")
-    {
-        constexpr const char* context = R"(
-            d1 = 0
-            d2 = +0
-            d3 = -0
-
-            h1 = 0x0
-            h2 = 0x00
-            h3 = 0x00000
-
-            o1 = 0o0
-            a2 = 0o00
-            a3 = 0o00000
-
-            b1 = 0b0
-            b2 = 0b00
-            b3 = 0b00000
-        )";
-
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 12));
-        CHECK(TestSingleValue<toml::integer>(root, "d1", 0));
-        CHECK(TestSingleValue<toml::integer>(root, "d2", 0));
-        CHECK(TestSingleValue<toml::integer>(root, "d3", 0));
-        CHECK(TestSingleValue<toml::integer>(root, "h1", 0));
-        CHECK(TestSingleValue<toml::integer>(root, "h2", 0));
-        CHECK(TestSingleValue<toml::integer>(root, "h3", 0));
-        CHECK(TestSingleValue<toml::integer>(root, "o1", 0));
-        CHECK(TestSingleValue<toml::integer>(root, "a2", 0));
-        CHECK(TestSingleValue<toml::integer>(root, "a3", 0));
-        CHECK(TestSingleValue<toml::integer>(root, "b1", 0));
-        CHECK(TestSingleValue<toml::integer>(root, "b2", 0));
-        CHECK(TestSingleValue<toml::integer>(root, "b3", 0));
-    }
-
-    SECTION("valid-underscore")
-    {
-        constexpr const char* context = R"(
-            kilo = 1_000
-            x = 1_1_1_1
-        )";
-
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 2));
-        CHECK(TestSingleValue<toml::integer>(root, "kilo", 1'000));
-        CHECK(TestSingleValue<toml::integer>(root, "x", 1'1'1'1));
-    }
-
-    SECTION("valid-long")
-    {
-        constexpr const char* context = R"(
-            # int64 "should" be supported, but is not mandatory. It's fine to skip this
-            # test.
-            int64-max     = 9223372036854775807
-            int64-max-neg = -9223372036854775808
-        )";
-
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 2));
-        CHECK(TestSingleValue<toml::integer>(root, "int64-max", std::numeric_limits<int64_t>::max()));
-        CHECK(TestSingleValue<toml::integer>(root, "int64-max-neg", std::numeric_limits<int64_t>::min()));
-    }
-
-    SECTION("valid-integer")
-    {
-        constexpr const char* context = R"(
-            answer = 42
-            posanswer = +42
-            neganswer = -42
-            zero = 0
-        )";
-
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 4));
-        CHECK(TestSingleValue<toml::integer>(root, "answer", 42));
-        CHECK(TestSingleValue<toml::integer>(root, "posanswer", 42));
-        CHECK(TestSingleValue<toml::integer>(root, "neganswer", -42));
-        CHECK(TestSingleValue<toml::integer>(root, "zero", 0));
-    }
-
-    SECTION("valid-literals")
-    {
-        constexpr const char* context = R"(
-            bin1 = 0b11010110
-            bin2 = 0b1_0_1
-
-            oct1 = 0o01234567
-            oct2 = 0o755
-            oct3 = 0o7_6_5
-
-            hex1 = 0xDEADBEEF
-            hex2 = 0xdeadbeef
-            hex3 = 0xdead_beef
-            hex4 = 0x00987
-        )";
-
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 9));
-        CHECK(TestSingleValue<toml::integer>(root, "bin1", 0b11010110));
-        CHECK(TestSingleValue<toml::integer>(root, "bin2", 0b1'0'1));
-
-        CHECK(TestSingleValue<toml::integer>(root, "oct1", 001234567));
-        CHECK(TestSingleValue<toml::integer>(root, "oct2", 0755));
-        CHECK(TestSingleValue<toml::integer>(root, "oct3", 0765));
-
-        CHECK(TestSingleValue<toml::integer>(root, "hex1", 0xDEADBEEF));
-        CHECK(TestSingleValue<toml::integer>(root, "hex2", 0xdeadbeef));
-        CHECK(TestSingleValue<toml::integer>(root, "hex3", 0xdeadbeef));
-        CHECK(TestSingleValue<toml::integer>(root, "hex4", 0x00987));
-    }
-
-    SECTION("valid-float64-max")
-    {
-        constexpr const char* context = R"(
-            # Maximum and minimum safe float64 natural numbers. Mainly here for
-            # -int-as-float.
-            max_int =  9_007_199_254_740_991
-            min_int = -9_007_199_254_740_991
-        )";
-
-
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 2));
-        CHECK(TestSingleValue<toml::integer>(root, "max_int", 9'007'199'254'740'991));
-        CHECK(TestSingleValue<toml::integer>(root, "min_int", -9'007'199'254'740'991));
-    }
+    auto parser = JsonDecoder(std::move(context));
+    return parser.parse_value();
 }
 
-TEST_CASE("array")
+template <typename ExpectedType>
+struct TomlIs
 {
-    SECTION("array-subtables")
+    static bool operator()(const toml::value& x)
     {
-        [[maybe_unused]] constexpr const char* context = R"(
-            [[arr]]
-            [arr.subtab]
-            val=1
-
-            [[arr]]
-            [arr.subtab]
-            val=2
-        )";
-
-        // auto root = toml::loads(context);
-        // REQUIRE(CheckTableSize(root, 1));
+        return x.is<ExpectedType>();
     }
+};
 
-    SECTION("bool")
-    {
-        constexpr const char* context = R"(
-            a = [true, false]
-        )";
-
-        auto root = toml::loads(context);
-        auto& arr = root.as<toml::table>().find("a")->second;
-        REQUIRE(CheckArraySize(arr, 2));
-        REQUIRE(ExtractTomlArrayElementAndCompare<toml::boolean>(arr, {0}, true));
-        REQUIRE(ExtractTomlArrayElementAndCompare<toml::boolean>(arr, {1}, false));
-    }
-
-    SECTION("empty")
-    {
-        constexpr const char* context = R"(
-            thevoid = [[[[[]]]]]
-        )";
-
-        auto root = toml::loads(context);
-        auto& arr1 = root.as<toml::table>().find("thevoid")->second;
-        CHECK(arr1.is<toml::array>());
-        auto& arr2 = arr1.as<toml::array>().front();
-        CHECK(arr2.is<toml::array>());
-        auto& arr3 = arr2.as<toml::array>().front();
-        CHECK(arr3.is<toml::array>());
-        auto& arr4 = arr3.as<toml::array>().front();
-        CHECK(arr4.is<toml::array>());
-        auto& arr5 = arr4.as<toml::array>().front();
-        CHECK(arr5.is<toml::array>());
-    }
-
-    SECTION("hetergeneous")
-    {
-        constexpr const char* context = R"(
-            mixed = [[1, 2], ["a", "b"], [1.1, 2.1]]
-        )";
-
-        auto root = toml::loads(context);
-        auto& arr = root.as<toml::table>().find("mixed")->second;
-        REQUIRE(ExtractTomlArrayElementAndCompare<toml::integer>(arr, {0, 0}, 1));
-        REQUIRE(ExtractTomlArrayElementAndCompare<toml::integer>(arr, {0, 1}, 2));
-        REQUIRE(ExtractTomlArrayElementAndCompare<toml::string>(arr, {1, 0}, "a"));
-        REQUIRE(ExtractTomlArrayElementAndCompare<toml::string>(arr, {1, 1}, "b"));
-        REQUIRE(ExtractTomlArrayElementAndCompare<toml::floating>(arr, {2, 0}, 1.1));
-        REQUIRE(ExtractTomlArrayElementAndCompare<toml::floating>(arr, {2, 1}, 2.1));
-    }
-
-    SECTION("mixed-int-array")
-    {
-        constexpr const char* context = R"(
-            arrays-and-ints =  [1, ["Arrays are not integers."]]
-        )";
-
-        auto root = toml::loads(context);
-        auto& arr = root.as<toml::table>().find("arrays-and-ints")->second;
-        REQUIRE(ExtractTomlArrayElementAndCompare<toml::integer>(arr, {0}, 1));
-        REQUIRE(ExtractTomlArrayElementAndCompare<toml::string>(arr, {1, 0}, "Arrays are not integers."));
-    }
-
-    SECTION("mixed-int-float")
-    {
-        constexpr const char* context = R"(
-            ints-and-floats = [1, 1.1]
-        )";
-
-        auto root = toml::loads(context);
-        auto& arr = root.as<toml::table>().find("ints-and-floats")->second;
-        REQUIRE(ExtractTomlArrayElementAndCompare<toml::integer>(arr, {0}, 1));
-        REQUIRE(ExtractTomlArrayElementAndCompare<toml::floating>(arr, {1}, 1.1));
-    }
-
-    SECTION("mixed-int-string")
-    {
-        constexpr const char* context = R"(
-            strings-and-ints = ["hi", 42]
-        )";
-
-        auto root = toml::loads(context);
-        auto& arr = root.as<toml::table>().find("strings-and-ints")->second;
-        REQUIRE(ExtractTomlArrayOrTableElementAndCompare<toml::string>(arr, "hi", 0));
-        REQUIRE(ExtractTomlArrayOrTableElementAndCompare<toml::integer>(arr, 42, 1));
-    }
-
-    SECTION("mixed-string-table")
-    {
-        constexpr const char* context = R"(
-            contributors = [
-                "Foo Bar <foo@example.com>",
-                { name = "Baz Qux", email = "bazqux@example.com", url = "https://example.com/bazqux" }
-            ]
-
-            # Start with a table as the first element. This tests a case that some libraries
-            # might have where they will check if the first entry is a table/map/hash/assoc
-            # array and then encode it as a table array. This was a reasonable thing to do
-            # before TOML 1.0 since arrays could only contain one type, but now it's no
-            # longer.
-            mixed = [{k="a"}, "b", 1]
-        )";
-
-        auto root = toml::loads(context);
-        auto& contributors = root.as<toml::table>().find("contributors")->second;
-        REQUIRE(ExtractTomlArrayOrTableElementAndCompare<toml::string>(contributors, "Foo Bar <foo@example.com>", 0));
-        REQUIRE(ExtractTomlArrayOrTableElementAndCompare<toml::string>(contributors, "Baz Qux", 1, "name"));
-        REQUIRE(ExtractTomlArrayOrTableElementAndCompare<toml::string>(contributors, "bazqux@example.com", 1, "email"));
-        REQUIRE(ExtractTomlArrayOrTableElementAndCompare<toml::string>(contributors, "https://example.com/bazqux", 1, "url"));
-    
-        auto& mixed = root.as<toml::table>().find("mixed")->second;
-        REQUIRE(ExtractTomlArrayOrTableElementAndCompare<toml::string>(mixed, "a", 0, "k"));
-        REQUIRE(ExtractTomlArrayOrTableElementAndCompare<toml::string>(mixed, "b", 1));
-        REQUIRE(ExtractTomlArrayOrTableElementAndCompare<toml::integer>(mixed, 1, 2));
-    }
-
-    SECTION("nested")
-    {
-        constexpr const char* context = R"(
-            nest = [["a"], ["b"]]
-        )";
-
-        auto root = toml::loads(context);
-        auto& nest = root.as<toml::table>().find("nest")->second;
-        REQUIRE(ExtractTomlArrayOrTableElementAndCompare<toml::string>(nest, "a", 0, 0));
-        REQUIRE(ExtractTomlArrayOrTableElementAndCompare<toml::string>(nest, "b", 1, 0));
-    }
-
-    SECTION("table-array-string-backslash")
-    {
-        constexpr const char* context = R"(
-            foo = [ { bar="\"{{baz}}\""} ]
-        )";
-
-        auto root = toml::loads(context);
-        auto& foo = root.as<toml::table>().find("foo")->second;
-        REQUIRE(ExtractTomlArrayOrTableElementAndCompare<toml::string>(foo, "\"{{baz}}\"", 0, "bar"));
-    }
-
-    SECTION("nested-inline-table")
-    {
-        constexpr const char* context = R"(
-            a = [ { b = {} } ]
-        )";
-
-        auto root = toml::loads(context);
-        auto& a = root.as<toml::table>().find("a")->second;
-        auto table_ptr = AutomaticSearchTableOrArray(a, 0, "b");
-        REQUIRE(table_ptr->is<toml::table>());
-        REQUIRE(table_ptr->as<toml::table>().empty());
-    }
-}
-
-// TODO - everywhere
-TEST_CASE("comment")
+bool CheckTomlType(std::string_view type, const toml::value& x)
 {
-    SECTION("valid-after-literal-no-ws")
+    static std::map<std::string_view, std::function<bool(const toml::value&)>> m = 
     {
-        constexpr const char* context = R"(
-            inf=inf#infinity
-            nan=nan#not a number
-            true=true#true
-            false=false#false
-        )";
+        { "integer", TomlIs<toml::integer>() },
+        { "bool", TomlIs<toml::boolean>() },
+        { "string", TomlIs<toml::string>() },
+        { "datetime", TomlIs<toml::datetime>() },
+        { "float", TomlIs<toml::floating>() },
+    };
 
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 4));
-        CHECK(TestSingleValueIsNaNOrInf(root, "inf", false));
-        CHECK(TestSingleValueIsNaNOrInf(root, "nan", true));
-        CHECK(TestSingleValue<toml::boolean>(root, "true", true));
-        CHECK(TestSingleValue<toml::boolean>(root, "false", false));
+    auto it = m.find(type);
+
+    if (it == m.end())
+    {
+        throw std::runtime_error("Unknown toml type.");
     }
-
-    SECTION("valid-at-eof")
+    else
     {
-        constexpr const char* context = R"(
-            # This is a full-line comment
-            key = "value" # This is a comment at the end of a line)";
-
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 1));
-        CHECK(TestSingleValue<toml::string>(root, "key", "value"));
-    }
-
-    SECTION("valid-noeol")
-    {
-        constexpr const char* context = "# single comment without any eol characters";
-
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 0));
-    }
-
-    SECTION("valid-nonascii")
-    {
-        constexpr const char* context = "# ~  ÿ ퟿  ￿ 𐀀 􏿿";
-
-        auto root = toml::loads(context);
-        REQUIRE(CheckTableSize(root, 0));
-    }
-
-    SECTION("valid-everywhere")
-    {
-        [[maybe_unused]] constexpr const char* context = R"(
-# Top comment.
-  # Top comment.
-# Top comment.
-
-# [no-extraneous-groups-please]
-
-[group] # Comment
-answer = 42 # Comment
-# no-extraneous-keys-please = 999
-# Inbetween comment.
-more = [ # Comment
-  # What about multiple # comments?
-  # Can you handle it?
-  #
-          # Evil.
-# Evil.
-  42, 42, # Comments within arrays are fun.
-  # What about multiple # comments?
-  # Can you handle it?
-  #
-          # Evil.
-# Evil.
-# ] Did I fool you?
-] # Hopefully not.
-
-# Make sure the space between the datetime and "#" isn't lexed.
-dt = 1979-05-27T07:32:12-07:00  # c
-d = 1979-05-27 # Comment
-        )";
-
-        // TODO
-    }
-
-    SECTION("valid-tricky")
-    {
-        // TODO
+        return it->second(x);
     }
 }
 
+// For Toml: x = 1
+// For Json: x : { type: "integer", "value": "1" }
+bool CompareJsonAndTomlValue(const json::value& jval, const toml::value& tval);
 
+struct JsonMatcher
+{
+    bool Match(const json::value& root, const std::vector<std::string>& keys, const toml::value& target)
+    {
+        const json::value* cur = &root;
 
+        for (const auto& key : keys)
+        {
+            cur = &(cur->as<json::object>().find(key)->second);
+        }
 
+        return CompareJsonAndTomlValue(*cur, target);
+    }
+};
 
+struct TomlExtractor
+{
+    using path = std::vector<std::string>;
+    using value = toml::value;
 
+    std::vector<std::pair<path, const value*>> paths;
 
+    void Dfs(const toml::value& x, path& cur)
+    {
+        if (!x.is<toml::table>() || (x.is<toml::table>() && x.as<toml::table>().empty()))
+        {
+            paths.emplace_back(cur, &x);
+            return;
+        }
 
+        assert(x.is<toml::table>());
+        for (auto& t = x.as<toml::table>(); const auto& [key, value] : t)
+        {
+            cur.emplace_back(key);
+            Dfs(value, cur);
+            cur.pop_back();
+        }
+    }
 
+public:
 
+    void Extract(const toml::value& x)
+    {
+        // Console::WriteLine(leviathan::config::detail::toml2json()(x));
+        path p;
+        Dfs(x, p);
+    }
 
+    void CompareToJson(const json::value& root, std::string filename)
+    {
+        JsonMatcher matcher;
 
+        for (const auto& path_v : paths)
+        {
+            const auto& [keys, val] = path_v;
+            if (!matcher.Match(root, keys, *val))
+            {
+                Console::WriteLine("Error file: {}", filename);
+            }
+        }
+    }
+};
 
+void DebugFile(const char* file)
+{
+    auto t = toml::load(file);
+    auto j = leviathan::config::detail::toml2json()(t);
+    Console::WriteLine(j);
+}
 
+int mai1n()
+{
 
+    DebugFile("../a.toml");
 
-
+    return 0;
+}

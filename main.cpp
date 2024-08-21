@@ -279,7 +279,7 @@ void TestToml()
     for (auto dir : dirs) 
     {
         Tester tester(dir);
-        // tester.ErrorFile("newline");
+        tester.ErrorFile("newline");
         tester.TestFiles();
         tester.ReportFailure();
     }
@@ -288,12 +288,13 @@ void TestToml()
 void DebugFile(const char* file)
 {
     auto t = toml::load(file);
-    Console::WriteLine("Over");
+    auto j = leviathan::config::detail::toml2json()(t);
+    Console::WriteLine(j);
 }
 
 int main(int argc, char const *argv[])
 {
-    TestToml();
+    // TestToml();
 
     // DebugFile(R"(D:\code\toml-test\tests\valid\array\string-with-comma-2.toml)");
 
