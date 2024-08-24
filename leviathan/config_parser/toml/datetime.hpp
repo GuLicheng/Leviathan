@@ -72,7 +72,7 @@ struct offset
         {
             char sign = m_minute > 0 ? '+' : '-';
             auto dm = std::div(std::abs((int)m_minute), 60);
-            return std::format("{}{}:{}", sign, dm.quot, dm.rem);
+            return std::format("{}{:02}:{:02}", sign, dm.quot, dm.rem);
         }
     }
 };

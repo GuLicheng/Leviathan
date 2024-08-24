@@ -499,6 +499,7 @@ public:
         m_ctx.consume(detail::apostrophe);
         // literal-char = %x09 / %x20-26 / %x28-7E / non-ascii
         auto literal_character = [](size_t ch) static {
+            // return true;
             return ch == 0x09
                 || (0x20 <= ch && ch <= 0x26)
                 || (0x28 <= ch && ch <= 0x7E)
@@ -517,7 +518,7 @@ public:
 
     string parse_basic_string()
     {
-        m_ctx.consume(detail::quotation_mark);
+        // m_ctx.consume(detail::quotation_mark);
         auto basic_unescaped = [](int ch) static {
             return ch == 0x21
                 || ch == ' '

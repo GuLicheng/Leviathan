@@ -5,10 +5,10 @@
 namespace leviathan::config
 {
     
-template <typename Value>
+template <typename Object, typename SequenceType, typename AssociatedType>
 struct accessor
 {
-    
+
 };
 
 

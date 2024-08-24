@@ -1,2 +1,16 @@
-wita1 = 1987-07-05T17:45:56.123+08:00
-wita2 = 1987-07-05T17:45:56.6+08:00
+[a.few.dots]
+polka.dot = "again?"
+polka.dance-with = "Dot"
+
+[[arr]]
+a.b.c=1
+a.b.d=2
+
+[[arr]]
+a.b.c=3
+a.b.d=4
+
+''.x = "empty.x"
+x."" = "x.empty"
+[a]
+"".'' = "empty.empty"

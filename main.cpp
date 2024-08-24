@@ -1,288 +1,149 @@
-#include <filesystem>
-#include <leviathan/print.hpp>
-#include <ranges>
+#include <variant>
 #include <vector>
+#include <ranges>
 #include <string>
-#include <generator>
-#include <leviathan/config_parser/json/json.hpp>
+#include <functional>
+#include <leviathan/print.hpp>
+
 #include <leviathan/config_parser/toml/toml.hpp>
+#include <leviathan/config_parser/json/json.hpp>
 #include <leviathan/config_parser/value_cast.hpp>
-#include <leviathan/ranges/action.hpp>
-#include <algorithm>
 
-namespace json = leviathan::json;
 namespace toml = leviathan::toml;
+namespace json = leviathan::json;
 
-std::generator<std::string> RecurseFile(std::string dir)
+template <typename ArrayIndex, typename MapIndex>
+struct indexer : public std::variant<ArrayIndex, MapIndex>
 {
-    for (const auto& file : std::filesystem::directory_iterator(dir))
+    using std::variant<ArrayIndex, MapIndex>::variant;
+    using std::variant<ArrayIndex, MapIndex>::operator=;
+
+    constexpr bool is_array_index() const 
     {
-        if (file.is_directory())
+        return this->index() == 0;
+    }
+
+    constexpr bool is_map_index() const
+    {
+        return this->index() == 1;
+    }
+
+    auto& array_index() const
+    {
+        return std::get<0>(*this);
+    }
+
+    auto& map_index() const
+    {
+        return std::get<1>(*this);
+    }
+
+    std::string to_string() const
+    {
+        return this->index() == 0 
+             ? std::format("{}", array_index())
+             : std::format("{}", map_index());
+    }
+};
+
+using Index = indexer<size_t, std::string>;
+
+using Path = std::pair<std::vector<Index>, const json::value*>;
+
+template <typename ExpectedType>
+struct TomlIs
+{
+    static bool operator()(const toml::value& x)
+    {
+        return x.is<ExpectedType>();
+    }
+};
+
+bool IsValue(const toml::value& x)
+{
+    return !x.is<toml::array>() && !x.is<toml::table>();
+}
+
+bool CheckTomlType(std::string_view type, const toml::value& x)
+{
+    static std::map<std::string_view, std::function<bool(const toml::value&)>> m = 
+    {
+        { "integer", TomlIs<toml::integer>() },
+        { "float", TomlIs<toml::floating>() },
+        { "bool", TomlIs<toml::boolean>() },
+        { "string", TomlIs<toml::string>() },
+        { "datetime", TomlIs<toml::datetime>() },
+        { "date-local", TomlIs<toml::datetime>() },
+        { "datetime-local", TomlIs<toml::datetime>() },
+        { "time-local", TomlIs<toml::datetime>() },
+    };
+
+    auto it = m.find(type);
+
+    if (it == m.end())
+    {
+        throw std::runtime_error(std::format("Unknown toml type {}.", type));
+    }
+    else
+    {
+        return it->second(x);
+    }
+}
+
+std::vector<Path> GatherJsonPath(const json::value& jv)
+{
+    std::vector<Path> retval;
+    Path current;
+    
+    auto IsLeaf = [](const json::value& x) static
+    {
+        return x.is<json::object>()
+            && x.as<json::object>().size() == 2
+            && x.as<json::object>().contains("type")
+            && x.as<json::object>().contains("value");
+    };
+
+    auto Dfs = [&](this auto self, const json::value& x) 
+    {
+        if (IsLeaf(x))
         {
-            for (const auto& subfile : RecurseFile(file.path().string()))
+            current.second = &x;
+            retval.emplace_back(current);
+            return;
+        }
+        
+        if (x.is<json::object>())
+        {
+            for (const auto& [key, value] : x.as<json::object>())
             {
-                co_yield subfile;
+                current.first.emplace_back(key);
+                self(value);
+                current.first.pop_back();
+            }
+        }
+        else if (x.is<json::array>())
+        {
+            for (size_t i = 0; i < x.as<json::array>().size(); ++i)
+            {
+                current.first.emplace_back(i);
+                self(x.as<json::array>()[i]);
+                current.first.pop_back();
             }
         }
         else
         {
-            co_yield file.path().string();
+            throw std::runtime_error("Unreachable.");
         }
-    }
-}
-
-inline constexpr auto EndWith = [](const char* suffix) 
-{
-    return [=](const auto& entry) 
-    {
-        return entry.ends_with(suffix);
     };
-};
 
-inline constexpr auto RemoveExtension = [](const std::string& name)
-{
-    return name.substr(0, name.rfind('.'));
-};
+    Dfs(jv);
 
-auto Read(const char* dir, const char* extension)
-{
-    return RecurseFile(dir) 
-         | std::views::filter(EndWith(extension))
-         | std::views::transform(RemoveExtension)
-         | std::ranges::to<std::vector<std::string>>();
+    return retval;
 }
 
-bool CheckType(std::string_view type, const toml::value& target)
+bool MatchToml(const toml::value& tv, const std::vector<Path>& keys)
 {
-    if (type == "integer")
-    {
-        return target.is<toml::integer>();
-    }
-    else if (type == "bool")
-    {
-        return target.is<toml::boolean>();
-    } 
-    else if (type == "float")
-    {
-        return target.is<toml::floating>();
-    }
-    else
-    {
-        throw std::runtime_error("Unknown type.");
-    }
-}
 
-bool CompareJsonAndTomlValue(const json::value& jval, const toml::value& tval)
-{
-    auto type = jval.as<json::object>().find("type")->second.as<json::string>();
-    bool ok1 = CheckType(type, tval);
-
-    if (!ok1)
-    {
-        Console::WriteLine("Type parse error.");
-        return false;
-    }
-
-    auto source = jval.as<json::object>().find("value")->second.as<json::string>();
-
-    auto j = leviathan::config::detail::toml2json()(tval);
-
-    auto x1 = std::format("{}", source);
-    auto x2 = std::format("{}", j);
-
-    // FIXME:
-    // Compare string directly may not suitable.
-    // Nan should ignore sign.
-    if (x1 != x2)
-    {
-        Console::WriteLine("x1 = {} and x2 = {}", x1, x2);
-        return false;
-    }
-
-    return true;
-}
-
-struct JsonMatcher
-{
-    bool Match(const json::value& root, const std::vector<std::string>& keys, const toml::value& target)
-    {
-        const json::value* cur = &root;
-
-        for (const auto& key : keys)
-        {
-            cur = &(cur->as<json::object>().find(key)->second);
-        }
-
-        return CompareJsonAndTomlValue(*cur, target);
-    }
-};
-
-struct TomlExtractor
-{
-    using path = std::vector<std::string>;
-    using value = toml::value;
-
-    std::vector<std::pair<path, const value*>> paths;
-
-    void Dfs(const toml::value& x, path& cur)
-    {
-        if (!x.is<toml::table>() || (x.is<toml::table>() && x.as<toml::table>().empty()))
-        {
-            paths.emplace_back(cur, &x);
-            return;
-        }
-
-        assert(x.is<toml::table>());
-        for (auto& t = x.as<toml::table>(); const auto& [key, value] : t)
-        {
-            cur.emplace_back(key);
-            Dfs(value, cur);
-            cur.pop_back();
-        }
-    }
-
-public:
-
-    void Extract(const toml::value& x)
-    {
-        // Console::WriteLine(leviathan::config::detail::toml2json()(x));
-        path p;
-        Dfs(x, p);
-    }
-
-    void CompareToJson(const json::value& root, std::string filename)
-    {
-        JsonMatcher matcher;
-
-        for (const auto& path_v : paths)
-        {
-            const auto& [keys, val] = path_v;
-            if (!matcher.Match(root, keys, *val))
-            {
-                Console::WriteLine("Error file: {}", filename);
-            }
-        }
-    }
-};
-
-void TestFiles(const char* dir)
-{
-    auto files = Read(dir, ".toml");
-
-    for (auto file : files)
-    {
-        auto json_file = file + ".json";
-        auto toml_file = file + ".toml";
-
-        // Console::WriteLine("Compare file:\n [{}|{}]", json_file, toml_file);
-
-        TomlExtractor extractor;
-        auto tr = toml::load(toml_file.c_str());
-        auto jr = json::load(json_file.c_str());
-        extractor.Extract(tr);
-        extractor.CompareToJson(jr, file);
-    }
-}
-
-// --------------------------------------------------------------------
-
-class Recorder
-{
-    std::vector<std::string> success;
-    std::vector<std::string> failure;
-
-public:
-
-    void Success(std::string filename)
-    {
-        success.emplace_back(std::move(filename));
-    }
-
-    void Failure(std::string filename)
-    {
-        failure.emplace_back(filename);
-    }
-
-    void ReportFailure()
-    {
-        // Console::WriteLine("---{}--- failed!", failure);
-    }
-};
-
-class Tester
-{
-    std::vector<std::string> files;
-    Recorder recorder;
-
-public:
-
-    Tester(const char* dir) 
-    {
-        files = Read(dir, ".toml");
-    }
-
-    void ErrorFile(const char* file)
-    {
-        std::erase_if(files, [=](const std::string& filename)
-        {
-            return filename.ends_with(file);
-        });
-    }
-
-    void TestFile(std::string filename)
-    {
-        filename += ".toml";
-
-        // Console::WriteLine("Parsing file: {}", filename);
-        try
-        {
-            auto dict = toml::load(filename.c_str());
-            recorder.Success(filename);
-            // Console::WriteLine("{} ok", filename);
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << e.what() << '\n';
-            recorder.Failure(filename);
-            Console::WriteLine("{} failed", filename);
-        }
-        
-    }
-
-    void TestFiles()
-    {
-        for (const auto& file : files)
-        {
-            TestFile(file);
-        }
-    }
-
-    void ReportFailure()
-    {
-        recorder.ReportFailure();
-    }
-
-};
-
-void TestToml()
-{
-    const char* dirs[] = {
-        R"(D:\code\toml-test\tests\valid\array)",
-        R"(D:\code\toml-test\tests\valid\bool)",
-        R"(D:\code\toml-test\tests\valid\comment)",
-        R"(D:\code\toml-test\tests\valid\datetime)",
-        R"(D:\code\toml-test\tests\valid\float)",
-        R"(D:\code\toml-test\tests\valid\inline-table)",
-        R"(D:\code\toml-test\tests\valid\integer)",
-    };
-    
-    for (auto dir : dirs) 
-    {
-        Tester tester(dir);
-        tester.ErrorFile("newline");
-        tester.TestFiles();
-        tester.ReportFailure();
-    }
 }
 
 void DebugFile(const char* file)
@@ -292,13 +153,29 @@ void DebugFile(const char* file)
     Console::WriteLine(j);
 }
 
+
 int main(int argc, char const *argv[])
 {
-    // TestToml();
+    // DebugFile("../a.toml");
+    system("chcp 65001");
+    auto jv = json::load("../a.json");
+    Console::WriteLine(jv);
+    return 0;
 
-    // DebugFile(R"(D:\code\toml-test\tests\valid\array\string-with-comma-2.toml)");
+    auto Indices = GatherJsonPath(jv);
 
-    DebugFile("../a.toml");
+    for (auto&& outer : Indices)
+    {
+        for (auto&& inner : outer.first)
+        {
+            Console::Write(inner.to_string());
+            Console::Write(", ");
+        }
+        Console::WriteLine(*outer.second);
+    }
+
+    Console::WriteLine("====================================");
 
     return 0;
 }
+

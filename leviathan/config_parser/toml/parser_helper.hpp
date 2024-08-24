@@ -51,7 +51,7 @@ void decode_unicode(InputIterator dest, parse_context& ctx)
 template <typename Fn>
 string parse_basic_string_impl(parse_context& ctx, Fn fn)
 {
-    ctx.consume('\"');
+    ctx.consume(detail::quotation_mark);
     std::string out;
 
     while (ctx)
@@ -76,7 +76,7 @@ string parse_basic_string_impl(parse_context& ctx, Fn fn)
                 default: throw_toml_parse_error("Illegal character after escaped.");
             }
         }
-        else if (*ctx == '\"') 
+        else if (*ctx == detail::quotation_mark) 
         {
             return out;
         }

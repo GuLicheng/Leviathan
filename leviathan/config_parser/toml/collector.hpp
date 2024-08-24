@@ -2,7 +2,7 @@
 
 #include "value.hpp"
 
-namespace leviathan::config::toml
+namespace leviathan::config::toml::detail
 {
 
 // When we call emplace a default value, a temporary variable will always be 
@@ -110,7 +110,7 @@ inline value* insert_section(std::vector<string> keys, value* super, bool table_
     {
         auto [it, succeed] = super->as<table>().try_emplace(std::move(keys.back()), table_maker());
         
-        if (succeed)
+        if (succeed || is_unlocked<table>(it->second))
         {
             super = &(it->second);
         }
@@ -141,6 +141,12 @@ inline value* insert_section(std::vector<string> keys, value* super, bool table_
     return super;
 }
 
+
+} // namespace leviathan::config::toml::detail
+
+namespace leviathan::config::toml
+{
+
 class collector
 {
     // Root - TomlTable
@@ -164,19 +170,19 @@ public:
     void switch_to_std_table(std::vector<string> section)
     {
         // m_table = generate_section_path(std::move(section), table(false), &m_global);
-        m_table = insert_section(std::move(section), &m_global, true);
+        m_table = detail::insert_section(std::move(section), &m_global, true);
     }
 
     void switch_to_array_table(std::vector<string> section)
     {
         // auto parr = generate_section_path(std::move(section), array(false), &m_global);
         // m_table = &(parr->as<array>().emplace_back(table_maker()));
-        m_table = insert_section(std::move(section), &m_global, false);
+        m_table = detail::insert_section(std::move(section), &m_global, false);
     }
 
     void add_entry(std::vector<string> keys, value x)
     {
-        try_put_value(std::move(keys), std::move(x), m_table->as_ptr<table>());
+        detail::try_put_value(std::move(keys), std::move(x), m_table->as_ptr<table>());
     }
 
     value dispose()
@@ -186,5 +192,6 @@ public:
     }
 };
 
-} // namespace leviathan::config::toml
+
+}
 

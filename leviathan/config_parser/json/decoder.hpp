@@ -421,3 +421,12 @@ inline value load(const char* filename)
 
 } // namespace leviathan::config::json
 
+namespace leviathan::config::json::literal
+{
+
+inline value operator""_json(const char* str, size_t len)
+{
+    return loads(std::string(str, len));
+}
+
+}
