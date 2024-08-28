@@ -1,4 +1,5 @@
 // https://github.com/toml-lang/toml-test/tree/master
+// https://www.bejson.com/validators/toml_editor/
 
 #include "toml.hpp"
 #include "../json/json.hpp"
@@ -716,16 +717,16 @@ TEST_CASE("valid-key")
             "Μ" = "greek capital letter MU"
             M = "latin letter M"
         )";
-        // auto root = toml::loads(contexts);
+        auto root = toml::loads(contexts);
 
-        // CHECK(LoadTomlValueAndExtract<toml::string>(root, "sectioN", "NN"));
-        // CHECK(LoadTomlValueAndExtract<toml::string>(root, "lower", "section", "name"));
-        // CHECK(LoadTomlValueAndExtract<toml::string>(root, "upper", "section", "NAME"));
-        // CHECK(LoadTomlValueAndExtract<toml::string>(root, "capitalized", "section", "Name"));
-        // CHECK(LoadTomlValueAndExtract<toml::string>(root, "different section!!", "Section", "name"));
-        // CHECK(LoadTomlValueAndExtract<toml::string>(root, "greek small letter mu", "Section", "μ"));
-        // CHECK(LoadTomlValueAndExtract<toml::string>(root, "greek capital letter MU", "Section", "Μ"));
-        // CHECK(LoadTomlValueAndExtract<toml::string>(root, "latin letter M", "Section", "M"));
+        CHECK(LoadTomlValueAndExtract<toml::string>(root, "NN", "sectioN"));
+        CHECK(LoadTomlValueAndExtract<toml::string>(root, "lower", "section", "name"));
+        CHECK(LoadTomlValueAndExtract<toml::string>(root, "upper", "section", "NAME"));
+        CHECK(LoadTomlValueAndExtract<toml::string>(root, "capitalized", "section", "Name"));
+        CHECK(LoadTomlValueAndExtract<toml::string>(root, "different section!!", "Section", "name"));
+        CHECK(LoadTomlValueAndExtract<toml::string>(root, "greek small letter mu", "Section", "μ"));
+        CHECK(LoadTomlValueAndExtract<toml::string>(root, "greek capital letter MU", "Section", "Μ"));
+        CHECK(LoadTomlValueAndExtract<toml::string>(root, "latin letter M", "Section", "M"));
     }
 
     SECTION("3")
@@ -1001,6 +1002,217 @@ size = 2
         REQUIRE(SearchTomlTableOrArray(root, "inf")->as<toml::table>().empty());
         REQUIRE(SearchTomlTableOrArray(root, "nan")->as<toml::table>().empty());
     }
+
+    SECTION("table-only")
+    {
+        auto CheckTomlEmptyTable = []<typename... Keys>(const toml::value& root, Keys... keys) static
+        {
+            return SearchTomlTableOrArray(root, keys...)->template as<toml::table>().empty();
+        };
+
+        constexpr const char* context = R"(
+[a.b.c]
+[a."b.c"]
+[a.'d.e']
+[a.' x ']
+[ d.e.f ]
+[ g . h . i ]
+[ j . "ʞ" . 'l' ]
+
+[x.1.2]
+[x] # defining a super-table afterwards is ok
+
+[aa]
+key = 1
+
+# a.extend is a key inside the "a" table.
+[aa.extend]
+key = 2
+
+[aa.extend.more]
+key = 3
+
+['a1']
+[a1.'"b"']
+[a1.'"b"'.c]
+answer = 42 
+
+["key#group"]
+answer = 42
+
+        )";
+
+        auto root = toml::loads(context);
+
+        CHECK(LoadTomlValueAndExtract<toml::integer>(root, 42, "a1", R"("b")", "c", "answer"));
+        CHECK(LoadTomlValueAndExtract<toml::integer>(root, 42, "key#group", "answer"));
+
+        CHECK(CheckTomlEmptyTable(root, "a", "b", "c"));
+        CHECK(CheckTomlEmptyTable(root, "a", "b.c"));
+        CHECK(CheckTomlEmptyTable(root, "a", "d.e"));
+        CHECK(CheckTomlEmptyTable(root, "a", " x "));
+        CHECK(CheckTomlEmptyTable(root, "d", "e", "f"));
+        CHECK(CheckTomlEmptyTable(root, "g", "h", "i"));
+        CHECK(CheckTomlEmptyTable(root, "j", "ʞ", "l"));
+        CHECK(CheckTomlEmptyTable(root, "x", "1", "2"));
+        
+        CHECK(LoadTomlValueAndExtract<toml::integer>(root, 1, "aa", "key"));
+        CHECK(LoadTomlValueAndExtract<toml::integer>(root, 2, "aa", "extend", "key"));
+        CHECK(LoadTomlValueAndExtract<toml::integer>(root, 3, "aa", "extend", "more", "key"));
+    }
+}
+
+template <typename... Keys>
+bool CheckTomlString(const toml::value& root, const char* result, Keys... keys)
+{
+    return LoadTomlValueAndExtract<toml::string>(root, result, keys...);
+};
+
+TEST_CASE("valid-string")
+{
+    SECTION("1")
+    {
+        constexpr const char* context = R"(
+answer = ""
+end_esc = "String does not end here\" but ends here\\"
+lit_end_esc = 'String ends here\'
+
+multiline_unicode = """
+\u00a0"""
+
+multiline_not_unicode = """
+\\u0041"""
+
+multiline_end_esc = """When will it end? \"""...""\" should be here\""""
+
+lit_multiline_not_unicode = '''
+\u007f'''
+
+lit_multiline_end = '''There is no escape\'''
+
+backspace     = "|\b."
+tab           = "|\t."
+
+newline       = "|\n."
+formfeed      = "|\f."
+carriage      = "|\r."
+quote         = "|\"."
+backslash     = "|\\."
+delete        = "|\u007F."
+unitseparator = "|\u001F."
+
+# # \u is escaped, so should NOT be interperted as a \u escape.
+notunicode1   = "|\\u."
+notunicode2   = "|\u005Cu."
+notunicode3   = "|\\u0075."
+notunicode4   = "|\\\u0075."
+
+empty-1 = """"""
+
+# # A newline immediately following the opening delimiter will be trimmed.
+empty-2 = """
+"""
+
+# # \ at the end of line trims newlines as well; note that last \ is followed by
+# # two spaces, which are ignored.
+empty-3 = """\
+    """
+empty-4 = """\
+   \
+   \  
+   """
+0="""\
+"""
+
+        )";
+
+        auto root = toml::loads(context);
+
+        CHECK(CheckTomlString(root, "", "0"));
+ 
+        CHECK(CheckTomlString(root, " ", "multiline_unicode"));
+        CHECK(CheckTomlString(root, "\\u0041", "multiline_not_unicode"));
+        CHECK(CheckTomlString(root, "When will it end? \"\"\"...\"\"\" should be here\"", "multiline_end_esc"));
+        CHECK(CheckTomlString(root, "\\u007f", "lit_multiline_not_unicode"));
+        CHECK(CheckTomlString(root, "There is no escape\\", "lit_multiline_end"));
+
+        CHECK(CheckTomlString(root, "|\b.", "backspace"));
+        CHECK(CheckTomlString(root, "|\t.", "tab"));
+        CHECK(CheckTomlString(root, "|\n.", "newline"));
+        CHECK(CheckTomlString(root, "|\f.", "formfeed"));
+        CHECK(CheckTomlString(root, "|\r.", "carriage"));
+        CHECK(CheckTomlString(root, "|\".", "quote"));
+        CHECK(CheckTomlString(root, "|\\.", "backslash"));
+        CHECK(CheckTomlString(root, "|.", "delete"));
+        CHECK(CheckTomlString(root, "|\u001f.", "unitseparator"));
+
+        CHECK(CheckTomlString(root, "|\\u.", "notunicode1"));
+        CHECK(CheckTomlString(root, "|\\u.", "notunicode2"));
+        CHECK(CheckTomlString(root, "|\\u0075.", "notunicode3"));
+        CHECK(CheckTomlString(root, "|\\u.", "notunicode4"));
+        
+        CHECK(CheckTomlString(root, "", "answer"));
+
+        CHECK(CheckTomlString(root, "", "empty-1"));
+        CHECK(CheckTomlString(root, "", "empty-2"));
+        CHECK(CheckTomlString(root, "", "empty-3"));
+        CHECK(CheckTomlString(root, "", "empty-4"));
+
+        CHECK(CheckTomlString(root, "String ends here\\", "lit_end_esc"));
+        CHECK(CheckTomlString(root, "String does not end here\" but ends here\\", "end_esc"));
+
+    }
+
+    SECTION("2")
+    {
+        constexpr const char* context = R"(
+# Make sure that quotes inside multiline strings are allowed, including right
+# after the opening '''/""" and before the closing '''/"""
+
+lit_one = ''''one quote''''
+lit_two = '''''two quotes'''''
+lit_one_space = ''' 'one quote' '''
+lit_two_space = ''' ''two quotes'' '''
+
+one = """"one quote""""
+two = """""two quotes"""""
+one_space = """ "one quote" """
+two_space = """ ""two quotes"" """
+
+mismatch1 = """aaa'''bbb"""
+mismatch2 = '''aaa"""bbb'''
+
+# Three opening """, then one escaped ", then two "" (allowed), and then three
+# closing """
+escaped = """lol\""""""
+
+five-quotes = """
+Closing with five quotes
+"""""
+four-quotes = """
+Closing with four quotes
+""""
+        )";
+
+        auto root = toml::loads(context);
+
+        CHECK(CheckTomlString(root, "Closing with four quotes\n\"", "four-quotes"));
+        CHECK(CheckTomlString(root, "Closing with five quotes\n\"\"", "five-quotes"));
+        CHECK(CheckTomlString(root, "lol\"\"\"", "escaped"));
+
+        CHECK(CheckTomlString(root, "aaa'''bbb", "mismatch1"));
+        CHECK(CheckTomlString(root, "aaa\"\"\"bbb", "mismatch2"));
+        
+        CHECK(CheckTomlString(root, " \"\"two quotes\"\" ", "two_space"));
+        CHECK(CheckTomlString(root, " \"one quote\" ", "one_space"));
+        CHECK(CheckTomlString(root, "\"\"two quotes\"\"", "two"));
+        CHECK(CheckTomlString(root, "\"one quote\"", "one"));
+
+        CHECK(CheckTomlString(root, " ''two quotes'' ", "lit_two_space"));
+        CHECK(CheckTomlString(root, " 'one quote' ", "lit_one_space"));
+        CHECK(CheckTomlString(root, "''two quotes''", "lit_two"));
+        CHECK(CheckTomlString(root, "'one quote'", "lit_one"));
+    }
 }
 
 // https://github.com/toml-lang/toml-test/tree/master/tests
@@ -1010,11 +1222,6 @@ json::value ParseAsJsonValue(std::string context)
     auto parser = JsonDecoder(std::move(context));
     return parser.parse_value();
 }
-
-
-// For Toml: x = 1
-// For Json: x : { type: "integer", "value": "1" }
-bool CompareJsonAndTomlValue(const json::value& jval, const toml::value& tval);
 
 struct Index
 {
@@ -1111,107 +1318,6 @@ auto Read(const char* dir, const char* extension)
          | std::ranges::to<std::vector<std::string>>();
 }
 
-struct TomlTester
-{
-    using path = std::vector<Index>;
-
-    std::vector<std::pair<path, const toml::value*>> paths;
-
-    void Dfs(const toml::value& x, path& cur)
-    {
-        if (IsValue(x))
-        {
-            return;
-        }
-
-        if (x.is<toml::table>())
-        {
-            if (x.as<toml::table>().empty())
-            {
-                paths.emplace_back(cur, &x);
-                return;
-            }
-            else
-            {
-                for (auto& t = x.as<toml::table>(); const auto& [key, value] : t)
-                {
-                    cur.emplace_back(key);
-                    Dfs(value, cur);
-                    cur.pop_back();
-                }
-            }
-        }
-        else
-        {
-            if (x.as<toml::array>().empty())
-            {
-                paths.emplace_back(cur, &x);
-                return;
-            }
-            else
-            {
-                for (size_t i = 0; i < x.as<toml::array>().size(); ++i)
-                {
-                    cur.emplace_back(i);
-                    Dfs(x.as<toml::array>()[i], cur);
-                    cur.pop_back();
-                }
-            }
-        }
-    }
-
-    void Extract(const toml::value& x)
-    {
-        path p;
-        Dfs(x, p);
-    }
-
-public:
-
-    void CompareFiles(const char* directory)
-    {
-        auto files = Read(directory, ".json");
-
-        for (const auto& file : files)
-        {
-            Console::WriteLine("Comparing file: {}...", file);
-            CompareFile(file);
-        }
-    }
-
-    void CompareFile(std::string filename)
-    {
-        auto json_file = filename + ".json";
-        auto toml_file = filename + ".toml";
-
-        auto jv = json::load(json_file.c_str());
-        auto tv = toml::load(toml_file.c_str());
-
-        paths.clear();
-        Extract(tv);
-
-        Console::WriteLine(jv);
-
-        std::vector<Index> type = { Index("type") };
-
-        for (const auto& [path, tv_ptr] : paths)
-        {
-            path | std::views::transform(&Index::ToString) | leviathan::action::for_each(Console::WriteLine);
-
-            auto j = SearchJsonTableOrArray(jv, path);
-
-            auto result = CheckTomlType(SearchJsonTableOrArray(*j, type)->as<json::string>(), *tv_ptr);
-            if (!result)
-            {
-                Console::WriteLine("{}: Failure", filename);
-                break;
-            }
-        }
-        Console::WriteLine("{}: OK", filename);
-    }
-
-};
-
 void DebugFile(const char* file)
 {
     auto t = toml::load(file);
@@ -1221,14 +1327,4 @@ void DebugFile(const char* file)
 
 const char* directory = R"(D:\code\toml-test\tests)";
 
-int mai1n()
-{
-    DebugFile("../a.toml");
 
-    Console::WriteLine("===============================================");
-
-    TomlTester t;
-
-    t.CompareFile(R"(D:\code\toml-test\tests\valid\comment\everywhere.toml)");
-    return 0;
-}

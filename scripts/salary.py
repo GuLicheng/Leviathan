@@ -58,5 +58,5 @@ if __name__ == "__main__":
 
     s = Salary().read("salary.json")
 
-    # s.total()
+    s.total()
     # json.dump()

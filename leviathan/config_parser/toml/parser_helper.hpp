@@ -38,7 +38,7 @@ inline constexpr char inline_table_sep = ',';
 template <size_t N, typename InputIterator>
 void decode_unicode(InputIterator dest, parse_context& ctx) 
 {
-    if (ctx.size() != N)
+    if (ctx.size() < N)
     {
         throw_toml_parse_error("Too small characters for unicode");
     }
@@ -82,7 +82,7 @@ string parse_basic_string_impl(parse_context& ctx, Fn fn)
         }
         else
         {
-            check_and_throw(fn(*ctx), "Invalid character {}.", *ctx);
+            // check_and_throw(fn(*ctx), "Invalid character {}.", *ctx);
             out += *ctx;
             ++ctx;
         }

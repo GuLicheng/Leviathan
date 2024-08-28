@@ -63,13 +63,18 @@ constexpr const char* report_error(error_code ec)
 
 class value;
 
-// Empty class maybe better. The value of null is unique, 
+// A better choice is to use Empty class. The value of null is unique, 
 // the index in std::variant is enough to indicate it.
 using null = std::nullptr_t;   
 
 using string = std::string;
 using boolean = bool;
 using array = std::vector<value>;
+
+// The std::unordered_map may not efficient, is 
+// std::vector<std::pair<const string, value>>
+// with a better choice since the object do not contain
+// many elements usually.
 using object = std::unordered_map<string, value, string_hash_key_equal, string_hash_key_equal>;
 
 using value_base = variable<

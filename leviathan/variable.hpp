@@ -64,6 +64,11 @@ public:
     constexpr variable(variable&&) = default;
     constexpr variable& operator=(variable&&) = default;
 
+    // Compare each type directly may be incorrect. For example, if lhs 
+    // contains 'int' and rhs contains 'double', the lhs('int') can directly
+    // compared with rhs('double'), but them hold different types.   
+    // constexpr bool operator==(const variable& rhs) const;
+
     template <typename T>
     constexpr bool is() const
     {

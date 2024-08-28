@@ -77,7 +77,11 @@ public:
             {
                 parse_table();
             }
-            else
+            else if (m_ctx.eof())
+            {
+                return;
+            }
+            else 
             {
                 auto [keys, v] = parse_keyval();
                 m_coll.add_entry(std::move(keys), std::move(v));
@@ -296,7 +300,7 @@ public:
                 }
                 else
                 {
-                    retval.append(count, detail::apostrophe);
+                    retval.append(count, detail::quotation_mark);
                     m_ctx.advance_unchecked(count);
                 }
             }
@@ -305,27 +309,10 @@ public:
                 m_ctx.advance_unchecked(1);
                 check_and_throw(!m_ctx.eof(), "Error EOF multiline basic string.");
 
-                if (*m_ctx == detail::newline)
-                {
-                    auto view = m_ctx.slice(1);
-                    size_t i = 0;
-                    for (; i < view.size() && detail::wschar.contains(view[i]); ++i);
-                    check_and_throw(i < view.size(), "Expected ''' after multiline literal string.");
-
-                    // Check whether current line is end with '\\' after trim.
-                    // Since the index is started with 0, And the first 
-                    // character is '\\', so we add two.
-                    auto offset = i + 2;
-                    
-                    if (view[i] == detail::newline)
-                    {
-                        m_ctx.advance_unchecked(offset);
-                    }
-                    else
-                    {
-                        retval += m_ctx.slice(0, offset);
-                        m_ctx.advance_unchecked(offset);
-                    }   
+                // If a line end with '/' after trimming.
+                if (trim(m_ctx.read_line()).empty())
+                {   
+                    m_ctx.skip_whitespace();
                 }
                 else
                 {
@@ -372,8 +359,6 @@ public:
             m_ctx.advance_unchecked(1);   
         }
 
-        // If a line end with '\\' after trim right, the linefeed 
-        // will be ignored.
         while (!m_ctx.eof())
         {
             const auto ch = m_ctx.current();
@@ -397,30 +382,13 @@ public:
                     m_ctx.advance_unchecked(count);
                 }
             }
-            else if (ch == '\\')
-            {
-                auto view = m_ctx.slice(1);
-                size_t i = 0;
-                for (; i < view.size() && detail::wschar.contains(view[i]); ++i);
-                check_and_throw(i < view.size(), "Expected ''' after multiline literal string.");
-                
-                // Check whether current line is end with '\\' after trim.
-                // Since the index is started with 0, And the first 
-                // character is '\\', so we add two.
-                auto offset = i + 2;
-                
-                if (view[i] == detail::newline)
-                {
-                    m_ctx.advance_unchecked(offset);
-                }
-                else
-                {
-                    retval += m_ctx.slice(0, offset);
-                    m_ctx.advance_unchecked(offset);
-                }
-            }
             else
             {
+                // Multi-line literal strings are surrounded by three single 
+                // quotes on each side and allow newlines. Like literal strings, 
+                // there is no escaping whatsoever. A newline immediately 
+                // following the opening delimiter will be trimmed. All other 
+                // content between the delimiters is interpreted as-is without modification.
                 retval += m_ctx.current();
                 m_ctx.advance_unchecked(1);
             }

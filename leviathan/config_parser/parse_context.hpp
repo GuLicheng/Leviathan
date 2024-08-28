@@ -11,7 +11,7 @@ struct parse_context
 
     constexpr parse_context(std::string_view context) : m_ctx(context) { }
 
-    constexpr std::string_view read_line()
+    constexpr std::string_view read_line() const
     {
         auto left = m_ctx.find('\n');
         auto right = left + 1;
@@ -22,7 +22,7 @@ struct parse_context
         }
 
         auto retval = m_ctx.substr(0, left);
-        m_ctx.remove_prefix(right);
+        // m_ctx.remove_prefix(right);
         return retval;
     }
 

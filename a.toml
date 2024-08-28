@@ -1,16 +1,49 @@
-[a.few.dots]
-polka.dot = "again?"
-polka.dance-with = "Dot"
+answer = ""
+end_esc = "String does not end here\" but ends here\\"
+lit_end_esc = 'String ends here\'
 
-[[arr]]
-a.b.c=1
-a.b.d=2
+multiline_unicode = """
+\u00a0"""
 
-[[arr]]
-a.b.c=3
-a.b.d=4
+multiline_not_unicode = """
+\\u0041"""
 
-''.x = "empty.x"
-x."" = "x.empty"
-[a]
-"".'' = "empty.empty"
+multiline_end_esc = """When will it end? \"""...""\" should be here\""""
+
+lit_multiline_not_unicode = '''
+\u007f'''
+
+lit_multiline_end = '''There is no escape\'''
+
+backspace     = "|\b."
+tab           = "|\t."
+
+newline       = "|\n."
+formfeed      = "|\f."
+carriage      = "|\r."
+quote         = "|\"."
+backslash     = "|\\."
+delete        = "|\u007F."
+unitseparator = "|\u001F."
+
+# # \u is escaped, so should NOT be interperted as a \u escape.
+notunicode1   = "|\\u."
+notunicode2   = "|\u005Cu."
+notunicode3   = "|\\u0075."
+notunicode4   = "|\\\u0075."
+
+empty-1 = """"""
+
+# # A newline immediately following the opening delimiter will be trimmed.
+empty-2 = """
+"""
+
+# # \ at the end of line trims newlines as well; note that last \ is followed by
+# # two spaces, which are ignored.
+empty-3 = """\
+    """
+empty-4 = """\
+   \
+   \  
+   """
+

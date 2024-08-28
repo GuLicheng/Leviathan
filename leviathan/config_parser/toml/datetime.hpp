@@ -33,6 +33,8 @@ struct date
         // YYYY-MM-DD
         return std::format("{:04}-{:02}-{:02}", m_year, m_month, m_day);
     }
+
+    constexpr bool operator==(const date&) const = default; 
 };  
 
 struct time
@@ -53,6 +55,8 @@ struct time
         }
         return result;
     }
+
+    constexpr bool operator==(const time&) const = default;
 };
 
 // Z or minutes
@@ -75,6 +79,8 @@ struct offset
             return std::format("{}{:02}:{:02}", sign, dm.quot, dm.rem);
         }
     }
+
+    constexpr bool operator==(const offset&) const = default;
 };
 
 struct datetime
@@ -87,6 +93,8 @@ struct datetime
     {
         return std::format("{}T{}{}", m_data.to_string(), m_time.to_string(), m_offset.to_string());
     }
+
+    constexpr bool operator==(const datetime&) const = default;
 };
 
 }

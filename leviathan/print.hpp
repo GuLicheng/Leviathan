@@ -1,6 +1,7 @@
 #pragma once
 
 #include <leviathan/operators.hpp>
+#include <leviathan/meta/template_info.hpp>
 
 #include <utility>
 #include <format>
