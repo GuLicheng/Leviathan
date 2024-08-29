@@ -1,49 +1,22 @@
-answer = ""
-end_esc = "String does not end here\" but ends here\\"
-lit_end_esc = 'String ends here\'
+buf = [true, false]
+arr = [{ "a" = 1 }, { "a" = 2 }]
 
-multiline_unicode = """
-\u00a0"""
+[[table-array]]
+a3 = 1
+a2 = 1
+a1 = 1
 
-multiline_not_unicode = """
-\\u0041"""
+[table-array.b]
+c = 1
 
-multiline_end_esc = """When will it end? \"""...""\" should be here\""""
+[[table-array]]
+a = 1
 
-lit_multiline_not_unicode = '''
-\u007f'''
+[table-array.buf]
+a = 1
 
-lit_multiline_end = '''There is no escape\'''
+[table-array.buf.b]
+c = 1
 
-backspace     = "|\b."
-tab           = "|\t."
-
-newline       = "|\n."
-formfeed      = "|\f."
-carriage      = "|\r."
-quote         = "|\"."
-backslash     = "|\\."
-delete        = "|\u007F."
-unitseparator = "|\u001F."
-
-# # \u is escaped, so should NOT be interperted as a \u escape.
-notunicode1   = "|\\u."
-notunicode2   = "|\u005Cu."
-notunicode3   = "|\\u0075."
-notunicode4   = "|\\\u0075."
-
-empty-1 = """"""
-
-# # A newline immediately following the opening delimiter will be trimmed.
-empty-2 = """
-"""
-
-# # \ at the end of line trims newlines as well; note that last \ is followed by
-# # two spaces, which are ignored.
-empty-3 = """\
-    """
-empty-4 = """\
-   \
-   \  
-   """
-
+[table-array.b]
+c = 1

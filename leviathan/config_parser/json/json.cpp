@@ -9,7 +9,7 @@
 
 namespace json = leviathan::json;
 
-const char* filename = R"(D:\Library\Leviathan\leviathan\config_parser\data\json\salary.json)";
+const char* filename = R"(D:\Library\Leviathan\salary.json)";
 
 using Dict = std::unordered_map<std::string, double>;
 
@@ -65,7 +65,7 @@ int main(int argc, char const *argv[])
 
     if (root)
     {
-        Console::WriteLine("Formatter json: \n{}", root);
+        // Console::WriteLine("Formatter json: \n{}", root);
     }
 
     return 0;

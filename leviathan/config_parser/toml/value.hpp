@@ -26,9 +26,9 @@ using toml_value_base = variable<
     integer,
     floating,
     string,
+    datetime,
     array, 
-    table,
-    datetime
+    table
 >;
 
 class value : public toml_value_base
@@ -82,11 +82,6 @@ void check_and_throw(bool ok, std::string_view fmt, Args&&... args)
         throw toml_parse_error(msg);
     }
 }
-
-struct encoder
-{
-
-};
 
 } // namespace leviathan::config::toml
 

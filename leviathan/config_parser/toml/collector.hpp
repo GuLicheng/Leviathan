@@ -141,7 +141,6 @@ inline value* insert_section(std::vector<string> keys, value* super, bool table_
     return super;
 }
 
-
 } // namespace leviathan::config::toml::detail
 
 namespace leviathan::config::toml
@@ -169,14 +168,11 @@ public:
 
     void switch_to_std_table(std::vector<string> section)
     {
-        // m_table = generate_section_path(std::move(section), table(false), &m_global);
         m_table = detail::insert_section(std::move(section), &m_global, true);
     }
 
     void switch_to_array_table(std::vector<string> section)
     {
-        // auto parr = generate_section_path(std::move(section), array(false), &m_global);
-        // m_table = &(parr->as<array>().emplace_back(table_maker()));
         m_table = detail::insert_section(std::move(section), &m_global, false);
     }
 

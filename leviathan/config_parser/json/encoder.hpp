@@ -116,12 +116,12 @@ struct encoder2
         return "null";
     }
 
-    static std::string operator()(const object& object) 
+    static std::string operator()(const object& obj) 
     {
         std::string retval = "{";
         const char* delimiter = "";
 
-        for (auto it = object.begin(); it != object.end(); ++it)
+        for (auto it = obj.begin(); it != obj.end(); ++it)
         {
             retval += std::exchange(delimiter, ", ");
             retval += std::format("{}: {}", operator()(it->first), operator()(it->second));
@@ -135,11 +135,11 @@ struct encoder2
         std::unreachable();
     }
 
-    static std::string operator()(const value& value) 
+    static std::string operator()(const value& v) 
     {
         return std::visit([]<typename T>(const T& x) {
             return encoder2::operator()(value::accessor()(x));
-        }, value.data());
+        }, v.data());
     }
 };
 
