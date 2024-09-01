@@ -22,7 +22,7 @@ namespace json = leviathan::json;
 
 using JsonDecoder = json::decoder;
 using TomlDecoder = toml::decoder;
-using JsonFormatter = leviathan::config::detail::toml2json;
+using JsonFormatter = leviathan::config::toml2json;
 
 toml::value ParseAsTomlValue(const char* context)
 {
@@ -1321,7 +1321,7 @@ auto Read(const char* dir, const char* extension)
 void DebugFile(const char* file)
 {
     auto t = toml::load(file);
-    auto j = leviathan::config::detail::toml2json()(t);
+    auto j = leviathan::config::toml2json()(t);
     Console::WriteLine(j);
 }
 

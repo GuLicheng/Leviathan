@@ -37,30 +37,12 @@ struct encoder
 
     static std::string operator()(const array& arr)
     {
-        std::string retval = "[";
-        const char* delimiter = "";
-
-        for (std::size_t i = 0; i < arr.size(); ++i)
-        {
-            retval += std::exchange(delimiter, ", ");
-            retval += operator()(arr[i]);
-        }
-
-        return retval += ']';
+        return format_sequence(encoder(), arr, ", ");
     }
 
     static std::string operator()(const table& tbl)
     {
-        std::string retval = "{ ";
-        const char* delimiter = "";
-
-        for (auto it = tbl.begin(); it != tbl.end(); ++it)
-        {
-            retval += std::exchange(delimiter, ", ");
-            retval += std::format("{} = {}", operator()(it->first), operator()(it->second));
-        }
-
-        return retval += " }";
+        return format_map(encoder(), tbl, "{} = {}", ", ");
     }
 
     static std::string operator()(const value& v)
@@ -149,3 +131,20 @@ inline std::string dump(const value& tv)
 }
 
 } // namespace leviathan::config::toml
+
+template <typename CharT>
+struct std::formatter<leviathan::toml::value, CharT> 
+{
+    template <typename ParseContext>
+    constexpr typename ParseContext::iterator parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FmtContext>
+    typename FmtContext::iterator format(const leviathan::toml::value& value, FmtContext& ctx) const
+    {
+        auto result = leviathan::toml::formatter()(value);
+        return std::ranges::copy(result, ctx.out()).out;
+    }   
+};

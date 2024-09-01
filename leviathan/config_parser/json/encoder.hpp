@@ -1,6 +1,6 @@
 #pragma once
 
-#include <format>
+#include "../formatter.hpp"
 #include "value.hpp"
 
 namespace leviathan::config::json
@@ -94,16 +94,7 @@ struct encoder2
 
     static std::string operator()(const array& arr) 
     {
-        std::string retval = "[";
-        const char* delimiter = "";
-
-        for (std::size_t i = 0; i < arr.size(); ++i)
-        {
-            retval += std::exchange(delimiter, ", ");
-            retval += operator()(arr[i]);
-        }
-
-        return retval += ']';
+        return format_sequence(encoder2(), arr, ",", "[{}]");
     }
 
     static std::string operator()(const boolean& boolean) 
@@ -118,16 +109,7 @@ struct encoder2
 
     static std::string operator()(const object& obj) 
     {
-        std::string retval = "{";
-        const char* delimiter = "";
-
-        for (auto it = obj.begin(); it != obj.end(); ++it)
-        {
-            retval += std::exchange(delimiter, ", ");
-            retval += std::format("{}: {}", operator()(it->first), operator()(it->second));
-        }
-
-        return retval += '}';
+        return format_map(encoder2(), obj);
     }
 
     [[noreturn]] static std::string operator()(const error_code& ec)

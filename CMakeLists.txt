@@ -6,7 +6,7 @@ set(PROJECT_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_CXX_STANDARD 26)
+set(CMAKE_CXX_STANDARD 23)
 
 set(LIBRARY_OUTPUT_DIRECTORY ${PROJECT_ROOT_PATH}/lib)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_ROOT_PATH}/bin)
@@ -14,7 +14,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_ROOT_PATH}/bin)
 set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE  "-O3 ")
 
-include_directories(leviathan)
+include_directories(${PROJECT_ROOT_PATH})
 include_directories(thirdpart/Catch2/src)
 
 add_subdirectory(thirdpart/Catch2)

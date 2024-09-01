@@ -16,7 +16,7 @@ class toml_array_base : public std::vector<T>
 
 public:
 
-    // toml_array_base() = default;
+    toml_array_base() = default;
 
     template <typename... Args>
     explicit toml_array_base(bool locked, Args&&... args) 

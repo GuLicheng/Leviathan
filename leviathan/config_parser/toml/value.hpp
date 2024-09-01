@@ -37,22 +37,6 @@ public:
 
     using toml_value_base::toml_value_base;
     using toml_value_base::operator=;
-
-    // bool operator==(const value& rhs) const 
-    // {
-    //     auto compare = []<typename T1, typename T2>(const T1& x, const T2& y) static
-    //     {
-    //         if constexpr (std::is_same_v<T1, T2>)
-    //         {
-    //             return value::accessor()(x) == value::accessor()(y);
-    //         }
-    //         else
-    //         {
-    //             return false;
-    //         }
-    //     };
-    //     return std::visit(compare, m_data, rhs.m_data);
-    // }
 };
 
 template <typename Object, typename... Args>

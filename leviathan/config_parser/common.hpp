@@ -3,6 +3,7 @@
 #include <leviathan/io/file.hpp>
 #include <leviathan/encode.hpp>
 #include <leviathan/string/string_extend.hpp>
+#include <leviathan/string/fixed_string.hpp>
 #include <leviathan/table.hpp>
 #include "optional.hpp"
 
@@ -143,4 +144,5 @@ template <typename Value>
 struct value_parser;
 
 }
+
 

@@ -16,11 +16,11 @@ class toml_table_base : public std::unordered_map<K, V, HasherKeyEqual, HasherKe
 
 public:
 
-    // toml_table_base() = default;
+    using base::base;  // necessary for std::ranges::to 
 
-    template <typename... Args>
-    explicit toml_table_base(bool locked, Args&&... args) 
-        : base((Args&&) args...), m_locked(locked) { }
+    toml_table_base() = default;
+
+    explicit toml_table_base(bool locked) : base(), m_locked(locked) { }
 
     bool is_locked() const
     {
