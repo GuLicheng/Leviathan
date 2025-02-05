@@ -10,11 +10,11 @@
 namespace leviathan::collections
 {
 // Difference from std::vector, this class does not contain allocator.
-// Any container can split two part: implementation and allocator. Some containers 
+// Any container can split two parts: implementation and allocator. Some containers 
 // such as hashtable with chain(std::unordered_map) require dynamic array as 
 // for their implementation. If we use std::vector, the allocator in std::vector
 // will cost more memory and for user defined allocator, the code may be more complex.
-// All API is similar to std::vector but the first argument is Allocator&.
+// All APIs are similar to std::vector but the first argument is Allocator&.
 template <typename T>
 struct buffer
 {
@@ -22,23 +22,24 @@ struct buffer
     using value_type = T;
     using pointer = T*;
     using const_pointer = const T*;
+    using reference = T&;
 
     using iterator = pointer;
     using const_iterator = const_pointer;
 
     template <typename Allocator>
-    using rebind_traits = std::allocator_traits<Allocator>::template rebind_traits<T>;
+    using rebind_traits = typename std::allocator_traits<Allocator>::template rebind_traits<T>;
 
     pointer m_start = nullptr;
     pointer m_finish = nullptr;
     pointer m_end_of_storage = nullptr;
 
-    buffer() = default;
+    constexpr buffer() = default;
 
-    buffer(const buffer&) = default; 
+    constexpr buffer(const buffer&) = default; 
 
     template <typename Allocator>
-    buffer(Allocator& allocator, std::initializer_list<T> il) 
+    constexpr buffer(Allocator& allocator, std::initializer_list<T> il) 
         : buffer(allocator, il.size())
     {
         auto alloc = detail::rebind_allocator<T>(allocator);
@@ -47,7 +48,7 @@ struct buffer
     }
 
     template <typename Allocator>
-    buffer(Allocator& allocator, size_t size)
+    constexpr buffer(Allocator& allocator, size_t size)
     {
         auto alloc = detail::rebind_allocator<T>(allocator);
         const auto sz = std::bit_ceil(size);
@@ -120,25 +121,25 @@ struct buffer
 
     constexpr const T& front() const
     {
-        assert(!empty() && "buffer has no elements!");
+        assert(!empty() && "buffer has no element!");
         return *m_start;
     }
 
     constexpr T& front() 
     {
-        assert(!empty() && "buffer has no elements!");
+        assert(!empty() && "buffer has no element!");
         return *m_start;
     }
 
     constexpr const T& back() const
     {
-        assert(!empty() && "buffer has no elements!");
+        assert(!empty() && "buffer has no element!");
         return *(m_finish - 1);
     }
 
     constexpr T& back() 
     {
-        assert(!empty() && "buffer has no elements!");
+        assert(!empty() && "buffer has no element!");
         return *(m_finish - 1);
     }
 
@@ -179,12 +180,12 @@ struct buffer
         if (m_finish == m_end_of_storage)
         {
             // See buffer::emplace.
-            value_handle<value_type, decltype(alloc)> handle(alloc, (Args&&) args...);
+            value_handle<value_type, decltype(alloc)> handle(alloc, (Args&&)args...);
             expand_capacity_unchecked(alloc, std::bit_ceil(size() + 1));
             return emplace_back_unchecked(alloc, *handle);
         }
 
-        return emplace_back_unchecked(alloc, (Args&&) args...);
+        return emplace_back_unchecked(alloc, (Args&&)args...);
     }
 
     template <typename Allocator, typename... Args>
@@ -242,7 +243,7 @@ struct buffer
     }
 
     template <typename Allocator>
-    iterator erase(Allocator& allocator, const_iterator pos)
+    constexpr iterator erase(Allocator& allocator, const_iterator pos)
     {
         assert(m_start <= pos && pos < m_finish && "Invalid position");
         auto alloc = detail::rebind_allocator<T>(allocator);
@@ -255,7 +256,7 @@ struct buffer
     }
 
     template <typename Allocator>
-    iterator erase(Allocator& allocator, const_iterator first, const_iterator last)
+    constexpr iterator erase(Allocator& allocator, const_iterator first, const_iterator last)
     {
         if (first == last)
         {
@@ -287,7 +288,7 @@ struct buffer
     }
 
     template <typename Allocator, typename... Args>
-    iterator emplace(Allocator& allocator, const_pointer position, Args&&... args) 
+    constexpr iterator emplace(Allocator& allocator, const_pointer position, Args&&... args) 
     {
         assert(m_start <= position && position <= m_finish && "invalid position");
         auto alloc = detail::rebind_allocator<T>(allocator);
@@ -339,9 +340,10 @@ struct buffer
 
     constexpr void swap(buffer& other) noexcept
     {
-        std::swap(m_start, other.m_start);
-        std::swap(m_finish, other.m_finish);
-        std::swap(m_end_of_storage, other.m_end_of_storage);
+        using std::swap;
+        swap(m_start, other.m_start);
+        swap(m_finish, other.m_finish);
+        swap(m_end_of_storage, other.m_end_of_storage);
     }
 
     constexpr friend void swap(buffer& lhs, buffer& rhs) noexcept
@@ -350,7 +352,7 @@ struct buffer
     }
 
     template <typename Allocator>
-    void expand_capacity_unchecked(Allocator& allocator, size_t n)
+    constexpr void expand_capacity_unchecked(Allocator& allocator, size_t n)
     {
         assert(std::popcount(n) == 1);
         auto alloc = detail::rebind_allocator<T>(allocator);
@@ -384,7 +386,7 @@ struct buffer
     }
 
     template <typename Allocator>
-    void try_expand(Allocator& allocator, size_t n)
+    constexpr void try_expand(Allocator& allocator, size_t n)
     {
         if (capacity() < n)
         {
@@ -392,7 +394,8 @@ struct buffer
             expand_capacity_unchecked(alloc, std::bit_ceil(n));
         }
     }
-};
+
+ };
 
 } // namespace leviathan
 

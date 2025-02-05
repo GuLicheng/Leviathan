@@ -1,19 +1,36 @@
-#include <leviathan/print.hpp>
-#include <leviathan/config_parser/value_cast.hpp>
-#include <leviathan/config_parser/json/json.hpp>
-#include <leviathan/config_parser/toml/toml.hpp>
-#include <leviathan/config_parser/formatter.hpp>
+#include "avl.hpp"
+#include <set>
+#include <iostream>
+#include <memory_resource>
+#include <format>
+#include <memory>
 
-using namespace leviathan;
+template class avl_set<int>;
 
-int main(int argc, char const *argv[])
+void REQUIRE(...) { }
+
+int main()
 {
+    avl_set<int> t;
 
-    auto tv = toml::load("../a.toml");
-    auto jv = config::toml2json::operator()(tv);
-    Console::WriteLine(tv);
-    Console::WriteLine(jv);
-    // std::format()
-    return 0;
+    std::set<int>::node_type s1;
+    std::set<int> s2(s1);
+
+    auto ret = s2.insert(std::move(s1));
+
+    using T1 = decltype(ret);
+
+    ret.node;
+
+    s1 <=> s2;
+
+    std::unique_ptr<std::pmr::memory_resource> p1(new std::pmr::monotonic_buffer_resource(1024));
+    std::unique_ptr<std::pmr::memory_resource> p2(new std::pmr::monotonic_buffer_resource(2048));
+
+    std::pmr::polymorphic_allocator<int> alloc1(p1.get());
+    std::pmr::polymorphic_allocator<int> alloc2(p2.get());
+
+
+    std::cout << "Ok\n";
+
 }
-

@@ -497,7 +497,9 @@ public:
     }
 
     // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p2077r3.html
-    template <typename K> requires (detail::transparent<Compare>)
+    template <typename K> requires (detail::transparent<Compare> && 
+                                   !std::is_convertible_v<K, iterator> && 
+                                   !std::is_convertible_v<K, const_iterator>)
     size_type erase(K&& x) 
     { 
         return erase_by_key(x); 
@@ -794,8 +796,8 @@ protected:
         );
 
         x->clone(y);
-        x->lchild(clone_tree(x->lchild(), x, y->lchild()));
-        x->rchild(clone_tree(x->rchild(), x, y->rchild()));
+        x->lchild(move_tree(x->lchild(), x, y->lchild()));
+        x->rchild(move_tree(x->rchild(), x, y->rchild()));
         x->parent(p);
         return x;
     }

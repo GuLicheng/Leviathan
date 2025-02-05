@@ -193,7 +193,7 @@ struct _Rb_tree_node_base : binary_node_operation
             }
         }
         __root->_M_color  = _S_black;
-        __header._M_color  = _S_sentinel; // Maybe unnecessary
+        __header._M_color  = _S_sentinel; // Make header black.
     }
 
     _Rb_tree_node_base* rebalance_for_erase(_Rb_tree_node_base& header)
@@ -441,7 +441,7 @@ struct _Rb_tree_node_base : binary_node_operation
                 __x->_M_color  = _S_black;
         }
         
-        __header._M_color  = _S_sentinel;     // Maybe unnecessary       
+        __header._M_color  = _S_sentinel;     // Is unnecessary?       
         return __y;
     }
 

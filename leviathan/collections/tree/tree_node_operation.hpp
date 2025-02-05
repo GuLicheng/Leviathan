@@ -19,7 +19,7 @@ namespace leviathan::collections
 struct basic_tree_node_operation
 {
     template <typename Node>
-    Node* parent(this Node& self)
+    auto& parent(this Node& self)
     {
         return self.m_link[0];
     }
@@ -93,6 +93,7 @@ struct binary_node_operation
         {
             auto y = x->parent();
 
+            // y will never be nullptr
             while (x == y->lchild())
             {
                 x = y;
@@ -122,6 +123,7 @@ struct binary_node_operation
         {
             auto y = x->parent();
 
+            // y will never be nullptr
             while (x == y->rchild())
             {
                 x = y;
@@ -186,7 +188,7 @@ struct binary_node_operation
     void rotate_right(this Node& self, Node*& root)
     {
         auto x = std::addressof(self);
-        auto* y = x->lchild();
+        auto y = x->lchild();
 
         x->lchild(y->rchild());
         

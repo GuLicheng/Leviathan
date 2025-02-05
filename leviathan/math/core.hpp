@@ -190,7 +190,7 @@ template <typename... Ts>
 size_t hash_combine(const Ts&... ts)
 {
     // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0814r0.pdf
-    constexpr auto hash_combine_impl = []<typename T>(size_t& seed, const T& value)
+    constexpr auto hash_combine_impl = []<typename T>(size_t& seed, const T& value) static
     {
         seed ^= std::hash<T>()(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     };

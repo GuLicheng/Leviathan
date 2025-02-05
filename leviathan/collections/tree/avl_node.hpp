@@ -8,7 +8,7 @@
 namespace leviathan::collections
 {
     
-struct avl_node : basic_tree_node_operation, binary_node_operation
+struct avl_node : public basic_tree_node_operation, public binary_node_operation
 {
     static constexpr int balance_factor = 2;
 
@@ -60,11 +60,6 @@ struct avl_node : basic_tree_node_operation, binary_node_operation
     void erase_node(avl_node* header)
     {
         auto x = this;
-
-        // avl_node*& root = header->m_link[0];
-        // avl_node*& leftmost = header->m_link[1];
-        // avl_node*& rightmost = header->m_link[2];
-
         auto& [root, leftmost, rightmost] = header->m_link;
 
         avl_node* child = nullptr;
@@ -176,12 +171,12 @@ struct avl_node : basic_tree_node_operation, binary_node_operation
 
         if (lh0 > rh0)
         {
-            r->rotate_right(header->m_link[0]);
+            r->rotate_right(header->parent());
             r->update_height();
             r->parent()->update_height();
         }
 
-        x->rotate_left(header->m_link[0]);
+        x->rotate_left(header->parent());
         x->update_height();
         x->parent()->update_height();
     }
@@ -195,12 +190,12 @@ struct avl_node : basic_tree_node_operation, binary_node_operation
 
         if (lh0 < rh0)
         {
-            l->rotate_left(header->m_link[0]);
+            l->rotate_left(header->parent());
             l->update_height();
             l->parent()->update_height();
         }
 
-        x->rotate_right(header->m_link[0]);
+        x->rotate_right(header->parent());
         x->update_height();
         x->parent()->update_height();
     }

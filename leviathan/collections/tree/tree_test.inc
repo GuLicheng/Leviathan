@@ -1,4 +1,9 @@
 #include <iostream>
+#include <array> 
+#include <vector>
+#include <set>
+#include <random>
+#include <memory_resource>
 // #include "catch2/catch_all.hpp"
 // #include "binary_search_tree.hpp"
 
@@ -39,7 +44,7 @@ TEST_CASE("insert value ascending")
     CHECK(*tree.begin() == 0);
     CHECK(*tree.rbegin() == 4);
 
-    Logger::WriteMessage(tree.draw().c_str());
+    // Logger::WriteMessage(tree.draw().c_str());
 }
 
 TEST_CASE("insert value descending")
@@ -56,7 +61,7 @@ TEST_CASE("insert value descending")
     CHECK(*tree.begin() == -4);
     CHECK(*tree.rbegin() == 0);
 
-    Logger::WriteMessage(tree.draw().c_str());
+    // Logger::WriteMessage(tree.draw().c_str());
 }
 
 TEST_CASE("insert only one element")
@@ -83,8 +88,8 @@ TEST_CASE("test member type")
     using value_type = int;
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
-    using key_compare = std::ranges::less;
-    using value_compare = std::ranges::less;
+    using key_compare = std::less<int>;
+    using value_compare = std::less<int>;
     using allocator_type = std::allocator<int>;
     using reference = int&;
     using const_reference = const int&;
@@ -132,7 +137,7 @@ TEST_CASE("find value")
 
     CHECK(result);
 
-    Logger::WriteMessage(tree.draw().c_str());
+    // Logger::WriteMessage(tree.draw().c_str());
 }
 
 TEST_CASE("remove elements")
@@ -161,7 +166,7 @@ TEST_CASE("remove elements")
     REQUIRE(h.empty());
 }
 
-TEST_CASE("circle iterator")
+TEST_CASE("iterator")
 {
     SECTION("empty tree")
     {
@@ -183,6 +188,261 @@ TEST_CASE("circle iterator")
         ++first;
         REQUIRE(*first == 0);
     }
+
+    SECTION("reverse iterator")
+    {
+        Tree t;
+        t.insert(0);
+        auto first = t.rbegin(), last = t.rend();
+        REQUIRE(*first == 0);
+        ++first;
+        REQUIRE(first == last);
+        ++first;
+        REQUIRE(*first == 0);
+    }
+}
+
+TEST_CASE("ctor")
+{
+    SECTION("default ctor")
+    {
+        Tree t;
+        REQUIRE(t.empty());
+    }
+
+    SECTION("Tree with Range")
+    {
+        std::vector vec = { 1, 2, 3 };
+        Tree t1(vec.begin(), vec.end());
+
+        Tree t2(std::from_range, vec);
+
+        Tree t3 = { 1, 2, 3 };
+
+        CHECK(t1.size() == 3);
+        CHECK(t1 == t2);
+        CHECK(t1 == t3);
+        CHECK(t3 == t2);
+    }
+}
+
+TEST_CASE("random insert, search and remove")
+{
+    Tree t;
+    std::set<int> values;
+    constexpr auto N = 10000;
+    std::random_device rd;
+
+
+    for (int i = 0; i < 1000; i++)
+    {
+        int x = rd() % (N * 10);
+        values.insert(x);
+        t.insert(x);
+    }
+
+    CHECK(t.size() == values.size());
+
+    for (int i = 0; i < 1000; i++)
+    {
+        int x = rd() % (N * 10);
+        auto b1 = t.contains(x);
+        auto b2 = values.contains(x);
+        CHECK(b1 == b2);
+    }
+
+    for (int i = 0; i < 1000; i++)
+    {
+        int x = rd() % (N * 10);
+        t.erase(x);
+        values.erase(x);
+    }
+
+    CHECK(t.size() == values.size());
+    CHECK(std::ranges::equal(t, values));
+}
+
+TEST_CASE("copy ctor")
+{
+    Tree t = { 1, 2, 3, 4, 5 };
+    Tree t2 = t;
+
+    REQUIRE(t.size() == 5);
+    REQUIRE(t2.size() == 5);
+    REQUIRE(t == t2);
+}
+
+TEST_CASE("move ctor")
+{
+    Tree t = { 1, 2, 3, 4, 5 };
+
+    REQUIRE(t.size() == 5);
+    REQUIRE(t.contains(1));
+    REQUIRE(t.contains(2));
+    REQUIRE(t.contains(3));
+    REQUIRE(t.contains(4));
+    REQUIRE(t.contains(5));
+    
+    Tree t2 = std::move(t);
+
+    REQUIRE(t2.size() == 5);
+    
+    REQUIRE(t2.contains(1));
+    REQUIRE(t2.contains(2));
+    REQUIRE(t2.contains(3));
+    REQUIRE(t2.contains(4));
+    REQUIRE(t2.contains(5));
+}
+
+TEST_CASE("swap")
+{
+    SECTION("two empty trees")
+    {
+        Tree t1, t2;
+        CHECK(t1.empty());
+        CHECK(t2.empty());
+        t1.swap(t2);
+        CHECK(t1.empty());
+        CHECK(t2.empty());
+    }
+
+    SECTION("one empty tree")
+    {
+        Tree t1, t2 = { 1, 2, 3, 4, 5 };
+
+        CHECK(t1.empty());
+        CHECK(t2.size() == 5);
+
+        t1.swap(t2);
+
+        CHECK(t1.size() == 5);
+        CHECK(t2.empty());
+
+        CHECK(t1.contains(1));
+        CHECK(t1.contains(2));
+        CHECK(t1.contains(3));
+        CHECK(t1.contains(4));
+        CHECK(t1.contains(5));
+    }
+
+    SECTION("two non-empty trees")
+    {
+        Tree t1 = { 1, 2, 3, 4, 5 };
+        Tree t2 = { 6, 7, 8, 9, 10 };
+        CHECK(t1.size() == 5);
+        CHECK(t2.size() == 5);
+
+        t1.swap(t2);
+
+        CHECK(t1.size() == 5);
+        CHECK(t2.size() == 5);
+
+        CHECK(t1.contains(6));
+        CHECK(t1.contains(7));
+        CHECK(t1.contains(8));
+        CHECK(t1.contains(9));
+        CHECK(t1.contains(10));
+
+        CHECK(t2.contains(1));
+        CHECK(t2.contains(2));
+        CHECK(t2.contains(3));
+        CHECK(t2.contains(4));
+        CHECK(t2.contains(5));
+    }
+}
+
+TEST_CASE("copy assign")
+{
+    Tree t = { 1, 2, 3, 4, 5 };
+    Tree t2;
+    t2 = t;
+
+    CHECK(t.size() == 5);
+    CHECK(t2.size() == 5);
+    CHECK(t == t2);
+}
+
+TEST_CASE("move assign")
+{
+    Tree t = { 1, 2, 3, 4, 5 };
+
+    CHECK(t.size() == 5);
+    CHECK(t.contains(1));
+    CHECK(t.contains(2));
+    CHECK(t.contains(3));
+    CHECK(t.contains(4));
+    CHECK(t.contains(5));
+    
+    Tree t2;
+    t2 = std::move(t);
+
+    CHECK(t2.size() == 5);
+    
+    CHECK(t2.contains(1));
+    CHECK(t2.contains(2));
+    CHECK(t2.contains(3));
+    CHECK(t2.contains(4));
+    CHECK(t2.contains(5));
+}
+
+TEST_CASE("pmr allocator")
+{
+    std::pmr::memory_resource* resource1 = new std::pmr::monotonic_buffer_resource(1024);
+    std::pmr::memory_resource* resource2 = new std::pmr::monotonic_buffer_resource(2048);
+
+    {
+        std::pmr::polymorphic_allocator<int> alloc1(resource1);
+        std::pmr::polymorphic_allocator<int> alloc2(resource2);
+
+        TreeWithAlloc<int, std::pmr::polymorphic_allocator<int>> t(alloc1);
+
+        t.insert(1);
+        t.insert(2);
+        t.insert(3);
+
+        CHECK(t.size() == 3);
+
+        TreeWithAlloc<int, std::pmr::polymorphic_allocator<int>> t2((alloc2));
+
+        t2 = std::move(t);
+
+        CHECK(t2.size() == 3);
+        CHECK(t2.contains(1));
+        CHECK(t2.contains(2));
+        CHECK(t2.contains(3));
+
+        CHECK(t.size() == 3);
+        CHECK(t.contains(1));
+        CHECK(t.contains(2));
+        CHECK(t.contains(3));
+
+    }
+
+    delete resource1;
+    delete resource2;
+}
+
+
+TEST_CASE("extract and insert")
+{
+    avl_set<std::string> s = { 
+        "This is long enough to make sure the string is not short string optimization1", 
+        "This is long enough to make sure the string is not short string optimization2",
+        "This is long enough to make sure the string is not short string optimization3",
+    };
+
+    auto node1 = s.extract("This is long enough to make sure the string is not short string optimization1");
+
+    CHECK(s.size() == 2);
+    CHECK(!s.contains("This is long enough to make sure the string is not short string optimization1"));
+
+    s.insert(std::move(node1));
+    CHECK(s.size() == 3);
+    CHECK(s.contains("This is long enough to make sure the string is not short string optimization1"));
+
+    auto node2 = s.extract("String not in the set");
+    CHECK(node2.empty());
+
 }
 
 // Map

@@ -1,15 +1,20 @@
-#include "avl_tree.hpp"
-
 #include <catch2/catch_all.hpp>
 
-using namespace leviathan::collections;
-using Tree = avl_tree<int>;
+// #include "avl_tree.hpp"
+
+// using namespace leviathan::collections;
+// using Tree = avl_tree<int>;
+
+
+// template <typename K, typename V>
+// using TreeMap = avl_tree<K, V>;
+
+#include "../../../avl.hpp"
 
 template <typename T, typename Alloc>
-using TreeWithAlloc = tree<identity<T>, std::ranges::less, Alloc, true, avl_node>;
+using TreeWithAlloc = tree<::identity<T>, std::ranges::less, Alloc, true, avl_node>;
 
-template <typename K, typename V>
-using TreeMap = avl_tree<K, V>;
+using Tree = avl_set<int>;
 
 #include "tree_test.inc"
 
@@ -86,7 +91,7 @@ TEST_CASE("avl_tree_height_test")
         random_tree.insert(rd() % 10240);
     HeightChecker()(random_tree.header()->parent());
 
-    Logger::WriteMessage(avl.draw().c_str());
+    // Logger::WriteMessage(avl.draw().c_str());
 }
 
 

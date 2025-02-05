@@ -126,7 +126,7 @@ struct emplace_helper
     }();
 };
 
-}
+} // namespace detail
 
 namespace detail
 {

@@ -55,6 +55,28 @@ struct std::formatter<std::variant<Ts...>, CharT>
     }
 };
 
+template <typename T1, typename T2, typename CharT>
+struct std::formatter<std::pair<T1, T2>, CharT>
+{
+    template <typename ParseContext>
+    constexpr typename ParseContext::iterator parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    typename FormatContext::iterator format(const std::pair<T1, T2>& v, FormatContext& ctx) const
+    {
+        auto it = ctx.out();
+        *it++ = '(';
+        *it++ = std::format("{}", v.first);
+        *it++ = ",";
+        *it++ = std::format("{}", v.second);
+        *it++ = ')';
+        return it;  
+    }
+};
+
 enum ConsoleColor : int
 {
     Black = 1,

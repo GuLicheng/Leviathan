@@ -811,7 +811,7 @@ public:
 template <std::endian Endian>
 struct std::hash<leviathan::math::numeric::uint128<Endian>> 
 {
-    static constexpr operator()(leviathan::math::numeric::uint128<Endian> x)
+    static constexpr auto operator()(leviathan::math::numeric::uint128<Endian> x)
     {
         return x.hash_code();
     }
@@ -820,7 +820,7 @@ struct std::hash<leviathan::math::numeric::uint128<Endian>>
 template <std::endian Endian>
 struct std::hash<leviathan::math::numeric::int128<Endian>> 
 {
-    static constexpr operator()(leviathan::math::numeric::int128<Endian> x)
+    static constexpr auto operator()(leviathan::math::numeric::int128<Endian> x)
     {
         return x.hash_code();
     }

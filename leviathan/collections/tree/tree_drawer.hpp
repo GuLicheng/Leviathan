@@ -86,15 +86,10 @@ struct row_drawer
         }
 
         auto label = std::format("{}({})", *static_cast<const D*>(node)->value_ptr(), node->to_string());
-
         auto [left_lines, left_pos, left_width] = recurse<D>(node->lchild());
-
         auto [right_lines, right_pos, right_width] = recurse<D>(node->rchild());
-
         auto middle = std::ranges::max({ right_pos + left_width - left_pos + 1, 2, (int)label.size() });
-
         auto pos = left_pos + middle / 2;
-
         auto width = left_pos + middle + right_width - right_pos;
 
         while (left_lines.size() < right_lines.size())
@@ -134,7 +129,6 @@ struct row_drawer
         {
             // 0
             (std::string(left_pos, ' ') + label + std::string(right_width - right_pos, ' ')),
-
             // 1  
             (std::string(left_pos, ' ') + lbranch + std::string(middle - 2, ' ') + rbranch + std::string(right_width - right_pos, ' '))
         };
@@ -144,7 +138,6 @@ struct row_drawer
             {
                 return x + std::string(width - left_width - right_width, ' ') + y;
             }, left_lines, right_lines);
-
 
         // lines.insert_range(lines.end(), rg);
         lines.insert(lines.end(), rg.begin(), rg.end());
@@ -161,9 +154,7 @@ struct row_drawer
         }
 
         const int length = (int)text.size();
-
         const int right = (width - length) / 2;
-
         const int left = width - length - right;
 
         return std::string(left, filler_character) + text + std::string(right, filler_character);

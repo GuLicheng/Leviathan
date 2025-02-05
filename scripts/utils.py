@@ -1,3 +1,5 @@
+
+
 def bind_front(adaptor, function):
     def closure(*args):
         return adaptor(function, *args)
@@ -5,6 +7,11 @@ def bind_front(adaptor, function):
 
 def combine(sequence, *closures):
     for closure in reversed(closures):
+        sequence = closure(sequence)
+    return sequence
+
+def pipeline(sequence, *closures):
+    for closure in closures:
         sequence = closure(sequence)
     return sequence
 

@@ -18,6 +18,8 @@ namespace leviathan
 template <typename Fn, typename... Ts>
 class variable
 {
+    static_assert(sizeof...(Ts) > 0);
+
 public:
 
     template <typename T>
@@ -66,7 +68,7 @@ public:
 
     // Compare each type directly may be incorrect. For example, if lhs 
     // contains 'int' and rhs contains 'double', the lhs('int') can directly
-    // compared with rhs('double'), but them hold different types.   
+    // compared with rhs('double'), but they hold different types.   
     // constexpr bool operator==(const variable& rhs) const;
 
     template <typename T>

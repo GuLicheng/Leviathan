@@ -7,6 +7,8 @@ namespace leviathan::config
 
 struct parse_context
 {
+    static constexpr auto npos = std::string_view::npos;
+
     std::string_view m_ctx;
 
     constexpr parse_context(std::string_view context) : m_ctx(context) { }
@@ -164,6 +166,11 @@ struct parse_context
     constexpr bool eof() const
     {
         return is_at_end();
+    }
+
+    constexpr size_t search(std::string_view context)
+    {
+        return m_ctx.find(context);
     }
 
     constexpr void locate_character(char ch)

@@ -17,12 +17,12 @@ template <typename Formatter, typename Sequence>
 std::string format_sequence(
     Formatter formatter, 
     const Sequence& sequence, 
-    std::string_view delimiter = ",", 
+    std::string_view separator = ",", 
     std::string_view fmt = "[{}]")
 {
     auto context = sequence 
                  | std::views::transform(formatter)
-                 | std::views::join_with(delimiter) 
+                 | std::views::join_with(separator) 
                  | std::ranges::to<std::string>();
     return format(fmt, context);
 }
@@ -32,20 +32,21 @@ std::string format_map(
     Formatter formatter, 
     const Map& map, 
     std::string_view kvfmt = "{}:{}", 
-    std::string_view delimiter = ",", 
+    std::string_view separator = ",", 
     std::string_view fmt = "{{{}}}")
 {
     auto kv2string = [=](auto& kv) {
-        return format(kvfmt, 
+        return format(kvfmt,
             Formatter::operator()(kv.first), 
             Formatter::operator()(kv.second));
     };
 
     auto context = map 
                  | std::views::transform(kv2string) 
-                 | std::views::join_with(delimiter) 
+                 | std::views::join_with(separator) 
                  | std::ranges::to<std::string>();
     return format(fmt, context);
 }
+
 
 } // namespace leviathan::config
