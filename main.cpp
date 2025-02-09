@@ -1,35 +1,75 @@
 #include "avl.hpp"
 #include <set>
 #include <iostream>
-#include <memory_resource>
-#include <format>
-#include <memory>
 
-template class avl_set<int>;
+struct SomethingVeryLarge
+{
+    int i;
 
-void REQUIRE(...) { }
+    SomethingVeryLarge(int i) : i(i) 
+    {
+        std::cout << "Constructing...\n"; 
+    }
+
+    SomethingVeryLarge(const SomethingVeryLarge& other) : i(other.i)
+    {
+        std::cout << "Coping...\n";
+    } 
+
+    SomethingVeryLarge(SomethingVeryLarge&& other) : i(other.i)
+    {
+        std::cout << "Moving...\n";
+    } 
+
+    bool operator<(const SomethingVeryLarge& other) const
+    {
+        return i < other.i;
+    }
+};
+
+void Test1()
+{
+    std::set<SomethingVeryLarge> s;
+
+    SomethingVeryLarge object(0);
+
+    s.emplace(object);
+    s.emplace(object);
+    s.emplace(object);
+
+    std::cout << "=============================================================\n";
+
+    avl_set<SomethingVeryLarge> avl;
+
+    avl.emplace(object);
+    avl.emplace(object);
+    avl.emplace(object);
+}
+
+void Test2()
+{
+    std::set<SomethingVeryLarge> s;
+
+    s.emplace(1);
+    s.emplace(1);
+    s.emplace(1);
+
+    std::cout << "=============================================================\n";
+
+    avl_set<SomethingVeryLarge> avl;
+
+    avl.emplace(1);
+    avl.emplace(1);
+    avl.emplace(1);
+}
 
 int main()
 {
-    avl_set<int> t;
+    Test1();
 
-    std::set<int>::node_type s1;
-    std::set<int> s2(s1);
+    std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
 
-    auto ret = s2.insert(std::move(s1));
-
-    using T1 = decltype(ret);
-
-    ret.node;
-
-    s1 <=> s2;
-
-    std::unique_ptr<std::pmr::memory_resource> p1(new std::pmr::monotonic_buffer_resource(1024));
-    std::unique_ptr<std::pmr::memory_resource> p2(new std::pmr::monotonic_buffer_resource(2048));
-
-    std::pmr::polymorphic_allocator<int> alloc1(p1.get());
-    std::pmr::polymorphic_allocator<int> alloc2(p2.get());
-
+    // Test2();
 
     std::cout << "Ok\n";
 

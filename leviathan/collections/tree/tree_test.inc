@@ -125,9 +125,12 @@ TEST_CASE("find value")
     auto Negative = tree.insert(-2).first;
     auto Sentinel = tree.end();
     
+    // [-2, 0, 2]
+
     std::array SearchedValues = { -3, -2, -1, 0, 1, 2, 3 };
 
     std::array LowerBoundResults = { Negative, Negative, Zero, Zero, Positive, Positive, Sentinel };
+    std::array UpperBoundResults = { Negative, Zero, Zero, Positive, Positive, Sentinel, Sentinel };
 
     auto result = std::ranges::equal(
         SearchedValues,
@@ -136,6 +139,13 @@ TEST_CASE("find value")
     );
 
     CHECK(result);
+
+    result = std::ranges::equal(
+        SearchedValues, 
+        UpperBoundResults,
+        [&](auto v, auto it) { return tree.upper_bound(v) == it; }
+    );
+
 
     // Logger::WriteMessage(tree.draw().c_str());
 }
@@ -422,7 +432,6 @@ TEST_CASE("pmr allocator")
     delete resource2;
 }
 
-
 TEST_CASE("extract and insert")
 {
     avl_set<std::string> s = { 
@@ -430,6 +439,8 @@ TEST_CASE("extract and insert")
         "This is long enough to make sure the string is not short string optimization2",
         "This is long enough to make sure the string is not short string optimization3",
     };
+
+    s.draw();
 
     auto node1 = s.extract("This is long enough to make sure the string is not short string optimization1");
 
@@ -443,6 +454,20 @@ TEST_CASE("extract and insert")
     auto node2 = s.extract("String not in the set");
     CHECK(node2.empty());
 
+}
+
+TEST_CASE("emplace")
+{
+    avl_set<std::string> strs;
+
+    strs.emplace("Hello");
+    strs.emplace("World");
+    strs.emplace("C++");
+
+    CHECK(strs.size() == 3);
+    CHECK(strs.contains("Hello"));
+    CHECK(strs.contains("World"));
+    CHECK(strs.contains("C++"));
 }
 
 // Map

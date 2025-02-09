@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include <iostream>
 #include <array>
 #include <compare>
@@ -57,7 +58,42 @@ using key_arg = typename key_arg_helper<IsTransparent>::template type<K1, K2>;
 
 } // namespace detail
 
-// template <typename Node, typename Allocator>
+// Is param T necessary? Maybe we can just access by typename Allocator::value_type?
+template <typename T, typename Allocator>
+struct value_handle
+{
+    static_assert(std::is_same_v<T, std::remove_cvref_t<T>>);
+    static_assert(std::is_same_v<Allocator, std::remove_cvref_t<Allocator>>);
+
+    using allocator_type = Allocator;
+    using alloc_traits = std::allocator_traits<allocator_type>;
+    // using pointer = T*;
+    using value_type = T;
+
+    template <typename... Args>
+    value_handle(const allocator_type& alloc, Args&&... args)
+        : m_alloc(alloc)
+    {
+        alloc_traits::construct(m_alloc, reinterpret_cast<T*>(&m_raw), (Args&&)args...);
+    }
+
+    value_handle(const value_handle&) = delete;
+    value_handle(value_handle&&) = delete;
+
+    ~value_handle()
+    {
+        alloc_traits::destroy(m_alloc, reinterpret_cast<T*>(&m_raw));
+    }
+
+    value_type&& operator*()
+    {
+        return std::move(*reinterpret_cast<T*>(&m_raw));
+    }
+
+    [[no_unique_address]] allocator_type m_alloc;
+    alignas(T) unsigned char m_raw[sizeof(T)];
+};
+
 template <typename NodeAllocator>
 struct node_handle_base
 {
@@ -103,7 +139,7 @@ struct node_handle_base
             // If node handle was empty or if POCMA is true, move assigns the allocator from nh
             if constexpr (ator_traits::propagate_on_container_move_assignment::value)
             {
-                m_alloc.emplace(std::move(nh.m_alloc));
+                *m_alloc = std::move(*nh.m_alloc);
             }
             else
             {
@@ -128,10 +164,13 @@ struct node_handle_base
 
     void reset()
     {
-        ator_traits::destroy(*m_alloc, m_ptr->value_ptr());
-        ator_traits::deallocate(*m_alloc, m_ptr, 1);
-        m_alloc.reset();
-        m_ptr = nullptr;
+        if (!empty())
+        {
+            ator_traits::destroy(*m_alloc, m_ptr->value_ptr());
+            ator_traits::deallocate(*m_alloc, m_ptr, 1);
+            m_alloc.reset();
+            m_ptr = nullptr;
+        }
     }
 
     allocator_type get_allocator() const
@@ -147,7 +186,6 @@ struct node_handle_base
         }
     }
 
-    // TODO:
     void swap(node_handle_base& nh) noexcept(IsNothrowSwap)
     {
         using std::swap;
@@ -165,6 +203,11 @@ struct node_handle_base
     }
 
     pointer m_ptr = nullptr;
+
+    /**
+     * std::optional may not a good choice since it contains a boolean filed to check 
+     * the current state of the object, which is not necessary for this case. 
+     */
     std::optional<allocator_type> m_alloc;
 };
 
@@ -668,6 +711,34 @@ struct avl_node : public node_interface
     
 };
 
+template <typename Node, typename T>
+struct value_field : public Node
+{
+    T m_value;
+
+    value_field(const value_field&) = delete;
+
+    T* value_ptr()
+    {
+        return std::addressof(m_value);
+    }
+
+    const T* value_ptr() const
+    {
+        return std::addressof(m_value);
+    }
+
+    Node* base()
+    {
+        return static_cast<Node*>(this);
+    }
+
+    const Node* base() const
+    {
+        return static_cast<const Node*>(this);
+    }
+};
+
 template <typename T>
 struct identity
 {
@@ -722,30 +793,7 @@ public:
 private:
 public:
 
-    struct tree_node : public Node
-    {
-        value_type m_val;
-
-        value_type* value_ptr()
-        {
-            return std::addressof(m_val);
-        }
-
-        const value_type* value_ptr() const
-        {
-            return std::addressof(m_val);
-        }
-
-        Node* base()
-        {
-            return static_cast<Node*>(this);
-        }
-
-        const Node* base() const
-        {
-            return static_cast<const Node*>(this);
-        }
-    };
+    using tree_node = value_field<Node, value_type>;
 
     struct tree_iterator 
     {
@@ -761,6 +809,13 @@ public:
         constexpr tree_iterator(const tree_iterator&) = default;
 
         constexpr tree_iterator(link_type ptr) : m_ptr(ptr) { }
+
+        // The const_iterator and iterator may model same type, so we offer 
+        // a base method to avoid if-constexpr.
+        constexpr tree_iterator base(this tree_iterator it)
+        {
+            return it;
+        }
 
         constexpr link_type link(this tree_iterator it)
         {
@@ -831,11 +886,7 @@ public:
     using node_alloc_traits = std::allocator_traits<node_allocator>;
     using node_base = Node;
 
-    struct node_type : public node_handle_base<node_allocator>
-    {
-        using node_handle_base<node_allocator>::node_handle_base;
-    };
-
+    using node_type = node_handle_base<node_allocator>;
     using insert_return_type = node_insert_return<tree_iterator, node_type>;
 
     template <typename U> 
@@ -932,6 +983,7 @@ public:
             clear();
 
             m_cmp = other.m_cmp;
+
             if constexpr (alloc_traits::propagate_on_container_copy_assignment::value)
             {
                 m_alloc = other.m_alloc;
@@ -1095,7 +1147,7 @@ public:
     iterator find(const key_arg_t<K>& x)
     {
         iterator lower = lower_bound(x);
-        return (lower == end() || m_cmp(x, keys(lower.m_ptr))) 
+        return (lower == end() || m_cmp(x, *lower)) 
               ? end() : lower;
     }
 
@@ -1109,7 +1161,7 @@ public:
     std::pair<iterator, iterator> equal_range(const key_arg_t<K>& x)
     {
         iterator lower = lower_bound(x);
-        iterator upper = (lower == end() || m_cmp(x, keys(lower.m_ptr))) ? lower : std::next(lower); 
+        iterator upper = (lower == end() || m_cmp(x, *lower)) ? lower : std::next(lower); 
         return std::make_pair(lower, upper);
     }
 
@@ -1122,7 +1174,8 @@ public:
     template <typename K = key_type>
     iterator upper_bound(const key_arg_t<K>& x)
     {
-        return equal_range(x).second;
+        // return equal_range(x).second;
+        return upper_bound_impl(x);
     }
 
     template <typename K = key_type>
@@ -1153,7 +1206,9 @@ public:
         }
         else
         {
-            return emplace_unique((Args&&)args...);
+            // we use a value_handle to help us destroy 
+            value_handle<value_type, allocator_type> handle(m_alloc, (Args&&)args...);
+            return insert_unique(*handle);
         }
     }
 
@@ -1192,20 +1247,13 @@ public:
             for (; first != last; first = erase(first));
         }
         
-        if constexpr (std::is_same_v<iterator, const_iterator>)
-        {
-            return last;
-        }
-        else
-        {
-            return last.base();
-        }
+        return last.base();
     }
 
     // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p2077r3.html
     template <typename KK> requires (detail::transparent<Compare> && 
-                                   !std::is_convertible_v<KK, iterator> && 
-                                   !std::is_convertible_v<KK, const_iterator>)
+                                    !std::is_convertible_v<KK, iterator> && 
+                                    !std::is_convertible_v<KK, const_iterator>)
     size_type erase(KK& x)
     {
         return erase_by_key(x);
@@ -1251,17 +1299,13 @@ public:
         {
             return { end(), false, node_type(nullptr, m_alloc) };
         }
-        else
-        {
-            auto [it, ok] = emplace(std::move(*static_cast<tree_node*>(nh.m_ptr)->value_ptr()));
-            insert_return_type ret;
-            
-            ret.inserted = ok;
-            ret.position = it;
-            // ret.node = (ok ? node_type(nullptr, m_alloc) : std::move(nh));
 
-            return ret;
-        }
+        tree_node* node = std::exchange(nh.m_ptr, nullptr);
+        auto [x, p] = get_insert_unique_pos(*node->value_ptr());
+
+        return p == nullptr ? 
+            insert_return_type(iterator(x), false, node_type(node, m_alloc)) : 
+            insert_return_type(insert_node(x, p, node->base()), true, node_type(nullptr, m_alloc));
     }
 
     iterator insert(const_iterator pos, node_type&& nh)
@@ -1326,14 +1370,7 @@ public:
     // a valid iterator into this container
     node_type extract(const_iterator position)
     {
-        if constexpr (std::is_same_v<iterator, const_iterator>)
-        {
-            return extract_node(position.m_ptr);
-        }
-        else
-        {
-            return extract_node(position.base().m_ptr);
-        }
+        return extract_node(position.base().m_ptr);
     }
 
     node_type extract(const key_type& x)
@@ -1357,8 +1394,13 @@ private:
             return node_type(nullptr, m_alloc);
         }
         else
-        {   
+        {
+            // unlink and reset the node   
             node->rebalance_for_erase(m_header);
+            node->parent(nullptr);
+            node->lchild(nullptr);
+            node->rchild(nullptr);
+            node->init();
             --m_size;
             return node_type(static_cast<tree_node*>(node), m_alloc);
         }
@@ -1458,6 +1500,7 @@ private:
     iterator lower_bound_impl(const K& k)
     {
         auto y = &m_header, x = header()->parent();
+
         while (x)
         {
             if (!m_cmp(keys(x), k))
@@ -1472,41 +1515,33 @@ private:
         return { y };
     }
 
-    // Insert helpers
-    template <typename... Args>
-    std::pair<iterator, bool> emplace_unique(Args&&... args)
+    template <typename K>
+    iterator upper_bound_impl(const K& k)
     {
-        auto z = create_node((Args&&)args...);
-        auto [x, p] = get_insert_unique_pos(keys(z));
+        auto y = &m_header, x = header()->parent();
 
-        if (p)
+        while (x)
         {
-            return { insert_node(x, p, z), true };
+            if (m_cmp(k, keys(x)))
+            {
+                y = x, x = x->lchild();
+            }
+            else
+            {
+                x = x->rchild();
+            }
         }
-
-        drop_node(z);
-        return { x, false };
+        return { y };
     }
 
-    iterator insert_node(node_base* x, node_base* p, tree_node* z)
-    {
-        bool insert_left = (x != 0 || p == &m_header || m_cmp(keys(z), keys(p)));
-        z->insert_and_rebalance(insert_left, p, m_header);
-        ++m_size;
-        return iterator(z);
-    }
-
+    // Insert helpers
     template <typename Arg>
     std::pair<iterator, bool> insert_unique(Arg&& arg)
     {
         auto [x, p] = get_insert_unique_pos(KeyValue()(arg));
-
-        if (p)
-        {
-            return { insert_value(x, p, (Arg&&)arg), true };
-        }
-        
-        return { x, false };
+        return p 
+             ? std::make_pair(insert_value(x, p, (Arg&&)arg), true)  
+             : std::make_pair(x, false);
     }
 
     template<typename Arg>
@@ -1516,6 +1551,15 @@ private:
             || m_cmp(KeyValue()(arg), keys(p)));
 
         auto z = create_node((Arg&&)arg);
+
+        z->insert_and_rebalance(insert_left, p, m_header);
+        ++m_size;
+        return iterator(z);
+    }
+
+    iterator insert_node(node_base* x, node_base* p, node_base* z)
+    {
+        bool insert_left = (x != 0 || p == &m_header || m_cmp(keys(z), keys(p)));
 
         z->insert_and_rebalance(insert_left, p, m_header);
         ++m_size;
@@ -1561,19 +1605,19 @@ private:
     // Remove helpers
     void erase_by_node(node_base* x)
     {      
-        auto y = x->rebalance_for_erase(m_header);
-        destroy_node(static_cast<tree_node*>(y));
+        x->rebalance_for_erase(m_header);
+        drop_node(static_cast<tree_node*>(x));
         m_size--;
     }
 
     template <typename K>
     size_type erase_by_key(const K& x)
     {
-        iterator node = find(x);
+        iterator iter = find(x);
 
-        if (node != end())
+        if (iter != end())
         {
-            erase_by_node(node.m_ptr);
+            erase_by_node(iter.m_ptr);
             return 1;
         }
 
@@ -1627,7 +1671,7 @@ private:
         }
         catch (...)
         {
-            // if exception occurs, deallocate memory
+            // if exception occurs, deallocate memory and rethrow the exception
             dealloc_node(node);
             throw;
         }
@@ -1698,11 +1742,22 @@ template <typename T, typename Compare = std::less<T>, typename Allocator = std:
 class avl_set : public tree<identity<T>, Compare, Allocator, true, avl_node>
 {
     using base_type = tree<identity<T>, Compare, Allocator, true, avl_node>;
+public:
+    
     using base_type::base_type;
     using base_type::operator=;
 };
 
+template <typename K, typename V, typename Compare = std::less<K>, typename Allocator = std::allocator<std::pair<const K, V>>>
+class avl_map : public tree<select1st<K, V>, Compare, Allocator, true, avl_node>
+{
+    using base_type = tree<select1st<K, V>, Compare, Allocator, true, avl_node>;
 
+public:
+
+    using base_type::base_type;
+    using base_type::operator=;
+};
 
 
 
