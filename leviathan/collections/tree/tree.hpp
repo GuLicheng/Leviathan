@@ -180,7 +180,7 @@ protected:
 
 public:
 
-    using node_type = node_handle_base<node_allocator>;
+    using node_type = node_handle_set<value_type, node_allocator>;
     using insert_return_type = node_insert_return<tree_iterator, node_type>;
 
 protected:
@@ -1132,5 +1132,12 @@ public:
     Node m_header;
     size_type m_size;
 };
+
+template <typename Node, typename T, typename Compare = std::less<T>, typename Allocator = std::allocator<T>>
+using tree_set = tree<identity<T>, Compare, Allocator, true, Node>;
+
+template <typename Node, typename T, typename Compare = std::less<T>, typename Allocator = std::allocator<T>>
+using tree_multiset = tree<identity<T>, Compare, Allocator, false, Node>;
+
 
 }  // namespace leviathan::collections

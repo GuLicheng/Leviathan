@@ -514,32 +514,8 @@ TEST_CASE("search")
     CHECK(ms.size() == 3);
 }
 
-// Map
-#ifdef USE_MAP_TEST
-
-TEST_CASE("map")
-{
-    TreeMap<std::string, int> map;
-
-    map.try_emplace("Alice", 5);
-
-    auto compare = map.value_comp();
-
-    compare({ "Alice", 1 }, { "Bob", 2 });
-
-    map["Bob"] = 2;
-
-    map.insert_or_assign("Bob", 3);
-    
-    REQUIRE(map["Bob"] == 3);
-    REQUIRE(map["Alice"] == 5);
-}
-
-#endif
-
-
 // Memory
-// #define USE_MEMORY_TEST 
+#define USE_MEMORY_TEST 
 #ifdef USE_MEMORY_TEST 
 
 #include <leviathan/allocators/checked_allocator.hpp>
@@ -702,6 +678,29 @@ TEST_CASE("non-propagate allocator")
         tree.insert(3);
     }
 
+}
+
+#endif
+
+// Map
+#ifdef USE_MAP_TEST
+
+TEST_CASE("map")
+{
+    TreeMap<std::string, int> map;
+
+    map.try_emplace("Alice", 5);
+
+    auto compare = map.value_comp();
+
+    compare({ "Alice", 1 }, { "Bob", 2 });
+
+    map["Bob"] = 2;
+
+    map.insert_or_assign("Bob", 3);
+    
+    REQUIRE(map["Bob"] == 3);
+    REQUIRE(map["Alice"] == 5);
 }
 
 #endif

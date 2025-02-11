@@ -134,6 +134,37 @@ struct node_handle_base
     std::optional<allocator_type> m_alloc;
 };
 
+template <typename T, typename NodeAllocator>
+struct node_handle_set : node_handle_base<NodeAllocator>
+{
+    using node_handle_base<NodeAllocator>::node_handle_base;
+    using value_type = T;
+
+    value_type& value() const
+    {
+        return *(this->m_ptr->value_ptr());
+    }
+};
+
+// template <typename K, typename V, typename NodeAllocator>
+// struct node_handle_map : node_handle_base<NodeAllocator>
+// {
+//     using key_type = K;
+//     using mapped_type = V;
+//     using typename node_handle_base<NodeAllocator>::pointer;
+
+//     value_type& value() const
+//     {
+//         return m_ptr->value_ptr()->first;
+//     }
+
+//     mapped_type& mapped() const
+//     {
+//         return m_ptr->value_ptr()->second;
+//     }
+
+// };
+
 #if 0
 
 template <typename KeyValue, typename Node, typename Allocator>

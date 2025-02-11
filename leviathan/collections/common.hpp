@@ -183,7 +183,7 @@ auto rebind_allocator(Alloc& alloc)
     return target;
 }
 
-}
+}  // namespace detail
 
 /**
  * @brief A helper class use allocator construct value in construction
@@ -291,14 +291,11 @@ struct hash_key_equal : public Hasher, public KeyEqual
 template <typename T> 
 struct cache_hash_code : std::true_type { };
 
-// Meta
 // https://en.cppreference.com/w/cpp/ranges/to
 template <typename R, typename T>
 concept container_compatible_range = 
     std::ranges::input_range<R> &&
     std::convertible_to<std::ranges::range_reference_t<R>, T>;
-
-}
 
 template <typename Node, typename T>
 struct value_field : public Node
@@ -328,4 +325,4 @@ struct value_field : public Node
     }
 };
 
-
+}
