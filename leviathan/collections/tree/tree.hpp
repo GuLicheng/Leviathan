@@ -1201,12 +1201,15 @@ public:
     using typename base::value_type;
     using typename base::key_type;
     using typename base::mapped_type;
+    using typename base::iterator;
+    using typename base::const_iterator;
 
     // mapped_type& operator[](const key_type& key);
     // mapped_type& operator[](key_type&& key);
     // template <typename K> mapped_type& operator[](K&& x);
     // template <typename K = key_type> 
 
+    // map::at
     template <typename Key = key_type>
     mapped_type& at(const key_arg_t<Key>& x)
     {
@@ -1219,6 +1222,86 @@ public:
     const mapped_type& at(const key_arg_t<Key>& x) const
     {
         return const_cast<associative_tree*>(this)->at(x);
+    }
+
+    // map::try_emplace
+    template <typename... Args>
+    std::pair<iterator, bool> try_emplace(const K& key, Args&&... args)
+    {
+        return try_emplace_impl(key, (Args&&)args...);
+    }
+
+    template <typename... Args>
+    std::pair<iterator, bool> try_emplace(K&& key, Args&&... args)
+    {
+        return try_emplace_impl(std::move(key), (Args&&)args...);
+    }
+
+    template <typename... Args>
+    iterator try_emplace(const_iterator hint, const K& key, Args&&... args)
+    {
+        return try_emplace(key, (Args&&)args...);
+    }
+
+    template <typename... Args>
+    iterator try_emplace(const_iterator hint, K&& key, Args&&... args)
+    {
+        return try_emplace(key, (Args&&)args...);
+    }
+
+    // If equal_range(u.first) == equal_range(k) is false, the behavior 
+    // is undefined, where u is the new element to be inserted.
+    template <typename KK, typename... Args>
+        requires (detail::transparent<Compare> && 
+                 !std::is_convertible_v<KK, iterator> && 
+                 !std::is_convertible_v<KK, const_iterator>)
+    std::pair<iterator, bool> try_emplace(KK&& key, Args&&... args)
+    {
+        return try_emplace_impl((KK&&)key, (Args&&)args...);
+    }
+
+    template <typename KK, typename... Args>
+        requires (detail::transparent<Compare> && 
+                 !std::is_convertible_v<KK, iterator> && 
+                 !std::is_convertible_v<KK, const_iterator>)
+    iterator try_emplace(const_iterator hint, KK&& key, Args&&... args)
+    {
+        return try_emplace((KK&&)key, (Args&&)args...);
+    }
+
+protected:
+
+    template <typename KK, typename M>
+    std::pair<iterator, bool> insert_or_assign_impl(KK&& k, M&& obj)
+    {
+        auto [x, p] = this->get_insert_unique_pos(k);
+        
+        if (p) 
+        {
+            auto z = this->create_node((KK&&)k, (M&&)obj);
+            return { this->insert_node(x, p, z), true };
+        }
+        
+        auto j = iterator(x);
+        *j = (M&&)obj;
+        return { j, false };
+    }
+
+    template <typename KK, typename... Args>
+    std::pair<iterator, bool> try_emplace_impl(KK&& k, Args&&... args)
+    {
+        auto [x, p] = this->get_insert_unique_pos(k);
+        
+        if (p) 
+        {
+            auto z = this->create_node(
+                std::piecewise_construct, 
+                std::forward_as_tuple((KK&)k), 
+                std::forward_as_tuple((Args&&)args...));
+            return { this->insert_node(x, p, z), true };
+        }
+        
+        return { x, false };
     }
 
 };
