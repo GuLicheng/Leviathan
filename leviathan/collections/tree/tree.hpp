@@ -1139,5 +1139,94 @@ using tree_set = tree<identity<T>, Compare, Allocator, true, Node>;
 template <typename Node, typename T, typename Compare = std::less<T>, typename Allocator = std::allocator<T>>
 using tree_multiset = tree<identity<T>, Compare, Allocator, false, Node>;
 
+template <typename K, typename V, typename Compare, typename Allocator, bool UniqueKey, typename Node>
+class associative_tree : public tree<select1st<K, V>, Compare, Allocator, UniqueKey, Node>
+{
+    using base = tree<select1st<K, V>, Compare, Allocator, UniqueKey, Node>;
+
+public:
+
+    using base::base;
+    using base::operator=;
+    using typename base::value_type;
+    using typename base::iterator;
+    using typename base::const_iterator;
+
+    using mapped_type = V;
+
+    struct value_compare : ordered_map_container_value_compare<value_type, Compare>
+    {
+    protected:
+        friend class associative_tree; 
+
+        value_compare(Compare compare) : ordered_map_container_value_compare<value_type, Compare>(compare) { }
+    };
+
+    value_compare value_comp() const
+    {
+        return value_compare(this->m_cmp);
+    }
+
+    using base::insert;
+
+    // Extend two insert methods
+    template <std::convertible_to<value_type> PairLike> 
+    iterator insert(PairLike&& value)
+    {
+        // This overload is equivalent to emplace(std::forward<P>(value)) and only participates 
+        // in overload resolution if std::is_constructible<value_type, P&&>::value == true
+        return this->emplace((PairLike&&) value);
+    }
+
+    template <std::convertible_to<value_type> PairLike> 
+    iterator insert(const_iterator pos, PairLike&& value)
+    {
+        return insert((PairLike&&) value);
+    }
+};
+
+template <typename K, typename V, typename Compare, typename Allocator, typename Node>
+class associative_tree<K, V, Compare, Allocator, true, Node> : public associative_tree<K, V, Compare, Allocator, false, Node>
+{
+    using base = associative_tree<K, V, Compare, Allocator, false, Node>;
+
+    // Same name as base class, is there any better choice with using?
+    template <typename U> 
+    using key_arg_t = base::template key_arg_t<U>;
+
+public:
+
+    using base::base;
+    using base::operator=;
+    using typename base::value_type;
+    using typename base::key_type;
+    using typename base::mapped_type;
+
+    // mapped_type& operator[](const key_type& key);
+    // mapped_type& operator[](key_type&& key);
+    // template <typename K> mapped_type& operator[](K&& x);
+    // template <typename K = key_type> 
+
+    template <typename Key = key_type>
+    mapped_type& at(const key_arg_t<Key>& x)
+    {
+        auto it = this->find(x);
+        return it != this->end() ? 
+               it->second : throw std::out_of_range("The container does not have an element with the specified key.");
+    }
+
+    template <typename Key = key_type>
+    const mapped_type& at(const key_arg_t<Key>& x) const
+    {
+        return const_cast<associative_tree*>(this)->at(x);
+    }
+
+};
+
+template <typename Node, typename K, typename V, typename Compare = std::less<K>, typename Allocator = std::allocator<std::pair<const K, V>>>
+using tree_map = associative_tree<K, V, Compare, Allocator, true, Node>;
+
+template <typename Node, typename K, typename V, typename Compare = std::less<K>, typename Allocator = std::allocator<std::pair<const K, V>>>
+using tree_multimap = associative_tree<K, V, Compare, Allocator, false, Node>;
 
 }  // namespace leviathan::collections

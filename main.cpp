@@ -1,24 +1,28 @@
-#include <leviathan/collections/tree/avl_tree.hpp>
 #include <set>
 #include <iostream>
 
+template <typename T>
+struct Base
+{
+    template <bool B> 
+    using key_arg_t = std::conditional_t<B, std::true_type, std::false_type>;
+};
+
+template <typename T>
+struct Derived : Base<T>
+{
+    // using type = Base<T>::template key_arg_t<true>;
+
+    template <bool B>
+    using key_arg_t = Base<T>::template key_arg_t<B>;
+
+    using type = key_arg_t<true>;
+};
 
 int main()
 {
 
-    leviathan::collections::avl_tree<int> avl;
-    
-    std::multiset<int> ms;
 
-    // ms.insert
-
-    avl.insert_multi(2);
-    avl.insert_multi(0);
-    avl.insert_multi(4);
-    avl.insert_multi(2);
-
-
-    std::cout << avl.draw() << '\n';
 
     std::cout << "Ok\n";
 
