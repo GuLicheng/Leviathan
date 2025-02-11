@@ -1,75 +1,24 @@
-#include "avl.hpp"
+#include <leviathan/collections/tree/avl_tree.hpp>
 #include <set>
 #include <iostream>
 
-struct SomethingVeryLarge
-{
-    int i;
-
-    SomethingVeryLarge(int i) : i(i) 
-    {
-        std::cout << "Constructing...\n"; 
-    }
-
-    SomethingVeryLarge(const SomethingVeryLarge& other) : i(other.i)
-    {
-        std::cout << "Coping...\n";
-    } 
-
-    SomethingVeryLarge(SomethingVeryLarge&& other) : i(other.i)
-    {
-        std::cout << "Moving...\n";
-    } 
-
-    bool operator<(const SomethingVeryLarge& other) const
-    {
-        return i < other.i;
-    }
-};
-
-void Test1()
-{
-    std::set<SomethingVeryLarge> s;
-
-    SomethingVeryLarge object(0);
-
-    s.emplace(object);
-    s.emplace(object);
-    s.emplace(object);
-
-    std::cout << "=============================================================\n";
-
-    avl_set<SomethingVeryLarge> avl;
-
-    avl.emplace(object);
-    avl.emplace(object);
-    avl.emplace(object);
-}
-
-void Test2()
-{
-    std::set<SomethingVeryLarge> s;
-
-    s.emplace(1);
-    s.emplace(1);
-    s.emplace(1);
-
-    std::cout << "=============================================================\n";
-
-    avl_set<SomethingVeryLarge> avl;
-
-    avl.emplace(1);
-    avl.emplace(1);
-    avl.emplace(1);
-}
 
 int main()
 {
-    Test1();
 
-    std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+    leviathan::collections::avl_tree<int> avl;
+    
+    std::multiset<int> ms;
 
-    // Test2();
+    // ms.insert
+
+    avl.insert_multi(2);
+    avl.insert_multi(0);
+    avl.insert_multi(4);
+    avl.insert_multi(2);
+
+
+    std::cout << avl.draw() << '\n';
 
     std::cout << "Ok\n";
 

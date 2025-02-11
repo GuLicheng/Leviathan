@@ -25,13 +25,13 @@ struct basic_tree_node_operation
     }
 
     template <typename Node>
-    Node* lchild(this Node& self)
+    auto& lchild(this Node& self)
     {
         return self.m_link[1];
     }
 
     template <typename Node>
-    Node* rchild(this Node& self)
+    auto& rchild(this Node& self)
     {
         return self.m_link[2];
     }

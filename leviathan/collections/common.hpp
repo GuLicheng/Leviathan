@@ -300,5 +300,32 @@ concept container_compatible_range =
 
 }
 
+template <typename Node, typename T>
+struct value_field : public Node
+{
+    T m_value;
+
+    value_field(const value_field&) = delete;
+
+    T* value_ptr()
+    {
+        return std::addressof(m_value);
+    }
+
+    const T* value_ptr() const
+    {
+        return std::addressof(m_value);
+    }
+
+    Node* base()
+    {
+        return static_cast<Node*>(this);
+    }
+
+    const Node* base() const
+    {
+        return static_cast<const Node*>(this);
+    }
+};
 
 

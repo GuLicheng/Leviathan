@@ -1,26 +1,28 @@
 #include <catch2/catch_all.hpp>
 
-// #include "avl_tree.hpp"
+#include "avl_tree.hpp"
 
-// using namespace leviathan::collections;
-// using Tree = avl_tree<int>;
+using namespace leviathan::collections;
 
+template <typename T, typename Compare = std::less<T>, typename Allocator = std::allocator<T>>
+using Tree = avl_tree<T, Compare, Allocator>;
 
-// template <typename K, typename V>
-// using TreeMap = avl_tree<K, V>;
+template <typename T, typename Compare = std::less<T>, typename Allocator = std::allocator<T>>
+using TreeWithMultiKey = tree<identity<T>, Compare, Allocator, false, avl_node>;
 
-#include "../../../avl.hpp"
+template <typename K, typename V>
+using TreeMap = avl_tree<K, V>;
 
 template <typename T, typename Alloc>
 using TreeWithAlloc = tree<::identity<T>, std::ranges::less, Alloc, true, avl_node>;
 
-using Tree = avl_set<int>;
+// using Tree = avl_set<int>;
 
 #include "tree_test.inc"
 
 TEST_CASE("avl_tree_height_test")
 {
-    Tree avl;
+    Tree<int> avl;
 
     avl.insert(5 - 1);
     avl.insert(6 - 1);
@@ -78,14 +80,14 @@ TEST_CASE("avl_tree_height_test")
 
     HeightChecker()(root);
 
-    Tree empty_tree;
+    Tree<int> empty_tree;
     REQUIRE(empty_tree.header()->parent() == nullptr);
 
-    Tree single_element_tree;
+    Tree<int> single_element_tree;
     single_element_tree.insert(1);
     REQUIRE(single_element_tree.header()->parent()->m_height == 1);
 
-    Tree random_tree;
+    Tree<int> random_tree;
     static std::random_device rd;
     for (auto i = 0; i < 1024; ++i) 
         random_tree.insert(rd() % 10240);

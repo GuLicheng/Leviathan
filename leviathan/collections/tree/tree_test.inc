@@ -32,7 +32,7 @@ struct Logger
 
 TEST_CASE("insert value ascending")
 {
-    Tree tree;
+    Tree<int> tree;
 
     tree.insert(0);
     tree.insert(1);
@@ -49,7 +49,7 @@ TEST_CASE("insert value ascending")
 
 TEST_CASE("insert value descending")
 {
-    Tree tree;
+    Tree<int> tree;
 
     tree.insert(0);
     tree.insert(-1);
@@ -66,7 +66,7 @@ TEST_CASE("insert value descending")
 
 TEST_CASE("insert only one element")
 {
-    Tree tree;
+    Tree<int> tree;
     tree.insert(0);
 
     CHECK(tree.size() == 1);
@@ -75,7 +75,7 @@ TEST_CASE("insert only one element")
 
 TEST_CASE("empty tree")
 {
-    Tree t;
+    Tree<int>t;
     CHECK(t.empty());
     CHECK(t.size() == 0);
     CHECK_FALSE(t.begin() != t.end());
@@ -95,7 +95,7 @@ TEST_CASE("test member type")
     using const_reference = const int&;
     using pointer = std::allocator_traits<allocator_type>::pointer;
     using const_pointer = std::allocator_traits<allocator_type>::const_pointer;
-    using SetType = Tree;
+    using SetType = Tree<int>;
 
 #define CheckTypeIsEqual(type) CHECK(std::is_same_v< typename SetType:: type, type >)
 
@@ -118,7 +118,7 @@ TEST_CASE("test member type")
 
 TEST_CASE("find value")
 {
-    Tree tree;
+    Tree<int>tree;
 
     auto Zero = tree.insert(0).first;
     auto Positive = tree.insert(2).first;
@@ -152,7 +152,7 @@ TEST_CASE("find value")
 
 TEST_CASE("remove elements")
 {
-    Tree h;
+    Tree<int>h;
 
     REQUIRE(h.erase(0) == 0);
 
@@ -180,7 +180,7 @@ TEST_CASE("iterator")
 {
     SECTION("empty tree")
     {
-        Tree t;
+        Tree<int>t;
         auto first = t.begin(), last = t.end();
         REQUIRE(first == last);
         ++first;
@@ -189,7 +189,7 @@ TEST_CASE("iterator")
 
     SECTION("non-empty tree")
     {
-        Tree t;
+        Tree<int>t;
         t.insert(0);
         auto first = t.begin(), last = t.end();
         REQUIRE(*first == 0);
@@ -201,7 +201,7 @@ TEST_CASE("iterator")
 
     SECTION("reverse iterator")
     {
-        Tree t;
+        Tree<int>t;
         t.insert(0);
         auto first = t.rbegin(), last = t.rend();
         REQUIRE(*first == 0);
@@ -216,18 +216,18 @@ TEST_CASE("ctor")
 {
     SECTION("default ctor")
     {
-        Tree t;
+        Tree<int>t;
         REQUIRE(t.empty());
     }
 
-    SECTION("Tree with Range")
+    SECTION("Tree<int>with Range")
     {
         std::vector vec = { 1, 2, 3 };
-        Tree t1(vec.begin(), vec.end());
+        Tree<int>t1(vec.begin(), vec.end());
 
-        Tree t2(std::from_range, vec);
+        Tree<int>t2(std::from_range, vec);
 
-        Tree t3 = { 1, 2, 3 };
+        Tree<int>t3 = { 1, 2, 3 };
 
         CHECK(t1.size() == 3);
         CHECK(t1 == t2);
@@ -238,7 +238,7 @@ TEST_CASE("ctor")
 
 TEST_CASE("random insert, search and remove")
 {
-    Tree t;
+    Tree<int>t;
     std::set<int> values;
     constexpr auto N = 10000;
     std::random_device rd;
@@ -274,8 +274,8 @@ TEST_CASE("random insert, search and remove")
 
 TEST_CASE("copy ctor")
 {
-    Tree t = { 1, 2, 3, 4, 5 };
-    Tree t2 = t;
+    Tree<int>t = { 1, 2, 3, 4, 5 };
+    Tree<int>t2 = t;
 
     REQUIRE(t.size() == 5);
     REQUIRE(t2.size() == 5);
@@ -284,7 +284,7 @@ TEST_CASE("copy ctor")
 
 TEST_CASE("move ctor")
 {
-    Tree t = { 1, 2, 3, 4, 5 };
+    Tree<int>t = { 1, 2, 3, 4, 5 };
 
     REQUIRE(t.size() == 5);
     REQUIRE(t.contains(1));
@@ -293,7 +293,7 @@ TEST_CASE("move ctor")
     REQUIRE(t.contains(4));
     REQUIRE(t.contains(5));
     
-    Tree t2 = std::move(t);
+    Tree<int>t2 = std::move(t);
 
     REQUIRE(t2.size() == 5);
     
@@ -308,7 +308,7 @@ TEST_CASE("swap")
 {
     SECTION("two empty trees")
     {
-        Tree t1, t2;
+        Tree<int>t1, t2;
         CHECK(t1.empty());
         CHECK(t2.empty());
         t1.swap(t2);
@@ -318,7 +318,7 @@ TEST_CASE("swap")
 
     SECTION("one empty tree")
     {
-        Tree t1, t2 = { 1, 2, 3, 4, 5 };
+        Tree<int>t1, t2 = { 1, 2, 3, 4, 5 };
 
         CHECK(t1.empty());
         CHECK(t2.size() == 5);
@@ -337,8 +337,8 @@ TEST_CASE("swap")
 
     SECTION("two non-empty trees")
     {
-        Tree t1 = { 1, 2, 3, 4, 5 };
-        Tree t2 = { 6, 7, 8, 9, 10 };
+        Tree<int>t1 = { 1, 2, 3, 4, 5 };
+        Tree<int>t2 = { 6, 7, 8, 9, 10 };
         CHECK(t1.size() == 5);
         CHECK(t2.size() == 5);
 
@@ -363,8 +363,8 @@ TEST_CASE("swap")
 
 TEST_CASE("copy assign")
 {
-    Tree t = { 1, 2, 3, 4, 5 };
-    Tree t2;
+    Tree<int>t = { 1, 2, 3, 4, 5 };
+    Tree<int>t2;
     t2 = t;
 
     CHECK(t.size() == 5);
@@ -374,7 +374,7 @@ TEST_CASE("copy assign")
 
 TEST_CASE("move assign")
 {
-    Tree t = { 1, 2, 3, 4, 5 };
+    Tree<int>t = { 1, 2, 3, 4, 5 };
 
     CHECK(t.size() == 5);
     CHECK(t.contains(1));
@@ -383,7 +383,7 @@ TEST_CASE("move assign")
     CHECK(t.contains(4));
     CHECK(t.contains(5));
     
-    Tree t2;
+    Tree<int>t2;
     t2 = std::move(t);
 
     CHECK(t2.size() == 5);
@@ -434,7 +434,7 @@ TEST_CASE("pmr allocator")
 
 TEST_CASE("extract and insert")
 {
-    avl_set<std::string> s = { 
+    Tree<std::string> s = { 
         "This is long enough to make sure the string is not short string optimization1", 
         "This is long enough to make sure the string is not short string optimization2",
         "This is long enough to make sure the string is not short string optimization3",
@@ -458,7 +458,7 @@ TEST_CASE("extract and insert")
 
 TEST_CASE("emplace")
 {
-    avl_set<std::string> strs;
+    Tree<std::string> strs;
 
     strs.emplace("Hello");
     strs.emplace("World");
@@ -468,6 +468,50 @@ TEST_CASE("emplace")
     CHECK(strs.contains("Hello"));
     CHECK(strs.contains("World"));
     CHECK(strs.contains("C++"));
+}
+
+struct Pair
+{
+    int x, y;
+
+    Pair(int x, int y) : x(x), y(y) { }
+
+    friend bool operator<(const Pair& lhs, const Pair& rhs) 
+    {
+        return lhs.x < rhs.x;
+    }
+};
+
+// Multi-key
+TEST_CASE("extract")
+{
+    TreeWithMultiKey<Pair> ms;
+
+    Pair p(1, 1);
+
+    ms.emplace(1, 1);
+    ms.emplace(1, 2);
+    ms.emplace(1, 3);
+
+    ms.extract(p);
+    
+    CHECK(ms.size() == 2);
+    
+    auto [first, last] = ms.equal_range(p);
+    for (; first != last; ++first)
+    {
+        // The first Pair had been extracted.
+        CHECK(first->y != 1);
+    }
+}
+
+TEST_CASE("search")
+{
+    TreeWithMultiKey<int> ms = { 1, 2, 3, 3, 3, 3, 4 };
+
+    CHECK(ms.size() == 7);
+    CHECK(ms.erase(3) == 4);
+    CHECK(ms.size() == 3);
 }
 
 // Map

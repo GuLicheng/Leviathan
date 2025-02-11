@@ -17,38 +17,37 @@ namespace leviathan::collections
 // handle may throw exception.
 // alignof(T) mutable unsigned char m_raw[sizeof(T)] = {};
 // https://en.cppreference.com/w/cpp/container/node_handle
-template <typename Node, typename Allocator>
-struct node_base_handle
+template <typename NodeAllocator>
+struct node_handle_base
 {
-    using allocator_type = Allocator;
-    using alloc_traits = std::allocator_traits<allocator_type>;
-    
-    using node_type = Node;
-    using node_handle = Node*;
+    using allocator_type = NodeAllocator;
+    using ator_traits  = std::allocator_traits<allocator_type>;
+    using pointer = typename ator_traits::pointer;
+    using container_node_type = typename std::pointer_traits<pointer>::element_type;
 
     static constexpr bool IsNothrowSwap = 
-            alloc_traits::propagate_on_container_swap::value 
-            || alloc_traits::is_always_equal::value;
+            ator_traits::propagate_on_container_swap::value || 
+            ator_traits::is_always_equal::value;
 
-    constexpr node_base_handle() = default;
+    constexpr node_handle_base() = default;
 
-    node_base_handle(node_handle handle, const allocator_type& alloc)
-        : m_alloc(alloc), m_handle(handle)
-    { }
-
-    // Node handles are move-only, the copy assignment is not defined.
-    node_base_handle(const node_base_handle&) = delete;
-
-    node_base_handle(node_base_handle&& nh) noexcept
-        : m_handle(nh.m_handle)
+    explicit node_handle_base(pointer ptr, const allocator_type& alloc)
+        : m_ptr(ptr), m_alloc(alloc)
     {
-        m_alloc.emplace(std::move(nh.m_alloc));
-        nh.reset();
     }
 
-    node_base_handle& operator=(node_base_handle&& nh)
+    // Node handles are move-only, the copy assignment is not defined.
+    node_handle_base(const node_handle_base&) = delete;
+
+    node_handle_base(node_handle_base&& nh) noexcept
+        : m_ptr(std::exchange(nh.m_ptr, nullptr))
     {
-        if (this != std::addressof(rhs))
+        m_alloc.swap(nh.m_alloc);
+    }
+
+    node_handle_base& operator=(node_handle_base&& nh) noexcept
+    {
+        if (this != std::addressof(nh))
         {
             // If the node handle is not empty, destroys the value_type subobject 
             // and deallocates the container element 
@@ -58,12 +57,12 @@ struct node_base_handle
             }
 
             // Acquires ownership of the container element from nh
-            m_handle = std::exchange(nh.m_handle, nullptr);
+            m_ptr = std::exchange(nh.m_ptr, nullptr);
 
             // If node handle was empty or if POCMA is true, move assigns the allocator from nh
-            if constexpr (std::allocator_traits<allocator_type>::propagate_on_container_move_assignment())
+            if constexpr (ator_traits::propagate_on_container_move_assignment::value)
             {
-                m_alloc.emplace(std::move(nh.m_alloc));
+                *m_alloc = std::move(*nh.m_alloc);
             }
             else
             {
@@ -78,20 +77,23 @@ struct node_base_handle
 
     [[nodiscard]] bool empty() const noexcept
     {
-        return m_handle == nullptr;
+        return m_ptr == nullptr;
     }
 
     explicit operator bool() const noexcept
     {
-        return m_handle != nullptr;
+        return m_ptr != nullptr;
     }
 
     void reset()
     {
-        alloc_traits::destroy(*m_alloc, m_handle->value_ptr());
-        detail::deallocate(*m_alloc, m_handle, 1);
-        m_alloc.reset();
-        m_handle = nullptr;
+        if (!empty())
+        {
+            ator_traits::destroy(*m_alloc, m_ptr->value_ptr());
+            ator_traits::deallocate(*m_alloc, m_ptr, 1);
+            m_alloc.reset();
+            m_ptr = nullptr;
+        }
     }
 
     allocator_type get_allocator() const
@@ -99,11 +101,7 @@ struct node_base_handle
         return *m_alloc;
     }
 
-    // value_type &value() const; 
-    // key_type &key() const;     
-    // mapped_type& mapped() const; 
-
-    ~node_base_handle()
+    ~node_handle_base()
     {
         if (!empty())
         {
@@ -111,26 +109,32 @@ struct node_base_handle
         }
     }
 
-    // TODO:
-    void swap(node_base_handle& nh) noexcept(IsNothrowSwap)
+    void swap(node_handle_base& nh) noexcept(IsNothrowSwap)
     {
         using std::swap;
-        swap(m_handle, nh.m_handle);
-        if constexpr (std::allocator_traits<allocator_type>::propagate_on_container_swap())
+        swap(m_ptr, nh.m_ptr);
+        if constexpr (ator_traits::propagate_on_container_swap::value)
         {
             m_alloc.swap(nh);
         }
     }
 
-    friend void swap(node_base_handle& x, node_base_handle& y) 
+    friend void swap(node_handle_base& x, node_handle_base& y) 
         noexcept(noexcept(x.swap(y)))
     {
         x.swap(y);
     }
 
-    node_handle m_handle = nullptr;
+    pointer m_ptr = nullptr;
+
+    /**
+     * std::optional may not a good choice since it contains a boolean filed to check 
+     * the current state of the object, which is not necessary for this case. 
+     */
     std::optional<allocator_type> m_alloc;
 };
+
+#if 0
 
 template <typename KeyValue, typename Node, typename Allocator>
 struct node_base_handle_set : node_base_handle<Node, Allocator>
@@ -169,6 +173,8 @@ struct node_base_handle_map : node_base_handle<Node, Allocator>
         return this->m_handle->value_ptr()->second;
     }
 };
+
+#endif
 
 template <typename Iterator, typename NodeType>
 struct node_insert_return

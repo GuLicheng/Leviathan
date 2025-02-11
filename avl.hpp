@@ -9,8 +9,8 @@
 #include <format>
 #include <set>
 
-#include <leviathan/collections/tree/tree_drawer.hpp>
-using leviathan::collections::row_drawer;
+#include <assert.h>
+
 
 namespace detail
 {
@@ -771,7 +771,7 @@ template <typename KeyValue,
     typename Compare,
     typename Allocator,
     bool UniqueKey, typename Node>
-class tree : public row_drawer
+class tree 
 {
     static_assert(UniqueKey, "Non-unique keys are not supported");
 
@@ -1759,6 +1759,115 @@ public:
     using base_type::operator=;
 };
 
+template <typename K, typename V, typename Compare, typename Allocator, bool Unique, typename Node>
+class tree_map : public tree<select1st<K, V>, Compare, Allocator, Unique, Node>
+{
+    using base = tree<select1st<K, V>, Compare, Allocator, Unique, Node>;
 
+public:
+
+    using mapped_type = V;
+    using typename base::value_type;
+    using typename base::iterator;
+    using typename base::const_iterator;
+
+    struct value_compare 
+    {
+        bool operator()(const value_type& lhs, const value_type& rhs) const
+        {
+            return m_comp(lhs.first, rhs.first);
+        }
+
+    protected:
+        friend class tree_map;
+        
+        value_compare(Compare compare) : m_comp(compare) { }
+
+        Compare m_comp;
+    };
+
+    value_compare value_comp() const
+    {
+        return value_compare(this->m_cmp);
+    }
+
+    V& operator[](const K &key)
+    {
+        return this->try_emplace(key).first->second;
+    }
+
+    V& operator[](K &&key)
+    {
+        return this->try_emplace(std::move(key)).first->second;
+    }
+
+    template <typename... Args>
+    std::pair<iterator, bool> try_emplace(const K &k, Args &&...args)
+    {
+        return try_emplace_impl(k, (Args &&)args...);
+    }
+
+    template <typename... Args>
+    std::pair<iterator, bool> try_emplace(K &&k, Args &&...args)
+    {
+        return try_emplace_impl(std::move(k), (Args &&)args...);
+    }
+
+    // FIXME
+    template <typename... Args>
+    std::pair<iterator, bool> try_emplace(const_iterator, const K &k, Args &&...args)
+    {
+        return try_emplace_impl(k, (Args &&)args...);
+    }
+
+    template <typename... Args>
+    std::pair<iterator, bool> try_emplace(const_iterator, K &&k, Args &&...args)
+    {
+        return try_emplace_impl(std::move(k), (Args &&)args...);
+    }
+
+    template <typename M>
+    std::pair<iterator, bool> insert_or_assign(const K &k, M &&obj)
+    {
+        return insert_or_assign_impl(k, (M &&)obj);
+    }
+
+    template <typename M>
+    std::pair<iterator, bool> insert_or_assign(K &&k, M &&obj)
+    {
+        return insert_or_assign_impl(std::move(k), (M &&)obj);
+    }
+
+protected:
+
+    template <typename KK, typename M>
+    std::pair<iterator, bool> insert_or_assign_impl(KK&& k, M&& obj)
+    {
+        auto [x, p] = this->get_insert_unique_pos(k);
+        if (p) 
+        {
+            auto z = this->create_node((KK&&)k, (M&&)obj);
+            return { this->insert_node(x, p, z), true };
+        }
+        auto j = iterator(x);
+        *j = (M&&)obj;
+        return { j, false };
+    }
+
+    template <typename KK, typename... Args>
+    std::pair<iterator, bool> try_emplace_impl(KK&& k, Args&&... args)
+    {
+        auto [x, p] = this->get_insert_unique_pos(k);
+        if (p) 
+        {
+            auto z = this->create_node(
+                std::piecewise_construct, 
+                std::forward_as_tuple((KK&)k), 
+                std::forward_as_tuple((Args&&)args...));
+            return { this->insert_node(x, p, z), true };
+        }
+        return { x, false };
+    }
+};
 
 

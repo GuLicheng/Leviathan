@@ -3,6 +3,7 @@
 #include "../common.hpp"
 #include "../associative_container_interface.hpp"
 #include "tree_drawer.hpp"
+#include "../node_handle.hpp"
 
 namespace leviathan::collections
 { 
@@ -61,12 +62,12 @@ concept node = requires (Node* n, const Node* cn, bool insert_left, Node& header
 template <typename KeyValue,
     typename Compare,
     typename Allocator,
-    bool UniqueKey, typename Node>
-class tree : public row_drawer, 
-             public reversible_container_interface, 
-             public associative_container_insertion_interface,
-             public associative_container_lookup_interface<UniqueKey>
+    bool UniqueKey, 
+    typename Node>
+class tree : public row_drawer
 {
+    // static_assert(UniqueKey, "Non-unique keys are not supported");
+
 public:
 
     using key_value = KeyValue;
@@ -81,93 +82,32 @@ public:
     using const_reference = const value_type&;
     using pointer = std::allocator_traits<Allocator>::pointer;
     using const_pointer = std::allocator_traits<Allocator>::const_pointer;
-
-    using base_node = Node;
-    struct tree_node : base_node
-    {
-        value_type m_val;
-
-        value_type* value_ptr()
-        {
-            return std::addressof(m_val);
-        }
-
-        const value_type* value_ptr() const
-        {
-            return std::addressof(m_val);
-        }
-
-        Node* base()
-        {
-            return static_cast<Node*>(this);
-        }
-
-        const Node* base() const
-        {
-            return static_cast<const Node*>(this);
-        }
-    };
+    using tree_node = value_field<Node, value_type>;
 
 protected:
 
-    using node_allocator = typename std::allocator_traits<Allocator>::template rebind_alloc<tree_node>;
-    using node_alloc_traits = std::allocator_traits<node_allocator>;
-
-    template <typename U> 
-    using key_arg_t = detail::key_arg<detail::transparent<Compare>, U, key_type>;
-
-    static constexpr bool IsNothrowMoveConstruct =
-        std::is_nothrow_move_constructible_v<Compare>
-        && typename node_alloc_traits::is_always_equal();
-
-    static constexpr bool IsNothrowMoveAssign =
-        std::is_nothrow_move_assignable_v<Compare>
-        && typename node_alloc_traits::is_always_equal();
-
-    static constexpr bool IsNothrowSwap =
-        std::is_nothrow_swappable_v<Compare>
-        && typename node_alloc_traits::is_always_equal();
-
-    /**
-     * In C++, we should not dereference a end iterator. But what about increment?
-     * We hope whenever increment a iterator, the program will not abort. We make
-     * iterator cycle. For instance, the final iterator incrementing will wall to
-     * the sentinel(end iterator, header in our tree) and next incrementing will walk 
-     * to the first element which contained by begin iterator.
-     * 
-     * In our implementation of `increment`, when the iterator walk to the last element,
-     * the next step will always stay in place and for an empty tree, increment iterator
-     * will cause infinity loop. 
-     *     E.g.
-     *         
-     *     std::set<int>().begin()++; // infinity loop
-     *     
-     *     std::set<int> s{ 1, 2 };
-     *     auto it = s.find(2);
-     *     it++ == s.end();  // false
-     *     it++ == s.end();  // true
-     *     it++ == s.end();  // false
-     *     it++ == s.end();  // true
-     * 
-     * To avoid above cases, we introduce `is_header` to help us check whether current 
-     * iterator is sentinel.
-    */
-    struct tree_iterator : bidirectional_iterator_interface
+    struct tree_iterator 
     {
         using link_type = Node*;
         using value_type = value_type;
         using difference_type = std::ptrdiff_t;
         using iterator_category = std::bidirectional_iterator_tag;
-        // for set, reference should be const value_type&
-        // for map, reference is just value_type&
         using reference = std::conditional_t<std::is_same_v<key_type, value_type>, const value_type&, value_type&>;
 
         link_type m_ptr;
 
         constexpr tree_iterator() = default;
+
         constexpr tree_iterator(const tree_iterator&) = default;
 
         constexpr tree_iterator(link_type ptr) : m_ptr(ptr) { }
+
+        // The const_iterator and iterator may model same type, so we offer 
+        // a base method to avoid if-constexpr.
+        constexpr tree_iterator base(this tree_iterator it)
+        {
+            return it;
+        }
 
         constexpr link_type link(this tree_iterator it)
         {
@@ -196,8 +136,6 @@ protected:
             return *this;
         }
 
-        using bidirectional_iterator_interface::operator++;
-
         constexpr tree_iterator& operator--()
         {
             // if node is header/end/sentinel, we simply make it cycle
@@ -205,7 +143,24 @@ protected:
             return *this;
         }
 
-        using bidirectional_iterator_interface::operator--;
+        constexpr tree_iterator operator++(int)
+        {
+            tree_iterator tmp = *this;
+            ++*this;
+            return tmp;
+        }
+
+        constexpr tree_iterator operator--(int)
+        {
+            tree_iterator tmp = *this;
+            --*this;
+            return tmp;
+        }
+
+        constexpr auto operator->(this tree_iterator it)
+        {
+            return std::addressof(*it);
+        }
 
         constexpr reference operator*(this tree_iterator it) 
         {
@@ -218,6 +173,33 @@ protected:
         }
     };
 
+    using alloc_traits = std::allocator_traits<Allocator>;
+    using node_allocator = typename std::allocator_traits<Allocator>::template rebind_alloc<tree_node>;
+    using node_alloc_traits = std::allocator_traits<node_allocator>;
+    using node_base = Node;
+
+public:
+
+    using node_type = node_handle_base<node_allocator>;
+    using insert_return_type = node_insert_return<tree_iterator, node_type>;
+
+protected:
+
+    template <typename U> 
+    using key_arg_t = detail::key_arg<detail::transparent<Compare>, U, key_type>;
+
+    static constexpr bool IsNothrowMoveConstruct =
+        std::is_nothrow_move_constructible_v<Compare>
+        && typename alloc_traits::is_always_equal();
+
+    static constexpr bool IsNothrowMoveAssign =
+        std::is_nothrow_move_assignable_v<Compare>
+        && typename alloc_traits::is_always_equal();
+
+    static constexpr bool IsNothrowSwap =
+        std::is_nothrow_swappable_v<Compare>
+        && typename alloc_traits::is_always_equal();
+
 public:
 
     using iterator = tree_iterator;
@@ -227,155 +209,64 @@ public:
 
 public:
 
-    tree() : tree(Compare(), Allocator()) { }
+    tree() : tree(Compare()) { }
 
-    explicit tree(const Compare& compare) : tree(compare, Allocator()) { }
-
-    explicit tree(const Allocator& alloc) : tree(Compare(), alloc) { }
-
-    explicit tree(const Compare& compare, const Allocator& allocator)
-        : m_cmp(compare), m_alloc(allocator), m_size(0)
+    explicit tree(const Compare& comp, const Allocator& alloc = allocator_type())
+        : m_cmp(comp), m_alloc(alloc), m_size(0)
     {
         make_header_sentinel();
     }
 
-    tree(const tree& rhs, const Allocator& alloc) 
-        : tree(rhs.m_cmp, alloc)
+    explicit tree(const Allocator& alloc) : tree(Compare(), alloc) { }
+
+    template <typename InputIt>
+    tree(InputIt first, InputIt last, const Compare& comp = Compare(), const Allocator& alloc = Allocator())
+        : tree(comp, alloc)
     {
-        try
-        {
-            if (rhs.size())
-            {
-                header()->parent(clone_tree(header()->parent(), header(), rhs.header()->parent()));
-                header()->lchild(header()->parent()->minimum());
-                header()->rchild(header()->parent()->maximum());
-                m_size = rhs.size();
-            }
-        }
-        catch(...)
-        {
-            // Clear current container and rethrow exception
-            clear();
-            throw;  
-        }
+        insert(first, last);
     }
 
-    tree(const tree& rhs) 
-        : tree(rhs, node_alloc_traits::select_on_container_copy_construction(rhs.m_alloc))
-    { }
+    tree(std::initializer_list<value_type> ilist, const Compare& comp = Compare(), const Allocator& alloc = Allocator())
+        : tree(ilist.begin(), ilist.end(), comp, alloc) { }
 
-    tree(tree&& rhs) noexcept(IsNothrowMoveConstruct)
-        : m_cmp(std::move(rhs.m_cmp)), 
-          m_alloc(std::move(rhs.m_alloc)), 
-          m_header(rhs.m_header),
-          m_size(std::exchange(rhs.m_size, 0)) 
-    {
-        if (empty())
-        {
-            make_header_sentinel();            
-        }
-        rhs.make_header_sentinel();
-    }    
+    tree(std::initializer_list<value_type> ilist, const Allocator& alloc)
+        : tree(ilist, Compare(), alloc) { }
 
-    tree(tree&& rhs, const Allocator& alloc)
-        : m_cmp(std::move(rhs.m_cmp)), m_alloc(alloc)
+    template <container_compatible_range<value_type> R> 
+    tree(std::from_range_t, R&& rg, const Compare& comp = Compare(), const Allocator& alloc = Allocator())
+        : tree(std::ranges::begin(rg), std::ranges::end(rg), comp, alloc) { }
+        
+    template <container_compatible_range<value_type> R> 
+    tree(std::from_range_t, R&& rg, const Allocator& alloc)
+        : tree(std::ranges::begin(rg), std::ranges::end(rg), Compare(), alloc) { }
+
+    tree(const tree& other) 
+        : tree(other, alloc_traits::select_on_container_copy_construction(other.m_alloc)) { }
+
+    tree(tree&& other) noexcept(IsNothrowMoveConstruct)
+        : m_cmp(std::move(other.m_cmp)), 
+          m_alloc(std::move(other.m_alloc)), 
+          m_size(std::exchange(other.m_size, 0))
     {
-        if (rhs.m_alloc == alloc)
+        empty() ? make_header_sentinel() : stolen_header(other);
+    }
+
+    tree(const tree& other, const Allocator& alloc) : tree(other.m_cmp, alloc)
+    {
+        copy_or_move_from_another_tree(other, [](const auto& x) static -> const auto& { return x; });
+    }
+
+    tree(tree&& other, const Allocator& alloc) 
+        : m_cmp(std::move(other.m_cmp)), m_alloc(alloc), m_size(std::exchange(other.m_size, 0))
+    {
+        if (alloc == other.m_alloc)
         {
-            m_header = rhs.header();
-            m_size = std::exchange(rhs.m_size, 0);
-            rhs.make_header_sentinel();
+            swap(other);
         }
         else
         {
-            if (rhs.size())
-            {
-                header()->parent(move_tree(header()->parent(), header(), rhs.header()->parent()));
-                header()->lchild(header()->parent()->minimum());
-                header()->rchild(header()->parent()->maximum());
-            }
-            m_size = rhs.size();
-            rhs.clear();
+            copy_or_move_from_another_tree(other, [](auto&& x) static -> auto&& { return std::move(x); });
         }
-    }
-
-    tree& operator=(const tree& rhs)
-    {
-        if (std::addressof(rhs) != this)
-        {
-            clear();
-
-            m_cmp = rhs.m_cmp;
-            if constexpr (typename node_alloc_traits::propagate_on_container_copy_assignment())
-            {
-                m_alloc = rhs.m_alloc;
-            }
-
-            try
-            {
-                if (rhs.size())
-                {
-                    header()->parent(clone_tree(header()->parent(), header(), rhs.header()->parent()));
-                    header()->lchild(header()->parent()->minimum());
-                    header()->rchild(header()->parent()->maximum());
-                    m_size = rhs.size();
-                }
-            }
-            catch (...)
-            {
-                clear();
-                throw;
-            }
-        }
-        return *this;
-    }
-
-    tree& operator=(tree&& rhs) noexcept(IsNothrowMoveAssign)
-    {
-        if (std::addressof(rhs) != this)
-        {
-            clear();
-            m_cmp = std::move(rhs.m_cmp);
-            if constexpr (typename node_alloc_traits::propagate_on_container_move_assignment())
-            {
-                m_alloc = std::move(rhs.m_alloc);
-                m_header = rhs.m_header;
-                rhs.make_header_sentinel();
-            }
-            else if (m_alloc == rhs.m_alloc) 
-            {
-                m_header = rhs.m_header;
-                rhs.make_header_sentinel();
-            }
-            else
-            {
-                // Exceptions may thrown
-                // move_from_other(std::move(rhs));
-                header()->parent(move_tree(header()->parent(), header(), rhs.header()->parent()));
-                header()->lchild(header()->parent()->minimum());
-                header()->rchild(header()->parent()->maximum());
-                rhs.clear();
-            }
-            m_size = std::exchange(rhs.m_size, 0);
-        }
-        return *this;
-    }
-
-    void swap(tree& rhs) noexcept(IsNothrowSwap)
-    {
-        using std::swap;
-        swap(m_header, rhs.m_header);
-        swap(m_cmp, rhs.m_cmp);
-        swap(m_size, rhs.m_size);
-        if constexpr (typename node_alloc_traits::propagate_on_container_swap())
-        {
-            swap(m_alloc, rhs.m_alloc);
-        }
-    }
-
-    friend void swap(tree& lhs, tree& rhs) noexcept(IsNothrowSwap)
-    {
-        lhs.swap(rhs);
     }
 
     ~tree()
@@ -383,11 +274,63 @@ public:
         clear();
     }
 
-    void clear()
+    tree& operator=(const tree& other)
     {
-        reset();
+        if (this != std::addressof(other))
+        {
+            clear();
+
+            m_cmp = other.m_cmp;
+
+            if constexpr (alloc_traits::propagate_on_container_copy_assignment::value)
+            {
+                m_alloc = other.m_alloc;
+            }
+
+            copy_or_move_from_another_tree(other, [](const auto& x) static -> const auto& { return x; });
+        }
+
+        return *this;
     }
 
+    tree& operator=(tree&& other) noexcept(IsNothrowMoveAssign)
+    {
+        if (this != std::addressof(other))
+        {
+            using std::swap;
+            clear();
+
+            if constexpr (alloc_traits::propagate_on_container_move_assignment::value)
+            {
+                swap(m_alloc, other.m_alloc);
+                swap(m_cmp, other.m_cmp);
+                swap(m_size, other.m_size);
+                stolen_header(other);
+            }
+            else if (m_alloc == other.m_alloc) 
+            {
+                swap(m_cmp, other.m_cmp);
+                swap(m_size, other.m_size);
+                stolen_header(other);
+            }
+            else
+            {
+                m_cmp = other.m_cmp;
+                copy_or_move_from_another_tree(other, [](auto&& x) static -> auto&& { return std::move(x); });
+            }
+        }
+
+        return *this;
+    }
+
+    tree& operator=(std::initializer_list<value_type> ilist)
+    {
+        clear();
+        insert(ilist.begin(), ilist.end());
+        return *this;
+    }
+
+    // Iterators
     iterator begin()
     {
         return iterator(header()->lchild());
@@ -395,7 +338,7 @@ public:
 
     const_iterator begin() const
     {
-        return iterator(header()->lchild());
+        return std::make_const_iterator(const_cast<tree&>(*this).begin());
     }
 
     iterator end()
@@ -405,9 +348,50 @@ public:
 
     const_iterator end() const
     {
-        return iterator(header());
+        return std::make_const_iterator(const_cast<tree&>(*this).end());
     }
 
+    reverse_iterator rbegin()
+    {
+        return std::make_reverse_iterator(end());
+    }
+
+    const_reverse_iterator rbegin() const
+    {
+        return std::make_reverse_iterator(end());
+    }
+
+    reverse_iterator rend()
+    {
+        return std::make_reverse_iterator(begin());
+    }
+
+    const_reverse_iterator rend() const
+    {
+        return std::make_reverse_iterator(begin());
+    }
+
+    const_iterator cbegin() const
+    {
+        return begin();
+    }
+
+    const_iterator cend() const
+    {
+        return end();
+    }
+
+    const_reverse_iterator crbegin() const
+    {
+        return rbegin();
+    }
+
+    const_reverse_iterator crend() const
+    {
+        return rend();
+    }
+
+    // Member functions
     size_type size() const
     {
         return m_size;
@@ -420,14 +404,15 @@ public:
 
     allocator_type get_allocator() const
     {
-        return allocator_type(m_alloc);
+        return m_alloc;
     }
 
     size_type max_size() const
     {
-        return node_alloc_traits::max_size(m_alloc);
+        return std::allocator_traits<Allocator>::max_size(m_alloc);
     }
 
+    // Observers
     key_compare key_comp() const
     {
         return m_cmp;
@@ -438,43 +423,149 @@ public:
         return m_cmp;
     }
 
-    // Modifiers
-    template <typename... Args>
-    std::pair<iterator, bool> emplace(Args&&... args)
+    void clear()
     {
-        using namespace leviathan::collections;
-        if constexpr (detail::emplace_helper<value_type, Args...>::value)
+        reset();
+    }
+
+    // Lookup
+    template <typename K = key_type>
+    iterator lower_bound(const key_arg_t<K>& x)
+    {
+        return lower_bound_impl(x);
+    }
+
+    template <typename K = key_type>
+    const_iterator lower_bound(const key_arg_t<K>& x) const
+    {
+        return const_cast<tree&>(*this).lower_bound(x);
+    }
+
+    template <typename K = key_type>
+    iterator find(const key_arg_t<K>& x)
+    {
+        iterator lower = lower_bound(x);
+        return (lower == end() || m_cmp(x, *lower)) 
+              ? end() : lower;
+    }
+
+    template <typename K = key_type>
+    const_iterator find(const key_arg_t<K>& x) const
+    {
+        return const_cast<tree&>(*this).find(x);
+    }
+
+    template <typename K = key_type>
+    std::pair<iterator, iterator> equal_range(const key_arg_t<K>& x)
+    {
+        iterator lower = lower_bound(x);
+        iterator upper;
+
+        if constexpr (UniqueKey)
         {
-            return insert_unique((Args&&)args...);
+            upper = (lower == end() || m_cmp(x, *lower)) ? lower : std::next(lower); 
         }
         else
         {
-            return emplace_unique((Args&&)args...);
+            upper = upper_bound(x);
+        }
+
+        return std::make_pair(lower, upper);
+    }
+
+    template <typename K = key_type>
+    std::pair<const_iterator, const_iterator> equal_range(const key_arg_t<K>& x) const
+    {
+        return const_cast<tree&>(*this).equal_range(x);
+    }
+
+    template <typename K = key_type>
+    iterator upper_bound(const key_arg_t<K>& x)
+    {
+        return upper_bound_impl(x);
+    }
+
+    template <typename K = key_type>
+    const_iterator upper_bound(const key_arg_t<K>& x) const
+    {
+        return const_cast<tree&>(*this).upper_bound(x);
+    }
+
+    template <typename K = key_type>
+    bool contains(const key_arg_t<K>& x) const
+    {
+        return find(x) != end();
+    }
+
+    template <typename K = key_type>
+    size_type count(const key_arg_t<K>& x) const
+    {
+        if constexpr (UniqueKey)
+        {
+            return contains(x);
+        }
+        else
+        {
+            auto [lower, bound] = equal_range(x);
+            return std::distance(lower, bound);
+        }
+    }
+
+    // Modifiers
+    template <typename... Args>
+    std::conditional_t<UniqueKey, std::pair<iterator, bool>, iterator> emplace(Args&&... args)
+    {
+        if constexpr (UniqueKey)
+        {
+            if constexpr (detail::emplace_helper<value_type, Args...>::value)
+            {
+                return insert_unique((Args&&)args...);
+            }
+            else
+            {
+                // We use a value_handle to help us destroy, we construct value at stack since
+                // the tree may contains the element with equivalent key. If key conflict,
+                // we can avoid the operation of memory allocation and deallocation. We 
+                // assume the cost of move operation is cheaper. 
+                value_handle<value_type, allocator_type> handle(m_alloc, (Args&&)args...);
+                return insert_unique(*handle);
+            }
+        }
+        else
+        {
+            auto node = create_node((Args&&) args...);
+            auto [p, insert_left] = get_insert_pos(keys(node));
+            return insert_node(insert_left, p, node);
         }
     }
 
     template <typename... Args>
-    std::pair<iterator, bool> emplace_hint(const_iterator pos, Args&&... args)
+    iterator emplace_hint([[maybe_unused]] const_iterator hint, Args&&... args)
     {
-        return emplace((Args&&) args...);
-    }
-
-    iterator erase(const_iterator pos) 
-        requires (!std::same_as<iterator, const_iterator>)
-    {
-        return erase(pos.base());
+        return emplace((Args&&)args...).first;
     }
 
     iterator erase(iterator pos) 
+        requires(!std::same_as<iterator, const_iterator>)
+    {
+        return erase(std::make_const_iterator(pos));
+    }
+
+    size_type erase(const key_type& key)
+    {
+        return erase_by_key(key);
+    }
+
+    const_iterator erase(const_iterator pos)
     {
         auto ret = std::next(pos);
         erase_by_node(pos.m_ptr);
         return ret;
     }
 
-    iterator erase(iterator first, iterator last)
+    iterator erase(const_iterator first, const_iterator last)
     {
-        if (first == begin() && last == end()) 
+        if (first == cbegin() && last == cend()) 
         {
             clear();
         }
@@ -482,108 +573,259 @@ public:
         {
             for (; first != last; first = erase(first));
         }
-        return last;
+        
+        return last.base();
     }
 
-    iterator erase(const_iterator first, const_iterator last) 
-        requires (!std::same_as<iterator, const_iterator>)
-    { 
-        return erase(first.base(), last.base()); 
-    }
-
-    size_type erase(const key_type &x)
+    // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p2077r3.html
+    template <typename KK> requires (detail::transparent<Compare> && 
+                                    !std::is_convertible_v<KK, iterator> && 
+                                    !std::is_convertible_v<KK, const_iterator>)
+    size_type erase(KK& x)
     {
         return erase_by_key(x);
     }
 
-    // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p2077r3.html
-    template <typename K> requires (detail::transparent<Compare> && 
-                                   !std::is_convertible_v<K, iterator> && 
-                                   !std::is_convertible_v<K, const_iterator>)
-    size_type erase(K&& x) 
-    { 
-        return erase_by_key(x); 
-    }
-
-    template <typename K = key_type>
-    iterator lower_bound(const key_arg_t<K> &x)
+    auto insert(const value_type& value)
     {
-        return lower_bound_impl(x);
+        return emplace(value);
     }
 
-    template <typename K = key_type>
-    const_iterator lower_bound(const key_arg_t<K> &x) const
+    auto insert(value_type&& value)
     {
-        return const_cast<tree &>(*this).lower_bound(x);
+        return emplace(std::move(value));
     }
 
-    Node* header() 
-    { 
-        return &m_header; 
-    }
-    
-    const Node* header() const 
-    { 
-        return &m_header; 
-    }
-
-    tree_node *root()
+    iterator insert(const_iterator pos, const value_type& value)
     {
-        return static_cast<tree_node*>
-            (header()->parent());
+        return emplace_hint(pos, value);
     }
 
-    const tree_node *root() const
+    iterator insert(const_iterator pos, value_type&& value)
     {
-        return static_cast<const tree_node*>
-            (header()->parent());
+        return emplace_hint(pos, std::move(value));
+    }
+
+    template <typename InputIt>
+    void insert(InputIt first, InputIt last)
+    {
+        for (; first != last; ++first)
+        {
+            insert(*first);
+        }
+    }
+
+    void insert(std::initializer_list<value_type> ilist)
+    {
+        insert(ilist.begin(), ilist.end());
+    }
+
+    auto insert(node_type&& nh)
+    {
+        return insert_container_node_type(std::move(nh));
+    }
+
+    auto insert(const_iterator pos, node_type&& nh)
+    {
+        if constexpr (UniqueKey)
+        {
+            return insert(std::move(nh)).position;
+        }
+        else
+        {
+            return insert(std::move(nh));
+        }
+    }
+
+    template <typename K>
+        requires (detail::transparent<Compare> && UniqueKey)
+    std::pair<iterator, bool> insert(K&& x)
+    {
+        return emplace((K&&)x);
+    }
+
+    template <typename K>
+        requires (detail::transparent<Compare> && 
+                 !std::is_convertible_v<K, iterator> && 
+                 !std::is_convertible_v<K, const_iterator> &&
+                 UniqueKey)
+    iterator insert(const_iterator hint, K&& x)
+    {
+        return emplace_hint(hint, (K&&)x);
+    }
+
+    template<container_compatible_range<value_type> R>
+    void insert_range(R&& rg)
+    {
+        insert(std::ranges::begin(rg), std::ranges::end(rg)); 
+    }
+
+    bool operator==(const tree& other) const
+    {
+        return size() == other.size() && std::equal(begin(), end(), other.begin());
+    }
+
+    auto operator<=>(const tree& other) const
+    {
+        return std::lexicographical_compare_three_way(
+            begin(), end(), other.begin(), other.end());
+    }
+
+    void swap(tree& other) noexcept(IsNothrowSwap)
+    {
+        using std::swap;
+
+        if constexpr (alloc_traits::propagate_on_container_swap::value)
+        {
+            swap(m_alloc, other.m_alloc);
+        }
+        else
+        {
+            assert(m_alloc == other.m_alloc && "It's undefined behavior if the allocators are unequal here.");
+        }
+
+        // swap header
+        swap_header(other);
+
+        // swap other member fields
+        swap(m_cmp, other.m_cmp);
+        swap(m_size, other.m_size);
+    }
+
+    // a valid iterator into this container
+    node_type extract(const_iterator position)
+    {
+        return extract_node(position.base().m_ptr);
+    }
+
+    node_type extract(const key_type& x)
+    {
+        return extract(find((x)));
+    }
+
+    template <typename K>
+        requires detail::transparent<Compare>
+    node_type extract(K&& x)
+    {
+        return extract(find((x)));
     }
 
 protected:
 
-    using link_type = tree_node*;
-    using const_link_type = const tree_node*;
-    using base_ptr = Node*;
-    using const_base_ptr = const Node*;
-
-    void make_header_sentinel()
+    node_type extract_node(node_base* node)
     {
-        header()->parent(nullptr);
-        header()->lchild(header());
-        header()->rchild(header());
-        header()->as_empty_tree_header();
-    }
-
-    template <typename K>
-    iterator find_impl(const K& k)
-    {
-        iterator j = lower_bound_impl(k);
-        return (j == end() || m_cmp(k, KeyValue()(*j))) ? end() : j;
-    }
-
-    void erase_by_node(base_ptr x)
-    {      
-        auto y = x->rebalance_for_erase(m_header);
-        destroy_node(static_cast<link_type>(y));
-        m_size--;
-    }
-
-    template <typename K>
-    size_type erase_by_key(const K& x)
-    {
-        iterator node = this->find_impl(x);
-        if (node != end())
+        if (node == std::addressof(m_header))
         {
-            erase_by_node(node.m_ptr);
-            return 1;
+            return node_type(nullptr, m_alloc);
         }
-        return 0;
+        else
+        {
+            // unlink and reset the node   
+            node->rebalance_for_erase(m_header);
+            node->parent(nullptr);
+            node->lchild(nullptr);
+            node->rchild(nullptr);
+            node->init();
+            --m_size;
+            return node_type(static_cast<tree_node*>(node), m_alloc);
+        }
     }
 
+    // Some helper functions for copy/move/swap elements from another tree
+    template <typename Tree, typename Fn>
+    void copy_or_move_from_another_tree(Tree&& other, Fn fn) 
+    {
+        // Reset current tree
+        make_header_sentinel();
+
+        if (other.empty())
+        {
+            // If t is empty, we do nothing and just return
+            return;
+        }
+        else
+        {
+            // dfs_copy_or_move may throw exception!
+            auto root = dfs_copy_or_move(
+                header()->parent(), 
+                header(), 
+                other.header()->parent(), 
+                fn);
+    
+            header()->parent(root);
+            header()->lchild(header()->parent()->minimum());
+            header()->rchild(header()->parent()->maximum());
+        }
+
+        // Keep size
+        m_size = other.m_size;
+    }
+
+    void stolen_header(tree& other)
+    {
+        header()->parent(other.header()->parent());
+        header()->lchild(other.header()->lchild());
+        header()->rchild(other.header()->rchild());
+        other.make_header_sentinel();
+    }
+
+    void swap_header(tree& other)
+    {
+        if (empty() && other.empty())
+        {
+            return;
+        }
+        else if (empty())
+        {
+            stolen_header(other);
+        }
+        else if (other.empty())
+        {
+            other.stolen_header(*this);
+        }
+        else
+        {
+            auto root1 = header()->parent();
+            auto leftmost1 = header()->lchild();
+            auto rightmost1 = header()->rchild();
+
+            auto root2 = other.header()->parent();
+            auto leftmost2 = other.header()->lchild();
+            auto rightmost2 = other.header()->rchild();
+
+            header()->parent(root2);
+            header()->lchild(leftmost2);
+            header()->rchild(rightmost2);
+
+            other.header()->parent(root1);
+            other.header()->lchild(leftmost1);
+            other.header()->rchild(rightmost1);
+        }
+    }
+
+    // Copy and move helper
+    template <typename Fn>
+    node_base* dfs_copy_or_move(node_base*& x, node_base* p, node_base* y, Fn fn)
+    {
+        if (!y)
+        {
+            return nullptr;
+        }
+
+        x = create_node(fn(*static_cast<tree_node*>(y)->value_ptr()));
+        x->clone(y);
+        x->lchild(dfs_copy_or_move(x->lchild(), x, y->lchild(), fn));
+        x->rchild(dfs_copy_or_move(x->rchild(), x, y->rchild(), fn));
+        x->parent(p);
+        return x;
+    }
+
+    // Lookup helper
     template <typename K>
     iterator lower_bound_impl(const K& k)
     {
-        base_ptr y = &m_header, x = header()->parent();
+        auto y = &m_header, x = header()->parent();
+
         while (x)
         {
             if (!m_cmp(keys(x), k))
@@ -598,72 +840,121 @@ protected:
         return { y };
     }
 
-    void dfs_deconstruct(base_ptr p)
+    template <typename K>
+    iterator upper_bound_impl(const K& k)
     {
-        if (p)
+        auto y = &m_header, x = header()->parent();
+
+        while (x)
         {
-            dfs_deconstruct(p->lchild());
-            dfs_deconstruct(p->rchild());
-            link_type node = static_cast<link_type>(p);
-            drop_node(node);
+            if (m_cmp(k, keys(x)))
+            {
+                y = x, x = x->lchild();
+            }
+            else
+            {
+                x = x->rchild();
+            }
         }
+        return { y };
     }
 
-    void reset()
+    // Insert helpers
+    std::conditional_t<UniqueKey, insert_return_type, iterator> insert_container_node_type(node_type&& nh)
     {
-        dfs_deconstruct(header()->parent());
-        make_header_sentinel();
-        m_size = 0;
-    }
+        if constexpr (UniqueKey)
+        {
+            if (nh.empty())
+            {
+                return insert_return_type(end(), false, node_type(nullptr, m_alloc));
+            }
+    
+            tree_node* node = std::exchange(nh.m_ptr, nullptr);
+            auto [x, p] = get_insert_unique_pos(keys(node));
+    
+            return p == nullptr ? 
+                insert_return_type(iterator(x), false, node_type(node, m_alloc)) : 
+                insert_return_type(insert_node(x, p, node->base()), true, node_type(nullptr, m_alloc));
+        }
+        else
+        {
+            if (nh.empty())
+            {
+                return end();
+            }
+
+            tree_node* node = std::exchange(nh.m_ptr, nullptr);
+            auto [p, insert_left] = get_insert_pos(keys(node));
+            return insert_node(insert_left, p, node->base());
+        }
+    }    
 
     template <typename Arg>
-    std::pair<iterator, bool> insert_unique(Arg&& v)
+    std::pair<iterator, bool> insert_unique(Arg&& arg)
     {
-        auto [x, p] = get_insert_unique_pos(KeyValue()(v));
-        if (p)
-        {
-            return { insert_value(x, p, (Arg&&)v), true };
-        }
-        return { x, false };
-    }
-
-    template <typename... Args>
-    std::pair<iterator, bool>
-        emplace_unique(Args&& ...args)
-    {
-        link_type z = create_node((Args&&)args...);
-        auto [x, p] = get_insert_unique_pos(keys(z));
-        if (p)
-            return { insert_node(x, p, z), true };
-        drop_node(z);
-        return { x, false };
-    }
-
-    iterator insert_node(base_ptr x, base_ptr p, link_type z)
-    {
-        bool insert_left = (x != 0 || p == &m_header || m_cmp(keys(z), keys(p)));
-        z->insert_and_rebalance(insert_left, p, m_header);
-        ++m_size;
-        return iterator(z);
+        auto [x, p] = get_insert_unique_pos(KeyValue()(arg));
+        return p 
+             ? std::make_pair(insert_value(x, p, (Arg&&)arg), true)  
+             : std::make_pair(x, false);
     }
 
     template<typename Arg>
-    iterator insert_value(base_ptr x, base_ptr p, Arg&& v)
+    iterator insert_value(node_base* x, node_base* p, Arg&& arg)
     {
         bool insert_left = (x != 0 || p == &m_header
-            || m_cmp(KeyValue()(v), keys(p)));
+            || m_cmp(KeyValue()(arg), keys(p)));
 
-        link_type z = create_node((Arg&&)v);
+        auto z = create_node((Arg&&)arg);
 
         z->insert_and_rebalance(insert_left, p, m_header);
         ++m_size;
         return iterator(z);
     }
 
-    std::pair<base_ptr, base_ptr> 
-        get_insert_unique_pos(const key_type& k)
+    iterator insert_node(node_base* x, node_base* p, node_base* node)
     {
-        base_ptr y = &m_header, x = header()->parent();
+        bool insert_left = (x != 0 || p == &m_header || m_cmp(keys(node), keys(p)));
+
+        node->insert_and_rebalance(insert_left, p, m_header);
+        ++m_size;
+        return iterator(node);
+    }
+
+    iterator insert_node(bool insert_left, node_base* p, node_base* node)
+    {
+        node->insert_and_rebalance(insert_left, p, m_header);
+        ++m_size;
+        return iterator(node);
+    }
+
+    template <typename K>
+    iterator insert_multi(const K& value)
+    {
+        auto [p, insert_left] = get_insert_pos(value);
+        return insert_node(insert_left, p, create_node(value));
+    }
+
+    template <typename K>
+    std::pair<node_base*, bool> get_insert_pos(const K& k)
+    {
+        auto y = &m_header, x = header()->parent();
+        bool comp = true;
+
+        while (x)
+        {
+            y = x;
+            comp = m_cmp(k, keys(x)); 
+            x = comp ? x->lchild() : x->rchild();
+        }
+
+        return { y, comp };
+    }
+
+    // Find the position that the x will be inserted
+    template <typename K>
+    std::pair<node_base*, node_base*> get_insert_unique_pos(const K& k)
+    {
+        auto y = &m_header, x = header()->parent();
         bool comp = true;
 
         while (x)
@@ -695,242 +986,151 @@ protected:
         return { j.m_ptr, nullptr };
     }
 
-    static const key_type& keys(const_link_type x)
-    {
-        return KeyValue()(*x->value_ptr());
+    // Remove helpers
+    void erase_by_node(node_base* x)
+    {      
+        x->rebalance_for_erase(m_header);
+        drop_node(static_cast<tree_node*>(x));
+        m_size--;
     }
 
-    static const key_type& keys(const_base_ptr x)
+    template <typename K>
+    size_type erase_by_key(const K& x)
     {
-        return keys(static_cast<const_link_type>(x));
+        if constexpr (UniqueKey)
+        {
+            iterator iter = find(x);
+    
+            if (iter != end())
+            {
+                erase_by_node(iter.m_ptr);
+                return 1;
+            }
+    
+            return 0;
+        }
+        else
+        {
+            auto [first, last] = equal_range(x);
+            size_type cnt = 0;
+
+            for (; first != last; first = erase(first), ++cnt);
+            
+            return cnt;
+        }
     }
 
-    link_type get_node()
+    void reset()
     {
-        return node_alloc_traits::allocate(m_alloc, 1);
+        dfs_destroy(header()->parent());
+        make_header_sentinel();
+        m_size = 0;
     }
 
-    void put_node(link_type p)
+    void make_header_sentinel()
     {
-        node_alloc_traits::deallocate(m_alloc, p, 1);
+        header()->parent(nullptr);
+        header()->lchild(header());
+        header()->rchild(header());
+        header()->as_empty_tree_header();
     }
 
+    // Create a new node
     template <typename... Args>
-    void construct_node(link_type node, Args&&... args)
+    tree_node* create_node(Args&&... args)
     {
+        auto node = alloc_node();
+        construct_node(node, (Args&&)args...);
+        return node;
+    }
+
+    // Allocate memory for a new node
+    tree_node* alloc_node()
+    {
+        node_allocator alloc(m_alloc);
+        return node_alloc_traits::allocate(alloc, 1);
+    }
+
+    // Construct a new node
+    template <typename... Args>
+    void construct_node(tree_node* node, Args&&... args)
+    {
+        node_allocator alloc(m_alloc);
+
         try
         {
             node->parent(nullptr);
             node->lchild(nullptr);
             node->rchild(nullptr);
             node->init();
-            node_alloc_traits::construct(m_alloc, node->value_ptr(), (Args&&)args...);
+            node_alloc_traits::construct(alloc, node->value_ptr(), (Args&&)args...);
         }
         catch (...)
         {
-            node_alloc_traits::destroy(m_alloc, node->value_ptr());
-            put_node(node);
+            // if exception occurs, deallocate memory and rethrow the exception
+            dealloc_node(node);
             throw;
         }
     }
 
-    template <typename... Args>
-    link_type create_node(Args&&... args)
+    // Destroy all nodes by postorder traversal
+    void dfs_destroy(node_base* node)
     {
-        link_type tmp = get_node();
-        construct_node(tmp, (Args&&)args...);
-        return tmp;
-    }
-
-    void destroy_node(link_type p)
-    {
-        node_alloc_traits::destroy(m_alloc, p->value_ptr());
-    }
-
-    void drop_node(link_type p)
-    {
-        destroy_node(p);
-        put_node(p);
-    }
-
-    /**
-     * @brief Deepcopy tree
-     * 
-     * @param x: Current node
-     * @param p: Parent of current node
-     * @param y: Copied node
-    */
-    base_node* clone_tree(base_node* x, base_node* p, const base_node* y)
-    {
-        if (!y)
+        if (node)
         {
-            return nullptr;
+            dfs_destroy(node->lchild());
+            dfs_destroy(node->rchild());
+            drop_node(static_cast<tree_node*>(node));
         }
-
-        x = create_node(*static_cast<const tree_node*>(y)->value_ptr());
-        x->clone(y);
-        x->lchild(clone_tree(x->lchild(), x, y->lchild()));
-        x->rchild(clone_tree(x->rchild(), x, y->rchild()));
-        x->parent(p);
-        return x;
     }
 
-    /**
-     * @brief Move the elements from y to x
-     * 
-     * @param x: Current node
-     * @param p: Parent of current node
-     * @param y: Moved node
-    */
-    base_node* move_tree(base_node* x, base_node* p, base_node* y)
+    // Destroy node and deallocate memory
+    void drop_node(tree_node* node)
     {
-        if (!y)
-        {
-            return nullptr;
-        }
-
-        x = create_node(
-            std::move_if_noexcept(
-                *static_cast<tree_node*>(y)->value_ptr()
-            )
-        );
-
-        x->clone(y);
-        x->lchild(move_tree(x->lchild(), x, y->lchild()));
-        x->rchild(move_tree(x->rchild(), x, y->rchild()));
-        x->parent(p);
-        return x;
+        destroy_node(node);
+        dealloc_node(node);
     }
 
-    [[no_unique_address]] Compare m_cmp;
-    [[no_unique_address]] node_allocator m_alloc;
+    // Destroy node
+    void destroy_node(tree_node* node)
+    {
+        node_allocator alloc(m_alloc);
+        node_alloc_traits::destroy(alloc, node->value_ptr());
+    }
 
-    /**
-     * We use a Node which does not have value_type field as header node.
-     * The parent of node link to root of tree, the left child link to the leftmost of tree
-     * and the right child link to the rightmost node. For `begin`, we return the leftmost node
-     * of tree and for `end`, we return the header as sentinel. For empty tree, the parent
-     * of m_header link nullptr, the left and right link to itself. 
-    */
-    Node m_header;
-
-    /* Size of current tree */
-    size_type m_size;
-};
-
-template <typename T, typename Compare, typename Allocator, bool Unique, typename Node>
-class tree_set : public tree<identity<T>, Compare, Allocator, Unique, Node>
-{
-    using base = tree<identity<T>, Compare, Allocator, Unique, Node>;
-    using base::base;
-    using base::operator=;
-};
-
-template <typename K, typename V, typename Compare, typename Allocator, bool Unique, typename Node>
-class tree_map : public tree<select1st<K, V>, Compare, Allocator, Unique, Node>,
-                 public unique_associative_container_indexer_interface
-{
-    using base = tree<select1st<K, V>, Compare, Allocator, Unique, Node>;
+    // Deallocate memory
+    void dealloc_node(tree_node* node)
+    {
+        node_allocator alloc(m_alloc);
+        node_alloc_traits::deallocate(alloc, node, 1);
+    }
 
 public:
 
-    using mapped_type = V;
-    using typename base::value_type;
-    using typename base::iterator;
-    using typename base::const_iterator;
-
-    struct value_compare : ordered_map_container_value_compare<value_type, Compare>
+    node_base* header()
     {
-    protected:
-        friend class tree_map;
-        
-        value_compare(Compare compare) 
-            : ordered_map_container_value_compare<value_type, Compare>(compare) { }
-    };
-
-    value_compare value_comp() const
-    {
-        return value_compare(this->m_cmp);
+        return &m_header;
     }
 
-    // V &operator[](const K &key)
-    // {
-    //     return this->try_emplace(key).first->second;
-    // }
-
-    // V &operator[](K &&key)
-    // {
-    //     return this->try_emplace(std::move(key)).first->second;
-    // }
-
-    template <typename... Args>
-    std::pair<iterator, bool> try_emplace(const K &k, Args &&...args)
+    const node_base* header() const
     {
-        return try_emplace_impl(k, (Args &&)args...);
+        return &m_header;
     }
 
-    template <typename... Args>
-    std::pair<iterator, bool> try_emplace(K &&k, Args &&...args)
+    static const key_type& keys(const tree_node* node)
     {
-        return try_emplace_impl(std::move(k), (Args &&)args...);
+        return KeyValue()(*node->value_ptr());
     }
 
-    // FIXME
-    template <typename... Args>
-    std::pair<iterator, bool> try_emplace(const_iterator, const K &k, Args &&...args)
+    static const key_type& keys(const node_base* node)
     {
-        return try_emplace_impl(k, (Args &&)args...);
+        return keys(static_cast<const tree_node*>(node));
     }
 
-    template <typename... Args>
-    std::pair<iterator, bool> try_emplace(const_iterator, K &&k, Args &&...args)
-    {
-        return try_emplace_impl(std::move(k), (Args &&)args...);
-    }
-
-    // template <typename M>
-    // std::pair<iterator, bool> insert_or_assign(const K &k, M &&obj)
-    // {
-    //     return insert_or_assign_impl(k, (M &&)obj);
-    // }
-
-    // template <typename M>
-    // std::pair<iterator, bool> insert_or_assign(K &&k, M &&obj)
-    // {
-    //     return insert_or_assign_impl(std::move(k), (M &&)obj);
-    // }
-
-protected:
-
-    template <typename KK, typename M>
-    std::pair<iterator, bool> insert_or_assign_impl(KK&& k, M&& obj)
-    {
-        auto [x, p] = this->get_insert_unique_pos(k);
-        if (p) 
-        {
-            auto z = this->create_node((KK&&)k, (M&&)obj);
-            return { this->insert_node(x, p, z), true };
-        }
-        auto j = iterator(x);
-        *j = (M&&)obj;
-        return { j, false };
-    }
-
-    template <typename KK, typename... Args>
-    std::pair<iterator, bool> try_emplace_impl(KK&& k, Args&&... args)
-    {
-        auto [x, p] = this->get_insert_unique_pos(k);
-        if (p) 
-        {
-            auto z = this->create_node(
-                std::piecewise_construct, 
-                std::forward_as_tuple((KK&)k), 
-                std::forward_as_tuple((Args&&)args...));
-            return { this->insert_node(x, p, z), true };
-        }
-        return { x, false };
-    }
+    [[no_unique_address]] Compare m_cmp;
+    [[no_unique_address]] Allocator m_alloc;
+    Node m_header;
+    size_type m_size;
 };
 
-
-}
+}  // namespace leviathan::collections
