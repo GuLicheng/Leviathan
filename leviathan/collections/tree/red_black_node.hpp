@@ -28,17 +28,25 @@ struct _Rb_tree_node_base : binary_node_operation
     _Rb_tree_node_base* _M_right;
     _Rb_tree_color _M_color;
 
+    auto& lchild() { return _M_left; }
+    auto& lchild() const { return _M_left; }
 
-    _Rb_tree_node_base* lchild() { return _M_left; }
-    const _Rb_tree_node_base* lchild() const { return _M_left; }
+    auto& rchild() { return _M_right; }
+    auto& rchild() const { return _M_right; }
+
+    auto& parent() { return _M_parent; }
+    auto& parent() const { return _M_parent; }
+
+    // _Rb_tree_node_base* lchild() { return _M_left; }
+    // const _Rb_tree_node_base* lchild() const { return _M_left; }
     void lchild(_Rb_tree_node_base* node) { _M_left = node; }
 
-    _Rb_tree_node_base* rchild() { return _M_right; }
-    const _Rb_tree_node_base* rchild() const { return _M_right; }
+    // _Rb_tree_node_base* rchild() { return _M_right; }
+    // const _Rb_tree_node_base* rchild() const { return _M_right; }
     void rchild(_Rb_tree_node_base* node) { _M_right = node; }
 
-    _Rb_tree_node_base* parent() { return _M_parent; }
-    const _Rb_tree_node_base* parent() const { return _M_parent; }
+    // _Rb_tree_node_base* parent() { return _M_parent; }
+    // const _Rb_tree_node_base* parent() const { return _M_parent; }
     void parent(_Rb_tree_node_base* node) { _M_parent = node; }
 
     std::string to_string() const

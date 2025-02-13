@@ -5,13 +5,16 @@
 using namespace leviathan::collections;
 
 template <typename T, typename Compare = std::less<T>, typename Allocator = std::allocator<T>>
-using Tree = avl_tree<T, Compare, Allocator>;
+using Tree = tree_set<avl_node, T, Compare, Allocator>;
 
 template <typename T, typename Compare = std::less<T>, typename Allocator = std::allocator<T>>
-using TreeWithMultiKey = tree<identity<T>, Compare, Allocator, false, avl_node>;
+using TreeWithMultiKey = tree_multiset<avl_node, T, Compare, Allocator>;
 
-template <typename K, typename V>
-using TreeMap = avl_tree<K, V>;
+template <typename K, typename V, typename Compare = std::less<K>, typename Allocator = std::allocator<std::pair<const K, V>>>
+using TreeMap = tree_map<avl_node, K, V, Compare, Allocator>;
+
+template <typename K, typename V, typename Compare = std::less<K>, typename Allocator = std::allocator<std::pair<const K, V>>>
+using TreeMultiMap = tree_multimap<avl_node, K, V, Compare, Allocator>;
 
 template <typename T, typename Alloc>
 using TreeWithAlloc = tree<::identity<T>, std::ranges::less, Alloc, true, avl_node>;

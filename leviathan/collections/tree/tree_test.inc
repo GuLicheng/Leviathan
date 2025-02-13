@@ -470,6 +470,49 @@ TEST_CASE("emplace")
     CHECK(strs.contains("C++"));
 }
 
+TEST_CASE("set-merge")
+{
+    SECTION("set merge set")
+    {
+        Tree<int> t1 = { 1, 2 };
+        Tree<int> t2 = { 1, 2, 3, 4, 5 };
+    
+        t1.merge(t2);
+    
+        CHECK(t1.size() == 5);
+        CHECK(t2.size() == 2);
+    
+        CHECK(t1.contains(1));
+        CHECK(t1.contains(2));
+        CHECK(t1.contains(3));
+        CHECK(t1.contains(4));
+        CHECK(t1.contains(5));
+    
+        CHECK(t2.contains(1));
+        CHECK(t2.contains(2));
+        CHECK(!t2.contains(3));
+        CHECK(!t2.contains(4));
+        CHECK(!t2.contains(5));
+    }
+
+    SECTION("set merge multiset")
+    {
+        Tree<int> t1 = { 1, 2 };
+        TreeWithMultiKey<int> t2 = { 1, 2, 3, 4, 5 };
+
+        t1.merge(t2);
+
+        CHECK(t1.size() == 5);
+        CHECK(t2.size() == 2);
+
+        CHECK(t1.contains(1));
+        CHECK(t1.contains(2));
+        CHECK(t1.contains(3));
+        CHECK(t1.contains(4));
+        CHECK(t1.contains(5));
+    }
+}
+
 struct Pair
 {
     int x, y;
@@ -505,6 +548,51 @@ TEST_CASE("extract")
     }
 }
 
+TEST_CASE("multiset-merge")
+{
+    SECTION("multiset merge multiset")
+    {
+        TreeWithMultiKey<int> ms1 = { 1, 2, 3 };
+        TreeWithMultiKey<int> ms2 = { 1, 2, 3, 4, 5 };
+    
+        ms1.merge(ms2);
+    
+        CHECK(ms1.size() == 8);
+        CHECK(ms2.size() == 0);
+    
+        CHECK(ms1.contains(1));
+        CHECK(ms1.contains(2));
+        CHECK(ms1.contains(3));
+        CHECK(ms1.contains(4));
+        CHECK(ms1.contains(5));
+    
+        auto ilist = { 1, 1, 2, 2, 3, 3, 4, 5 };
+    
+        CHECK(std::ranges::equal(ms1, ilist));
+    }
+
+    SECTION("multiset merge set")
+    {
+        TreeWithMultiKey<int> ms1 = { 1, 2, 3 };
+        Tree<int> ms2 = { 1, 2, 3, 4, 5 };
+    
+        ms1.merge(ms2);
+    
+        CHECK(ms1.size() == 8);
+        CHECK(ms2.size() == 0);
+    
+        CHECK(ms1.contains(1));
+        CHECK(ms1.contains(2));
+        CHECK(ms1.contains(3));
+        CHECK(ms1.contains(4));
+        CHECK(ms1.contains(5));
+    
+        auto ilist = { 1, 1, 2, 2, 3, 3, 4, 5 };
+    
+        CHECK(std::ranges::equal(ms1, ilist));
+    }
+}
+
 TEST_CASE("search")
 {
     TreeWithMultiKey<int> ms = { 1, 2, 3, 3, 3, 3, 4 };
@@ -513,6 +601,93 @@ TEST_CASE("search")
     CHECK(ms.erase(3) == 4);
     CHECK(ms.size() == 3);
 }
+
+// Map
+TEST_CASE("map erase")
+{
+    TreeMap<int, std::string> map;
+
+    map.insert({ 1, "Alice" });
+    map.insert({ 2, "Bob" });
+    map.insert({ 3, "Charlie" });
+
+    CHECK(map.size() == 3);
+
+    map.erase(map.begin());
+
+    CHECK(map.size() == 2);
+    CHECK(map.contains(2));
+    CHECK(map.contains(3));
+
+    map.erase(2);
+
+    CHECK(map.size() == 1);
+    CHECK(map.contains(3));
+}
+
+TEST_CASE("map insert assign emplace and operator[]")
+{
+    TreeMap<int, std::string> map;
+
+    SECTION("insert_or_assign")
+    {
+        map.insert_or_assign(1, "Alice");
+        map.insert_or_assign(2, "Bob");
+        map.insert_or_assign(3, "Charlie");
+
+        CHECK(map.size() == 3);
+
+        map.insert_or_assign(1, "Alice2");
+        map.insert_or_assign(2, "Bob2");
+        map.insert_or_assign(3, "Charlie2");
+
+        CHECK(map.size() == 3);
+        CHECK(map[1] == "Alice2");
+        CHECK(map[2] == "Bob2");
+        CHECK(map[3] == "Charlie2");
+    }
+
+    SECTION("try_emplace")
+    {
+        map.try_emplace(1, "Alice");
+        map.try_emplace(2, "Bob");
+        map.try_emplace(3, "Charlie");
+
+        CHECK(map.size() == 3);
+
+        map.try_emplace(1, "Alice2");
+        map.try_emplace(2, "Bob2");
+        map.try_emplace(3, "Charlie2");
+
+        CHECK(map.size() == 3);
+        CHECK(map[1] == "Alice");
+        CHECK(map[2] == "Bob");
+        CHECK(map[3] == "Charlie");
+    }
+
+    SECTION("operator[]")
+    {
+        map[1] = "Alice";
+        map[2] = "Bob";
+        map[3] = "Charlie";
+
+        CHECK(map.size() == 3);
+
+        map[1] = "Alice2";
+        map[2] = "Bob2";
+        map[3] = "Charlie2";
+
+        CHECK(map.size() == 3);
+        CHECK(map[1] == "Alice2");
+        CHECK(map[2] == "Bob2");
+        CHECK(map[3] == "Charlie2");
+        
+        CHECK(map[0].empty());
+        CHECK(map.size() == 4);
+    }
+}
+
+// MultiMap
 
 // Memory
 #define USE_MEMORY_TEST 

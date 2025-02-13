@@ -199,6 +199,9 @@ auto rebind_allocator(Alloc& alloc)
  *      value_handle<T, Alloc> handle(alloc, (Args&&)args...);
  *      insert(*handle);
  *  }
+ * 
+ * @tparam T value type
+ * @tparam Allocator allocator type
 */
 template <typename T, typename Allocator>
 struct value_handle
@@ -238,8 +241,8 @@ struct value_handle
 /**
  * @brief A help class to generate map container's value_compare
  * 
- * @param Pair typename Container::value_type
- * @param Compare typename Container::key_compare
+ * @tparam Pair typename Container::value_type
+ * @tparam Compare typename Container::key_compare
  * 
  * E.g.
  *     struct value_compare : ordered_map_container_value_compare<value_type, Compare> 
@@ -323,6 +326,12 @@ struct value_field : public Node
     {
         return static_cast<const Node*>(this);
     }
+
+    template <typename Self>
+    auto&& value(this Self&& self)
+    {
+        return ((Self&&)self).m_value;
+    }
 };
 
-}
+}  // namespace leviathan::collections

@@ -59,14 +59,13 @@ concept node = requires (Node* n, const Node* cn, bool insert_left, Node& header
  * @param UniqueKey True for set/map and False for multiset/multimap.
  * @param Node Type of tree node with basic tree operations but value field.
 */
-template <typename KeyValue,
-    typename Compare,
-    typename Allocator,
-    bool UniqueKey, 
-    typename Node>
+template <typename KeyValue, typename Compare, typename Allocator, bool UniqueKey, typename Node>
 class tree : public row_drawer
 {
     // static_assert(UniqueKey, "Non-unique keys are not supported");
+
+    template <typename A, typename B, typename C, bool D, typename E>
+    friend class tree;
 
 public:
 
@@ -104,9 +103,14 @@ protected:
 
         // The const_iterator and iterator may model same type, so we offer 
         // a base method to avoid if-constexpr.
-        constexpr tree_iterator base(this tree_iterator it)
+        constexpr tree_iterator& base()
         {
-            return it;
+            return *this;
+        }
+
+        constexpr const tree_iterator& base() const
+        {
+            return *this;
         }
 
         constexpr link_type link(this tree_iterator it)
@@ -180,7 +184,7 @@ protected:
 
 public:
 
-    using node_type = node_handle_set<value_type, node_allocator>;
+    using node_type = node_handle<KeyValue, node_allocator>;
     using insert_return_type = node_insert_return<tree_iterator, node_type>;
 
 protected:
@@ -445,7 +449,7 @@ public:
     iterator find(const key_arg_t<K>& x)
     {
         iterator lower = lower_bound(x);
-        return (lower == end() || m_cmp(x, *lower)) 
+        return (lower == end() || m_cmp(x, keys(lower.link()))) 
               ? end() : lower;
     }
 
@@ -548,7 +552,7 @@ public:
     iterator erase(iterator pos) 
         requires(!std::same_as<iterator, const_iterator>)
     {
-        return erase(std::make_const_iterator(pos));
+        return erase(std::make_const_iterator(pos)).base();
     }
 
     size_type erase(const key_type& key)
@@ -559,7 +563,7 @@ public:
     const_iterator erase(const_iterator pos)
     {
         auto ret = std::next(pos);
-        erase_by_node(pos.m_ptr);
+        erase_by_node(pos.base().link());
         return ret;
     }
 
@@ -695,7 +699,7 @@ public:
     // a valid iterator into this container
     node_type extract(const_iterator position)
     {
-        return extract_node(position.base().m_ptr);
+        return extract_node(position.base().link());
     }
 
     node_type extract(const key_type& x)
@@ -710,7 +714,82 @@ public:
         return extract(find((x)));
     }
 
+    template <typename C2, bool U2>
+    void merge(tree<KeyValue, C2, Allocator, U2, Node>& source)
+    {
+        // We check the address directly to avoid self-merge.
+        if (static_cast<const void*>(this) == static_cast<const void*>(std::addressof(source)))
+        {
+            return;
+        }
+
+        assert(get_allocator() == source.get_allocator() && "The allocators should be equal.");
+        merge_tree_node(source);
+    }
+
+    template <typename C2, bool U2>
+    void merge(tree<KeyValue, C2, Allocator, U2, Node>&& source)
+    {
+        merge(source);
+    }
+
 protected:
+
+    template <typename C2, bool U2>
+    void merge_tree_node(tree<KeyValue, C2, Allocator, U2, Node>& source)
+    {
+        if (source.empty())
+        {
+            return;
+        }
+
+        auto node = source.header()->parent();
+
+        if constexpr (UniqueKey)
+        {
+            node_base* cur = node;
+
+            while (!cur->is_header())
+            {
+                auto next = cur->increment();
+                auto [x, p] = get_insert_unique_pos(keys(cur));
+
+                if (p != nullptr)
+                {
+                    auto y = source.extract_node(cur);
+                    auto z = std::exchange(y.m_ptr, nullptr);
+                    insert_node(x, p, z);
+                }
+
+                cur = next;
+            }
+        }
+        else
+        {
+            // For multimap/multiset, we can directly merge the tree since 
+            // all nodes in source tree will be inserted into this tree.
+            dfs_merge_node(node);
+            source.make_header_sentinel();
+            source.clear();
+        }
+    }
+
+    void dfs_merge_node(node_base* x)
+    {
+        if (x)
+        {
+            dfs_merge_node(x->lchild());
+            dfs_merge_node(x->rchild());
+
+            auto [p, insert_left] = get_insert_pos(keys(x));
+            
+            x->init();
+            x->lchild(nullptr);
+            x->rchild(nullptr);
+            x->parent(nullptr);
+            insert_node(insert_left, p, x);
+        }
+    }
 
     node_type extract_node(node_base* node)
     {
@@ -812,7 +891,7 @@ protected:
             return nullptr;
         }
 
-        x = create_node(fn(*static_cast<tree_node*>(y)->value_ptr()));
+        x = create_node(fn(static_cast<tree_node*>(y)->value()));
         x->clone(y);
         x->lchild(dfs_copy_or_move(x->lchild(), x, y->lchild(), fn));
         x->rchild(dfs_copy_or_move(x->rchild(), x, y->rchild(), fn));
@@ -983,7 +1062,7 @@ protected:
             return { x, y };
         }
 
-        return { j.m_ptr, nullptr };
+        return { j.link(), nullptr };
     }
 
     // Remove helpers
@@ -1003,7 +1082,7 @@ protected:
     
             if (iter != end())
             {
-                erase_by_node(iter.m_ptr);
+                erase_by_node(iter.link());
                 return 1;
             }
     
@@ -1119,7 +1198,7 @@ public:
 
     static const key_type& keys(const tree_node* node)
     {
-        return KeyValue()(*node->value_ptr());
+        return KeyValue()(node->value());
     }
 
     static const key_type& keys(const node_base* node)
@@ -1132,12 +1211,6 @@ public:
     Node m_header;
     size_type m_size;
 };
-
-template <typename Node, typename T, typename Compare = std::less<T>, typename Allocator = std::allocator<T>>
-using tree_set = tree<identity<T>, Compare, Allocator, true, Node>;
-
-template <typename Node, typename T, typename Compare = std::less<T>, typename Allocator = std::allocator<T>>
-using tree_multiset = tree<identity<T>, Compare, Allocator, false, Node>;
 
 template <typename K, typename V, typename Compare, typename Allocator, bool UniqueKey, typename Node>
 class associative_tree : public tree<select1st<K, V>, Compare, Allocator, UniqueKey, Node>
@@ -1204,10 +1277,23 @@ public:
     using typename base::iterator;
     using typename base::const_iterator;
 
-    // mapped_type& operator[](const key_type& key);
-    // mapped_type& operator[](key_type&& key);
-    // template <typename K> mapped_type& operator[](K&& x);
-    // template <typename K = key_type> 
+    // map::operator[]
+    mapped_type& operator[](const key_type& key)
+    {
+        return operator_square_brackets_impl(key);
+    }
+
+    mapped_type& operator[](key_type&& key)
+    {
+        return operator_square_brackets_impl(std::move(key));
+    }
+
+    template <typename KK>
+        requires (detail::transparent<Compare>)
+    mapped_type& operator[](KK&& x)
+    {
+        return operator_square_brackets_impl((KK&&)x);
+    }
 
     // map::at
     template <typename Key = key_type>
@@ -1269,7 +1355,67 @@ public:
         return try_emplace((KK&&)key, (Args&&)args...);
     }
 
+    // map::insert_or_assign
+    template <typename... Args>
+    std::pair<iterator, bool> insert_or_assign(const K& key, Args&&... args)
+    {
+        return insert_or_assign(key, (Args&&)args...);
+    }
+
+    template <typename... Args>
+    std::pair<iterator, bool> insert_or_assign(K&& key, Args&&... args)
+    {
+        return insert_or_assign_impl(std::move(key), (Args&&)args...);
+    }
+
+    template <typename... Args>
+    iterator insert_or_assign(const_iterator hint, const K& key, Args&&... args)
+    {
+        return insert_or_assign(key, (Args&&)args...);
+    }
+
+    template <typename... Args>
+    iterator insert_or_assign(const_iterator hint, K&& key, Args&&... args)
+    {
+        return insert_or_assign(key, (Args&&)args...);
+    }
+
+    // If equal_range(u.first) == equal_range(k) is false, the behavior 
+    // is undefined, where u is the new element to be inserted.
+    template <typename KK, typename... Args>
+        requires (detail::transparent<Compare> && 
+                 !std::is_convertible_v<KK, iterator> && 
+                 !std::is_convertible_v<KK, const_iterator>)
+    std::pair<iterator, bool> insert_or_assign(KK&& key, Args&&... args)
+    {
+        return insert_or_assign_impl((KK&&)key, (Args&&)args...);
+    }
+
+    template <typename KK, typename... Args>
+        requires (detail::transparent<Compare> && 
+                 !std::is_convertible_v<KK, iterator> && 
+                 !std::is_convertible_v<KK, const_iterator>)
+    iterator insert_or_assign(const_iterator hint, KK&& key, Args&&... args)
+    {
+        return insert_or_assign((KK&&)key, (Args&&)args...);
+    }
+
 protected:
+
+    template <typename KK>
+    mapped_type& operator_square_brackets_impl(KK&& k)
+    {
+        auto [x, p] = this->get_insert_unique_pos(k);
+        
+        if (p) 
+        {
+            auto z = this->create_node((KK&&)k, mapped_type());
+            return this->insert_node(x, p, z)->second;
+        }
+        
+        auto j = iterator(x);
+        return j->second;
+    }
 
     template <typename KK, typename M>
     std::pair<iterator, bool> insert_or_assign_impl(KK&& k, M&& obj)
@@ -1283,7 +1429,7 @@ protected:
         }
         
         auto j = iterator(x);
-        *j = (M&&)obj;
+        j->second = (M&&)obj;
         return { j, false };
     }
 
@@ -1303,8 +1449,13 @@ protected:
         
         return { x, false };
     }
-
 };
+
+template <typename Node, typename T, typename Compare = std::less<T>, typename Allocator = std::allocator<T>>
+using tree_set = tree<identity<T>, Compare, Allocator, true, Node>;
+
+template <typename Node, typename T, typename Compare = std::less<T>, typename Allocator = std::allocator<T>>
+using tree_multiset = tree<identity<T>, Compare, Allocator, false, Node>;
 
 template <typename Node, typename K, typename V, typename Compare = std::less<K>, typename Allocator = std::allocator<std::pair<const K, V>>>
 using tree_map = associative_tree<K, V, Compare, Allocator, true, Node>;

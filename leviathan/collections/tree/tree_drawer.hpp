@@ -22,7 +22,7 @@ struct column_drawer
         }
 
         std::string result;
-        recurse<typename Self::tree_node>(root, "", true, result);
+        recurse2<typename Self::tree_node>(root, "", true, result);
         return result;
     }
 
@@ -50,6 +50,20 @@ private:
             auto new_prefix = prefix +
                 (is_tail ? std::string("    ") : std::string("??   "));
             recurse<D>(node->lchild(), new_prefix, true, result);
+        }
+    }
+
+    // https://stackoverflow.com/questions/36802354/print-binary-tree-in-a-pretty-way-using-c
+    template <typename D, typename Node>
+    static void recurse2(const Node* node, std::string prefix, bool is_left, std::string& result)
+    {
+        if (node)
+        {
+            // (│   ,├──,└──,    )
+            result += std::format("{}{}{}\n", prefix, (is_left ? "|--" : "L--"), static_cast<const D*>(node)->value());
+
+            recurse2<D>(node->lchild(), prefix + (is_left ? "|   " : "    "), true, result);
+            recurse2<D>(node->rchild(), prefix + (is_left ? "|   " : "    "), false, result);
         }
     }
 };

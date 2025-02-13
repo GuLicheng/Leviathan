@@ -7,16 +7,22 @@
 namespace leviathan::collections
 {
 
-// There are at least two situations:
-// 1. For node-base container, handle may save a pointer which point to 
-// node. We can just make pointer point to node and destroy node in destructor.
-// 2. For some other design such as hashtable based on vector
-// when extract node, the value should be moved into handle.
-// So we may first move object to handle and then remove object in container.
-// If move construct of object can throw exception, the move constructor of
-// handle may throw exception.
-// alignof(T) mutable unsigned char m_raw[sizeof(T)] = {};
-// https://en.cppreference.com/w/cpp/container/node_handle
+/**
+ * @brief Base class for node handle
+ * 
+ * There are at least two situations:
+ * 1. For node-base container, handle may save a pointer which point to 
+ * node. We can just make pointer point to node and destroy node in destructor.
+ * 2. For some other design such as hashtable based on vector
+ * when extract node, the value should be moved into handle.
+ * So we may first move object to handle and then remove object in container.
+ * If move construct of object can throw exception, the move constructor of
+ * handle may throw exception.
+ * alignof(T) mutable unsigned char m_raw[sizeof(T)] = {};
+ * https://en.cppreference.com/w/cpp/container/node_handle
+ * 
+ * @tparam NodeAllocator allocator type
+ */
 template <typename NodeAllocator>
 struct node_handle_base
 {
@@ -134,78 +140,53 @@ struct node_handle_base
     std::optional<allocator_type> m_alloc;
 };
 
+template <typename KeyValue, typename NodeAllocator> 
+struct node_handle;
+
+/**
+ * @brief Node handle for value type
+ * 
+ * @tparam T value type
+ * @tparam NodeAllocator allocator type
+ */
 template <typename T, typename NodeAllocator>
-struct node_handle_set : node_handle_base<NodeAllocator>
+struct node_handle<identity<T>, NodeAllocator> : node_handle_base<NodeAllocator>
 {
     using node_handle_base<NodeAllocator>::node_handle_base;
     using value_type = T;
 
     value_type& value() const
     {
-        return *(this->m_ptr->value_ptr());
+        return *this->m_ptr->value_ptr();
     }
 };
 
-// template <typename K, typename V, typename NodeAllocator>
-// struct node_handle_map : node_handle_base<NodeAllocator>
-// {
-//     using key_type = K;
-//     using mapped_type = V;
-//     using typename node_handle_base<NodeAllocator>::pointer;
-
-//     value_type& value() const
-//     {
-//         return m_ptr->value_ptr()->first;
-//     }
-
-//     mapped_type& mapped() const
-//     {
-//         return m_ptr->value_ptr()->second;
-//     }
-
-// };
-
-#if 0
-
-template <typename KeyValue, typename Node, typename Allocator>
-struct node_base_handle_set : node_base_handle<Node, Allocator>
+/**
+ * @brief Node handle for key-value pair
+ * 
+ * @tparam K key type
+ * @tparam V value type
+ * @tparam NodeAllocator allocator type
+ */
+template <typename K, typename V, typename NodeAllocator>
+struct node_handle<select1st<K, V>, NodeAllocator> : node_handle_base<NodeAllocator>
 {
-    using base = node_base_handle<Node, Allocator>;
-    using base::base;
-    using base::operator=;
+    using node_handle_base<NodeAllocator>::node_handle_base;
+    using key_type = K;
+    using mapped_type = V;
 
-    using value_type = typename KeyValue::value_type;
-
-    // For set container, the value_type is not const.
-    value_type& value() const
-    {
-        return this->m_handle.value();
-    }
-};
-
-template <typename KeyValue, typename Node, typename Allocator>
-struct node_base_handle_map : node_base_handle<Node, Allocator>
-{
-    using base = node_base_handle<Node, Allocator>;
-    using base::base;
-    using base::operator=;
-
-    using key_type = typename KeyValue::key_type;
-    using mapped_type = typename KeyValue::value_type::second_type;
-
-    // Returns a non-const reference
     key_type& key() const
     {
-        return const_cast<key_type&>(this->m_handle->value_ptr()->first);
+        // can we avoid const_cast?
+        auto& k = this->m_ptr->value_ptr()->first;
+        return const_cast<key_type&>(k);
     }
 
     mapped_type& mapped() const
     {
-        return this->m_handle->value_ptr()->second;
+        return this->m_ptr->value_ptr()->second;
     }
 };
-
-#endif
 
 template <typename Iterator, typename NodeType>
 struct node_insert_return
