@@ -43,7 +43,7 @@ concept node = requires (Node* n, const Node* cn, bool insert_left, Node& header
  * 
  * We use Node as our header type which contains at least three points link
  * parent, left child and right child separately, to enable constant time begin(),
- * and to the leftmost node of the tree, to enable linear time performance when
+ * to the leftmost node of the tree, and to enable linear time performance when
  * used with generic set algorithms (set_union, etc...). For empty tree, the left 
  * child and right child of header link to itself and parent is null.
  * 
@@ -51,7 +51,7 @@ concept node = requires (Node* n, const Node* cn, bool insert_left, Node& header
  * its place, rather than copied or moved so that the only iterators invalidated
  * are those referring to the deleted node.
  * 
- * For root node(if exist), its parent always link null.
+ * For root node(if exist), its parent always link header.
  * 
  * @param KeyValue Extractor extract key from value. identity<T> for set and select1st<K, V> for map.
  * @param Compare

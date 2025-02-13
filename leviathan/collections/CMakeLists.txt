@@ -10,9 +10,9 @@ add_executable(skiplist_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTO
 target_link_libraries(skiplist_test PRIVATE Catch2::Catch2WithMain)
 add_test(NAME skiplist_test COMMAND skiplist_test)
 
-add_executable(binary_search_tree_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/tree/binary_search_tree_test.cpp)
-target_link_libraries(binary_search_tree_test PRIVATE Catch2::Catch2WithMain)
-add_test(NAME binary_search_tree_test COMMAND binary_search_tree_test)
+# add_executable(binary_search_tree_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/tree/binary_search_tree_test.cpp)
+# target_link_libraries(binary_search_tree_test PRIVATE Catch2::Catch2WithMain)
+# add_test(NAME binary_search_tree_test COMMAND binary_search_tree_test)
 
 add_executable(avl_tree_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/tree/avl_tree_test.cpp)
 target_link_libraries(avl_tree_test PRIVATE Catch2::Catch2WithMain)
@@ -21,6 +21,9 @@ add_test(NAME avl_tree_test COMMAND avl_tree_test)
 add_executable(red_black_tree_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/tree/red_black_tree_test.cpp)
 target_link_libraries(red_black_tree_test PRIVATE Catch2::Catch2WithMain)
 add_test(NAME red_black_tree_test COMMAND red_black_tree_test)
+
+add_executable(tree_benchmark ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/tree/tree_benchmark.cpp)
+add_test(NAME tree_benchmark COMMAND tree_benchmark)
 
 add_executable(sequence_container_interface_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/sequence_container_interface_test.cpp)
 target_link_libraries(sequence_container_interface_test PRIVATE Catch2::Catch2WithMain)

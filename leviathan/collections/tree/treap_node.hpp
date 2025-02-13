@@ -1,8 +1,6 @@
 // https://medium.com/carpanese/a-visual-introduction-to-treap-data-structure-part-1-6196d6cc12ee
 #pragma once
 
-#if 1
-
 #include "tree_node_operation.hpp"
 
 #include <random>
@@ -10,18 +8,21 @@
 namespace leviathan::collections
 {
 
-template <typename RandomGenerator = std::random_device>
+template <typename RandomEngine = std::mt19937, typename SeedGenerator = std::random_device>
 struct treap_node : basic_tree_node_operation, binary_node_operation
 {
-    // All node share one random generator
-    inline static RandomGenerator random;
+    static_assert(std::is_unsigned_v<typename RandomEngine::result_type>);
+
+    // All nodes share one random generator
+    inline static RandomEngine random = RandomEngine(SeedGenerator()());
+    // inline static RandomEngine random = RandomEngine(2);
 
     // Nodes
     treap_node* m_link[3];
 
     // Priority of current node, -1 for sentinel
-    // and the heap is a min-heap
-    int m_priority;
+    // and the heap is a max-heap
+    typename RandomEngine::result_type m_priority;
 
     std::string to_string() const
     {
@@ -30,18 +31,21 @@ struct treap_node : basic_tree_node_operation, binary_node_operation
 
     void as_empty_tree_header()
     {
-        m_priority = -1;
+        m_priority = RandomEngine::max();
     }
 
-    static int get_priority()
+    static auto get_random_number()
     {
-        auto x = random();
-        return std::abs(static_cast<int>(x));
+        return random() % RandomEngine::max();
+
+        // auto number = random();
+        // std::cout << "number = " << number % 100 << std::endl;
+        // return number % 100;
     }
 
     void init()
     {
-        m_priority = get_priority();
+        m_priority = get_random_number();
     }
 
     void clone(const treap_node* node)
@@ -51,7 +55,7 @@ struct treap_node : basic_tree_node_operation, binary_node_operation
 
     bool is_header() const
     {
-        return m_priority == -1;
+        return m_priority == RandomEngine::max();
     }
 
     void insert_and_rebalance(bool insert_left, treap_node* p, treap_node& header)
@@ -85,11 +89,13 @@ struct treap_node : basic_tree_node_operation, binary_node_operation
         }
 
         // Rebalance
-        while (x->m_priority < x->parent()->m_priority)
+        while (x->m_priority > x->parent()->m_priority)
         {
-            x->parent()->lchild() == x 
-                ? x->parent()->rotate_right(header->m_link[0])
-                : x->parent()->rotate_left(header->m_link[0]);
+            auto y = x->parent();
+
+            x == y->lchild() ?
+                y->rotate_right(header.parent()) :
+                y->rotate_left(header.parent());
         }
     }
 
@@ -169,5 +175,3 @@ struct treap_node : basic_tree_node_operation, binary_node_operation
 
 
 } // namespace leviathan::collections
-
-#endif

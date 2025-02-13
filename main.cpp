@@ -1,21 +1,25 @@
 #include <map>
 #include <iostream>
+#include <numbers>
 #include <leviathan/collections/tree/avl_tree.hpp>
+#include <leviathan/collections/tree/treap.hpp>
 
 int main()
 {
-    using namespace leviathan::collections;
+    std::multimap<int, int> m;
 
-    avl_treeset<int> tree;
-    tree.insert(1);
-    tree.insert(2);
-    tree.insert(3);
-    tree.insert(4);
-    tree.insert(5);
-    tree.insert(6);
-    tree.insert(7);
-    tree.insert(8);
+    leviathan::collections::treap_set<int> tree;
 
-    std::cout << std::format("{}\n", tree.draw());
+    for (auto i : { 1, 2, 3, 4, 5, 6, 7, 8 })
+    {
+        tree.insert(i);
+        std::cout << std::format("{}\n", tree.draw());
+    }
+
+    // std::cout << treap_node<>::random() << std::endl;
+    // std::cout << treap_node<>::random() << std::endl;
+    // std::cout << treap_node<>::random() << std::endl;
+    // std::cout << treap_node<>::random() << std::endl;
+    // std::cout << treap_node<>::random() << std::endl;
 
 }

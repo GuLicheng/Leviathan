@@ -28,7 +28,8 @@ TEST_CASE("benchmark for-loop and views")
             int s = 0;
             for (auto&& ij : std::views::cartesian_product(v1, v2))
             {
-                s += ij.first + ij.second;
+                // s += ij.first + ij.second;
+                s += std::get<0>(ij) + std::get<1>(ij);
             }
             return s;
         });

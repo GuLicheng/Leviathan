@@ -8,3 +8,6 @@ add_executable(random_range ${CMAKE_SOURCE_DIR}/benchmark/random_range.cpp)
 
 add_executable(benchmark_range ${CMAKE_SOURCE_DIR}/benchmark/benchmark_range.cpp)
 target_link_libraries(benchmark_range PRIVATE Catch2::Catch2WithMain)
+
+add_executable(benchmark_tree ${CMAKE_SOURCE_DIR}/benchmark/benchmark_tree.cpp)
+target_link_libraries(benchmark_tree PRIVATE Catch2::Catch2WithMain)
