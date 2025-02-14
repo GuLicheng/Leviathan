@@ -22,8 +22,9 @@ add_executable(red_black_tree_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_D
 target_link_libraries(red_black_tree_test PRIVATE Catch2::Catch2WithMain)
 add_test(NAME red_black_tree_test COMMAND red_black_tree_test)
 
-add_executable(tree_benchmark ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/tree/tree_benchmark.cpp)
-add_test(NAME tree_benchmark COMMAND tree_benchmark)
+add_executable(treap_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/tree/treap_test.cpp)
+target_link_libraries(treap_test PRIVATE Catch2::Catch2WithMain)
+add_test(NAME treap_test COMMAND treap_test)
 
 add_executable(sequence_container_interface_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/sequence_container_interface_test.cpp)
 target_link_libraries(sequence_container_interface_test PRIVATE Catch2::Catch2WithMain)

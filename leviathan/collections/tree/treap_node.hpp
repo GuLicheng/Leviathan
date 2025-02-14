@@ -15,7 +15,6 @@ struct treap_node : basic_tree_node_operation, binary_node_operation
 
     // All nodes share one random generator
     inline static RandomEngine random = RandomEngine(SeedGenerator()());
-    // inline static RandomEngine random = RandomEngine(2);
 
     // Nodes
     treap_node* m_link[3];
@@ -37,10 +36,6 @@ struct treap_node : basic_tree_node_operation, binary_node_operation
     static auto get_random_number()
     {
         return random() % RandomEngine::max();
-
-        // auto number = random();
-        // std::cout << "number = " << number % 100 << std::endl;
-        // return number % 100;
     }
 
     void init()
@@ -102,76 +97,62 @@ struct treap_node : basic_tree_node_operation, binary_node_operation
     treap_node* rebalance_for_erase(treap_node& header)
     {
         auto x = this;
-
         auto& [root, leftmost, rightmost] = header.m_link;
 
-        treap_node* child = nullptr;
-        treap_node* parent = nullptr;
-
-        if (x->lchild() && x->rchild())
-        {   
-            // Replace x with child which priority is larger
-            if (x->lchild()->m_priority < x->rchild()->m_priority)
+        while (x->lchild() || x->rchild())
+        {
+            if (!x->rchild() || (x->lchild() && x->lchild()->m_priority > x->rchild()->m_priority))
             {
-                x->rotate_right(root);
-                return x->rebalance_for_erase(header);
+                x->rotate_right(header.parent());
             }
             else
             {
-                x->rotate_left(root);
-                return x->rebalance_for_erase(header);
+                x->rotate_left(header.parent());
             }
         }
-        else if (x->lchild())
-        {
-            // Replace x with left child
-            child = x->lchild();
-            if (x == rightmost)
-            {
-                rightmost = child->maximum();
-            }
-        }
-        else if (x->rchild())
-        {
-            // Replace x with right child
-            child = x->rchild();
-            if (x == leftmost)
-            {
-                leftmost = child->minimum();
-            }
-        }
-        else
-        {
-            // x is leaf
-            if (x == leftmost)
-            {
-                leftmost = x->parent();
-            }
-            if (x == rightmost)
-            {
-                rightmost = x->parent();
-            }
-        }
-
-        if (child)
-        {
-            child->parent(x->parent());
-        }
+        
         if (x == root)
         {
-            root = child;
+            root = nullptr;
+            leftmost = rightmost = &header;
         }
         else
         {
-            x->parent()->lchild() == x
-                ? x->parent()->lchild(child)
-                : x->parent()->rchild(child);   
+            if (x == x->parent()->lchild())
+            {
+                x->parent()->lchild(nullptr);
+                
+                if (x == leftmost)
+                {
+                    leftmost = x->parent();
+                }
+            }
+            else
+            {
+                x->parent()->rchild(nullptr);
+
+                if (x == rightmost)
+                {
+                    rightmost = x->parent();
+                }
+            }
         }
 
-        return this;
+        return x;
     }
-
 };
 
+using default_treap_node = treap_node<>;
+
+template <size_t N>
+struct always
+{
+    static size_t operator()()
+    {
+        return N;
+    }
+};
+
+using debug_treap_node = treap_node<std::mt19937, always<0>>;
 
 } // namespace leviathan::collections

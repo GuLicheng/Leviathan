@@ -146,6 +146,8 @@ TEST_CASE("find value")
         [&](auto v, auto it) { return tree.upper_bound(v) == it; }
     );
 
+    auto [lower, upper] = tree.equal_range(0);
+    REQUIRE(std::distance(lower, upper) == 1);
 
     // Logger::WriteMessage(tree.draw().c_str());
 }
@@ -685,6 +687,37 @@ TEST_CASE("map insert assign emplace and operator[]")
         CHECK(map[0].empty());
         CHECK(map.size() == 4);
     }
+}
+
+TEST_CASE("map research lower_bound/upper_bound/equal_range/find/contains")
+{
+    TreeMap<int, std::string> map;
+
+    map.insert({ 1, "Alice" });
+    map.insert({ 2, "Bob" });
+    map.insert({ 3, "Charlie" });
+    map.insert({ 4, "David" });
+    map.insert({ 5, "Eve" });
+
+    CHECK(map.size() == 5);
+
+    auto [first, last] = map.equal_range(3);
+    REQUIRE(std::distance(first, last) == 1);
+    CHECK(first->second == "Charlie");
+
+    auto it = map.find(3);
+    REQUIRE(it != map.end());
+    CHECK(it->second == "Charlie");
+
+    CHECK(map.contains(3));
+    CHECK(!map.contains(6));
+
+    auto lb = map.lower_bound(3);
+    auto ub = map.upper_bound(3);
+
+    CHECK(lb->second == "Charlie");
+    CHECK(ub->second == "David");
+    
 }
 
 // MultiMap

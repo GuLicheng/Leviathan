@@ -47,6 +47,7 @@ namespace leviathan::collections
 
     public:
 
+        static constexpr auto IsUnique = UniqueKey;
 
         // for visual
         using tree_node_base = NodeType;

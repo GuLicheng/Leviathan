@@ -108,3 +108,65 @@ TEST_CASE("duplicate_collections_random_insert_string")
         return leviathan::random_insert_string_test<TreapTree>();
     };
 }
+
+TEST_CASE("duplicate_collections_random_search")
+{
+    AVLTree avl;
+    RedBlackTree rb;
+    STLRedBlackTree stlrb;
+    TreapTree treap;
+
+    leviathan::random_insert(avl, rb, stlrb, treap);
+
+    BENCHMARK("avl random_search")
+    {
+    leviathan::random_insert(avl, rb, stlrb, treap);
+        return leviathan::search_test<AVLTree>(avl);
+    };
+
+    BENCHMARK("red black random_search")
+    {
+        return leviathan::search_test<RedBlackTree>(rb);
+    };
+
+    BENCHMARK("stl set random_search")
+    {
+        return leviathan::search_test<STLRedBlackTree>(stlrb);
+    };
+
+    BENCHMARK("treap random_search")
+    {
+        return leviathan::search_test<TreapTree>(treap);
+    };
+}
+
+TEST_CASE("duplicate_collections_random_remove")
+{
+    AVLTree avl;
+    RedBlackTree rb;
+    STLRedBlackTree stlrb;
+    TreapTree treap;
+
+    leviathan::random_insert(avl, rb, stlrb, treap);
+
+    BENCHMARK("avl random_remove")
+    {
+        return leviathan::remove_test<AVLTree>(avl);
+    };
+
+    BENCHMARK("red black random_remove")
+    {
+        return leviathan::remove_test<RedBlackTree>(rb);
+    };
+
+    BENCHMARK("stl set random_remove")
+    {
+        return leviathan::remove_test<STLRedBlackTree>(stlrb);
+    };
+
+    BENCHMARK("treap random_remove")
+    {
+        return leviathan::remove_test<TreapTree>(treap);
+    };
+}
+
