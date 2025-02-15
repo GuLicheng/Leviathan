@@ -43,7 +43,7 @@ namespace leviathan::collections
         { this->clear(this->root); }
 
         
-        // left and right must be leagal or this routine will be undefined
+        // left and right must be legal or this routine will be undefined
         value_type query(const size_t left, const size_t right) 
         {
             return query(this->root, left, right);

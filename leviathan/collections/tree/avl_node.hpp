@@ -8,7 +8,7 @@
 namespace leviathan::collections
 {
     
-struct avl_node : public basic_tree_node_operation, public binary_node_operation
+struct avl_node : public binary_node_operation
 {
     static constexpr int balance_factor = 2;
 
@@ -159,6 +159,7 @@ struct avl_node : public basic_tree_node_operation, public binary_node_operation
 
             parent = x->parent();
         }
+        
         parent->avl_tree_rebalance_erase(header);
     }
 
@@ -264,46 +265,15 @@ struct avl_node : public basic_tree_node_operation, public binary_node_operation
 
     void insert_and_rebalance(bool insert_left, avl_node* p, avl_node& header)
     {
-        auto x = this;
-
-        x->parent(p);
-        x->lchild(nullptr);
-        x->rchild(nullptr);
-        x->m_height = 1;
-
-        if (insert_left)
-        {
-            p->lchild(x);
-
-            if (p == &header)
-            {
-                header.parent(x);
-                header.rchild(x);
-            }
-            else if (p == header.lchild())
-            {
-                header.lchild(x);
-            }
-        }
-        else
-        {
-            p->rchild(x);
-
-            if (p == header.rchild())
-            {
-                header.rchild(x);
-            }
-        }
-
-        // rebalance
-        x->avl_tree_rebalance_insert(&header);
+        assert(this->m_height == 1 && "The node should be a leaf node");
+        this->insert_node_and_update_header(insert_left, p, header);
+        this->avl_tree_rebalance_insert(&header);
     }
 
     avl_node* rebalance_for_erase(avl_node& header)
     {
-        auto z = this;
-        z->erase_node(&header);
-        return z;
+        this->erase_node(&header);
+        return this;
     }
     
 };

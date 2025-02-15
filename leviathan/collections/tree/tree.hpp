@@ -42,16 +42,22 @@ concept node = requires (Node* n, const Node* cn, bool insert_left, Node& header
  * and balancing operations are done by Node.
  * 
  * We use Node as our header type which contains at least three points link
- * parent, left child and right child separately, to enable constant time begin(),
- * to the leftmost node of the tree, and to enable linear time performance when
- * used with generic set algorithms (set_union, etc...). For empty tree, the left 
- * child and right child of header link to itself and parent is null.
+ * parent, left child and right child separately. The actually tree node should
+ * inherit from Node with value filed. The value field is used to store the actual
+ * data. The Node should provide some basic operations include clone, init, 
+ * as_empty_tree_header, is_header, insert_and_rebalance and rebalance_for_erase. 
  * 
- * When a node being deleted has two children its successor node is relinked into
- * its place, rather than copied or moved so that the only iterators invalidated
- * are those referring to the deleted node.
+ * To enable constant time begin(), to the leftmost node of the tree, and to enable 
+ * linear time performance when used with generic set algorithms(set_union, etc...). 
+ * For empty tree, the left child and right child of header link to itself and parent is null.
  * 
- * For root node(if exist), its parent always link header.
+ * For delete operation, no elements are copied or moved, only the internal pointers 
+ * of the container nodes are repointed.
+ * 
+ * For root node(if exist), its parent always link header. It means for all nodes(except header)
+ * in tree, their parent will never not null, and the parent of header can be nullptr
+ * if and only if the tree is empty. So our operation can be simplified since we can
+ * always assume the parent is not null.
  * 
  * @tparam KeyValue Extractor extract key from value. identity<T> for set and select1st<K, V> for map
  * @tparam Compare Compare Key comparison function object
@@ -782,10 +788,7 @@ protected:
 
             auto [p, insert_left] = get_insert_pos(keys(x));
             
-            x->init();
-            x->lchild(nullptr);
-            x->rchild(nullptr);
-            x->parent(nullptr);
+            reset_node(x);
             insert_node(insert_left, p, x);
         }
     }
@@ -800,10 +803,7 @@ protected:
         {
             // unlink and reset the node   
             node->rebalance_for_erase(m_header);
-            node->parent(nullptr);
-            node->lchild(nullptr);
-            node->rchild(nullptr);
-            node->init();
+            reset_node(node);
             --m_size;
             return node_type(static_cast<tree_node*>(node), m_alloc);
         }
@@ -1137,10 +1137,7 @@ protected:
 
         try
         {
-            node->parent(nullptr);
-            node->lchild(nullptr);
-            node->rchild(nullptr);
-            node->init();
+            reset_node(node);
             node_alloc_traits::construct(alloc, node->value_ptr(), (Args&&)args...);
         }
         catch (...)
@@ -1181,6 +1178,15 @@ protected:
     {
         node_allocator alloc(m_alloc);
         node_alloc_traits::deallocate(alloc, node, 1);
+    }
+
+    // Reset node
+    void reset_node(node_base* node)
+    {
+        node->parent(nullptr);
+        node->lchild(nullptr);
+        node->rchild(nullptr);
+        node->init();
     }
 
 public:

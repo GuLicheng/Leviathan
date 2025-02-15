@@ -9,7 +9,7 @@ namespace leviathan::collections
 {
 
 template <typename RandomEngine = std::mt19937, typename SeedGenerator = std::random_device>
-struct treap_node : basic_tree_node_operation, binary_node_operation
+struct treap_node : binary_node_operation
 {
     static_assert(std::is_unsigned_v<typename RandomEngine::result_type>);
 
@@ -55,33 +55,8 @@ struct treap_node : basic_tree_node_operation, binary_node_operation
 
     void insert_and_rebalance(bool insert_left, treap_node* p, treap_node& header)
     {
-        auto x = this;
-
-        x->parent(p);
-        x->lchild(nullptr);
-        x->rchild(nullptr);
-
-        if (insert_left)
-        {
-            p->lchild(x);
-            if (p == &header)
-            {
-                header.parent(x);
-                header.rchild(x);
-            }
-            else if (p == header.lchild())
-            {
-                header.lchild(x);
-            }
-        }
-        else
-        {
-            p->rchild(x);
-            if (p == header.rchild())
-            {
-                header.rchild(x);
-            }
-        }
+        assert(this->m_priority != RandomEngine::max() && "The node should not be header");
+        this->insert_node_and_update_header(insert_left, p, header);
 
         // Rebalance
         while (x->m_priority > x->parent()->m_priority)

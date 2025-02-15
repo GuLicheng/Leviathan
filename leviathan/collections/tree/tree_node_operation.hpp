@@ -12,10 +12,7 @@
 namespace leviathan::collections
 {
 
-/**
- * We introduce a parent node to make traverse easier 
- * and more efficient.
-*/
+// The operation is based on tree.hpp
 struct basic_tree_node_operation
 {
     template <typename Node>
@@ -36,6 +33,7 @@ struct basic_tree_node_operation
         return self.m_link[2];
     }
 
+    // The std::type_identity_t is used to avoid ambiguity for nullptr.
     template <typename Node>
     void parent(this Node& self, std::type_identity_t<Node>* node)
     {
@@ -55,11 +53,8 @@ struct basic_tree_node_operation
     }
 };
 
-/**
- * We introduce a parent node to make traverse easier 
- * and more efficient.
-*/
-struct binary_node_operation 
+// The operation is based on tree.hpp
+struct binary_node_operation : basic_tree_node_operation
 {
     // Return rightmost of binary node.
     template <typename Node>
@@ -159,8 +154,6 @@ struct binary_node_operation
 
         y->parent(x->parent());
 
-        // x->parent will never be nullptr, since header->parent == root 
-        // and root->parent == header
         if (x == root)
         {
             root = y;
@@ -177,7 +170,6 @@ struct binary_node_operation
         y->lchild(x);
         x->parent(y);
     }
-
 
     /*
     *     x        y                   
@@ -199,8 +191,6 @@ struct binary_node_operation
 
         y->parent(x->parent());
 
-        // x->parent will never be nullptr, since header->parent == root 
-        // and root->parent == header
         if (x == root)
         {
             root = y;
@@ -218,6 +208,42 @@ struct binary_node_operation
         x->parent(y);
     }
 
+    // Insert node to binary tree and update header.
+    template <typename Node>
+    void insert_node_and_update_header(this Node& self, bool insert_left, Node* parent, Node& header)
+    {
+        auto x = std::addressof(self);
+        auto& [root, leftmost, rightmost] = header.m_link; 
+
+        x->parent(parent);
+
+        if (insert_left)
+        {
+            parent->lchild(x);
+
+            if (parent == &header)
+            {
+                root = rightmost = x;
+            }
+            else if (parent == leftmost)
+            {
+                leftmost = x;
+            }
+        }
+        else
+        {
+            parent->rchild(x);
+
+            if (parent == rightmost)
+            {
+                rightmost = x;
+            }
+        }
+    }
+
+    // Remove node
+    template <typename Node>
+    void replace_node_with_successor(this Node& self, Node& header);
 };
 
 }
