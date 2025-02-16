@@ -2,57 +2,87 @@
 #include <format>
 #include <iostream>
 #include <numbers>
+#include <random>
 #include <leviathan/collections/tree/avl_tree.hpp>
 #include <leviathan/collections/tree/treap.hpp>
 
+using namespace leviathan::collections;
+using T = leviathan::collections::avl_treeset<int>;
+T random_tree;
 
-void CHECK(auto& t, auto expected, auto actual)
+struct HeightChecker
 {
-    if (expected != actual)
-    {
-        std::cout << "CHECK failed" << std::endl;
+    bool IsBalanced(avl_node* root) const {
+        if (root == nullptr) return true;
+
+        using std::abs;
+        return abs(Depth(root->lchild()) - Depth(root->rchild())) <= 1 &&
+               IsBalanced(root->lchild()) && 
+               IsBalanced(root->rchild());
     }
 
-    std::cout << t.draw() << std::endl;
-}
-
-void CHECK(auto& t, bool b)
-{
-    if (!b)
-    {
-        std::cout << "CHECK failed" << std::endl;
+    int Depth(avl_node* root) const {
+        if (root == nullptr) return 0;
+        return std::max(Depth(root->lchild()), Depth(root->rchild())) + 1;
     }
-    std::cout << t.draw() << std::endl;
-}
 
+    void operator()(avl_node* p) const
+    {
+        REQUIRE(IsBalanced(p));
+    }
+
+    void REQUIRE(bool b) const
+    {
+        if (!b)
+        {
+            std::cout << "Current tree: \n" << random_tree.draw() << std::endl;
+            exit(1);
+        }
+    }
+
+    void operator()(avl_node* p, bool) const
+    {
+        if (p)
+        {
+            this->operator()(p->lchild());
+            this->operator()(p->rchild());
+
+            int lh = avl_node::height(p->lchild());
+            int rh = avl_node::height(p->rchild());
+            REQUIRE(p->m_height == std::max(lh, rh) + 1);
+        }
+    }
+};
 
 int main()
 {
-    using T = leviathan::collections::tree_set<leviathan::collections::debug_treap_node, int>;
     
-    T treap;
+    // T t;
 
-    // T t1 = { 1, 2 };
-    T t1;
-    T t2 = { 1, 2, 3, 4, 5 };
+    // static std::random_device rd;
+    // int x;
+    // std::cin >> x;
+    // std::mt19937 rd(x);
+    std::mt19937 rd(5);
 
-    t1.merge(t2);
+    for (auto i = 0; i < 15; ++i) 
+        random_tree.insert(rd() % 100);
 
-    std::cout << t1.draw() << std::endl;
+    std::cout << "Current tree: \n" << random_tree.draw() << std::endl;
 
-    // CHECK(t1, t1.size(), 5);
-    // CHECK(t1, t2.size(), 2);
+    for (auto i = 0; i < 15; ++i) 
+    {
+        auto x = rd() % 100;
+        if (random_tree.contains(x))
+        {
+            std::cout << "remove " << x << std::endl;
+            random_tree.erase(x);
+            std::cout << "Current tree: \n" << random_tree.draw() << std::endl;
+            HeightChecker()(random_tree.header()->parent());
+        }
+    }
 
-    // CHECK(t1, t1.contains(1));
-    // CHECK(t1, t1.contains(2));
-    // CHECK(t1, t1.contains(3));
-    // CHECK(t1, t1.contains(4));
-    // CHECK(t1, t1.contains(5));
+    std::cout << "OK" << std::endl;
 
-    // CHECK(t2, t2.contains(1));
-    // CHECK(t2, t2.contains(2));
-    // CHECK(t2, !t2.contains(3));
-    // CHECK(t2, !t2.contains(4));
-    // CHECK(t2, !t2.contains(5));
-
+    return 0;
 }

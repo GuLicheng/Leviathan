@@ -217,6 +217,7 @@ struct binary_node_operation : basic_tree_node_operation
 
         x->parent(parent);
 
+        // First node is always inserted left.
         if (insert_left)
         {
             parent->lchild(x);
@@ -241,9 +242,231 @@ struct binary_node_operation : basic_tree_node_operation
         }
     }
 
-    // Remove node
+    // Replace node with successor and return successor.
     template <typename Node>
-    void replace_node_with_successor(this Node& self, Node& header);
+    std::array<Node*, 3> replace_node_with_successor2(this Node& self, Node& header)
+    {
+        auto x = std::addressof(self);
+        auto& [root, leftmost, rightmost] = header.m_link;
+        Node* successor = x;
+        Node* child = nullptr;
+        Node* child_parent = nullptr;
+
+        if (!successor->lchild())
+        {
+            // If current node has no left child, it has at most one non-null child.
+            // The child may be nullptr.
+            child = successor->rchild();
+        }
+        else if (!successor->rchild())
+        {
+            // If current node has no right child, it has exactly one non-null child.
+            // The child cannot be nullptr. 
+            child = successor->lchild();
+        }
+        else
+        {
+            // If current node has both children, find successor.
+            // The successor cannot be nullptr. 
+            successor = successor->rchild()->minimum();
+
+            // The child may be nullptr.
+            child = successor->rchild();
+        }
+
+        if (successor != x)
+        {
+            // Relink successor in place of successor.
+            x->lchild()->parent(successor);
+            successor->lchild(x->lchild());
+
+            if (successor != x->rchild())
+            {
+                child_parent = successor->parent();
+
+                if (child)
+                {
+                    child->parent(successor->parent());
+                }
+
+                successor->parent()->lchild(child);
+                successor->rchild(x->rchild());
+                x->rchild()->parent(successor);
+            }
+            else
+            {
+                // The x only has left child.
+                child_parent = successor;
+            }
+
+            if (x == root)
+            {
+                root = successor;
+            }
+            else if (x == x->parent()->lchild())
+            {
+                x->parent()->lchild(successor);
+            }
+            else
+            {
+                x->parent()->rchild(successor);
+            }
+
+            successor->parent(x->parent());
+            // std::swap(successor->m_color, x->m_color);
+            // successor = x;
+        }
+        else
+        {
+            // The x is left node or just has one child.
+            child_parent = successor->parent();
+
+            if (child)
+            {
+                child->parent(successor->parent());
+            }
+
+            if (root == x)
+            {
+                root = child;
+            }
+            else if (x == x->parent()->lchild())
+            {
+                x->parent()->lchild(child);
+            }
+            else
+            {
+                x->parent()->rchild(child);
+            }
+
+            // Maintain the leftmost
+            if (x == leftmost)
+            {
+                // The x is leaf node or only has right child.
+                leftmost = x->rchild() ? x->parent() : successor->minimum();
+            }
+
+            // Maintain the rightmost
+            if (x == rightmost)
+            {
+                // The x is leaf node or only has left child.
+                rightmost = x->lchild() ? x->parent() : successor->maximum();
+            }
+        }
+
+        return { successor, child, child_parent };
+    }
+
+#if 0
+    template <typename Node>
+    std::array<Node*, 3> replace_node_with_successor(this Node& self, Node& header)
+    {
+        auto x = std::addressof(self);
+        auto& [root, leftmost, rightmost] = header.m_link;
+
+        Node* child = nullptr;
+        Node* parent = nullptr; // for rebalance
+
+        if (x->lchild() && x->rchild())
+        {
+            auto successor = x->rchild()->minimum();
+            child = successor->rchild();
+            parent = successor->parent();
+
+            if (child)
+            {
+                child->parent(parent);
+            }
+
+            successor->parent()->lchild() == successor 
+                ? successor->parent()->lchild(child)
+                : successor->parent()->rchild(child);
+
+            if (successor->parent() == x)
+            {
+                parent = successor;
+            }
+            
+            successor->lchild(x->lchild());
+            successor->rchild(x->rchild());
+            successor->parent(x->parent());
+            // successor->m_height = x->m_height;
+        
+            if (x == root)
+            {
+                root = successor;
+            }
+            else
+            {
+                x->parent()->lchild() == x 
+                    ? x->parent()->lchild(successor)
+                    : x->parent()->rchild(successor);
+            }
+
+            x->lchild()->parent(successor);
+
+            if (x->rchild())
+            {
+                x->rchild()->parent(successor);
+            }
+        }
+        else
+        {
+            // update leftmost or rightmost
+            if (!x->lchild() && !x->rchild())
+            {
+                // leaf, such as just one root
+                if (x == leftmost)
+                {
+                    leftmost = x->parent();
+                }
+                if (x == rightmost)
+                {
+                    rightmost = x->parent();
+                }
+            }
+            else if (x->lchild())
+            {
+                // only left child
+                child = x->lchild();
+                if (x == rightmost)
+                {
+                    rightmost = child->maximum();
+                }
+            }
+            else
+            {
+                // only right child
+                child = x->rchild();
+                if (x == leftmost)
+                {
+                    leftmost = child->minimum();
+                }
+            }
+
+            if (child)
+            {
+                child->parent(x->parent());
+            }
+            if (x == root)
+            {
+                root = child;
+            }
+            else
+            {
+                x->parent()->lchild() == x 
+                    ? x->parent()->lchild(child)
+                    : x->parent()->rchild(child);
+            }
+
+            parent = x->parent();
+        }
+
+        return { nullptr, child, parent };
+    }
+
+
+#endif
 };
 
 }

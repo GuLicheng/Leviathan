@@ -61,11 +61,13 @@ TEST_CASE("treap_priority_test")
 
     PriorityChecker()(treap.header()->parent());
 
-    Tree<int> random_tree;
-    static std::random_device rd;
-    for (auto i = 0; i < 1024; ++i) 
-        random_tree.insert(rd() % 10240);
-    PriorityChecker()(random_tree.header()->parent());
+    // Tree<int> random_tree;
+    // static std::random_device rd;
+    // for (auto i = 0; i < 1024; ++i) 
+    //     random_tree.insert(rd() % 10240);
+    // PriorityChecker()(random_tree.header()->parent());
+
+    CheckTree(PriorityChecker());
 }
 
 

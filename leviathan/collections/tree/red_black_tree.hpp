@@ -1,6 +1,6 @@
 #pragma once
 
-#include "red_black_node.hpp"
+#include "red_black_node_from_stlibc++.hpp"
 #include "tree.hpp"
 
 namespace leviathan::collections

@@ -4,6 +4,7 @@
 #include <catch2/catch_all.hpp>
 #include <leviathan/collections/tree/avl_tree.hpp>
 #include <leviathan/collections/tree/red_black_tree.hpp>
+// #include <leviathan/collections/tree/red_black_node_from_stlibc++.hpp>
 #include <leviathan/collections/tree/treap.hpp>
 #include "random_range.hpp"
 
@@ -120,7 +121,6 @@ TEST_CASE("duplicate_collections_random_search")
 
     BENCHMARK("avl random_search")
     {
-    leviathan::random_insert(avl, rb, stlrb, treap);
         return leviathan::search_test<AVLTree>(avl);
     };
 

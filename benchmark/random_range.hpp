@@ -12,10 +12,10 @@ namespace leviathan
     {
         inline static std::random_device rd;
 
-        int m_num = 1e8;
-        int m_max = 1e9;
+        int m_num = 1e7;
+        int m_max = 1e8;
 
-        random_range(int num = 1e8, int maxn = 100) : m_num(num), m_max(maxn) { }
+        random_range(int num = 1e6, int maxn = 1e8) : m_num(num), m_max(maxn) { }
 
         static std::vector<std::string> read_context(const char* file = "a.txt")
         {

@@ -61,7 +61,26 @@ TEST_CASE("avl_tree_height_test")
 
     struct HeightChecker
     {
+        bool IsBalanced(avl_node* root) const {
+            if (root == nullptr) return true;
+
+            using std::abs;
+            return abs(Depth(root->lchild()) - Depth(root->rchild())) <= 1 &&
+                   IsBalanced(root->lchild()) && 
+                   IsBalanced(root->rchild());
+        }
+
+        int Depth(avl_node* root) const {
+            if (root == nullptr) return 0;
+            return std::max(Depth(root->lchild()), Depth(root->rchild())) + 1;
+        }
+
         void operator()(avl_node* p) const
+        {
+            REQUIRE(IsBalanced(p));
+        }
+
+        void operator()(avl_node* p, bool) const
         {
             if (p)
             {
@@ -90,11 +109,13 @@ TEST_CASE("avl_tree_height_test")
     single_element_tree.insert(1);
     REQUIRE(single_element_tree.header()->parent()->m_height == 1);
 
-    Tree<int> random_tree;
-    static std::random_device rd;
-    for (auto i = 0; i < 1024; ++i) 
-        random_tree.insert(rd() % 10240);
-    HeightChecker()(random_tree.header()->parent());
+    // Tree<int> random_tree;
+    // static std::random_device rd;
+    // for (auto i = 0; i < 1024; ++i) 
+    //     random_tree.insert(rd() % 10240);
+    // HeightChecker()(random_tree.header()->parent());
+
+    CheckTree(HeightChecker());
 
     // Logger::WriteMessage(avl.draw().c_str());
 }

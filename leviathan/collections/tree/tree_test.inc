@@ -9,6 +9,26 @@
 
 using namespace leviathan::collections;
 
+template <typename Checker>
+void CheckTree(Checker checker)
+{
+    Tree<int> random_tree;
+    static std::random_device rd;
+    for (auto i = 0; i < 1024; ++i) 
+    {
+        random_tree.insert(rd() % 10240);
+    }
+    
+    checker(random_tree.header()->parent());
+
+    for (auto i = 0; i < 1024; ++i) 
+    {
+        random_tree.erase(rd() % 10240);
+    }
+    
+    checker(random_tree.header()->parent());
+}
+
 struct Logger
 {
     inline static std::string messages;

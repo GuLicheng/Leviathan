@@ -59,6 +59,8 @@ struct treap_node : binary_node_operation
         this->insert_node_and_update_header(insert_left, p, header);
 
         // Rebalance
+        auto x = this;
+        
         while (x->m_priority > x->parent()->m_priority)
         {
             auto y = x->parent();

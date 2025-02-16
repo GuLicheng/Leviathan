@@ -159,11 +159,11 @@ struct avl_node : public binary_node_operation
 
             parent = x->parent();
         }
-        
+
         parent->avl_tree_rebalance_erase(header);
     }
 
-    void avl_tree_fix_l(avl_node* header)
+    avl_node* avl_tree_fix_l(avl_node* header)
     {
         auto x = this;
         auto r = x->rchild();
@@ -180,9 +180,10 @@ struct avl_node : public binary_node_operation
         x->rotate_left(header->parent());
         x->update_height();
         x->parent()->update_height();
+        return x->parent();
     }
 
-    void avl_tree_fix_r(avl_node* header)
+    avl_node* avl_tree_fix_r(avl_node* header)
     {
         auto x = this;
         auto l = x->lchild();
@@ -199,6 +200,7 @@ struct avl_node : public binary_node_operation
         x->rotate_right(header->parent());
         x->update_height();
         x->parent()->update_height();
+        return x->parent();
     }
 
     void avl_tree_rebalance_insert(avl_node* header)
@@ -211,7 +213,7 @@ struct avl_node : public binary_node_operation
             int rh = height(x->rchild());
             int h = std::max(lh, rh) + 1;
 
-            if (height(x) == h) 
+            if (x->m_height == h) 
             {
                 break;
             }
@@ -239,9 +241,8 @@ struct avl_node : public binary_node_operation
         {
             int lh = height(x->lchild());
             int rh = height(x->rchild());
-            int h = std::max(lh, rh) + 1;
-            x->m_height = h;
             int diff = lh - rh;
+            int h = std::max(lh, rh) + 1;
             
             if (x->m_height != h)
             {
@@ -254,11 +255,11 @@ struct avl_node : public binary_node_operation
 
             if (diff <= -2)
             {
-                x->avl_tree_fix_l(header);
+                x = x->avl_tree_fix_l(header);
             }
-            else 
+            else if (diff >= 2)
             {
-                x->avl_tree_fix_r(header);
+                x = x->avl_tree_fix_r(header);
             }
         }
     }
@@ -266,12 +267,57 @@ struct avl_node : public binary_node_operation
     void insert_and_rebalance(bool insert_left, avl_node* p, avl_node& header)
     {
         assert(this->m_height == 1 && "The node should be a leaf node");
-        this->insert_node_and_update_header(insert_left, p, header);
+        // this->insert_node_and_update_header(insert_left, p, header);
+
+        auto x = this;
+        auto parent = p;
+        auto& [root, leftmost, rightmost] = header.m_link; 
+
+        x->parent(parent);
+
+        // First node is always inserted left.
+        if (insert_left)
+        {
+            parent->lchild(x);
+
+            if (parent == &header)
+            {
+                root = rightmost = x;
+            }
+            else if (parent == leftmost)
+            {
+                leftmost = x;
+            }
+        }
+        else
+        {
+            parent->rchild(x);
+
+            if (parent == rightmost)
+            {
+                rightmost = x;
+            }
+        }
+
         this->avl_tree_rebalance_insert(&header);
     }
 
     avl_node* rebalance_for_erase(avl_node& header)
     {
+        // auto [successor, child, child_parent] = this->replace_node_with_successor(header);
+
+        // if (successor != this)
+        // {
+        //     successor->m_height = m_height;
+        // }
+        // else
+        // {
+        //     child_parent = successor->parent();
+        // }
+
+        // child_parent->avl_tree_rebalance_erase(&header);
+        // return this;
+
         this->erase_node(&header);
         return this;
     }
