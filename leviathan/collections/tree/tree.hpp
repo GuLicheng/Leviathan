@@ -59,11 +59,11 @@ concept node = requires (Node* n, const Node* cn, bool insert_left, Node& header
  * if and only if the tree is empty. So our operation can be simplified since we can
  * always assume the parent is not null.
  * 
- * @tparam KeyValue Extractor extract key from value. identity<T> for set and select1st<K, V> for map
- * @tparam Compare Compare Key comparison function object
- * @tparam Allocator Allocator Type of the allocator object used to define the storage allocation model
- * @tparam UniqueKey True for set/map and False for multiset/multimap
- * @tparam Node Type of tree node with basic tree operations but value field
+ * @param KeyValue Extractor extract key from value. identity<T> for set and select1st<K, V> for map
+ * @param Compare Compare Key comparison function object
+ * @param Allocator Allocator Type of the allocator object used to define the storage allocation model
+ * @param UniqueKey True for set/map and False for multiset/multimap
+ * @param Node Type of tree node with basic tree operations but value field
 */
 template <typename KeyValue, typename Compare, typename Allocator, bool UniqueKey, typename Node>
 class tree : public row_drawer
@@ -1224,12 +1224,12 @@ public:
  * implement them in a common base class. The derived classes will only need to
  * implement the methods which not common to both set and map.
  *  
- * @tparam K Key type
- * @tparam V Value type
- * @tparam Compare Key comparison function object
- * @tparam Allocator Type of the allocator object used to define the storage allocation model
- * @tparam UniqueKey Whether the container is unique-key or multi-key
- * @tparam Node Type of tree node with basic tree operations but value field
+ * @param K Key type
+ * @param V Value type
+ * @param Compare Key comparison function object
+ * @param Allocator Type of the allocator object used to define the storage allocation model
+ * @param UniqueKey Whether the container is unique-key or multi-key
+ * @param Node Type of tree node with basic tree operations but value field
  */
 template <typename K, typename V, typename Compare, typename Allocator, bool UniqueKey, typename Node>
 class associative_tree : public tree<select1st<K, V>, Compare, Allocator, UniqueKey, Node>

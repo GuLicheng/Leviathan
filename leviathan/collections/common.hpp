@@ -200,8 +200,8 @@ auto rebind_allocator(Alloc& alloc)
  *      insert(*handle);
  *  }
  * 
- * @tparam T value type
- * @tparam Allocator allocator type
+ * @param T value type
+ * @param Allocator allocator type
 */
 template <typename T, typename Allocator>
 struct value_handle
@@ -241,8 +241,8 @@ struct value_handle
 /**
  * @brief A help class to generate map container's value_compare
  * 
- * @tparam Pair typename Container::value_type
- * @tparam Compare typename Container::key_compare
+ * @param Pair typename Container::value_type
+ * @param Compare typename Container::key_compare
  * 
  * E.g.
  *     struct value_compare : ordered_map_container_value_compare<value_type, Compare> 

@@ -203,36 +203,6 @@ struct avl_node : public binary_node_operation
         return x->parent();
     }
 
-    void avl_tree_rebalance_insert(avl_node* header)
-    {
-        auto x = this;
-
-        for (x = x->parent(); x != header; x = x->parent())
-        {
-            int lh = height(x->lchild());
-            int rh = height(x->rchild());
-            int h = std::max(lh, rh) + 1;
-
-            if (x->m_height == h) 
-            {
-                break;
-            }
-            
-            x->m_height = h;
-
-            int diff = lh - rh;
-
-            if (diff <= -2)
-            {
-                x->avl_tree_fix_l(header);
-            }
-            else if (diff >= 2)
-            {
-                x->avl_tree_fix_r(header);
-            }
-        }
-    }
-
     void avl_tree_rebalance_erase(avl_node* header)
     {
         auto x = this;
@@ -267,39 +237,33 @@ struct avl_node : public binary_node_operation
     void insert_and_rebalance(bool insert_left, avl_node* p, avl_node& header)
     {
         assert(this->m_height == 1 && "The node should be a leaf node");
-        // this->insert_node_and_update_header(insert_left, p, header);
+        this->insert_node_and_update_header(insert_left, p, header);
 
-        auto x = this;
-        auto parent = p;
-        auto& [root, leftmost, rightmost] = header.m_link; 
-
-        x->parent(parent);
-
-        // First node is always inserted left.
-        if (insert_left)
+        // Rebalance
+        for (auto x = this->parent(); x != &header; x = x->parent())
         {
-            parent->lchild(x);
+            int lh = height(x->lchild());
+            int rh = height(x->rchild());
+            int h = std::max(lh, rh) + 1;
 
-            if (parent == &header)
+            if (x->m_height == h) 
             {
-                root = rightmost = x;
+                break;
             }
-            else if (parent == leftmost)
+            
+            x->m_height = h;
+
+            int diff = lh - rh;
+
+            if (diff <= -2)
             {
-                leftmost = x;
+                x->avl_tree_fix_l(&header);
+            }
+            else if (diff >= 2)
+            {
+                x->avl_tree_fix_r(&header);
             }
         }
-        else
-        {
-            parent->rchild(x);
-
-            if (parent == rightmost)
-            {
-                rightmost = x;
-            }
-        }
-
-        this->avl_tree_rebalance_insert(&header);
     }
 
     avl_node* rebalance_for_erase(avl_node& header)

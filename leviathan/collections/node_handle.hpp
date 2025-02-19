@@ -21,7 +21,7 @@ namespace leviathan::collections
  * alignof(T) mutable unsigned char m_raw[sizeof(T)] = {};
  * https://en.cppreference.com/w/cpp/container/node_handle
  * 
- * @tparam NodeAllocator allocator type
+ * @param NodeAllocator allocator type
  */
 template <typename NodeAllocator>
 struct node_handle_base
@@ -146,8 +146,8 @@ struct node_handle;
 /**
  * @brief Node handle for value type
  * 
- * @tparam T value type
- * @tparam NodeAllocator allocator type
+ * @param T value type
+ * @param NodeAllocator allocator type
  */
 template <typename T, typename NodeAllocator>
 struct node_handle<identity<T>, NodeAllocator> : node_handle_base<NodeAllocator>
@@ -164,9 +164,9 @@ struct node_handle<identity<T>, NodeAllocator> : node_handle_base<NodeAllocator>
 /**
  * @brief Node handle for key-value pair
  * 
- * @tparam K key type
- * @tparam V value type
- * @tparam NodeAllocator allocator type
+ * @param K key type
+ * @param V value type
+ * @param NodeAllocator allocator type
  */
 template <typename K, typename V, typename NodeAllocator>
 struct node_handle<select1st<K, V>, NodeAllocator> : node_handle_base<NodeAllocator>

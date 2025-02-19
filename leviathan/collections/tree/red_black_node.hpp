@@ -55,6 +55,7 @@ struct red_black_node : binary_node_operation
         this->insert_node_and_update_header(insert_left, p, header);
 
         auto& root = header.parent();
+        auto x = this;
 
         // Rebalance
         while (x != root && x->parent()->m_color == color::red)

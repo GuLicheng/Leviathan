@@ -1,88 +1,85 @@
-#include <map>
-#include <format>
 #include <iostream>
-#include <numbers>
-#include <random>
-#include <leviathan/collections/tree/avl_tree.hpp>
-#include <leviathan/collections/tree/treap.hpp>
+#include <queue>
+#include <ranges>
+#include <algorithm>
+#include <string_view>
+#include <format>
+#include <string>
 
-using namespace leviathan::collections;
-using T = leviathan::collections::avl_treeset<int>;
-T random_tree;
+#include "leviathan/algorithm/heap.hpp"
 
-struct HeightChecker
+template <typename Fn>
+void test1(Fn fn)
 {
-    bool IsBalanced(avl_node* root) const {
-        if (root == nullptr) return true;
+    std::vector<int> vec = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
-        using std::abs;
-        return abs(Depth(root->lchild()) - Depth(root->rchild())) <= 1 &&
-               IsBalanced(root->lchild()) && 
-               IsBalanced(root->rchild());
-    }
+    fn(vec.begin(), vec.end());
 
-    int Depth(avl_node* root) const {
-        if (root == nullptr) return 0;
-        return std::max(Depth(root->lchild()), Depth(root->rchild())) + 1;
-    }
-
-    void operator()(avl_node* p) const
+    for (auto i : vec)
     {
-        REQUIRE(IsBalanced(p));
+        std::cout << i << " ";
     }
+    std::cout << std::format("   Is heap?: {}\n", std::is_heap(vec.begin(), vec.end()));
+}
 
-    void REQUIRE(bool b) const
-    {
-        if (!b)
-        {
-            std::cout << "Current tree: \n" << random_tree.draw() << std::endl;
-            exit(1);
-        }
-    }
-
-    void operator()(avl_node* p, bool) const
-    {
-        if (p)
-        {
-            this->operator()(p->lchild());
-            this->operator()(p->rchild());
-
-            int lh = avl_node::height(p->lchild());
-            int rh = avl_node::height(p->rchild());
-            REQUIRE(p->m_height == std::max(lh, rh) + 1);
-        }
-    }
-};
-
-int main()
+template <typename Fn>
+void test2(Fn fn)
 {
-    
-    // T t;
+    std::vector<int> vec = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    std::vector<int> vec2;
 
-    // static std::random_device rd;
-    // int x;
-    // std::cin >> x;
-    // std::mt19937 rd(x);
-    std::mt19937 rd(5);
-
-    for (auto i = 0; i < 15; ++i) 
-        random_tree.insert(rd() % 100);
-
-    std::cout << "Current tree: \n" << random_tree.draw() << std::endl;
-
-    for (auto i = 0; i < 15; ++i) 
+    // fn(vec.begin(), vec.end());
+    for (auto i : vec)
     {
-        auto x = rd() % 100;
-        if (random_tree.contains(x))
-        {
-            std::cout << "remove " << x << std::endl;
-            random_tree.erase(x);
-            std::cout << "Current tree: \n" << random_tree.draw() << std::endl;
-            HeightChecker()(random_tree.header()->parent());
-        }
+        vec2.push_back(i);
+        fn(vec2.begin(), vec2.end());
     }
 
-    std::cout << "OK" << std::endl;
+    for (auto i : vec2)
+    {
+        std::cout << i << " ";
+    }
+    std::cout << std::format("   Is heap?: {}\n", std::is_heap(vec2.begin(), vec2.end()));
+}
+
+template<class I = int*>
+void print(std::string_view rem, I first = {}, I last = {},
+           std::string_view term = "\n")
+{
+    for (std::cout << rem; first != last; ++first)
+        std::cout << *first << ' ';
+    std::cout << term;
+}
+
+template <typename Fn>
+void test3(Fn fn)
+{
+    std::array v{3, 1, 4, 1, 5, 9, 2, 6, 5, 3};
+    // std::array v{ 2, 4, 6, 3, 9, 8, 5, 1, 9 };
+    print("initially, v: ", v.cbegin(), v.cend());
+ 
+    std::ranges::make_heap(v);
+    print("make_heap, v: ", v.cbegin(), v.cend());
+ 
+    print("convert heap into sorted array:");
+    for (auto n {std::ssize(v)}; n >= 0; --n)
+    {
+        // std::ranges::pop_heap(v.begin(), v.begin() + n);
+        fn(v.begin(), v.begin() + n);
+        print("[ ", v.cbegin(), v.cbegin() + n, "]  ");
+        print("[ ", v.cbegin() + n, v.cend(), "]\n");
+    }
+}
+
+int main(int argc, char const *argv[])
+{
+    test2([](auto first, auto last) {
+        leviathan::algorithm::nd_heap_fn<2>::push_heap(std::ranges::subrange(first, last));
+    });
+
+    test2([](auto first, auto last) {
+        std::ranges::push_heap(std::ranges::subrange(first, last));
+    });
 
     return 0;
 }
