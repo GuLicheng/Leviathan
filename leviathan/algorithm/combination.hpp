@@ -125,19 +125,19 @@ using next_combination_result = std::ranges::in_found_result<Iter>;
 inline constexpr struct 
 {
     template <std::bidirectional_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity>
-    requires std::sortable<I, Comp, Proj>
-    constexpr next_combination_result<I> operator()(I first, I middle, S last, Comp comp = {}, Proj proj = {}) const
+        requires std::sortable<I, Comp, Proj>
+    static constexpr next_combination_result<I> operator()(I first, I middle, S last, Comp comp = {}, Proj proj = {}) 
     {
         auto tail = std::ranges::next(first, last);
         return { tail, detail::combination_impl(first, middle, tail, algorithm::detail::make_comp_proj(comp, proj)) };
     } 
 
     template <std::ranges::bidirectional_range R, typename Comp = std::ranges::less, typename Proj = std::identity>
-    requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
-    constexpr next_combination_result<std::ranges::borrowed_iterator_t<R>>
-    operator()(R&& r, std::ranges::iterator_t<R> middle, Comp comp = {}, Proj proj = {}) const
+        requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
+    static constexpr next_combination_result<std::ranges::borrowed_iterator_t<R>>
+    operator()(R&& r, std::ranges::iterator_t<R> middle, Comp comp = {}, Proj proj = {}) 
     {
-        return (*this)(std::ranges::begin(r), std::move(middle), std::ranges::end(r),
+        return operator()(std::ranges::begin(r), std::move(middle), std::ranges::end(r),
                 std::move(comp), std::move(proj));
     }
 } next_combination;
@@ -148,19 +148,19 @@ using prev_combination_result = std::ranges::in_found_result<Iter>;
 inline constexpr struct 
 {
     template <std::bidirectional_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::greater, typename Proj = std::identity>
-    requires std::sortable<I, Comp, Proj>
-    constexpr prev_combination_result<I> operator()(I first, I middle, S last, Comp comp = {}, Proj proj = {}) const
+        requires std::sortable<I, Comp, Proj>
+    static constexpr prev_combination_result<I> operator()(I first, I middle, S last, Comp comp = {}, Proj proj = {}) 
     {
         auto tail = std::ranges::next(first, last);
         return { tail, detail::combination_impl(first, tail, detail::make_comp_proj(comp, proj)) };
     } 
 
     template <std::ranges::bidirectional_range R, typename Comp = std::ranges::greater, typename Proj = std::identity>
-    requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
-    constexpr prev_combination_result<std::ranges::borrowed_iterator_t<R>>
-    operator()(R&& r, std::ranges::iterator_t<R> middle, Comp comp = {}, Proj proj = {}) const
+        requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
+    static constexpr prev_combination_result<std::ranges::borrowed_iterator_t<R>>
+    operator()(R&& r, std::ranges::iterator_t<R> middle, Comp comp = {}, Proj proj = {}) 
     {
-        return (*this)(std::ranges::begin(r), std::move(middle), std::ranges::end(r),
+        return operator()(std::ranges::begin(r), std::move(middle), std::ranges::end(r),
                 std::move(comp), std::move(proj));
     }
 } prev_combination;

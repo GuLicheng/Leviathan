@@ -78,3 +78,12 @@ TEST_CASE("binary pop heap")
     }
 }
 
+TEST_CASE("binary heap sort")
+{
+    auto v = RandomSequence(1000);
+    BinaryMaxHeapFunction::make_heap(v);
+    BinaryMaxHeapFunction::sort_heap(v);
+    CHECK(std::is_sorted(v.begin(), v.end()));
+    CHECK(CheckStringIsNotEmpty(v));
+}
+

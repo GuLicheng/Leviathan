@@ -149,15 +149,13 @@ private:
                 RandomAccessIterator upper = first + std::min(i + DifferenceType(Arity), size);
                 RandomAccessIterator max_child = std::max_element(lower, upper, std::ref(comp));
     
-                if (comp(hold_value, *max_child))
-                {
-                    *(first + index) = std::move(*max_child);
-                    index = std::distance(first, max_child);
-                }
-                else
+                if (!comp(hold_value, *max_child))
                 {
                     break;
                 }
+
+                *(first + index) = std::move(*max_child);
+                index = std::distance(first, max_child);
             }
 
             first[index] = std::move(hold_value);
