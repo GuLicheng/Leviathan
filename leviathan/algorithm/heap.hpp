@@ -101,6 +101,27 @@ struct nd_heap_fn
         return is_heap(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj));
     }
 
+    template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity>
+        requires std::sortable<I, Comp, Proj>
+    static constexpr I sort_heap(I first, S last, Comp comp = {}, Proj proj = {})
+    {
+        auto ret = std::ranges::next(first, last);
+        
+        for (; first != last; --last)
+        {
+            pop_heap(first, last, comp, proj);
+        }
+
+        return ret;
+    }
+
+    template <std::ranges::random_access_range R, typename Comp = std::ranges::less, typename Proj = std::identity>
+        requires std::sortable<std::ranges::iterator_t<R>, Comp, Proj>
+    static constexpr std::ranges::borrowed_iterator_t<R> sort_heap(R&& r, Comp comp = {}, Proj proj = {}) 
+    {
+        return sort_heap(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj));
+    }
+
 private:
 
     // Helpers
@@ -108,6 +129,7 @@ private:
     static constexpr RandomAccessIterator make_heap_impl(RandomAccessIterator first, RandomAccessIterator last, Comp comp)
     {
         using DifferenceType = std::iter_difference_t<RandomAccessIterator>;
+        using ValueType = std::iter_value_t<RandomAccessIterator>;
 
         DifferenceType size = std::distance(first, last);
         
@@ -115,22 +137,21 @@ private:
         {
             return last;  // Only one node. It is already a heap.
         }
-
-        DifferenceType last_parent_with_child = (size - 1) >> log2_arity;
         
-        for (DifferenceType index = last_parent_with_child; index >= DifferenceType(0); --index)
+        for (DifferenceType index = (size - 1) >> log2_arity; index >= DifferenceType(0); --index)
         {
             DifferenceType i;
+            ValueType hold_value = std::move(*(first + index));
 
             while ((i = (index << log2_arity) + 1) < size)
             {
-                RandomAccessIterator child = first + i;
-                RandomAccessIterator max_child = std::max_element(child, std::min(first + i + Arity, first + size), std::ref(comp));
-                RandomAccessIterator parent = first + index;
+                RandomAccessIterator lower = first + i;
+                RandomAccessIterator upper = first + std::min(i + DifferenceType(Arity), size);
+                RandomAccessIterator max_child = std::max_element(lower, upper, std::ref(comp));
     
-                if (comp(*parent, *max_child))
+                if (comp(hold_value, *max_child))
                 {
-                    std::iter_swap(parent, max_child);
+                    *(first + index) = std::move(*max_child);
                     index = std::distance(first, max_child);
                 }
                 else
@@ -138,6 +159,8 @@ private:
                     break;
                 }
             }
+
+            first[index] = std::move(hold_value);
         }
 
         return last;
