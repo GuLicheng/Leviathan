@@ -106,10 +106,12 @@ struct nd_heap_fn
     static constexpr I sort_heap(I first, S last, Comp comp = {}, Proj proj = {})
     {
         auto ret = std::ranges::next(first, last);
-        
+
         for (; first != last; --last)
         {
-            pop_heap(first, last, comp, proj);
+            // pop_heap(first, last, comp, proj);
+            // pop_heap_impl(first, last, detail::ref_or_value(cp));
+            pop_heap_impl(first, last, comp);
         }
 
         return ret;
@@ -141,7 +143,7 @@ private:
         for (DifferenceType index = (size - 1) >> log2_arity; index >= DifferenceType(0); --index)
         {
             DifferenceType i;
-            ValueType hold_value = std::move(*(first + index));
+            ValueType hold_value = first[index];
 
             while ((i = (index << log2_arity) + 1) < size)
             {
@@ -154,7 +156,7 @@ private:
                     break;
                 }
 
-                *(first + index) = std::move(*max_child);
+                first[index] = std::move(*max_child);
                 index = std::distance(first, max_child);
             }
 
@@ -179,10 +181,10 @@ private:
 
         DifferenceType hold_index = size - 1;
         DifferenceType parent_index = (hold_index - 1) >> log2_arity;
-        ValueType hold_value = std::move(*(first + hold_index));
+        ValueType hold_value = std::move(first[hold_index]);
 
         // The parent < hold
-        while (hold_index != 0 && comp(*(first + parent_index), hold_value)) 
+        while (hold_index != 0 && comp(first[parent_index], hold_value)) 
         {
             first[hold_index] = std::move(first[parent_index]);
             hold_index = parent_index;
@@ -220,7 +222,16 @@ private:
             DifferenceType upper_child_index = lower_child_index + Arity;
             RandomAccessIterator lower = first + lower_child_index;
             RandomAccessIterator upper = first + std::min(upper_child_index, size);
-            RandomAccessIterator max_child = std::max_element(lower, upper, std::ref(comp));
+            // RandomAccessIterator max_child = std::max_element(lower, upper, std::ref(comp));
+            // RandomAccessIterator max_child = std::max_element(lower, upper, detail::ref_or_value(comp));
+            // RandomAccessIterator max_child = std::max_element(lower, upper, comp);
+
+            RandomAccessIterator max_child = lower;
+            lower++;
+            if (lower != upper && comp(*max_child, *lower))
+            {
+                max_child = lower;
+            }
 
             if (!comp(hold_value, *max_child))
             {
@@ -253,7 +264,7 @@ private:
 
         for (; child != size; ++child)
         {
-            if (comp(*(first + parent), *(first + child)))
+            if (comp(first[parent], first[child]))
             {
                 return first + child;
             }

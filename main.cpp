@@ -74,7 +74,7 @@ void test3(Fn fn)
 int main(int argc, char const *argv[])
 {
     test2([](auto first, auto last) {
-        leviathan::algorithm::nd_heap_fn<2>::push_heap(std::ranges::subrange(first, last));
+        leviathan::algorithm::nd_heap_fn<2>::sort_heap(std::ranges::subrange(first, last));
     });
 
     test2([](auto first, auto last) {

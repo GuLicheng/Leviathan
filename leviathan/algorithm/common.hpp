@@ -34,6 +34,19 @@ constexpr auto make_comp_proj(Comp& comp, Proj& proj)
     }
 }
 
+template <typename Callable>
+auto ref_or_value(Callable& callable)
+{
+    if constexpr (pass_by_value_v<Callable>)
+    {
+        return callable;
+    }
+    else
+    {
+        return std::ref(callable);
+    }
+}
+
 } // namespace leviathan::algorithm::detail
 
 // TODO: Add range-version
