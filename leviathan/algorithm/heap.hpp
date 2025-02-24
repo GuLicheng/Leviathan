@@ -167,10 +167,11 @@ private:
         
         for (DifferenceType index = (size - 1) >> log2_arity; index >= DifferenceType(0); --index)
         {
+            DifferenceType hold_index = index;
+            ValueType hold_value = std::move(first[hold_index]);
             DifferenceType i;
-            ValueType hold_value = first[index];
 
-            while ((i = (index << log2_arity) + 1) < size)
+            while ((i = (hold_index << log2_arity) + 1) < size)
             {
                 RandomAccessIterator lower = first + i;
                 RandomAccessIterator upper = first + std::min(i + DifferenceType(Arity), size);
@@ -181,11 +182,11 @@ private:
                     break;
                 }
 
-                first[index] = std::move(*max_child);
-                index = std::distance(first, max_child);
+                first[hold_index] = std::move(*max_child);
+                hold_index = std::distance(first, max_child);
             }
 
-            first[index] = std::move(hold_value);
+            first[hold_index] = std::move(hold_value);
         }
 
         return last;

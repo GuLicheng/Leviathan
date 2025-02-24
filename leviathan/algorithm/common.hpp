@@ -44,9 +44,12 @@ namespace leviathan::algorithm
             {
                 result.second = result.first;
                 result.first = forward;
+                // result.second = std::exchange(result.first, forward);
             }
             else if (comp(*forward, *result.second))
+            {
                 result.second = forward;
+            }
         }
 
         return result;

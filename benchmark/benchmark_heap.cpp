@@ -8,21 +8,14 @@ using BinaryHeapFunction = leviathan::algorithm::nd_heap_fn<2>;
 void STLHeapSort(auto& vec)
 {
     std::ranges::make_heap(vec);
-    while (vec.size())
-    {
-        std::ranges::pop_heap(vec);
-        vec.pop_back();
-    }
+    std::ranges::sort_heap(vec);
 }
 
 void HeapSort(auto& vec)
 {
-    std::ranges::make_heap(vec);
-    while (vec.size())
-    {
-        BinaryHeapFunction::pop_heap(vec);
-        vec.pop_back();
-    }
+    // std::ranges::make_heap(vec);
+    BinaryHeapFunction::make_heap(vec);
+    BinaryHeapFunction::sort_heap(vec);
 }
 
 inline constexpr auto default_num = 100000;
