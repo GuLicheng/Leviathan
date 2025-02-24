@@ -9,6 +9,34 @@
 namespace leviathan::algorithm
 {
 
+template <size_t Arity>
+struct loop_helper
+{
+    template <typename Iterator, typename Comp>
+    static constexpr Iterator do_loop(Iterator result, Iterator first, Iterator last, Comp& comp)
+    {
+        if constexpr (Arity == 1)
+        {
+            return (first != last && comp(*result, *first)) ? first : result;
+        }
+        else
+        {
+            if (first == last)
+            {
+                return result;
+            }
+            else if (comp(*result, *first))
+            {
+                return loop_helper<Arity - 1>::do_loop(first, first + 1, last, comp);
+            }
+            else
+            {
+                return loop_helper<Arity - 1>::do_loop(result, first + 1, last, comp);
+            }
+        }
+    } 
+};
+
 /**
  * @brief Some heap functions, Represents a max-heap for std::ranges::less
  * 
@@ -19,15 +47,15 @@ struct nd_heap_fn
 {
     static_assert(Arity > 1 && std::has_single_bit(Arity), "Arity must be power of 2");
 
-    static constexpr size_t log2_arity = std::log2(Arity);
+    // static constexpr size_t log2_arity = std::log2(Arity);
+    static constexpr size_t log2_arity = std::countr_zero(Arity);
 
     template <typename I, typename S, typename Comp = std::ranges::less, typename Proj = std::identity>
         requires std::sortable<I, Comp, Proj>
     static constexpr I make_heap(I first, S last, Comp comp = {}, Proj proj = {}) 
     {
-        return make_heap_impl(std::move(first), 
-                              std::ranges::next(first, last), 
-                              detail::make_comp_proj(comp, proj));        
+        auto comp_proj = detail::make_comp_proj(comp, proj); 
+        return make_heap_impl(std::move(first), std::ranges::next(first, last), comp_proj);        
     }
 
     template <std::ranges::random_access_range R, typename Comp = std::ranges::less, typename Proj = std::identity>
@@ -41,9 +69,8 @@ struct nd_heap_fn
         requires std::sortable<I, Comp, Proj>
     static constexpr I push_heap(I first, S last, Comp comp = {}, Proj proj = {}) 
     {
-        return push_heap_impl(std::move(first), 
-                              std::ranges::next(first, last), 
-                              detail::make_comp_proj(comp, proj));        
+        auto comp_proj = detail::make_comp_proj(comp, proj); 
+        return push_heap_impl(std::move(first), std::ranges::next(first, last), comp_proj);        
     }
 
     template <std::ranges::random_access_range R, typename Comp = std::ranges::less, typename Proj = std::identity>
@@ -57,9 +84,8 @@ struct nd_heap_fn
         requires std::sortable<I, Comp, Proj>
     static constexpr I pop_heap(I first, S last, Comp comp = {}, Proj proj = {}) 
     {
-        return pop_heap_impl(std::move(first), 
-                             std::ranges::next(first, last), 
-                             detail::make_comp_proj(comp, proj));        
+        auto comp_proj = detail::make_comp_proj(comp, proj); 
+        return pop_heap_impl(std::move(first), std::ranges::next(first, last), comp_proj);        
     }
 
     template <std::ranges::random_access_range R, typename Comp = std::ranges::less, typename Proj = std::identity>
@@ -106,12 +132,11 @@ struct nd_heap_fn
     static constexpr I sort_heap(I first, S last, Comp comp = {}, Proj proj = {})
     {
         auto ret = std::ranges::next(first, last);
+        auto comp_proj = detail::make_comp_proj(comp, proj);
 
         for (; first != last; --last)
         {
-            // pop_heap(first, last, comp, proj);
-            // pop_heap_impl(first, last, detail::ref_or_value(cp));
-            pop_heap_impl(first, last, comp);
+            pop_heap_impl(first, last, comp_proj);
         }
 
         return ret;
@@ -128,7 +153,7 @@ private:
 
     // Helpers
     template <typename RandomAccessIterator, typename Comp>
-    static constexpr RandomAccessIterator make_heap_impl(RandomAccessIterator first, RandomAccessIterator last, Comp comp)
+    static constexpr RandomAccessIterator make_heap_impl(RandomAccessIterator first, RandomAccessIterator last, Comp& comp)
     {
         using DifferenceType = std::iter_difference_t<RandomAccessIterator>;
         using ValueType = std::iter_value_t<RandomAccessIterator>;
@@ -150,7 +175,7 @@ private:
                 RandomAccessIterator lower = first + i;
                 RandomAccessIterator upper = first + std::min(i + DifferenceType(Arity), size);
                 RandomAccessIterator max_child = std::max_element(lower, upper, std::ref(comp));
-    
+
                 if (!comp(hold_value, *max_child))
                 {
                     break;
@@ -167,7 +192,7 @@ private:
     }
 
     template <typename RandomAccessIterator, typename Comp>
-    static constexpr RandomAccessIterator push_heap_impl(RandomAccessIterator first, RandomAccessIterator last, Comp comp)
+    static constexpr RandomAccessIterator push_heap_impl(RandomAccessIterator first, RandomAccessIterator last, Comp& comp)
     {
         using DifferenceType = std::iter_difference_t<RandomAccessIterator>;
         using ValueType = std::iter_value_t<RandomAccessIterator>;
@@ -196,7 +221,7 @@ private:
     }
 
     template <typename RandomAccessIterator, typename Comp>
-    static constexpr RandomAccessIterator pop_heap_impl(RandomAccessIterator first, RandomAccessIterator last, Comp comp)
+    static constexpr RandomAccessIterator pop_heap_impl(RandomAccessIterator first, RandomAccessIterator last, Comp& comp)
     {
         using DifferenceType = std::iter_difference_t<RandomAccessIterator>;
         using ValueType = std::iter_value_t<RandomAccessIterator>;
@@ -219,19 +244,10 @@ private:
         // Not leaf
         while ((lower_child_index = (hold_index << log2_arity) + 1) < size) 
         {
-            DifferenceType upper_child_index = lower_child_index + Arity;
             RandomAccessIterator lower = first + lower_child_index;
+            DifferenceType upper_child_index = lower_child_index + Arity;
             RandomAccessIterator upper = first + std::min(upper_child_index, size);
-            // RandomAccessIterator max_child = std::max_element(lower, upper, std::ref(comp));
-            // RandomAccessIterator max_child = std::max_element(lower, upper, detail::ref_or_value(comp));
-            // RandomAccessIterator max_child = std::max_element(lower, upper, comp);
-
-            RandomAccessIterator max_child = lower;
-            lower++;
-            if (lower != upper && comp(*max_child, *lower))
-            {
-                max_child = lower;
-            }
+            RandomAccessIterator max_child = std::max_element(lower, upper, std::ref(comp));
 
             if (!comp(hold_value, *max_child))
             {
@@ -248,7 +264,7 @@ private:
     }
 
     template <typename RandomAccessIterator, typename Comp>
-    static constexpr RandomAccessIterator is_heap_until_impl(RandomAccessIterator first, RandomAccessIterator last, Comp comp)
+    static constexpr RandomAccessIterator is_heap_until_impl(RandomAccessIterator first, RandomAccessIterator last, Comp& comp)
     {
         using DifferenceType = std::iter_difference_t<RandomAccessIterator>;
 

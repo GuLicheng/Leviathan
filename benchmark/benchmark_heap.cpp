@@ -7,21 +7,25 @@ using BinaryHeapFunction = leviathan::algorithm::nd_heap_fn<2>;
 
 void STLHeapSort(auto& vec)
 {
-    std::make_heap(vec.begin(), vec.end());
-    std::sort_heap(vec.begin(), vec.end());
+    std::ranges::make_heap(vec);
+    while (vec.size())
+    {
+        std::ranges::pop_heap(vec);
+        vec.pop_back();
+    }
 }
 
 void HeapSort(auto& vec)
 {
-    // BinaryHeapFunction::make_heap(vec.begin(), vec.end());
-    // std::ranges::make_heap(vec.begin(), vec.end());
-    // BinaryHeapFunction::sort_heap(vec.begin(), vec.end());
-
-    std::make_heap(vec.begin(), vec.end());
-    BinaryHeapFunction::sort_heap(vec.begin(), vec.end());
+    std::ranges::make_heap(vec);
+    while (vec.size())
+    {
+        BinaryHeapFunction::pop_heap(vec);
+        vec.pop_back();
+    }
 }
 
-inline constexpr auto default_num = 10000;
+inline constexpr auto default_num = 100000;
 
 inline auto random_generator = leviathan::random_range(default_num, default_num * 10);
 

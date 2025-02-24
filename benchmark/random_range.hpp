@@ -10,7 +10,8 @@ namespace leviathan
 {
     struct random_range
     {
-        inline static std::random_device rd;
+        // inline static std::random_device rd;
+        inline static std::mt19937_64 rd = std::mt19937_64(0);
 
         int m_num = 1e7;
         int m_max = 1e8;
