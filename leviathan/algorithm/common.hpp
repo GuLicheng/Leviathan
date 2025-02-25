@@ -19,6 +19,14 @@ constexpr auto make_comp_proj(Comp& comp, Proj& proj)
     };
 }
 
+template <typename Pred, typename Proj>
+constexpr auto make_pred_proj(Pred& pred, Proj& proj)
+{
+    return [&]<typename T>(T&& value) -> bool {
+        return std::invoke(pred, std::invoke(proj, (T&&)value));
+    };
+}
+
 } // namespace leviathan::algorithm::detail
 
 // TODO: Add range-version

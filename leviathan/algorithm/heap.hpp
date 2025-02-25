@@ -9,34 +9,6 @@
 namespace leviathan::algorithm
 {
 
-template <size_t Arity>
-struct loop_helper
-{
-    template <typename Iterator, typename Comp>
-    static constexpr Iterator do_loop(Iterator result, Iterator first, Iterator last, Comp& comp)
-    {
-        if constexpr (Arity == 1)
-        {
-            return (first != last && comp(*result, *first)) ? first : result;
-        }
-        else
-        {
-            if (first == last)
-            {
-                return result;
-            }
-            else if (comp(*result, *first))
-            {
-                return loop_helper<Arity - 1>::do_loop(first, first + 1, last, comp);
-            }
-            else
-            {
-                return loop_helper<Arity - 1>::do_loop(result, first + 1, last, comp);
-            }
-        }
-    } 
-};
-
 /**
  * @brief Some heap functions, Represents a max-heap for std::ranges::less
  * 
