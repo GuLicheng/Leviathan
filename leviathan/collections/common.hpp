@@ -334,4 +334,56 @@ struct value_field : public Node
     }
 };
 
+template <typename Allocator>
+struct allocator_adaptor
+{
+    using alloc_traits = std::allocator_traits<Allocator>;
+    using pointer = typename alloc_traits::pointer;
+    using const_pointer = typename alloc_traits::const_pointer;
+    using void_pointer = typename alloc_traits::void_pointer;
+    using const_void_pointer = typename alloc_traits::const_void_pointer;
+    using value_type = typename alloc_traits::value_type;
+    using size_type = typename alloc_traits::size_type;
+    using difference_type = typename alloc_traits::difference_type;
+    using propagate_on_container_copy_assignment = typename alloc_traits::propagate_on_container_copy_assignment;
+    using propagate_on_container_move_assignment = typename alloc_traits::propagate_on_container_move_assignment;
+    using propagate_on_container_swap = typename alloc_traits::propagate_on_container_swap;
+    using is_always_equal = typename alloc_traits::is_always_equal;
+
+    template <typename Alloc>
+    constexpr static pointer allocate(Alloc& alloc, size_type n)
+    {
+        Allocator a(alloc);
+        return alloc_traits::allocate(a, n);
+    }
+
+    template <typename Alloc>
+    constexpr static pointer allocate(Alloc& alloc, size_type n, const_void_pointer hint)
+    {
+        Allocator a(alloc);
+        alloc_traits::deallocate(a, n, hint);
+    }
+
+    template <typename Alloc, typename T, typename... Args>
+    static void construct(Alloc& a, T* p, Args&&... args)
+    {
+        Allocator alloc(a);
+        alloc_traits::construct(alloc, p, (Args&&)args...);
+    }
+
+    template <typename Alloc, typename T>
+    static void destroy(Alloc& a, T* p)
+    {
+        Allocator alloc(a);
+        alloc_traits::destroy(alloc, p);
+    }
+
+    template <typename Alloc>
+    static void deallocate(Alloc& a, pointer p, size_type n)
+    {
+        Allocator alloc(a);
+        alloc_traits::deallocate(alloc, p, n);
+    }
+};
+
 }  // namespace leviathan::collections

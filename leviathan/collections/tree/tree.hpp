@@ -1125,20 +1125,17 @@ protected:
     // Allocate memory for a new node
     tree_node* alloc_node()
     {
-        node_allocator alloc(m_alloc);
-        return node_alloc_traits::allocate(alloc, 1);
+        return allocator_adaptor<node_allocator>::allocate(m_alloc, 1);
     }
 
     // Construct a new node
     template <typename... Args>
     void construct_node(tree_node* node, Args&&... args)
     {
-        node_allocator alloc(m_alloc);
-
         try
         {
             reset_node(node);
-            node_alloc_traits::construct(alloc, node->value_ptr(), (Args&&)args...);
+            allocator_adaptor<node_allocator>::construct(m_alloc, node->value_ptr(), (Args&&)args...);
         }
         catch (...)
         {
@@ -1169,15 +1166,13 @@ protected:
     // Destroy node
     void destroy_node(tree_node* node)
     {
-        node_allocator alloc(m_alloc);
-        node_alloc_traits::destroy(alloc, node->value_ptr());
+        allocator_adaptor<node_allocator>::destroy(m_alloc, node->value_ptr());
     }
 
     // Deallocate memory
     void dealloc_node(tree_node* node)
     {
-        node_allocator alloc(m_alloc);
-        node_alloc_traits::deallocate(alloc, node, 1);
+        allocator_adaptor<node_allocator>::deallocate(m_alloc, node, 1);
     }
 
     // Reset node

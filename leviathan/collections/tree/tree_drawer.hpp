@@ -28,31 +28,6 @@ struct column_drawer
 
 private:
 
-    template <typename D, typename Node>
-    static void recurse(const Node* node, std::string prefix, bool is_tail, std::string& result)
-    {
-        if (node->rchild())
-        {
-            auto new_prefix = prefix +
-                (is_tail ? std::string("??   ") : std::string("    "));
-
-            recurse<D>(node->rchild(), new_prefix, false, result);
-        }
-
-        result += std::format("{}{}{}\n",
-            prefix,
-            (is_tail ? "?????? " : "?????? "),
-            **static_cast<const D*>(node)->value_ptr());
-
-
-        if (node->lchild())
-        {
-            auto new_prefix = prefix +
-                (is_tail ? std::string("    ") : std::string("??   "));
-            recurse<D>(node->lchild(), new_prefix, true, result);
-        }
-    }
-
     // https://stackoverflow.com/questions/36802354/print-binary-tree-in-a-pretty-way-using-c
     template <typename D, typename Node>
     static void recurse2(const Node* node, std::string prefix, bool is_left, std::string& result)

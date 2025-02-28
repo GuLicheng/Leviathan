@@ -3,8 +3,8 @@
 #pragma once
 
 #include <vector>
+#include <leviathan/algorithm/heap.hpp>
 #include "../common.hpp"
-#include "../../algorithm/heap/nd_heap.hpp"
 
 namespace leviathan::collections
 {
