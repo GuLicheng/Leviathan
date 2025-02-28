@@ -25,7 +25,7 @@ struct string_hash_key_equal
     {
         std::string_view sl = static_cast<std::string_view>(l);
         std::string_view sr = static_cast<std::string_view>(r);
-        return compare_impl(sl, sr);
+        return key_equal_impl(sl, sr);
     }
 
     template <string_viewable Str>
@@ -37,7 +37,7 @@ struct string_hash_key_equal
 
 private:
 
-    static constexpr bool compare_impl(std::string_view lhs, std::string_view rhs)
+    static constexpr bool key_equal_impl(std::string_view lhs, std::string_view rhs)
     { return lhs == rhs; }  
 
     static constexpr size_t hash_impl(std::string_view sv)

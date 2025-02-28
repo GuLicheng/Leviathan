@@ -244,7 +244,7 @@ struct binary_node_operation : basic_tree_node_operation
 
     // Replace node with successor and return successor.
     template <typename Node>
-    std::array<Node*, 3> replace_node_with_successor2(this Node& self, Node& header)
+    std::array<Node*, 3> replace_node_with_successor(this Node& self, Node& header)
     {
         auto x = std::addressof(self);
         auto& [root, leftmost, rightmost] = header.m_link;
@@ -343,130 +343,19 @@ struct binary_node_operation : basic_tree_node_operation
             if (x == leftmost)
             {
                 // The x is leaf node or only has right child.
-                leftmost = x->rchild() ? x->parent() : successor->minimum();
+                leftmost = !x->rchild() ? x->parent() : child->minimum();
             }
 
             // Maintain the rightmost
             if (x == rightmost)
             {
                 // The x is leaf node or only has left child.
-                rightmost = x->lchild() ? x->parent() : successor->maximum();
+                rightmost = !x->lchild() ? x->parent() : child->maximum();
             }
         }
 
         return { successor, child, child_parent };
     }
-
-#if 0
-    template <typename Node>
-    std::array<Node*, 3> replace_node_with_successor(this Node& self, Node& header)
-    {
-        auto x = std::addressof(self);
-        auto& [root, leftmost, rightmost] = header.m_link;
-
-        Node* child = nullptr;
-        Node* parent = nullptr; // for rebalance
-
-        if (x->lchild() && x->rchild())
-        {
-            auto successor = x->rchild()->minimum();
-            child = successor->rchild();
-            parent = successor->parent();
-
-            if (child)
-            {
-                child->parent(parent);
-            }
-
-            successor->parent()->lchild() == successor 
-                ? successor->parent()->lchild(child)
-                : successor->parent()->rchild(child);
-
-            if (successor->parent() == x)
-            {
-                parent = successor;
-            }
-            
-            successor->lchild(x->lchild());
-            successor->rchild(x->rchild());
-            successor->parent(x->parent());
-            // successor->m_height = x->m_height;
-        
-            if (x == root)
-            {
-                root = successor;
-            }
-            else
-            {
-                x->parent()->lchild() == x 
-                    ? x->parent()->lchild(successor)
-                    : x->parent()->rchild(successor);
-            }
-
-            x->lchild()->parent(successor);
-
-            if (x->rchild())
-            {
-                x->rchild()->parent(successor);
-            }
-        }
-        else
-        {
-            // update leftmost or rightmost
-            if (!x->lchild() && !x->rchild())
-            {
-                // leaf, such as just one root
-                if (x == leftmost)
-                {
-                    leftmost = x->parent();
-                }
-                if (x == rightmost)
-                {
-                    rightmost = x->parent();
-                }
-            }
-            else if (x->lchild())
-            {
-                // only left child
-                child = x->lchild();
-                if (x == rightmost)
-                {
-                    rightmost = child->maximum();
-                }
-            }
-            else
-            {
-                // only right child
-                child = x->rchild();
-                if (x == leftmost)
-                {
-                    leftmost = child->minimum();
-                }
-            }
-
-            if (child)
-            {
-                child->parent(x->parent());
-            }
-            if (x == root)
-            {
-                root = child;
-            }
-            else
-            {
-                x->parent()->lchild() == x 
-                    ? x->parent()->lchild(child)
-                    : x->parent()->rchild(child);
-            }
-
-            parent = x->parent();
-        }
-
-        return { nullptr, child, parent };
-    }
-
-
-#endif
 };
 
 }

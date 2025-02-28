@@ -268,22 +268,22 @@ struct avl_node : public binary_node_operation
 
     avl_node* rebalance_for_erase(avl_node& header)
     {
-        // auto [successor, child, child_parent] = this->replace_node_with_successor(header);
+        auto [successor, child, child_parent] = this->replace_node_with_successor(header);
 
-        // if (successor != this)
-        // {
-        //     successor->m_height = m_height;
-        // }
-        // else
-        // {
-        //     child_parent = successor->parent();
-        // }
+        if (successor != this)
+        {
+            successor->m_height = m_height;
+        }
+        else
+        {
+            child_parent = successor->parent();
+        }
 
-        // child_parent->avl_tree_rebalance_erase(&header);
-        // return this;
-
-        this->erase_node(&header);
+        child_parent->avl_tree_rebalance_erase(&header);
         return this;
+
+        // this->erase_node(&header);
+        // return this;
     }
     
 };

@@ -41,7 +41,7 @@ struct binary_node : binary_node_operation
         return this;
     }
 
-    void clone(const binary_node* x)
+    void clone(const binary_node*)
     { }
 
     std::string to_string() const 

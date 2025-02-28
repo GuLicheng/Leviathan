@@ -16,12 +16,14 @@ struct treap_node : binary_node_operation
     // All nodes share one random generator
     inline static RandomEngine random = RandomEngine(SeedGenerator()());
 
+    using priority_type = typename RandomEngine::result_type;
+
     // Nodes
     treap_node* m_link[3];
 
     // Priority of current node, -1 for sentinel
     // and the heap is a max-heap
-    typename RandomEngine::result_type m_priority;
+    priority_type m_priority;
 
     std::string to_string() const
     {
@@ -33,9 +35,16 @@ struct treap_node : binary_node_operation
         m_priority = RandomEngine::max();
     }
 
-    static auto get_random_number()
+    static priority_type get_random_number()
     {
-        return random() % RandomEngine::max();
+        priority_type pro = random();
+
+        if (pro == RandomEngine::max())
+        {
+            pro--;
+        }
+
+        return pro;
     }
 
     void init()

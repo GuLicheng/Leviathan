@@ -7,6 +7,28 @@
 namespace leviathan::config
 {
     
+template <typename SequenceType>
+struct sequence_assessor
+{
+    template <typename Value>
+    static auto&& operator()(Value&& value)
+    {
+        assert(value.template is<SequenceType>());
+        return (Value&&(value)).template as<SequenceType>();
+    }
+};
+
+template <typename AssociatedType>
+struct associated_assessor
+{
+    template <typename Value>
+    static auto&& operator()(Value&& value)
+    {
+        assert(value.template is<AssociatedType>());
+        return (Value&&(value)).template as<AssociatedType>();
+    }
+};
+
 template <typename Value, typename SequenceType, typename AssociatedType>
 struct accessor
 {

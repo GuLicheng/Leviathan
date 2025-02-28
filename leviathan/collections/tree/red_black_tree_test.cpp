@@ -45,11 +45,11 @@ TEST_CASE("red_black_tree_color_test")
             }
 
             // Check red color node
-            if (node->_M_color == red_black_node::_S_red)
+            if (node->m_color == red_black_node::color::red)
             {
-                if (node->_M_left && node->_M_left->_M_color == red_black_node::_S_red)
+                if (node->lchild() && node->lchild()->m_color == red_black_node::color::red)
                     FAIL("red node has red left child");
-                if (node->_M_right && node->_M_right->_M_color == red_black_node::_S_red)
+                if (node->rchild() && node->rchild()->m_color == red_black_node::color::red)
                     FAIL("red node has red right child");
             }
             else
@@ -57,8 +57,8 @@ TEST_CASE("red_black_tree_color_test")
                 level++;
             }
 
-            (*this)(node->_M_left, level);
-            (*this)(node->_M_right, level);
+            (*this)(node->lchild(), level);
+            (*this)(node->rchild(), level);
         }
 
         int MaxBlackColorHeight = 0;  

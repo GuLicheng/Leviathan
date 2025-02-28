@@ -19,7 +19,7 @@ TEST_CASE("combination random access iterator")
 
     do {
         REQUIRE(vec == result[i++]);
-    } while (leviathan::algorithm::next_combination(vec.begin(), vec.begin() + 2, vec.end()));
+    } while (leviathan::algorithm::next_combination(vec.begin(), vec.begin() + 2, vec.end()).found);
 }
 
 TEST_CASE("range_combination")
@@ -36,7 +36,7 @@ TEST_CASE("range_combination")
 
     do {
         REQUIRE(vec == result[i++]);
-    } while (leviathan::algorithm::ranges::next_combination(vec, vec.begin() + 2).found);
+    } while (leviathan::algorithm::next_combination(vec, vec.begin() + 2).found);
 }
 
 TEST_CASE("combination bidirectional iterator")
@@ -52,5 +52,5 @@ TEST_CASE("combination bidirectional iterator")
 
     do {
         REQUIRE(vec == result[i++]);
-    } while (leviathan::algorithm::next_combination(vec.begin(), std::next(vec.begin(), 2), vec.end()));
+    } while (leviathan::algorithm::next_combination(vec.begin(), std::next(vec.begin(), 2), vec.end()).found);
 }

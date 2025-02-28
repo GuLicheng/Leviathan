@@ -99,24 +99,24 @@ constexpr bool combination_impl(I first, I middle, I last, Comp comp)
 
 } // namespace detail
 
+// namespace leviathan::algorithm
+// {
+
+// template <typename I, typename Comp = std::less<>>
+// constexpr bool next_combination(I first, I middle, I last, Comp comp = {})
+// {
+//     return detail::combination_impl(first, middle, last, comp);
+// }
+
+// template <typename I, typename Comp = std::greater<>>
+// constexpr bool prev_combination(I first, I middle, I last, Comp comp = {})
+// {
+//     return detail::combination_impl(first, middle, last, comp);
+// }
+
+// } // namespace leviathan
+
 namespace leviathan::algorithm
-{
-
-template <typename I, typename Comp = std::less<>>
-constexpr bool next_combination(I first, I middle, I last, Comp comp = {})
-{
-    return detail::combination_impl(first, middle, last, comp);
-}
-
-template <typename I, typename Comp = std::greater<>>
-constexpr bool prev_combination(I first, I middle, I last, Comp comp = {})
-{
-    return detail::combination_impl(first, middle, last, comp);
-}
-
-} // namespace leviathan
-
-namespace leviathan::algorithm::ranges
 {
 
 template<typename Iter>

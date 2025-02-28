@@ -4,7 +4,7 @@
 
 namespace leviathan::collections
 {
-    
+
 template <typename Slot, bool CacheHashCode>
 struct hash_cell;
 
@@ -34,6 +34,11 @@ struct hash_cell<Slot, true> : hash_cell<Slot, false>
     template <typename... Args>
     constexpr hash_cell(std::size_t hash_code, Args&&... args)
         : hash_cell<Slot, false>((Args&&) args...), m_hash_code{ hash_code } { }
+
+    size_t hash_code() const
+    {
+        return m_hash_code;
+    }
 };
 
 namespace detail
@@ -142,6 +147,7 @@ struct linear_hash_generator
 
 
 } // namespace detail
+
 
 } // namespace leviathan::collections
 
