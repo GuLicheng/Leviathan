@@ -32,20 +32,20 @@ inline constexpr closure reverse = []<viewable_range R>(R&& r) static -> R
 };
 
 inline constexpr adaptor for_each = 
-    []<viewable_range R, typename F, typename Proj = std::identity>(R&& r, F f, Proj proj = {}) -> R
+    []<viewable_range R, typename F, typename Proj = std::identity>(R&& r, F f, Proj proj = {}) static -> R
 {
     std::ranges::for_each((R&&)r, std::move(f), std::move(proj));
     return (R&&)r;
 };
 
 inline constexpr adaptor fold_left = 
-    []<viewable_range R, typename Tp, typename F>(R&& r, Tp init, F f) 
+    []<viewable_range R, typename Tp, typename F>(R&& r, Tp init, F f) static
 {
     return std::ranges::fold_left((R&&)r, std::move(init), std::move(f));
 };
 
 inline constexpr adaptor with = 
-    []<viewable_range R, typename F, typename... Args>(R&& r, F&& f, Args&&... args) -> decltype(auto)
+    []<viewable_range R, typename F, typename... Args>(R&& r, F&& f, Args&&... args) static -> decltype(auto)
 {
     return std::invoke((F&&)f, (R&&)r, (Args&&) args...);
 };

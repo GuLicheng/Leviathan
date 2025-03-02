@@ -302,6 +302,7 @@ public:
         if constexpr (std::invocable<F const &, Args...>)
         {
             return f(std::forward<Args>(args)...);
+            // return std::invoke(f, std::forward<Args>(args)...);
         }
         else
         {

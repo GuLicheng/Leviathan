@@ -107,4 +107,21 @@ inline std::string replace(std::string str, std::string_view from, std::string_v
     return str;
 }
 
+inline std::string replace(std::string str, char from, char to)
+{
+    if (from == to)
+    {
+        return str;
+    }
+
+    for (auto& ch : str)
+    {
+        if (ch == from)
+        {
+            ch = to;
+        }
+    }
+    return str;
+}
+
 }
