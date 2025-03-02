@@ -24,7 +24,7 @@ private:
 
     static constexpr auto indices = std::make_index_sequence<Dimension>();
 
-    static constexpr T small_number = static_cast<T>(1e-5);
+    static constexpr T epsilon = static_cast<T>(1e-5);
 
     // Helper functions
     template <typename UnaryOp, typename I, size_t... Indices>
@@ -205,7 +205,7 @@ public:
         return unary_operation(std::negate<T>(), *this);
     }
 
-    // constexpr bool equals(const vector& rhs, T eps = small_number) const
+    // constexpr bool equals(const vector& rhs, T eps = epsilon) const
     // {
 
     // }
@@ -308,7 +308,7 @@ public:
     static constexpr vector safe_normalize(const vector& v)
     {
         const auto len = size_square(v);
-        return len > small_number 
+        return len > epsilon 
             ? binary_operation(std::multiplies<T>(), v, static_cast<T>(1) / math::sqrt(len))
             : zero_vector;
     }
