@@ -1,17 +1,18 @@
-#include <leviathan/print.hpp>
-#include <leviathan/ranges/action.hpp>
+#include <iostream>
 #include <algorithm>
+#include <ranges>
 
-constexpr double taxes[] = { 0.03, .1, .20, .25, .30, .35, .40 };
-constexpr double bases[] = { 36000, 144000, 300000, 420000, 660000, 960000 };
+inline constexpr double taxes[] = { 0.03, .1, .20, .25, .30, .35, .40 };
+inline constexpr double bases[] = { 36000, 144000, 300000, 420000, 660000, 960000 };
+inline constexpr double k = 0.76;
 
 constexpr double calculate_tax(double salary, double eps = 60000)
 {
-    salary -= eps;
-    auto level = std::ranges::lower_bound(bases, salary);
-    auto prefix = std::views::zip_transform(std::multiplies<>(), taxes, bases) 
-                | std::views::take(std::distance(bases, level))
-                | leviathan::action::fold_left(0.0, std::plus<>());
+    const auto actual = salary * k - eps;
+    const auto level = std::ranges::lower_bound(bases, salary);
+    const auto prefix = std::ranges::fold_left(
+        std::views::zip_transform(std::multiplies<>(), taxes, bases) | 
+        std::views::take(std::distance(bases, level)), 0.0, std::plus<>());
 
     return level == bases 
          ? prefix 
@@ -20,6 +21,6 @@ constexpr double calculate_tax(double salary, double eps = 60000)
 
 int main(int argc, char const *argv[])
 {
-    Console::WriteLine(calculate_tax(220000));
+    std::cout << calculate_tax(220000) << std::endl;
     return 0;
 }

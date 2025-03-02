@@ -2,7 +2,7 @@ import os
 from setuptools import setup
 from setuptools import Extension
 
-# your complier args
+# your compiler args
 cpp_args = ['/std:c++latest', '/O2']   
 
 # your pybind11 path
