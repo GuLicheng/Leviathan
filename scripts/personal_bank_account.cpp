@@ -8,23 +8,23 @@
 #include <leviathan/string/string_extend.hpp>
 #include <leviathan/ranges/action.hpp>
 
-constexpr int odd(int x)
+constexpr int Odd(int x)
 {
     const auto result = x << 1;
     return result / 10 + result % 10;
 }
 
-constexpr int even(int x)
+constexpr int Even(int x)
 {
     return x;
 }
 
-constexpr int luhn(std::string_view numbers)
+constexpr int Luhn(std::string_view numbers)
 {
     auto closure = [](auto x) {
         const auto [idx, digit] = x;
         const auto n = digit - '0';
-        return idx & 1 ? even(n) : odd(n);
+        return idx & 1 ? Even(n) : Odd(n);
     };
 
     const auto result = std::ranges::fold_left(
@@ -36,7 +36,7 @@ constexpr int luhn(std::string_view numbers)
 
 inline constexpr std::string_view digits = "0123456789";
 
-std::generator<std::string> fill_dash(std::string numbers, std::string_view candidates = digits)
+std::generator<std::string> FillDash(std::string numbers, std::string_view candidates = digits)
 {
     const auto idx = numbers.find('-');
 
@@ -53,7 +53,7 @@ std::generator<std::string> fill_dash(std::string numbers, std::string_view cand
     }
 }
 
-std::generator<std::string> fill_star(std::string numbers, std::string_view candidates = digits)
+std::generator<std::string> FillStar(std::string numbers, std::string_view candidates = digits)
 {
     const auto idx = numbers.find('*');
 
@@ -63,7 +63,7 @@ std::generator<std::string> fill_star(std::string numbers, std::string_view cand
         {
             auto next = numbers;
             next[idx] = ch;
-            co_yield std::ranges::elements_of(fill_star(next));
+            co_yield std::ranges::elements_of(FillStar(next));
         }
     }
     else
@@ -72,13 +72,13 @@ std::generator<std::string> fill_star(std::string numbers, std::string_view cand
     }
 }
 
-std::generator<std::string> generate_account(std::string numbers, int expected)
+std::generator<std::string> GenerateAccount(std::string numbers, int expected)
 {
-    for (auto s1 : fill_dash(numbers))
+    for (auto s1 : FillDash(numbers))
     {
-        for (auto s2 : fill_star(s1))
+        for (auto s2 : FillStar(s1))
         {
-            if (luhn(s2) == expected)
+            if (Luhn(s2) == expected)
             {
                 co_yield s2;
             }
@@ -88,12 +88,12 @@ std::generator<std::string> generate_account(std::string numbers, int expected)
 
 int main(int argc, char const *argv[])
 {
-    static_assert(luhn("621499163215333") == 3);
-    static_assert(luhn("621467163001365234") == 5);
+    static_assert(Luhn("621499163215333") == 3);
+    static_assert(Luhn("621467163001365234") == 5);
 
     std::string numbers = "621499163215333";
 
-    for (auto number : generate_account("6214881630**888", 8))
+    for (auto number : GenerateAccount("6214881630**888", 8))
     {
         std::cout << number << std::endl;
     }
