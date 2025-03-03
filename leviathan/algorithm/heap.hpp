@@ -71,9 +71,10 @@ struct nd_heap_fn
         requires std::sortable<I, Comp, Proj>
     static constexpr I is_heap_until(I first, S last, Comp comp = {}, Proj proj = {}) 
     {
+        auto comp_proj = detail::make_comp_proj(comp, proj); 
         return is_heap_until_impl(std::move(first), 
                                   std::ranges::next(first, last), 
-                                  detail::make_comp_proj(comp, proj));        
+                                  comp_proj);        
     }
 
     template <std::ranges::random_access_range R, typename Comp = std::ranges::less, typename Proj = std::identity>

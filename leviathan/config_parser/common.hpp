@@ -2,7 +2,7 @@
 
 #include <leviathan/io/file.hpp>
 #include <leviathan/encode.hpp>
-#include <leviathan/string/string_extend.hpp>
+#include <leviathan/extc++/string.hpp>
 #include <leviathan/string/fixed_string.hpp>
 #include <leviathan/table.hpp>
 #include "optional.hpp"

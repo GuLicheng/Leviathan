@@ -1,6 +1,6 @@
 #pragma once
 
-#include <leviathan/string/string_extend.hpp>
+#include <leviathan/extc++/string.hpp>
 
 #include <string>
 #include <string_view>

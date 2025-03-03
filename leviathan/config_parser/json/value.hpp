@@ -1,8 +1,8 @@
 #pragma once
 
+#include <leviathan/extc++/string.hpp>
 #include "number.hpp"
 #include "../../variable.hpp"
-#include "../../string/string_extend.hpp"
 #include "../../io/file.hpp"
 
 #include <utility>

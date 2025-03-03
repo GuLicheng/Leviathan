@@ -1,6 +1,7 @@
 #pragma once
 
-#include "core.hpp"
+// #include "core.hpp"
+#include <leviathan/extc++/math.hpp>
 
 #include <utility>
 #include <cstdint>
@@ -89,9 +90,30 @@ public:
 
     static constexpr const vector zero_vector = vector();
 
-
     // Binary operations
     constexpr bool operator==(const vector& rhs) const = default;
+
+    constexpr bool equals(const vector& rhs) const
+    {
+        if constexpr (std::integral<T>)
+        {
+            return this->operator==(rhs);
+        }
+        else
+        {
+            const auto d1 = this->data();
+            const auto d2 = rhs.data();
+            
+            for (size_t i = 0; i < Dimension; ++i)
+            {
+                if (math::abs(d1[i] - d2[i]) > epsilon)
+                {
+                    return false;
+                }
+            } 
+            return true;
+        }
+    }
 
     constexpr vector operator+(const vector& rhs) const
     {
@@ -108,7 +130,7 @@ public:
         return binary_operation(std::minus<T>(), *this, rhs);
     }
     
-    constexpr vector operator-=(const vector& rhs) 
+    constexpr vector& operator-=(const vector& rhs) 
     {
         return *this = *this - rhs;
     }
@@ -204,11 +226,6 @@ public:
     {
         return unary_operation(std::negate<T>(), *this);
     }
-
-    // constexpr bool equals(const vector& rhs, T eps = epsilon) const
-    // {
-
-    // }
 
     constexpr T operator[](size_t idx) const
     {
@@ -313,13 +330,27 @@ public:
             : zero_vector;
     }
 
+    constexpr size_t hash_code() const
+    {
+        size_t seed = 0;
+
+        for (size_t i = 0; i < Dimension; ++i)
+        {
+            seed ^= std::hash<T>()(m_data[i]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        }
+        
+        return seed;
+    }
+
     constexpr vector() = default;
 
     template <typename... Ts>
     constexpr vector(Ts... xs) : m_data{ static_cast<T>(xs)... } { }
 
 private:
+
     std::array<T, Dimension> m_data;
+
 };
 
 
@@ -358,4 +389,14 @@ struct std::formatter<leviathan::math::vector<T, N>, CharT>
     }
 
     std::formatter<T, CharT> m_fmt;
+};
+
+
+template <typename T, size_t Dimension>
+struct std::hash<leviathan::math::vector<T, Dimension>>
+{
+    static constexpr size_t operator()(const leviathan::math::vector<T, Dimension>& v) 
+    {
+        return v.hash_code();
+    }
 };

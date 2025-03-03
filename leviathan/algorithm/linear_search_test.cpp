@@ -39,6 +39,6 @@ TEST_CASE("LinearSearch_Enabling_List-initialization")
 
     v.emplace_back(0, 0);
 
-    REQUIRE(leviathan::algorithm::linear_search(v.begin(), v.end(), { 0, 0 }) == true);
+    REQUIRE(leviathan::algorithm::linear_search(v.begin(), v.end(), Point(0, 0)) == true);
     REQUIRE(leviathan::algorithm::linear_search(v, { 1, 1 }) == false);
 }

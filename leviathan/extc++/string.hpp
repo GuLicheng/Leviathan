@@ -6,7 +6,7 @@
 
 namespace leviathan::string
 {
-
+    
 template <typename T>
 concept string_viewable = std::is_convertible_v<const T&, std::string_view>;
 
@@ -38,10 +38,14 @@ struct string_hash_key_equal
 private:
 
     static constexpr bool key_equal_impl(std::string_view lhs, std::string_view rhs)
-    { return lhs == rhs; }  
+    {
+        return lhs == rhs;
+    }
 
     static constexpr size_t hash_impl(std::string_view sv)
-    { return std::hash<std::string_view>()(sv); }
+    {
+        return std::hash<std::string_view>()(sv);
+    }
 };
 
 /**
@@ -69,7 +73,8 @@ constexpr std::string_view trim(std::string_view sv, std::string_view delimiters
     return rtrim(ltrim(sv, delimiters), delimiters);
 }
 
-std::string_view trim(const std::string& s, std::string_view delimiters = whitespace_delimiters)
+template <string_viewable Str>
+constexpr std::string_view trim(const Str& s, std::string_view delimiters = whitespace_delimiters)
 {
     std::string_view sv = s;
     return trim(sv, delimiters);        
@@ -124,4 +129,5 @@ inline std::string replace(std::string str, char from, char to)
     return str;
 }
 
-}
+} // namespace leviathan::string
+

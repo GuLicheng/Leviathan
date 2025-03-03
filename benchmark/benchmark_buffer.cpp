@@ -5,7 +5,7 @@
 #include <random>
 #include <algorithm>
 
-#include <leviathan/collections/internal/buffer.hpp>
+#include <leviathan/collections/buffer.hpp>
 #include <catch2/catch_all.hpp>
 // #include <catch2/catch_test_macros.hpp>
 

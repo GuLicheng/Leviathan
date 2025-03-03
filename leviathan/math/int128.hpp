@@ -4,7 +4,7 @@
 // https://eisenwave.github.io/cpp-proposals/int-least128.html#example-30d55124
 #pragma once
 
-#include "core.hpp"
+#include <leviathan/extc++/math.hpp>
 
 #include <limits>
 #include <compare>
