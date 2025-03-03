@@ -8,13 +8,19 @@ namespace leviathan::algorithm
     constexpr void insertion_sort(I first, I last, Comp comp = {}) 
     {
         if (first == last)
+        {
             return;
+        }
 
         auto i = first + 1;
+        
         for (; i != last; ++i)
         {
             // if arr[j - 1] <= arr[i] continue
-            if (!comp(*i, *(i - 1))) continue;
+            if (!comp(*i, *(i - 1))) 
+            {
+                continue;
+            }
             else
             {
                 auto pos = std::upper_bound(first, i, *i, comp);

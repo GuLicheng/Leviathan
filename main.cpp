@@ -7,21 +7,6 @@
 #include <algorithm>
 #include <random>
 #include <leviathan/time/timer.hpp>
-#include <tim/timsort.h>
-
-void TimSort1(auto& vec)
-{
-    leviathan::time::timer t;
-    leviathan::algorithm::tim_sort(vec.begin(), vec.end());
-}
-
-void TimSort2(auto& vec)
-{
-    leviathan::time::timer t;
-    // gfx::timsort(vec.begin(), vec.end());
-    // std::stable_sort(vec.begin(), vec.end());
-    tim::timsort(vec.begin(), vec.end());
-}
 
 
 int main(int argc, char const *argv[])
@@ -31,8 +16,6 @@ int main(int argc, char const *argv[])
 
     auto vec1 = vec;
 
-    TimSort1(vec);
-    TimSort2(vec1);
 
     return 0;
 }

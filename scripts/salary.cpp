@@ -11,7 +11,7 @@
 
 namespace json = leviathan::json;
 
-const char* filename = R"(D:\Library\Leviathan\salary.json)";
+constexpr const char* Filename = R"(D:\Library\Leviathan\salary.json)";
 
 template <typename JsonType>
 struct JsonAs
@@ -27,55 +27,22 @@ inline constexpr auto AsJsonObject = JsonAs<json::object>();
 
 using SalaryEntry = std::map<std::string, double>;
 
-std::chrono::year_month YearMonth(int year, int month)
+class Reader
 {
-    return std::chrono::year_month(
-        std::chrono::year(year),
-        std::chrono::month(month)
-    );
-}
-
-class Salary
-{
-public:
-
-    Salary(const char* salaryFile) 
+    static std::chrono::year_month YearMonth(int year, int month)
     {
-        ReadSalary(salaryFile);
+        return std::chrono::year_month(
+            std::chrono::year(year),
+            std::chrono::month(month)
+        );
     }
 
-    void PrintTotal() const
+    static std::chrono::year_month ToTM(std::string_view date) 
     {
-        SalaryEntry result;
-
-        for (const auto& salary : m_detail | std::views::values)
-        {
-            for (const auto& [item, amount] : salary)
-            {
-                result[item] += amount;
-            }
-        }
-
-        PrettyPrint(result);
+        auto year = leviathan::config::from_chars_to_optional<int>(date.data(), date.data() + 4);
+        auto month = leviathan::config::from_chars_to_optional<int>(date.data() + 5, date.data() + 7);
+        return YearMonth(*year, *month);
     }
-
-    void PrintMonth(int year, int month)
-    {
-        auto ym = YearMonth(year, month);
-        PrettyPrint(m_detail.find(ym)->second);
-    }
-
-    void PrintMonth(int startYear, int startMonth, int endYear, int endMonth)
-    {
-        // auto start = YearMonth(startYear, startMonth);
-        // auto end = YearMonth(endYear, endMonth);
-        // auto result = MerPerSalary(m_detail | std::views::filter([=](const auto& pair) {
-        //     return start <= pair.first and pair.first <= end;
-        // }));
-        // PrettyPrint(result);
-    }
-
-private:
 
     template <typename Salaries>
     static auto MerPerSalary(const Salaries& salaries) 
@@ -93,51 +60,96 @@ private:
         return result;
     }
 
-    static std::chrono::year_month ToTM(const std::string& date) 
-    {
-        auto year = leviathan::config::from_chars_to_optional<int>(date.data(), date.data() + 4);
-        auto month = leviathan::config::from_chars_to_optional<int>(date.data() + 5, date.data() + 7);
-        return YearMonth(*year, *month);
-    }
+public:
 
-    void ReadSalary(const char* filename)
+    static SalaryEntry Read(
+        std::chrono::year_month start, 
+        std::chrono::year_month end, 
+        const char* filename = Filename)
     {
         auto root = json::load(filename);
 
+        SalaryEntry result;
+
+        auto valid_date = [=](std::chrono::year_month date) {
+            return start <= date && date <= end;
+        };
+
         for (const auto& [date, entries] : AsJsonObject(root))
         {
-            auto entry = MerPerSalary(AsJsonArray(entries));
-            m_detail.emplace(ToTM(date), entry);
+            if (valid_date(ToTM(date)))
+            {
+                auto entry = MerPerSalary(AsJsonArray(entries));
+                for (const auto& [item, amount] : entry)
+                {
+                    result[item] += amount;
+                }
+            }
         }
+
+        return result;
+    }
+
+    static void PrintTotal(bool brief = true)
+    {
+        SalaryEntry result;
+
+        auto details = Read(
+            YearMonth(2023, 7),
+            YearMonth(2025, 3)
+        );
+
+        for (const auto& [item, amount] : details)
+        {
+            result[item] += amount;
+        }
+
+        if (brief)
+        {
+            // Merge performance salary 
+            const char* performance[] = { "专项绩效工资1", "专项绩效工资2", "专项绩效工资3", "绩效工资清算", "预发绩效工资" };
+            
+            for (const auto& item : performance)
+            {
+                result["绩效工资"] += result[item];
+                result.erase(item);
+            }
+
+            // Merge supplement salary
+            const char* supplement[] = { "补发基本工资", "补发岗位工资" };
+
+            for (const auto& item : supplement)
+            {
+                result["基本工资"] += result[item];
+                result.erase(item);
+            }
+        }
+
+        PrettyPrint(result);
     }
 
     static void PrettyPrint(const SalaryEntry& se)
     {
-        Console::WriteLine("====================================================");
+        constexpr const char* split_line = "========================================";
+
+        Console::WriteLine(split_line);
         
         for (const auto& [item, salary] : se)
         {
-            Console::WriteLine("{:20} | {:15.2f}", item, salary);
-            Console::WriteLine("{:-<38}", '-');
+            Console::WriteLine("{:20} || {:15.2f}", item, salary);
+            Console::WriteLine("{:-<40}", '-');
         }
 
-        Console::WriteLine("====================================================");
+        Console::WriteLine(split_line);
     } 
 
-private:
-
-    std::multimap<std::chrono::year_month, SalaryEntry> m_detail;
 };
 
 int main(int argc, char const *argv[])
 {
     system("chcp 65001");
 
-    Salary salary(filename);
-
-    salary.PrintTotal();
-
-    // salary.PrintMonth(2024, 11);
+    Reader::PrintTotal();
 
     return 0;
 }
