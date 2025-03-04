@@ -3,7 +3,7 @@
 #include <ranges>
 #include <leviathan/meta/template_info.hpp>
 #include <leviathan/print.hpp>
-#include <leviathan/ranges/action.hpp>
+// #include <leviathan/ranges/action.hpp>
 #include <leviathan/time/timer.hpp>
 #include "json.hpp"
 #include <unordered_map>
@@ -66,8 +66,8 @@ void PrettyDictionary(const Dictionary& dict)
     auto has_key = [](const auto& kv) { return std::ranges::contains(items, kv.first); };
     auto write_format = [](const auto& kv) { Console::WriteLine("{:20} = {:.2f}", kv.first, kv.second); };
 
-    dict | std::views::filter(has_key)
-         | leviathan::action::for_each(write_format);
+    // dict | std::views::filter(has_key)
+    //      | leviathan::action::for_each(write_format);
 
 }
 

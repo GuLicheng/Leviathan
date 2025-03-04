@@ -8,7 +8,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <leviathan/print.hpp>
-#include <leviathan/ranges/action.hpp>
+#include <leviathan/extc++/all.hpp>
 #include <numeric>
 #include <iostream>
 #include <filesystem>

@@ -5,8 +5,7 @@
 #include <generator>
 #include <ranges>
 #include <algorithm>
-#include <leviathan/string/string_extend.hpp>
-#include <leviathan/ranges/action.hpp>
+#include <leviathan/extc++/all.hpp>
 
 constexpr int Odd(int x)
 {

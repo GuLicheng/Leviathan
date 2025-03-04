@@ -80,6 +80,7 @@ public:
             if (valid_date(ToTM(date)))
             {
                 auto entry = MerPerSalary(AsJsonArray(entries));
+
                 for (const auto& [item, amount] : entry)
                 {
                     result[item] += amount;
@@ -88,6 +89,18 @@ public:
         }
 
         return result;
+    }
+
+    template <typename Name, typename Names>
+    static void MergeSameItem(SalaryEntry& se, Name& name, Names& names)
+    {
+        auto& target = se[name];
+
+        for (const auto& n : names)
+        {
+            target += se[n];
+            se.erase(n);
+        }
     }
 
     static void PrintTotal(bool brief = true)
@@ -107,22 +120,13 @@ public:
         if (brief)
         {
             // Merge performance salary 
-            const char* performance[] = { "专项绩效工资1", "专项绩效工资2", "专项绩效工资3", "绩效工资清算", "预发绩效工资" };
-            
-            for (const auto& item : performance)
-            {
-                result["绩效工资"] += result[item];
-                result.erase(item);
-            }
-
+            static const char* performance[] = { "专项绩效工资1", "专项绩效工资2", "专项绩效工资3", "绩效工资清算", "预发绩效工资" };
+            MergeSameItem(result, "绩效工资", performance);
+   
             // Merge supplement salary
-            const char* supplement[] = { "补发基本工资", "补发岗位工资" };
+            static const char* supplement[] = { "补发基本工资", "补发岗位工资" };
+            MergeSameItem(result, "基本工资", supplement);
 
-            for (const auto& item : supplement)
-            {
-                result["基本工资"] += result[item];
-                result.erase(item);
-            }
         }
 
         PrettyPrint(result);

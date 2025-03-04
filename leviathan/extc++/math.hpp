@@ -10,7 +10,7 @@
 #include <type_traits>
 #include <bit>
 
-#include <leviathan/meta/core.hpp>
+#include <leviathan/extc++/math.hpp>
 
 // Any component should in sub-namespace.
 namespace leviathan::math

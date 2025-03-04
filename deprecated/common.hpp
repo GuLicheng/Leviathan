@@ -8,41 +8,6 @@
 // Some utils
 namespace leviathan::ranges::detail
 {
-template <bool Const, typename T>
-using maybe_const_t = std::conditional_t<Const, const T, T>;
-
-// https://en.cppreference.com/w/cpp/ranges
-template <typename R>
-concept simple_view = // exposition only
-    std::ranges::view<R> && std::ranges::range<const R> &&
-    std::same_as<std::ranges::iterator_t<R>, std::ranges::iterator_t<const R>> &&
-    std::same_as<std::ranges::sentinel_t<R>, std::ranges::sentinel_t<const R>>;
-
-// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p2165r2.pdf
-template <typename T, std::size_t N>
-concept is_tuple_element = requires(T t) // exposition only 
-{ 
-    typename std::tuple_element_t<N, std::remove_const_t<T>>;
-    { std::get<N>(t) } -> std::convertible_to<std::tuple_element_t<N, T> &>;
-};
-
-template <typename T>
-concept tuple_like = !std::is_reference_v<T> && requires
-{
-    typename std::tuple_size<T>::type;
-    requires std::same_as<decltype(std::tuple_size_v<T>), std::size_t>;
-} && []<std::size_t... I>(std::index_sequence<I...>)
-{ return (is_tuple_element<T, I> &&...); } (std::make_index_sequence<std::tuple_size_v<T>>{});
-
-
-template <typename... Ts>
-struct tuple_or_pair_impl : std::type_identity<std::tuple<Ts...>> { };
-
-template <typename T, typename U> 
-struct tuple_or_pair_impl<T, U> : std::type_identity<std::pair<T, U>> { };
-
-template <typename... Ts>
-using tuple_or_pair = typename tuple_or_pair_impl<Ts...>::type;
 
 template <typename F, typename Tuple>
 constexpr auto tuple_transform(F&& f, Tuple&& tuple)
@@ -268,7 +233,7 @@ struct pipe : range_adaptor_closure
 
 #include <leviathan/meta/template_info.hpp>
 
-namespace leviathan::ranges
+
 {
 
 // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p2387r1.html

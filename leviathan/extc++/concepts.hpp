@@ -6,6 +6,17 @@
 
 namespace leviathan::meta
 {
+
+template <bool Const, typename T>
+using maybe_const_t = std::conditional_t<Const, const T, T>;
+
+// https://en.cppreference.com/w/cpp/ranges
+template <typename R>
+concept simple_view = // exposition only
+    std::ranges::view<R> && std::ranges::range<const R> &&
+    std::same_as<std::ranges::iterator_t<R>, std::ranges::iterator_t<const R>> &&
+    std::same_as<std::ranges::sentinel_t<R>, std::ranges::sentinel_t<const R>>;
+
 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p2165r2.pdf
 template <typename T, std::size_t N>
 concept has_tuple_element  = requires(T t)
@@ -45,6 +56,14 @@ struct tuple_traits<Tuple<Args1...>>
 
 };
 
+template <typename... Ts>
+struct tuple_or_pair_impl : std::type_identity<std::tuple<Ts...>> { };
+
+template <typename T, typename U> 
+struct tuple_or_pair_impl<T, U> : std::type_identity<std::pair<T, U>> { };
+
+template <typename... Ts>
+using tuple_or_pair = typename tuple_or_pair_impl<Ts...>::type;
 
 // static_assert(tuple_like<std::tuple<>>);
 // static_assert(tuple_like<std::tuple<int, double>>);
@@ -55,3 +74,19 @@ struct tuple_traits<Tuple<Args1...>>
 
 }
 
+namespace leviathan::meta
+{
+
+template <typename T, template <typename...> typename Primary>
+struct is_specialization_of : std::false_type { };
+
+template <template <typename...> typename Primary, typename... Args>
+struct is_specialization_of<Primary<Args...>, Primary> : std::true_type { };
+
+template <typename T, template <typename...> typename Primary>
+inline constexpr bool is_specialization_of_v = is_specialization_of<T, Primary>::value;
+
+template <typename T, template <typename...> typename Primary>
+concept specialization_of = is_specialization_of_v<T, Primary>;
+
+} // namespace leviathan::meta

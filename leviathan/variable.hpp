@@ -1,6 +1,6 @@
 #pragma once
 
-#include <leviathan/meta/is_specialization_of.hpp>
+#include <leviathan/extc++/concepts.hpp>
 #include <functional>
 #include <type_traits>
 #include <variant>
