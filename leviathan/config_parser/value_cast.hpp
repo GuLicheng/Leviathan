@@ -9,6 +9,19 @@
 namespace leviathan::config
 {
 
+template <typename Target, typename Source>
+Target convert_string(const Source& source)
+{
+    if constexpr (std::is_same_v<Source, Target>)
+    {
+        return source;
+    }
+    else
+    {
+        return Target(source.begin(), source.end());
+    }
+}
+
 struct toml2json
 {
     static json::value operator()(const toml::value& tv) 
@@ -35,7 +48,8 @@ struct toml2json
 
     static json::value operator()(const toml::string& x)
     {
-        return json::make_json<json::string>(x);
+        auto jstr = convert_string<json::string>(x);
+        return json::make_json<json::string>(std::move(jstr));
     }
 
     static json::value operator()(const toml::array& x)
@@ -49,7 +63,8 @@ struct toml2json
         auto table2object = [](const auto& kv) static 
         {
             return std::make_pair(
-                json::string(kv.first), 
+                // json::string(kv.first), 
+                convert_string<json::string>(kv.first),
                 toml2json::operator()(kv.second));
         };
 
@@ -61,7 +76,9 @@ struct toml2json
 
     static json::value operator()(const toml::datetime& x)
     {
-        return json::string(x.to_string());
+        return json::make_json<json::string>(
+            convert_string<json::string>(x.to_string())
+        );
     }
 }; 
 
@@ -90,7 +107,9 @@ struct json2toml
 
     static toml::value operator()(const json::string& x)
     {
-        return toml::make_toml<toml::string>(x);
+        return toml::make_toml<toml::string>(
+            convert_string<toml::string>(x)
+        );
     }
 
     static toml::value operator()(const json::array& x)
@@ -104,7 +123,8 @@ struct json2toml
         auto object2table = [](const auto& kv) static 
         {
             return std::make_pair(
-                toml::string(kv.first), 
+                // toml::string(kv.first), 
+                convert_string<toml::string>(kv.first),
                 json2toml::operator()(kv.second));
         };
 

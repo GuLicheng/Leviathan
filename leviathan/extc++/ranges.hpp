@@ -3,7 +3,7 @@
 #include "concepts.hpp"
 #include <ranges>
 
-namespace leviathan::leviathan
+namespace leviathan
 {
 
 // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p2387r1.html
@@ -58,5 +58,9 @@ public:
 //         return transform_view(FWD(r), FWD(f));
 //       };
 
-}  // namespace leviathan::leviathan
+}  // namespace leviathan
 
+namespace leviathan::action
+{
+    
+}

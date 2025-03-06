@@ -1,17 +1,35 @@
 #pragma once
 
 #include "../common.hpp"
-#include "../../variable.hpp"
+#include <leviathan/variable.hpp>
 #include <cstdint>
 #include <utility>
 
 namespace leviathan::config::json
 {
 
-// std::variant<int64_t, uint64_t, double>
-class number : public leviathan::variable<leviathan::store_self, int64_t, uint64_t, double>
+struct store_self
 {
-    using base = variable<leviathan::store_self, int64_t, uint64_t, double>;
+    template <typename U>
+    using type = U;
+
+    template <typename T>
+    static constexpr auto&& from_value(T&& t)
+    {
+        return (T&&)t;
+    } 
+
+    template <typename T>
+    static constexpr auto to_address(T* t) 
+    {
+        return t;
+    }
+};
+
+// std::variant<int64_t, uint64_t, double>
+class number : public leviathan::variable<store_self, int64_t, uint64_t, double>
+{
+    using base = variable<store_self, int64_t, uint64_t, double>;
 
     template <typename T>
     constexpr T convert_to() const

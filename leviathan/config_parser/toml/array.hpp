@@ -7,10 +7,10 @@ namespace leviathan::config::toml::detail
 
 // The locked array will inserted as value.
 // The unlocked array will inserted as section.
-template <typename T>
-class toml_array_base : public std::vector<T>
+template <typename T, typename Alloc>
+class toml_array_base : public std::vector<T, Alloc>
 {
-    using base = std::vector<T>;
+    using base = std::vector<T, Alloc>;
 
     bool m_locked = false;  // for fixed array or table array
 

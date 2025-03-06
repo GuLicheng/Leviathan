@@ -1,9 +1,12 @@
 #pragma once
 
-#include <leviathan/extc++/string.hpp>
 #include "number.hpp"
-#include "../../variable.hpp"
-#include "../../io/file.hpp"
+
+#include <leviathan/allocators/debug_allocator.hpp>
+#include <leviathan/extc++/string.hpp>
+#include <leviathan/variable.hpp>
+#include <leviathan/variable.hpp>
+#include <leviathan/io/file.hpp>
 
 #include <utility>
 #include <memory>
@@ -61,24 +64,73 @@ constexpr const char* report_error(error_code ec)
     return error_infos[static_cast<int>(ec)];
 }
 
+template <typename T>
+// using global_allocator = std::allocator<T>;
+using global_allocator = leviathan::alloc::debug_allocator<T>;
+
+template <typename T>
+struct deleter
+{
+    static void constexpr operator()(T* p) 
+    { 
+        std::destroy_at(p);
+        global_allocator<T>().deallocate(p, 1);
+    };
+};
+
+template <size_t N>
+struct as_unique_ptr_if_large_than
+{
+    template <typename U>
+    using type = std::conditional_t<(sizeof(U) > N), std::unique_ptr<U, deleter<U>>, U>;
+
+    template <typename T>
+    static constexpr auto from_value(T t) 
+    {
+        if constexpr (sizeof(T) > N)
+        {
+            auto ptr = global_allocator<T>().allocate(1);
+            std::construct_at(ptr, std::move(t));            
+            return std::unique_ptr<T, deleter<T>>(ptr, deleter<T>());
+        }
+        else
+        {
+            return t;
+        }
+    }
+
+    template <typename T>
+    static constexpr auto to_address(T* t) 
+    {
+        if constexpr (!meta::specialization_of<std::remove_cv_t<T>, std::unique_ptr>)
+        {
+            return t;
+        }
+        else
+        {
+            return std::to_address(*t);
+        }
+    }
+};
+
 class value;
 
 // A better choice is to use Empty class. The value of null is unique, 
 // the index in std::variant is enough to indicate it.
 using null = std::nullptr_t;   
 
-using string = std::string;
+using string = std::basic_string<char, std::char_traits<char>, global_allocator<char>>;
 using boolean = bool;
-using array = std::vector<value>;
+using array = std::vector<value, global_allocator<value>>;
 
 // The std::unordered_map may not efficient, is 
 // std::vector<std::pair<const string, value>>
 // with a better choice since the object do not contain
 // many elements usually.
-using object = std::unordered_map<string, value, string_hash_key_equal, string_hash_key_equal>;
+using object = std::unordered_map<string, value, string_hash_key_equal, string_hash_key_equal, global_allocator<std::pair<const string, value>>>;
 
 using value_base = variable<
-    to_unique_ptr_if_large_than<16>, 
+    as_unique_ptr_if_large_than<16>,
     null,
     boolean,
     number,

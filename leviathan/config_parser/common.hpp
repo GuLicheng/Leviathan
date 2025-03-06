@@ -143,6 +143,9 @@ constexpr unsigned decode_unicode_from_char(const char* p)
 template <typename Value>
 struct value_parser;
 
+// constexpr bool is_utf8_continuation_byte(unsigned char ch)
+// {
+//     return (ch & 0b11000000) == 0b10000000;
+// }
 }
-
 

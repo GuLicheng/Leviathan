@@ -71,6 +71,11 @@ public:
     // compared with rhs('double'), but they hold different types.   
     // constexpr bool operator==(const variable& rhs) const;
 
+    constexpr size_t index() const 
+    {
+        return m_data.index();
+    }
+
     template <typename T>
     constexpr bool is() const
     {
@@ -105,58 +110,6 @@ public:
         return ((Self&&)self).m_data;
     }
 };
-
-template <size_t N>
-struct to_unique_ptr_if_large_than
-{
-    template <typename U>
-    using type = std::conditional_t<(sizeof(U) > N), std::unique_ptr<U>, U>;
-
-    template <typename T>
-    static constexpr auto from_value(T t) 
-    {
-        if constexpr (sizeof(T) > N)
-        {
-            return std::make_unique<T>(std::move(t));
-        }
-        else
-        {
-            return t;
-        }
-    }
-
-    template <typename T>
-    static constexpr auto to_address(T* t) 
-    {
-        if constexpr (!meta::is_specialization_of_v<std::remove_cv_t<T>, std::unique_ptr>)
-        {
-            return t;
-        }
-        else
-        {
-            return std::to_address(*t);
-        }
-    }
-};
-
-struct store_self
-{
-    template <typename U>
-    using type = U;
-
-    template <typename T>
-    static constexpr auto&& from_value(T&& t)
-    {
-        return (T&&)t;
-    } 
-
-    template <typename T>
-    static constexpr auto to_address(T* t) 
-    {
-        return t;
-    }
-};
-
 
 } // namespace leviathan
 

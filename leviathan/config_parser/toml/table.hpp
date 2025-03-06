@@ -7,10 +7,10 @@ namespace leviathan::config::toml::detail
     
 // The locked table will inserted as value.
 // The unlocked table will inserted as section.
-template <typename K, typename V, typename HasherKeyEqual>
-class toml_table_base : public std::unordered_map<K, V, HasherKeyEqual, HasherKeyEqual>
+template <typename K, typename V, typename HasherKeyEqual, typename Alloc>
+class toml_table_base : public std::unordered_map<K, V, HasherKeyEqual, HasherKeyEqual, Alloc>
 {
-    using base = std::unordered_map<K, V, HasherKeyEqual, HasherKeyEqual>;
+    using base = std::unordered_map<K, V, HasherKeyEqual, HasherKeyEqual, Alloc>;
 
     bool m_locked = false;   // for table or inline table
 

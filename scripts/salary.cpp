@@ -5,7 +5,7 @@
 #include <chrono>
 #include <leviathan/meta/template_info.hpp>
 #include <leviathan/print.hpp>
-#include <leviathan/ranges/action.hpp>
+// #include <leviathan/ranges/action.hpp>
 #include <leviathan/time/timer.hpp>
 #include <leviathan/config_parser/json/json.hpp>
 
@@ -25,7 +25,9 @@ struct JsonAs
 inline constexpr auto AsJsonArray = JsonAs<json::array>();
 inline constexpr auto AsJsonObject = JsonAs<json::object>();
 
-using SalaryEntry = std::map<std::string, double>;
+using String = std::basic_string<char, std::char_traits<char>, leviathan::json::global_allocator<char>>;
+
+using SalaryEntry = std::map<String, double>;
 
 class Reader
 {
@@ -154,6 +156,13 @@ int main(int argc, char const *argv[])
     system("chcp 65001");
 
     Reader::PrintTotal();
+
+    for (auto& s : leviathan::alloc::messages)
+    {
+        std::cout << s << std::endl;
+    }
+
+    std::cout << leviathan::alloc::counter << '\n';
 
     return 0;
 }

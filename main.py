@@ -1,10 +1,10 @@
-import json, toml
+import xml.etree.cElementTree as ET
 
 def main():
-    a = json.load(open("salary.json", encoding="utf-8"))
-    toml.dump(a, open("salary.toml", "w", encoding="utf-8"))
+    xml = ET.parse("a.xml")
+    xml.write("b.xml")
+
 
 if __name__ == "__main__":
 
-    # main()
-    pass
+    main()
