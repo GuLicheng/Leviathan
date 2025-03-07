@@ -1,5 +1,6 @@
 #pragma once
 
+#include <format>
 #include <string>
 #include <string_view>
 #include <concepts>
@@ -127,6 +128,28 @@ inline std::string replace(std::string str, char from, char to)
         }
     }
     return str;
+}
+
+template <typename StringSequence>
+std::string join(const StringSequence& range, std::string_view delimiter)
+{
+    if (std::ranges::empty(range))
+    {
+        return "";
+    }
+
+    auto first = std::ranges::begin(range);
+    auto last = std::ranges::end(range);
+    std::string res = std::format("{}", *first);
+
+    ++first;
+
+    for (; first != last; ++first)
+    {
+        res += std::format("{}{}", delimiter, *first);
+    }
+
+    return res;
 }
 
 } // namespace leviathan::string

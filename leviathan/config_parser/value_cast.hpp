@@ -128,9 +128,7 @@ struct json2toml
                 json2toml::operator()(kv.second));
         };
 
-        auto retval = x 
-                    | std::views::transform(object2table)
-                    | std::ranges::to<toml::table>(false);
+        auto retval = x | std::views::transform(object2table) | std::ranges::to<toml::table>(false);
         return toml::make_toml<toml::table>(std::move(retval));
     }
 

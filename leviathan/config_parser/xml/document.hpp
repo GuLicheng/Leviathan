@@ -6,9 +6,8 @@ namespace leviathan::config::xml
 {
    
 // <?xml version="1.0" encoding="UTF-8"?>
-class declaration
+struct declaration
 {
-public:
     string m_version;
     string m_encoding;
 };
