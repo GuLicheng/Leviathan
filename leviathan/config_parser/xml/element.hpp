@@ -10,52 +10,100 @@ namespace leviathan::config::xml
 template <typename T>
 using global_allocator = std::allocator<T>;
 
+template <typename T, typename... Args>
+T* allocate_and_construct(Args&&... args)
+{
+    auto ptr = global_allocator<T>().allocate(1);
+    std::construct_at(ptr, (Args&&)args...);
+    return ptr;
+}
+
+template <typename T>
+void destroy_and_deallocate(T* ptr)
+{
+    std::destroy_at(ptr);
+    global_allocator<T>().deallocate(ptr, 1);
+}
+
 using string = std::basic_string<char, std::char_traits<char>, global_allocator<char>>;
 
-/*
-<?xml version="1.0" encoding="UTF-8"?>
-<note>
-    <to>Tove</to>
-    <from>Jani</from>
-    <heading>Reminder</heading>
-    <body>Don't forget me this weekend!</body>
-</note>
-*/
+template <size_t N>
+struct as_ptr_if_large_than
+{
+    template <typename U>
+    using type = std::conditional_t<(sizeof(U) > N), U*, U>;
 
-// elements -> string/string
-// name -> string
-// text -> string
-// body: text or elements
+    template <typename T>
+    static constexpr auto from_value(T t) 
+    {
+        if constexpr (sizeof(T) > N)
+        {
+            return allocate_and_construct<T>(std::move(t));
+        }
+        else
+        {
+            return t;
+        }
+    }
+
+    template <typename T>
+    static constexpr auto to_address(T* t) 
+    {
+        if constexpr (!std::is_pointer_v<T>)
+        {
+            return t;
+        }
+        else
+        {
+            return std::to_address(*t);
+        }
+    }
+};
 
 class element;
-
 using attribute = std::pair<string, string>;
 using attribute_list = std::vector<attribute, global_allocator<attribute>>;
 using element_list = std::vector<element*, global_allocator<element*>>;
-using body = variable<to_unique_ptr_if_large_than<16>, std::monostate, string, element_list>;
+
+// <nobody a="b" c="d"/>
+// <note xmlns="http://www.w3.org/1999/xhtml" xmlns:leviathan="http://www.leviathan.com">
+//     <to>Tove</to>
+//     <from>Jani</from>
+//     <heading>Reminder</heading>
+//     <body>Don't forget me this weekend!</body>
+//     <nobody a="b" c="d"/>
+//     <>
+// </note>
+
+using body = leviathan::variable<as_ptr_if_large_than<16>, std::monostate, string, element_list>;
 
 class element
 {
 public:
 
     element(string label, element* parent)
-        : m_label(std::move(label)), m_parent(parent)
+        : m_tag(std::move(label)), m_parent(parent)
     { }
 
     element(string label, element* parent, string text)
-        : m_label(std::move(label)), m_parent(parent), m_children_or_text(std::move(text))
+        : m_tag(std::move(label)), m_parent(parent), m_children_or_text(std::move(text))
     { }
 
     element(const element&) = delete;
     element& operator=(const element&) = delete;
 
-    string m_label;  // book
+    string m_tag;  // book
 
     element* m_parent;
 
-    attribute_list m_attributes;  // category="cooking"
+    attribute_list* m_attributes = nullptr;  // category="cooking"
     
     body m_children_or_text;
+
+    bool has_children() const
+    {
+        return this->m_children_or_text.index() == 2;
+    }
 
     bool is_leaf() const 
     {
@@ -64,12 +112,17 @@ public:
 
     bool has_attributes() const
     {
-        return !this->m_attributes.empty();
+        return m_attributes != nullptr;
     }
 
     void add_attribute(string name, string value)
     {
-        this->m_attributes.emplace_back(std::move(name), std::move(value));
+        if (this->m_attributes == nullptr)
+        {
+            this->m_attributes = allocate_and_construct<attribute_list>();
+        }
+
+        this->m_attributes->emplace_back(std::move(name), std::move(value));
     }
 
     void add_child(element* child)
@@ -96,7 +149,7 @@ public:
             for (auto& child : ls)
             {
                 child->remove_children();
-                std::cout << "Deleting " << child->m_label << std::endl;
+                std::cout << "Deleting " << child->m_tag << std::endl;
                 delete child;
             }
 
@@ -107,15 +160,21 @@ public:
     ~element()
     {
         remove_children();
+
+        if (m_attributes)
+        {
+            destroy_and_deallocate(m_attributes);
+        }
     }
 };
 
 template <typename... Args>
 element* make_element(Args&&... args)
 {
-    using Alloc = global_allocator<element>;
-    Alloc alloc;
-    return std::allocator_traits<Alloc>::allocate(alloc, (Args&&)args...);
+    throw std::runtime_error("Not implemented");
+    // using Alloc = global_allocator<element>;
+    // Alloc alloc;
+    // return std::allocator_traits<Alloc>::allocate(alloc, (Args&&)args...);
 }
 
 /*
@@ -142,11 +201,11 @@ inline void show_element_tree(element* root, int depth = 0)
 
     blank(depth);
 
-    std::cout << std::format("<{}", root->m_label);
+    std::cout << std::format("<{}", root->m_tag);
 
     if (root->has_attributes())
     {
-        for (const auto& [name, value] : root->m_attributes)
+        for (const auto& [name, value] : *(root->m_attributes))
         {
             std::cout << std::format(" {}='{}'", name, value);
         }
@@ -158,7 +217,7 @@ inline void show_element_tree(element* root, int depth = 0)
     {
         std::cout << std::format("{}</{}>\n", 
             root->m_children_or_text.as<string>(),
-            root->m_label);
+            root->m_tag);
     }
     else
     {
@@ -170,7 +229,7 @@ inline void show_element_tree(element* root, int depth = 0)
         }
 
         blank(depth);
-        std::cout << std::format("</{}>\n", root->m_label);
+        std::cout << std::format("</{}>\n", root->m_tag);
     }
 }
 

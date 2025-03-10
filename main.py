@@ -1,12 +1,13 @@
 import xml.etree.cElementTree as ET
-import toml
+import toml, time, datetime
 
 def main():
     xml = ET.parse("a.xml")
     xml.write("b.xml")
 
-    toml.dump({});
 
 if __name__ == "__main__":
+
+    datetime.datetime.now()
 
     main()

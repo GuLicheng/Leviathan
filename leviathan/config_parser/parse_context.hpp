@@ -179,10 +179,12 @@ struct parse_context
         advance_unchecked(idx == m_ctx.npos ? m_ctx.size() : idx);
     }
 
-    constexpr size_t locate(char ch) const
-    {
-        return m_ctx.find(ch);
-    }
+    // constexpr std::string_view locate(char ch) const
+    // {
+    //     auto other = *this;
+    //     other.locate_character(ch);
+    //     return { data(), data() + (size() - other.size()) };
+    // }
 
     // Some operators
     constexpr char operator*() const
@@ -203,91 +205,6 @@ struct parse_context
 
 };
 
-struct parse_line
-{
-    std::string_view m_line;
-
-    constexpr parse_line(std::string_view line) : m_line(line) { }
-
-    constexpr parse_line& operator=(std::string_view line)
-    {
-        m_line = line;
-        return *this;
-    }
-
-    constexpr char current() const
-    {
-        return m_line.front();
-    }
-
-    constexpr void advance_unchecked(size_t n)
-    {
-        m_line.remove_prefix(n);
-    }
-
-    constexpr bool consume(char ch)
-    {
-        if (current() == ch)
-        {
-            advance_unchecked(1);
-            return true;
-        }
-        return false;
-    }
-
-    constexpr bool consume(std::string_view context)
-    {
-        if (m_line.starts_with(context))
-        {
-            advance_unchecked(context.size());
-            return true;
-        }
-        return false;
-    }
-
-    constexpr void trim_left()
-    {
-        m_line = ltrim(m_line);
-    }
-
-    constexpr void trim_right()
-    {
-        m_line = rtrim(m_line);
-    }
-
-    constexpr void trim()
-    {
-        trim_left();
-        trim_right();
-    }
-
-    constexpr void rtrim_with_character(char ch)
-    {
-        const auto idx = m_line.find(ch);
-
-        // 'ch' not in line
-        if (idx == m_line.npos)
-        {
-            trim_right();
-            return;
-        }
-
-        // remove rest part and trim
-        m_line = m_line.substr(0, idx);
-        trim_right();
-    }
-
-    constexpr bool empty() const
-    {
-        return m_line.empty();
-    }
-
-    constexpr bool size() const
-    {
-        return m_line.size();
-    }
-};
-
-} // namespace leviathan
+}  // leviathan::config
 
 

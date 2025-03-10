@@ -65,8 +65,8 @@ constexpr const char* report_error(error_code ec)
 }
 
 template <typename T>
-// using global_allocator = std::allocator<T>;
-using global_allocator = leviathan::alloc::debug_allocator<T>;
+using global_allocator = std::allocator<T>;
+// using global_allocator = leviathan::alloc::debug_allocator<T>;
 
 template <typename T>
 struct deleter

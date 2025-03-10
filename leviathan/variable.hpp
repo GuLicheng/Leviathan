@@ -66,6 +66,12 @@ public:
     constexpr variable(variable&&) = default;
     constexpr variable& operator=(variable&&) = default;
 
+    template <typename T, typename... Args>
+    constexpr void emplace(Args&&... args)
+    {
+        m_data.template emplace<T>(Fn::from_value((Args&&)args...));
+    }
+
     // Compare each type directly may be incorrect. For example, if lhs 
     // contains 'int' and rhs contains 'double', the lhs('int') can directly
     // compared with rhs('double'), but they hold different types.   

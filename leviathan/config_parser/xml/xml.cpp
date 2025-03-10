@@ -26,15 +26,24 @@ namespace xml = leviathan::config::xml;
         <year>2003</year>
         <price>39.95</price>
     </book>
+    <!-- This is a comment -->
 </bookstore>
 */
+
+inline std::pair<std::string_view, char> entity[] = {
+    { "lt", '<' },
+    { "gt", '>' },
+    { "amp", '&' },
+    { "apos", '\'' },
+    { "quot", '"' },
+};
 
 int main(int argc, char const *argv[])
 {   
     xml::element* bookstore = new xml::element("bookstore", nullptr); 
 
     xml::element* book1 = new xml::element("book", bookstore);
-    book1->m_attributes.emplace_back("category", "CHILDREN");
+    book1->add_attribute("category", "CHILDREN");
 
     xml::element* title1 = new xml::element("title", book1, "Harry Potter");
     xml::element* author1 = new xml::element("author", book1, "J K. Rowling");
@@ -47,7 +56,7 @@ int main(int argc, char const *argv[])
     book1->add_child(price1);
 
     xml::element* book2 = new xml::element("book", bookstore);
-    book2->m_attributes.emplace_back("category", "WEB");
+    book1->add_attribute("category", "WEB");
     
     xml::element* title2 = new xml::element("title", book2, "Learning XML");
     xml::element* author2 = new xml::element("author", book2, "Erik T. Ray");

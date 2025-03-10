@@ -22,7 +22,6 @@ namespace leviathan::config
     
 using leviathan::read_file_context;
 using leviathan::encode_unicode_to_utf8;
-using leviathan::is_utf8;
 using leviathan::is_unicode;
 
 using leviathan::string::ltrim;

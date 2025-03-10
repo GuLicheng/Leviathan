@@ -1,17 +1,18 @@
-#include "value.hpp"
-#include "encoder.hpp"
-#include "toml.hpp"
-#include <leviathan/print.hpp>
+#include <leviathan/config_parser/toml/toml.hpp>
+#include <leviathan/config_parser/json/json.hpp>
+#include <leviathan/config_parser/value_cast.hpp>
 
-using namespace leviathan;
+namespace toml = leviathan::config::toml;
+namespace json = leviathan::config::json;
 
 int main(int argc, char const *argv[])
 {
-    auto tv = toml::load("../a.toml");
+    system("chcp 65001");
+    
+    auto root1 = json::load(R"(D:\Library\Leviathan\salary.json)");
+    auto root2 = leviathan::config::json2toml()(root1);
 
-    auto s = toml::dump(tv);
-    // std::ranges::to<std::string>()
-    Console::WriteLine("{}\n", s, "OK");
+    std::cout << toml::formatter()(root2);
+
     return 0;
 }
-
