@@ -33,7 +33,7 @@ public:
 
         auto tag_name = parse_start_tag();
         auto ele = allocate_and_construct<element>(std::move(tag_name), parent);
-        std::unique_ptr guard(ele);
+        std::unique_ptr<element> guard(ele);
         auto attributes = parse_attributes();
 
         if (attributes != nullptr)
@@ -50,7 +50,8 @@ public:
             match_and_consume('/');
             match_and_consume('>');
             ele->m_children_or_text.emplace<string>("");
-            return ele;
+            // return ele;
+            return guard.release();
         }
         else
         {
@@ -70,7 +71,8 @@ public:
             }
             
             match_and_consume('>');
-            return ele;
+            // return ele;
+            return guard.release();
         }
     }
 

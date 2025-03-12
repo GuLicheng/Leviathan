@@ -10,20 +10,6 @@
 namespace leviathan::encoding
 {
     
-// consteval bool is_utf8() 
-// {
-//     constexpr unsigned char micro[] = "\u00B5";
-
-//     if constexpr (std::endian::native == std::endian::big)
-//     {
-//         return sizeof(micro) == 3 && micro[0] == 0xB5 && micro[1] == 0xC2;
-//     }
-//     else
-//     {
-//         return sizeof(micro) == 3 && micro[0] == 0xC2 && micro[1] == 0xB5;
-//     }
-// }
-
 constexpr bool is_valid_unicode(uint32_t codepoint)
 {
     // basic multilingual plane, BMP(U+0000 - U+FFFF)

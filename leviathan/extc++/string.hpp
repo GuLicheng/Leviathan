@@ -3,6 +3,7 @@
 #include <format>
 #include <string>
 #include <string_view>
+#include <ranges>
 #include <concepts>
 
 namespace leviathan::string
@@ -130,26 +131,28 @@ inline std::string replace(std::string str, char from, char to)
     return str;
 }
 
-template <typename StringSequence>
-std::string join(const StringSequence& range, std::string_view delimiter)
+template <typename StrSequence, typename Delimiter>
+std::string join(StrSequence&& str, Delimiter&& delimiter)
 {
-    if (std::ranges::empty(range))
+    return (StrSequence&&)str | std::views::join((Delimiter&&)delimiter) | std::ranges::to<std::string>();
+}
+
+inline std::string repeat(std::string_view str, size_t n)
+{
+    if (str.empty() || n == 0)
     {
         return "";
     }
 
-    auto first = std::ranges::begin(range);
-    auto last = std::ranges::end(range);
-    std::string res = std::format("{}", *first);
+    std::string ret;
+    ret.reserve(str.size() * n);
 
-    ++first;
-
-    for (; first != last; ++first)
+    for (size_t i = 0; i < n; ++i)
     {
-        res += std::format("{}{}", delimiter, *first);
+        ret += str;
     }
 
-    return res;
+    return ret;
 }
 
 } // namespace leviathan::string
