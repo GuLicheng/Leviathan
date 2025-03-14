@@ -8,6 +8,6 @@ def main():
 
 if __name__ == "__main__":
 
-    datetime.datetime.now()
+    dt = datetime.datetime.now()
+    print(dt)
 
-    main()

@@ -155,5 +155,19 @@ inline std::string repeat(std::string_view str, size_t n)
     return ret;
 }
 
+inline std::string center(const std::string& text, int width, char filler_character = ' ')
+{
+    if ((int)text.size() >= width)
+    {
+        return text;
+    }
+
+    const int length = (int)text.size();
+    const int right = (width - length) / 2;
+    const int left = width - length - right;
+
+    return std::string(left, filler_character) + text + std::string(right, filler_character);
+}
+
 } // namespace leviathan::string
 

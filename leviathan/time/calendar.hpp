@@ -6,6 +6,8 @@
 namespace leviathan::time
 {
 
+namespace chrono = std::chrono;
+
 constexpr const char* weekday_name(std::chrono::weekday w)
 {
     static const char* names[] = 
@@ -19,6 +21,26 @@ constexpr const char* weekday_name(std::chrono::weekday w)
         "Sunday",
     };
     return names[w.c_encoding() - 1];
+}
+
+constexpr const char* month_name(std::chrono::month m)
+{
+    static const char* names[] = 
+    {
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    };
+    return names[m.operator unsigned int() - 1];
 }
 
 constexpr int day_of_month(std::chrono::year_month ym)
