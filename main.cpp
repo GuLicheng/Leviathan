@@ -43,7 +43,7 @@ auto RangeAsString = [](auto&& rg) static
     return rg | transform(ToString) | join | std::ranges::to<std::string>();
 };
 
-auto DereferenceAndAdvance = [](auto&& it) { return *it++; };
+auto DereferenceAndAdvance = [](auto&& it) static { return *it++; };
 
 std::generator<std::string> DereferenceAndAdvanceMultiIterator(auto&& blocks)
 {
@@ -58,7 +58,7 @@ std::generator<std::string> DereferenceAndAdvanceMultiIterator(auto&& blocks)
     }
 }
 
-auto MergeChunk = [](auto&& blocks) 
+auto MergeChunk = [](auto&& blocks) static
 {
     auto s = DereferenceAndAdvanceMultiIterator(blocks) 
          | join_with('\n')
@@ -107,6 +107,9 @@ int main()
 {
     auto s = Calendar(std::chrono::year(2021), 3);
     Console::WriteLine(s);
+
+    Console::WriteLine(leviathan::string::center("Hello", 20, '*'));
+
     return 0;
 }
 

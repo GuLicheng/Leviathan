@@ -155,18 +155,20 @@ inline std::string repeat(std::string_view str, size_t n)
     return ret;
 }
 
-inline std::string center(const std::string& text, int width, char filler_character = ' ')
+inline std::string center(std::string_view text, int width, char filler_character = ' ')
 {
     if ((int)text.size() >= width)
     {
-        return text;
+        return std::string(text);
     }
 
     const int length = (int)text.size();
     const int right = (width - length) / 2;
     const int left = width - length - right;
 
-    return std::string(left, filler_character) + text + std::string(right, filler_character);
+    // return std::string(left, filler_character) + text + std::string(right, filler_character);
+    std::string retval(left + text.size() + right, filler_character);
+    return retval.replace(left, text.size(), text.data());
 }
 
 } // namespace leviathan::string
