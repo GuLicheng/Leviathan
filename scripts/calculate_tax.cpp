@@ -6,9 +6,9 @@ inline constexpr double taxes[] = { 0.03, .1, .20, .25, .30, .35, .40 };
 inline constexpr double bases[] = { 36000, 144000, 300000, 420000, 660000, 960000 };
 inline constexpr double k = 0.76;
 
-constexpr double CalculateTax(double salary, double eps = 60000)
+constexpr double CalculateTax(double salary, double eps = 60000, double other = 15000)
 {
-    const auto actual = salary * k - eps;
+    const auto actual = salary * k - eps - other;
     const auto level = std::ranges::lower_bound(bases, salary);
     const auto prefix = std::ranges::fold_left(
         std::views::zip_transform(std::multiplies<>(), taxes, bases) | 

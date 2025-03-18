@@ -114,27 +114,27 @@ inline std::string replace(std::string str, std::string_view from, std::string_v
     return str;
 }
 
-inline std::string replace(std::string str, char from, char to)
+inline std::string replace(std::string str, char old_value, char new_value)
 {
-    if (from == to)
+    if (old_value == new_value)
     {
         return str;
     }
 
     for (auto& ch : str)
     {
-        if (ch == from)
+        if (ch == old_value)
         {
-            ch = to;
+            ch = new_value;
         }
     }
     return str;
 }
 
 template <typename StrSequence, typename Delimiter>
-std::string join(StrSequence&& str, Delimiter&& delimiter)
+std::string join(StrSequence&& str, Delimiter delimiter)
 {
-    return (StrSequence&&)str | std::views::join((Delimiter&&)delimiter) | std::ranges::to<std::string>();
+    throw std::runtime_error("Not implemented yet");
 }
 
 inline std::string repeat(std::string_view str, size_t n)
@@ -166,7 +166,6 @@ inline std::string center(std::string_view text, int width, char filler_characte
     const int right = (width - length) / 2;
     const int left = width - length - right;
 
-    // return std::string(left, filler_character) + text + std::string(right, filler_character);
     std::string retval(left + text.size() + right, filler_character);
     return retval.replace(left, text.size(), text.data());
 }

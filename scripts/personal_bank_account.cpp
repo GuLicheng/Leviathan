@@ -37,14 +37,26 @@ inline constexpr std::string_view digits = "0123456789";
 
 std::generator<std::string> FillDash(std::string numbers, std::string_view candidates = digits)
 {
-    const auto idx = numbers.find('-');
+    // const auto idx = numbers.find('-');
 
-    if (idx != std::string::npos)
+    // if (idx != std::string::npos)
+    // {
+    //     for (auto ch : candidates)
+    //     {
+    //         co_yield leviathan::string::replace(numbers, '-', ch);
+    //     }
+
+    // }
+    // else
+    // {
+    //     co_yield numbers;
+    // }
+
+    auto fn = [=](auto ch) { return leviathan::string::replace(numbers, '-', ch); };
+
+    if (numbers.contains('-'))
     {
-        for (auto ch : candidates)
-        {
-            co_yield leviathan::string::replace(numbers, '-', ch);
-        }
+        co_yield std::ranges::elements_of(candidates | leviathan::views::transform(fn));
     }
     else
     {
@@ -52,26 +64,42 @@ std::generator<std::string> FillDash(std::string numbers, std::string_view candi
     }
 }
 
-std::generator<std::string> FillStar(std::string numbers, std::string_view candidates = digits)
+auto FillStar = [](this auto&& self, std::string numbers, std::string_view candidates = digits) -> std::generator<std::string>
 {
+    // const auto idx = numbers.find('*');
+
+    // if (idx != std::string::npos)
+    // {
+    //     for (auto ch : candidates)
+    //     {
+    //         auto next = numbers;
+    //         next[idx] = ch;
+    //         co_yield std::ranges::elements_of(self(next, candidates));
+    //     }
+    // }
+    // else
+    // {
+    //     co_yield numbers;
+    // }
+
     const auto idx = numbers.find('*');
+    
+    auto fn = [=](auto ch) mutable { 
+        numbers[idx] = ch;
+        return self(numbers, candidates);
+    };
 
     if (idx != std::string::npos)
     {
-        for (auto ch : candidates)
-        {
-            auto next = numbers;
-            next[idx] = ch;
-            co_yield std::ranges::elements_of(FillStar(next));
-        }
+        co_yield std::ranges::elements_of(candidates | leviathan::views::transform(fn) | std::views::join);
     }
     else
     {
         co_yield numbers;
     }
-}
+};
 
-std::generator<std::string> GenerateAccount(std::string numbers, int expected)
+std::generator<std::string> GenerateAccount(std::string numbers, int expected) 
 {
     for (auto s1 : FillDash(numbers))
     {
@@ -83,6 +111,14 @@ std::generator<std::string> GenerateAccount(std::string numbers, int expected)
             }
         }
     }
+};
+
+auto GenerateAccount2(std::string_view numbers, int expected)
+{
+    return FillDash(std::string(numbers)) 
+         | std::views::transform(FillStar) 
+         | std::views::join
+         | std::views::filter([=](auto&& s) { return Luhn(s) == expected; });
 }
 
 int main(int argc, char const *argv[])
@@ -92,7 +128,7 @@ int main(int argc, char const *argv[])
 
     std::string numbers = "621499163215333";
 
-    for (auto number : GenerateAccount("6214881630**888", 8))
+    for (auto number : GenerateAccount2("6214881630**888", 8))
     {
         std::cout << number << std::endl;
     }

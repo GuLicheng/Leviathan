@@ -162,7 +162,7 @@ int main(int argc, char const *argv[])
         std::cout << s << std::endl;
     }
 
-    std::cout << leviathan::alloc::counter << '\n';
+    // std::cout << leviathan::alloc::counter << '\n';
 
     return 0;
 }

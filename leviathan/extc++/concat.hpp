@@ -773,24 +773,6 @@ struct concat_factory
 
 inline constexpr concat_factory concat{};
 
-// template <typename R1, typename R2>
-// concept can_concatable_range = requires 
-// {
-//     concat_view(std::declval<R1>(), std::declval<R2>());
-// };
-
-// struct concat_with_fn : std::ranges::range_adaptor_closure<concat_with_fn>
-// {
-//     template <std::ranges::viewable_range R1, std::ranges::viewable_range R2>
-//     requires can_concatable_range<R1, R2>
-//     constexpr auto operator()(R1&& r1, R2&& r2) const 
-//     { return concat_view((R1&&)r1, (R2&&)r2); }
-
-//     using range_adaptor<concat_with_fn>::operator();
-// };
-
-// inline constexpr concat_with_fn concat_with{};
-
 }
 
 namespace std::ranges
@@ -798,3 +780,23 @@ namespace std::ranges
 template <typename... Rs>
 inline constexpr bool enable_borrowed_range<::leviathan::ranges::concat_view<Rs...>> = (enable_borrowed_range<Rs> && ...);
 }
+
+// https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3220r0.html
+namespace leviathan::ranges
+{
+
+// template <std::ranges::view V, std::move_constructible T>
+//     requires std::input_range<V> && std::is_object_v<T> && 
+//         std::indirect_binary_predicate<std::ranges::equal_to, std::ranges::iterator_t<V>, const T*>
+// class delimit_view : public std::ranges::view_interface<delimit_view<V, T>>
+// {
+//     V m_base = V();
+//     std::optional<T> m_value;
+
+// public:
+
+//     delimit_view() requires std::default_initializable<V> && std::default_initializable<T> = default;
+
+// };
+
+}  // namespace leviathan::ranges

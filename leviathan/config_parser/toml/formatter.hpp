@@ -1,21 +1,114 @@
 #pragma once
 
-#include <leviathan/extc++/string.hpp>
 #include "value.hpp"
-#include <ranges>
+#include <leviathan/extc++/ranges.hpp>
 
 namespace leviathan::config::toml
 {
 
-using leviathan::string::join;
+inline std::string as_std_string(const string& s)
+{
+    return { s.begin(), s.end() };
+}
+
+namespace detail
+{
+
+inline constexpr const char* kvfmt = "\"{}\" = {}\n";
+
+inline constexpr auto map_to_str = [](auto&& r, auto&& f)
+{
+    return r | std::views::transform(f) | std::views::join | std::ranges::to<std::string>();
+};
+
+inline constexpr auto join_with = [](auto&& r, char delim)
+{
+    return r | std::views::join_with(delim) | std::ranges::to<std::string>();
+};
+
+inline constexpr auto format_value = []<typename Block>(Block block)
+{
+    auto& res = block.front();
+    auto& path = res.m_path;
+    
+    if (path.size() == 1)
+    {
+        auto encode_fn = [=](const auto& v) 
+        { 
+            const auto& [k, vptr, _] = v;
+            return std::format(kvfmt, k.front(), encoder()(*vptr)); 
+        };
+
+        return map_to_str(block, encode_fn) + '\n';
+    }
+    else
+    {
+        std::string tail = as_std_string(path.back());
+        path.pop_back();
+
+        auto encode_fn = [=](const auto& v) 
+        { 
+            const auto& [k, vptr, _] = v;
+            return std::format(kvfmt, tail, encoder()(*vptr)); 
+        };
+
+        return std::format("[{}]\n{}\n", join_with(path, '.'), map_to_str(block, encode_fn));
+    }
+};
+
+inline constexpr auto format_table_array = []<typename Block>(Block block)
+{
+    std::string retval = "";
+
+    for (auto& res : block)
+    {
+        std::string table_name = join_with(res.m_path, '.');
+
+        for (const auto& tbl : res.m_value_ptr->template as<toml::array>())
+        {
+            retval += std::format("[[{}]]\n", table_name);
+
+            for (const auto& [k, v] : tbl.template as<toml::table>())
+            {
+                retval += std::format(kvfmt, k, toml::encoder()(v));
+            }
+
+            retval += '\n';
+        }
+    }
+
+    return retval;
+};
+
+// inline constexpr auto format_table_array2 = []<typename Block>(Block block) 
+// {
+//     auto fn = []<typename T>(const T& v) 
+//     {
+//         std::string table_name = join_with(v.m_path, '.');
+
+//         auto fn2 = [&](const auto& tbl) 
+//         {
+//             return leviathan::ranges::concat(
+//                 std::format("[[{}]]\n", table_name),
+//                 tbl.template as<toml::table>() | std::views::transform([](const auto& kv) { return std::format(kvfmt, kv.first, toml::encoder()(kv.second)); }) | std::views::join,
+//                 std::views::single('\n')
+//             ) | std::views::join;
+//         };
+
+//         return leviathan::ranges::concat(
+//             table_name,
+//             v.m_value_ptr->template as<toml::array>() | std::views::transform(fn2)
+//         ) | std::views::join;
+//     };
+
+
+//     return block | std::views::transform(fn) | std::views::join | std::ranges::to<std::string>();
+// };
+
+}  // namespace detail
 
 struct formatter
 {
-    static std::string as_std_string(const toml::string& s)
-    {
-        return { s.begin(), s.end() };
-    }
-
     enum struct leaf_kind
     {
         value, table_array
@@ -85,75 +178,12 @@ struct formatter
         }
     };
 
-    template <typename Block>
-    static void format_block(Block block, std::string& retval)
-    {
-        if (block.front().m_kind == leaf_kind::value)
-        {
-            format_value(block, retval);
-        }
-        else
-        {
-            format_table_array(block, retval);
-        }
-    }
-
-    template <typename Block>
-    static void format_value(Block block, std::string& retval)
-    {
-        auto& res = block.front();
-        auto& path = res.m_path;
-        
-        if (path.size() == 1)
-        {
-            // Global value
-            for (const auto& [k, vptr, _] : block)
-            {
-                retval += std::format("{} = {}\n", k.front(), toml::encoder()(*vptr));
-            }
-        }
-        else
-        {
-            
-            std::string tail = as_std_string(path.back());
-            path.pop_back();
-            retval += std::format("[{}]\n", join(path, "."));
-
-            for (const auto& [k, vptr, _] : block)
-            {
-                retval += std::format("{} = {}\n", tail, toml::encoder()(*vptr));
-            }
-        }
-
-        retval += "\n";
-    }
-
-    template <typename Block>
-    static void format_table_array(Block block, std::string& retval)
-    {
-        for (auto& res : block)
-        {
-            std::string table_name = join(res.m_path, ".");
-
-            for (const auto& tbl : res.m_value_ptr->template as<toml::array>())
-            {
-                retval += std::format("[[{}]]\n", table_name);
-
-                for (const auto& [k, v] : tbl.template as<toml::table>())
-                {
-                    retval += std::format("{} = {}\n", k, toml::encoder()(v));
-                }
-
-                retval += '\n';
-            }
-        }
-    }
-
     static std::string operator()(const value& tv)
     {
         auto path = path_collector()(tv, true);
 
-        std::ranges::sort(path, [](const auto& a, const auto& b) {
+        auto cmp = [](const auto& a, const auto& b) 
+        {
             if (a.m_path.size() != b.m_path.size())
             {
                 return a.m_path.size() < b.m_path.size();
@@ -165,21 +195,29 @@ struct formatter
             }
 
             return a.m_path < b.m_path; 
-        });
+        };
 
-        auto blocks = std::views::chunk_by(path, [](const auto& a, const auto& b) {
+        auto chunk_fn = [](const auto& a, const auto& b) 
+        {
             return a.m_kind == b.m_kind &&
                    a.m_path.size() == b.m_path.size() &&
                    std::ranges::equal(a.m_path.begin(), a.m_path.end() - 1, b.m_path.begin(), b.m_path.end() - 1); 
-        });
-        std::string retval = "\n";
+        };
 
-        for (auto block : blocks)
+        std::ranges::sort(path, cmp);
+
+        auto format_block = []<typename Block>(Block block)
         {
-            format_block(block, retval);
-        }
-    
-        return retval;
+            return block.front().m_kind == leaf_kind::value 
+                 ? detail::format_value(block) 
+                 : detail::format_table_array(block);
+        };
+
+        return path
+             | std::views::chunk_by(chunk_fn)
+             | std::views::transform(format_block) 
+             | std::views::join 
+             | std::ranges::to<std::string>();
     }
 };
 

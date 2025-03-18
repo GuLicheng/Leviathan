@@ -12,7 +12,14 @@ int main(int argc, char const *argv[])
     auto root1 = json::load(R"(D:\Library\Leviathan\salary.json)");
     auto root2 = leviathan::config::json2toml()(root1);
 
-    std::cout << toml::formatter()(root2);
+    // std::cout << toml::formatter()(root2);
+
+    std::ofstream os(R"(D:\Library\Leviathan\salary.toml)", std::ios::binary | std::ios::out);
+
+    if (os.is_open())
+    {
+        os << toml::formatter()(root2);
+    }
 
     return 0;
 }

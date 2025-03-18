@@ -42,7 +42,7 @@ struct std::formatter<View, CharT>
         auto it = ctx.out();
         const char* delimiter = "[";
         
-        for (const auto& value : v)
+        for (auto&& value : v)
         {
             *it++ = std::exchange(delimiter, ", ") ;
             it = m_fmt.format(value, ctx);
