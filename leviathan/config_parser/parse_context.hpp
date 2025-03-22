@@ -205,6 +205,120 @@ struct parse_context
 
 };
 
+template <typename CharT>
+class basic_parse_context
+{
+    using underlying_type = std::basic_string_view<CharT>;
+
+    static constexpr auto npos = underlying_type::npos;
+
+    underlying_type m_ctx;
+
+public:
+
+    constexpr basic_parse_context(underlying_type context) : m_ctx(context) { }
+
+    constexpr CharT current() const
+    {
+        return peek(0);
+    }
+
+    constexpr bool match_and_advance(CharT ch)
+    {
+        if (m_ctx.empty())
+        {
+            return false;
+        }
+
+        bool result = current() == ch;
+
+        if (result)
+        {
+            advance_unchecked(1);
+        }
+        return result;
+    }
+
+    constexpr bool consume(CharT ch)
+    {
+        return match_and_advance(ch);
+    }
+
+    constexpr bool consume(underlying_type context)
+    {
+        if (m_ctx.starts_with(context))
+        {
+            advance_unchecked(context.size());
+            return true;
+        }
+        return false;
+    }
+
+    constexpr CharT peek(size_t n) const
+    {
+        return n >= m_ctx.size() ? CharT(0) : m_ctx[n];
+    }
+
+    constexpr void advance(size_t n)
+    {
+        if (size() >= n)
+        {
+            advance_unchecked(n);
+        }
+        else
+        {
+            // Reset context
+            m_ctx = underlying_type(); 
+        }
+    }
+
+    constexpr void advance_unchecked(size_t n)
+    {
+        m_ctx.remove_prefix(n);
+    }
+
+    constexpr bool match_literal_and_advance(underlying_type literal)
+    {
+        // compare, string_view::substr will check length automatically.
+        if (m_ctx.compare(0, literal.size(), literal) != 0)
+        {
+            return false;
+        }
+
+        advance_unchecked(literal.size());
+        return true;
+    }
+
+    constexpr bool match(CharT ch) const
+    {
+        return m_ctx.size() && m_ctx.front() == ch;
+    }
+
+    constexpr bool match(underlying_type prefix) const
+    {
+        return m_ctx.starts_with(prefix);
+    }
+
+    constexpr void skip(underlying_type str)
+    {
+        auto idx = m_ctx.find_first_not_of(str);
+        m_ctx.remove_prefix(idx == m_ctx.npos ? m_ctx.size() : idx);
+    }
+
+    constexpr void skip_whitespace()
+    {
+        while (m_ctx.size() && 
+            (m_ctx.front() == CharT(' ') || 
+             m_ctx.front() == CharT('\t') || 
+             m_ctx.front() == CharT('\n') || 
+             m_ctx.front() == CharT('\r')))
+        {
+            advance_unchecked(1);
+        }
+    }
+
+};
+
 }  // leviathan::config
 
 

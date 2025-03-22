@@ -1,9 +1,10 @@
 #pragma once
 
-#include "../common.hpp"
-#include "../associative_container_interface.hpp"
-#include "tree_drawer.hpp"
-#include "../node_handle.hpp"
+#include <leviathan/collections/common.hpp>
+#include <leviathan/collections/tree/tree_iterator.hpp>
+#include <leviathan/collections/tree/tree_drawer.hpp>
+#include <leviathan/collections/node_handle.hpp>
+#include <leviathan/collections/container_interface.hpp>
 
 namespace leviathan::collections
 { 
@@ -66,9 +67,8 @@ concept node = requires (Node* n, const Node* cn, bool insert_left, Node& header
  * @param Node Type of tree node with basic tree operations but value field
 */
 template <typename KeyValue, typename Compare, typename Allocator, bool UniqueKey, typename Node>
-class tree : public row_drawer
+class tree : public row_drawer, public container_interface
 {
-    // static_assert(UniqueKey, "Non-unique keys are not supported");
 
     template <typename A, typename B, typename C, bool D, typename E>
     friend class tree;
@@ -91,98 +91,6 @@ public:
 
 protected:
 
-    struct tree_iterator 
-    {
-        using link_type = Node*;
-        using value_type = value_type;
-        using difference_type = std::ptrdiff_t;
-        using iterator_category = std::bidirectional_iterator_tag;
-        using reference = std::conditional_t<std::is_same_v<key_type, value_type>, const value_type&, value_type&>;
-
-        link_type m_ptr;
-
-        constexpr tree_iterator() = default;
-
-        constexpr tree_iterator(const tree_iterator&) = default;
-
-        constexpr tree_iterator(link_type ptr) : m_ptr(ptr) { }
-
-        // The const_iterator and iterator may model same type, so we offer 
-        // a base method to avoid if-constexpr.
-        constexpr tree_iterator& base()
-        {
-            return *this;
-        }
-
-        constexpr const tree_iterator& base() const
-        {
-            return *this;
-        }
-
-        constexpr link_type link(this tree_iterator it)
-        {
-            return it.m_ptr;
-        }
-
-        constexpr tree_iterator up(this tree_iterator it)
-        {
-            return tree_iterator(it.m_ptr->parent());
-        }
-
-        constexpr tree_iterator left(this tree_iterator it) 
-        {    
-            return tree_iterator(it.m_ptr->lchild());
-        }
-
-        constexpr tree_iterator right(this tree_iterator it)
-        {
-            return tree_iterator(it.m_ptr->rchild());
-        }
-
-        constexpr tree_iterator& operator++()
-        {
-            // if node is header/end/sentinel, we simply make it cycle
-            m_ptr = m_ptr->is_header() ? m_ptr->lchild() : m_ptr->increment();
-            return *this;
-        }
-
-        constexpr tree_iterator& operator--()
-        {
-            // if node is header/end/sentinel, we simply make it cycle
-            m_ptr = m_ptr->is_header() ? m_ptr->rchild() : m_ptr->decrement();
-            return *this;
-        }
-
-        constexpr tree_iterator operator++(int)
-        {
-            tree_iterator tmp = *this;
-            ++*this;
-            return tmp;
-        }
-
-        constexpr tree_iterator operator--(int)
-        {
-            tree_iterator tmp = *this;
-            --*this;
-            return tmp;
-        }
-
-        constexpr auto operator->(this tree_iterator it)
-        {
-            return std::addressof(*it);
-        }
-
-        constexpr reference operator*(this tree_iterator it) 
-        {
-            return *(static_cast<tree_node*>(it.m_ptr)->value_ptr());
-        }
-
-        friend constexpr bool operator==(tree_iterator lhs, tree_iterator rhs) 
-        {
-            return lhs.m_ptr == rhs.m_ptr;
-        }
-    };
-
     using alloc_traits = std::allocator_traits<Allocator>;
     using node_allocator = typename std::allocator_traits<Allocator>::template rebind_alloc<tree_node>;
     using node_alloc_traits = std::allocator_traits<node_allocator>;
@@ -190,8 +98,12 @@ protected:
 
 public:
 
+    using iterator = tree_iterator<key_value, node_base, tree_node>;
+    using const_iterator = std::const_iterator<iterator>;
+    using reverse_iterator = std::reverse_iterator<iterator>;
+    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
     using node_type = node_handle<KeyValue, node_allocator>;
-    using insert_return_type = node_insert_return<tree_iterator, node_type>;
+    using insert_return_type = node_insert_return<iterator, node_type>;
 
 protected:
 
@@ -209,13 +121,6 @@ protected:
     static constexpr bool IsNothrowSwap =
         std::is_nothrow_swappable_v<Compare>
         && typename alloc_traits::is_always_equal();
-
-public:
-
-    using iterator = tree_iterator;
-    using const_iterator = std::const_iterator<iterator>;
-    using reverse_iterator = std::reverse_iterator<iterator>;
-    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 public:
 
@@ -345,10 +250,10 @@ public:
     {
         return iterator(header()->lchild());
     }
-
+    
     const_iterator begin() const
     {
-        return std::make_const_iterator(const_cast<tree&>(*this).begin());
+        return const_cast<tree&>(*this).begin();
     }
 
     iterator end()
@@ -358,47 +263,7 @@ public:
 
     const_iterator end() const
     {
-        return std::make_const_iterator(const_cast<tree&>(*this).end());
-    }
-
-    reverse_iterator rbegin()
-    {
-        return std::make_reverse_iterator(end());
-    }
-
-    const_reverse_iterator rbegin() const
-    {
-        return std::make_reverse_iterator(end());
-    }
-
-    reverse_iterator rend()
-    {
-        return std::make_reverse_iterator(begin());
-    }
-
-    const_reverse_iterator rend() const
-    {
-        return std::make_reverse_iterator(begin());
-    }
-
-    const_iterator cbegin() const
-    {
-        return begin();
-    }
-
-    const_iterator cend() const
-    {
-        return end();
-    }
-
-    const_reverse_iterator crbegin() const
-    {
-        return rbegin();
-    }
-
-    const_reverse_iterator crend() const
-    {
-        return rend();
+        return const_cast<tree&>(*this).end();
     }
 
     // Member functions

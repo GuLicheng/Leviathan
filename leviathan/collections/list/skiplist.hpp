@@ -539,8 +539,7 @@ private:
         }
         catch (...)
         {
-            node_alloc_traits::destroy(m_alloc, node->value_ptr());
-            put_node(node);
+            dealloc_node(node);
             throw;
         }
     }
@@ -581,13 +580,6 @@ private:
     int m_level;
     skiplist_node* m_header;
 };
-
-// We can check our skiplist in Leetcode 1206 in the future.
-// https://leetcode.cn/problems/design-skiplist/description/
-// C++ apply C++20 standard using clang 17 with libstdc++ provided by GCC 11.
-// We at least need C++23 standard using clang 18 with libstdc++ provided by GCC14.
-// However, C# already use C#12(latest) run on .NET 8.
-// Date: 2024/05/19 
 
 
 } // namespace leviathan::collections

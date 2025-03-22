@@ -24,8 +24,8 @@ template <typename Alloc, typename T>
 struct adaptor_allocator
 {
     using size_type = typename Alloc::size_type;
-    using const_void_pointer = typename Alloc::const_void_pointer;
-    using pointer = typename Alloc::pointer;
+    using const_void_pointer = typename std::allocator_traits<Alloc>::const_void_pointer;
+    using pointer = typename std::allocator_traits<Alloc>::pointer;
     using alloc_traits = typename std::allocator_traits<Alloc>::template rebind_traits<T>;
 
     constexpr static auto rebind_allocator(Alloc& alloc)
@@ -34,21 +34,20 @@ struct adaptor_allocator
         return target;
     }
 
-    constexpr static allocate(Alloc& alloc, size_type n)
+    constexpr static auto allocate(Alloc& alloc, size_type n)
     {
         auto a = rebind_allocator(alloc);
         return alloc_traits::allocate(a, n);
     }
 
-    constexpr static allocate(Alloc& alloc, size_type n, const_void_pointer hint)
+    constexpr static auto allocate(Alloc& alloc, size_type n, const_void_pointer hint)
     {
         auto a = rebind_allocator(alloc);
         return alloc_traits::allocate(a, n, hint);
     }
 
-    constexpr static void deallocate(Alloc& a, pointer p, size_type n)
+    constexpr static void deallocate(Alloc& alloc, T* p, size_type n)
     {
-        using value_type = typename std::pointer_traits<pointer>::element_type;
         assert(p != nullptr && "p should not be nullptr");
         auto a = rebind_allocator(alloc);
         alloc_traits::deallocate(a, p, n);

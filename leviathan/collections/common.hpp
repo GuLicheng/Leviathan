@@ -300,6 +300,15 @@ concept container_compatible_range =
     std::ranges::input_range<R> &&
     std::convertible_to<std::ranges::range_reference_t<R>, T>;
 
+template <typename T>
+struct copy_const : std::conditional<std::is_const_v<std::remove_reference_t<T>>, const T, T> { };
+
+template <typename T>
+struct copy_const<T*> : std::conditional<std::is_const_v<std::remove_reference_t<T>>, const T*, T*> { };
+
+template <typename T>
+using const_const_t = typename copy_const<T>::type;
+
 template <typename Node, typename T>
 struct value_field : public Node
 {

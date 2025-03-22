@@ -42,14 +42,17 @@ inline std::string read_file_context(const char* filename, std::string_view newl
     return leviathan::string::replace(std::move(context), newline, "\n");
 }
 
-inline void write_file(std::string_view content, const char* filename)
+inline bool write_file(std::string_view content, const char* filename)
 {
     std::ofstream ofs(filename, std::ios_base::out | std::ios_base::binary);
 
     if (ofs)
     {
         ofs.write(content.data(), content.size());
+        return true;
     }
+
+    return false;
 }
 
 } // namespace leviathan
