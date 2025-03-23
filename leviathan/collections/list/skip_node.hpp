@@ -22,16 +22,6 @@ struct skip_node
 template <typename T>
 struct skip_node
 {
-    // void show() const
-    // {
-    //     Console::WriteLine("value = {}, count =  {}", *value_ptr(), count());
-
-    //     for (auto i = 0; i < count(); ++i)
-    //     {
-    //         Console::Write("{} -> {}\n", i, nexts()[i] == this);
-    //     }
-    // }
-
     // Flexible array is forbidden in ISO C++. So we use layout to simulate it.
     using node_layout_type = leviathan::layout<T, int, skip_node*>;
 
@@ -142,7 +132,7 @@ struct skip_iterator
 
     constexpr skip_iterator skip(difference_type i) const
     {
-        return skip_iterator(m_link->pointers[1 + i]);
+        return skip_iterator(m_link->pointers()[1 + i]);
     }
 
     constexpr skip_iterator& skip_to(difference_type i)
@@ -164,6 +154,12 @@ struct skip_iterator
     {
         return m_link->count();
     } 
+
+    template <typename Self>
+    constexpr auto link(this Self&& self)
+    {
+        return self.m_link;
+    }
 };
 
 }

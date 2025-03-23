@@ -138,7 +138,7 @@ TEST_CASE("test member type")
 
 TEST_CASE("find value")
 {
-    Tree<int>tree;
+    Tree<int> tree;
 
     auto Zero = tree.insert(0).first;
     auto Positive = tree.insert(2).first;
@@ -155,7 +155,7 @@ TEST_CASE("find value")
     auto result = std::ranges::equal(
         SearchedValues,
         LowerBoundResults,
-        [&](auto v, auto it) { return tree.lower_bound(v) == it; }
+        [&](auto v, auto it) { return std::as_const(tree).lower_bound(v) == it; }
     );
 
     CHECK(result);
@@ -163,7 +163,7 @@ TEST_CASE("find value")
     result = std::ranges::equal(
         SearchedValues, 
         UpperBoundResults,
-        [&](auto v, auto it) { return tree.upper_bound(v) == it; }
+        [&](auto v, auto it) { return std::as_const(tree).upper_bound(v) == it; }
     );
 
     auto [lower, upper] = tree.equal_range(0);

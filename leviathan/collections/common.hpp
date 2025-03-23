@@ -279,7 +279,6 @@ struct ordered_map_container_value_compare
  * GetHashCode and Equals since it usually store a reference.
  * 
  * Please make sure for KeyEqual(x, y) == true, Hasher(x) == Hasher(y).
- *     
 */
 template <typename Hasher, typename KeyEqual>
 struct hash_key_equal : public Hasher, public KeyEqual
@@ -299,15 +298,6 @@ template <typename R, typename T>
 concept container_compatible_range = 
     std::ranges::input_range<R> &&
     std::convertible_to<std::ranges::range_reference_t<R>, T>;
-
-template <typename T>
-struct copy_const : std::conditional<std::is_const_v<std::remove_reference_t<T>>, const T, T> { };
-
-template <typename T>
-struct copy_const<T*> : std::conditional<std::is_const_v<std::remove_reference_t<T>>, const T*, T*> { };
-
-template <typename T>
-using const_const_t = typename copy_const<T>::type;
 
 template <typename Node, typename T>
 struct value_field : public Node
@@ -394,5 +384,30 @@ struct allocator_adaptor
         alloc_traits::deallocate(alloc, p, n);
     }
 };
+
+template <typename T>
+auto& as_non_const(T& x)
+{
+    return const_cast<std::remove_const_t<T>&>(x);
+}
+
+template <typename Self>
+using self_iter_t = std::conditional_t<
+    std::is_const_v<std::remove_reference_t<Self>>, 
+    typename std::remove_reference_t<Self>::const_iterator, 
+    typename std::remove_reference_t<Self>::iterator
+>;
+
+template <typename Allocator, typename... Ts>
+inline constexpr bool nothrow_move_constructible = std::allocator_traits<Allocator>::is_always_equal::value && 
+    (std::is_nothrow_move_constructible_v<Ts> && ...);
+
+template <typename Allocator, typename... Ts>
+inline constexpr bool nothrow_move_assignable = std::allocator_traits<Allocator>::is_always_equal::value && 
+    (std::is_nothrow_move_assignable_v<Ts> && ...);
+
+template <typename Allocator, typename... Ts>
+inline constexpr bool nothrow_swappable = std::allocator_traits<Allocator>::is_always_equal::value && 
+    (std::is_nothrow_swappable_v<Ts> && ...);
 
 }  // namespace leviathan::collections

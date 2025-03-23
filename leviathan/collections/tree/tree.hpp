@@ -110,17 +110,9 @@ protected:
     template <typename U> 
     using key_arg_t = detail::key_arg<detail::transparent<Compare>, U, key_type>;
 
-    static constexpr bool IsNothrowMoveConstruct =
-        std::is_nothrow_move_constructible_v<Compare>
-        && typename alloc_traits::is_always_equal();
-
-    static constexpr bool IsNothrowMoveAssign =
-        std::is_nothrow_move_assignable_v<Compare>
-        && typename alloc_traits::is_always_equal();
-
-    static constexpr bool IsNothrowSwap =
-        std::is_nothrow_swappable_v<Compare>
-        && typename alloc_traits::is_always_equal();
+    static constexpr bool IsNothrowMoveConstruct = nothrow_move_constructible<Allocator, Compare>;
+    static constexpr bool IsNothrowMoveAssign = nothrow_move_assignable<Allocator, Compare>;
+    static constexpr bool IsNothrowSwap = nothrow_swappable<Allocator, Compare>;
 
 public:
 
@@ -246,24 +238,16 @@ public:
     }
 
     // Iterators
-    iterator begin()
+    template <typename Self>
+    self_iter_t<Self> begin(this Self&& self)
     {
-        return iterator(header()->lchild());
-    }
-    
-    const_iterator begin() const
-    {
-        return const_cast<tree&>(*this).begin();
+        return iterator(as_non_const(self).header()->lchild());
     }
 
-    iterator end()
+    template <typename Self>
+    self_iter_t<Self> end(this Self&& self)
     {
-        return iterator(header());
-    }
-
-    const_iterator end() const
-    {
-        return const_cast<tree&>(*this).end();
+        return iterator(as_non_const(self).header());
     }
 
     // Member functions
@@ -304,66 +288,42 @@ public:
     }
 
     // Lookup
-    template <typename K = key_type>
-    iterator lower_bound(const key_arg_t<K>& x)
+    template <typename Self, typename K = key_type>
+    self_iter_t<Self> lower_bound(this Self&& self, const key_arg_t<K>& x)
     {
-        return lower_bound_impl(x);
+        return as_non_const(self).lower_bound_impl(x);
     }
 
-    template <typename K = key_type>
-    const_iterator lower_bound(const key_arg_t<K>& x) const
+    template <typename Self, typename K = key_type>
+    self_iter_t<Self> find(this Self&& self, const key_arg_t<K>& x)
     {
-        return const_cast<tree&>(*this).lower_bound(x);
+        auto lower = self.lower_bound(x);
+        return (lower == self.end() || self.m_cmp(x, keys(lower.base().link()))) 
+              ? self.end() : lower;
     }
 
-    template <typename K = key_type>
-    iterator find(const key_arg_t<K>& x)
+    template <typename Self, typename K = key_type>
+    std::pair<self_iter_t<Self>, self_iter_t<Self>> equal_range(this Self&& self, const key_arg_t<K>& x)
     {
-        iterator lower = lower_bound(x);
-        return (lower == end() || m_cmp(x, keys(lower.link()))) 
-              ? end() : lower;
-    }
-
-    template <typename K = key_type>
-    const_iterator find(const key_arg_t<K>& x) const
-    {
-        return const_cast<tree&>(*this).find(x);
-    }
-
-    template <typename K = key_type>
-    std::pair<iterator, iterator> equal_range(const key_arg_t<K>& x)
-    {
-        iterator lower = lower_bound(x);
-        iterator upper;
-
         if constexpr (UniqueKey)
         {
-            upper = (lower == end() || m_cmp(x, keys(lower.link()))) ? lower : std::next(lower); 
+            auto lower = self.lower_bound(x);
+
+            // If key is unique, we simply compare the value of current iterator to avoid comparison
+            // since the comparison may be expensive.
+            auto upper = (lower == self.end() || self.m_cmp(x, keys(lower.link()))) ? lower : std::next(lower); 
+            return std::make_pair(lower, upper);
         }
         else
         {
-            upper = upper_bound(x);
+            return std::make_pair(self.lower_bound(x), self.upper_bound(x));
         }
-
-        return std::make_pair(lower, upper);
     }
 
-    template <typename K = key_type>
-    std::pair<const_iterator, const_iterator> equal_range(const key_arg_t<K>& x) const
+    template <typename Self, typename K = key_type>
+    self_iter_t<Self> upper_bound(this Self&& self, const key_arg_t<K>& x)
     {
-        return const_cast<tree&>(*this).equal_range(x);
-    }
-
-    template <typename K = key_type>
-    iterator upper_bound(const key_arg_t<K>& x)
-    {
-        return upper_bound_impl(x);
-    }
-
-    template <typename K = key_type>
-    const_iterator upper_bound(const key_arg_t<K>& x) const
-    {
-        return const_cast<tree&>(*this).upper_bound(x);
+        return as_non_const(self).upper_bound_impl(x);
     }
 
     template <typename K = key_type>
@@ -415,7 +375,7 @@ public:
     }
 
     template <typename... Args>
-    iterator emplace_hint([[maybe_unused]] const_iterator hint, Args&&... args)
+    iterator emplace_hint(const_iterator, Args&&... args)
     {
         return emplace((Args&&)args...).first;
     }
@@ -765,7 +725,7 @@ protected:
 
     // Lookup helper
     template <typename K>
-    iterator lower_bound_impl(const K& k)
+    iterator lower_bound_impl(const K& k) 
     {
         auto y = &m_header, x = header()->parent();
 
@@ -784,7 +744,7 @@ protected:
     }
 
     template <typename K>
-    iterator upper_bound_impl(const K& k)
+    iterator upper_bound_impl(const K& k) 
     {
         auto y = &m_header, x = header()->parent();
 

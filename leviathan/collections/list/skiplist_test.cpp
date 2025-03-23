@@ -1,21 +1,21 @@
 #include <iostream>
-#include "skiplist.hpp"
+#include "skip_list.hpp"
 #include <catch2/catch_all.hpp>
 
 using namespace leviathan::collections;
 
-using SetT = skiplist<identity<int>, std::ranges::less, std::allocator<int>, true>;
+using SkipList = skip_set<identity<int>, std::ranges::less, std::allocator<int>, true>;
 
 TEST_CASE("observer", "[empty][size]")
 {
-    SetT h;
+    SkipList h;
     REQUIRE(h.size() == 0);
     REQUIRE(h.empty());
 }
 
 TEST_CASE("search elements", "[iterator][contains][find][lower_bound][upper_bound][equal_range][count]")
 {
-    SetT h;
+    SkipList h;
 
     h.insert(1);
     h.insert(3);
@@ -61,7 +61,7 @@ TEST_CASE("search elements", "[iterator][contains][find][lower_bound][upper_boun
 
 TEST_CASE("remove elements", "[iterator][remove][clear][find][size][empty]")
 {
-    SetT h;
+    SkipList h;
 
     REQUIRE(h.erase(0) == 0);
 

@@ -1,3 +1,5 @@
+#if 1
+
 #pragma once
 
 #include <random>
@@ -584,3 +586,4 @@ private:
 
 } // namespace leviathan::collections
 
+#endif
