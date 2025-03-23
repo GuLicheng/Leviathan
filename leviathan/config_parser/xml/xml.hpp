@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../common.hpp"
-#include "../parse_context.hpp"
-#include "../../io/file.hpp"
+#include <leviathan/extc++/all.hpp>
+#include <leviathan/config_parser/common.hpp>
+#include <leviathan/config_parser/parse_context.hpp>
 
 #include <expected>
 

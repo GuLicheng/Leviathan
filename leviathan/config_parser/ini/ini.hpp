@@ -6,6 +6,7 @@
 #include <leviathan/config_parser/common.hpp>
 #include <leviathan/string/string_extend.hpp>
 #include <leviathan/meta/template_info.hpp>
+#include <leviathan/extc++/all.hpp>
 
 #include <algorithm>
 #include <unordered_map>

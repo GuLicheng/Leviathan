@@ -8,10 +8,10 @@ Reference:
 
 #pragma once
 
-#include "value.hpp"
-#include "collector.hpp"
-#include "../parse_context.hpp"
-#include "parser_helper.hpp"
+#include <leviathan/config_parser/parse_context.hpp>
+#include <leviathan/config_parser/toml/value.hpp>
+#include <leviathan/config_parser/toml/collector.hpp>
+#include <leviathan/config_parser/toml/parser_helper.hpp>
 
 namespace leviathan::config::toml
 {

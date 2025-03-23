@@ -1,8 +1,8 @@
 #pragma once
 
-#include "value.hpp"
-#include "../parse_context.hpp"
-#include "../common.hpp"
+#include <leviathan/config_parser/common.hpp>
+#include <leviathan/config_parser/parse_context.hpp>
+#include <leviathan/config_parser/value.hpp>
 
 namespace leviathan::config::json
 {

@@ -40,8 +40,8 @@ struct int128_layout
     lower_type lower() const { return static_cast<lower_type>(m_data[lower_index]); }
 };
 
-template <std::endian Endian = std::endian::native> struct uint128;
-template <std::endian Endian = std::endian::native> struct int128;
+template <std::endian Endian = std::endian::native> class uint128;
+template <std::endian Endian = std::endian::native> class int128;
 
 template <std::endian Endian>
 class uint128 : int128_layout<false, Endian>
@@ -213,7 +213,7 @@ public:
         //      LH32(A) * LL32(B) => H64 or L64
         //      LL32(A) * LL32(B) => L64
 
-        constexpr uint64_t mask = 0xffffffff;   // mask low 64-bit
+        constexpr uint64_t mask = 0xFFFFFFFF;   // mask low 64-bit
 
         const uint64_t ah = lhs.lower() >> 32;
         const uint64_t al = lhs.lower() & mask;
@@ -571,15 +571,10 @@ public:
     constexpr int128 operator|(this int128 lhs, int128 rhs) { return do_as_uint128(std::bit_or<>(), lhs, rhs); }
     constexpr int128 operator&(this int128 lhs, int128 rhs) { return do_as_uint128(std::bit_and<>(), lhs, rhs); }
     constexpr int128 operator^(this int128 lhs, int128 rhs) { return do_as_uint128(std::bit_xor<>(), lhs, rhs); }
-
     constexpr int128 operator+(this int128 lhs, int128 rhs) { return do_as_uint128(std::plus<>(), lhs, rhs); }
-
     constexpr int128 operator-(this int128 lhs, int128 rhs) { return do_as_uint128(std::minus<>(), lhs, rhs); }
-
     constexpr int128 operator*(this int128 lhs, int128 rhs) { return do_as_uint128(std::multiplies<>(), lhs, rhs); }
-    
     constexpr int128 operator/(this int128 lhs, int128 rhs) { return div_mod(lhs, rhs).quotient; }
-
     constexpr int128 operator%(this int128 lhs, int128 rhs) { return div_mod(lhs, rhs).remainder; }
 
     constexpr int128 operator<<(this int128 lhs, uint64_t amount) 
