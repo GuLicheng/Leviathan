@@ -341,8 +341,9 @@ public:
         }
         else
         {
-            auto [lower, bound] = equal_range(x);
-            return std::distance(lower, bound);
+            // auto [lower, bound] = equal_range(x);
+            // return std::distance(lower, bound);
+            return std::apply(std::ranges::distance, equal_range(x));
         }
     }
 
@@ -562,6 +563,12 @@ public:
     void merge(tree<KeyValue, C2, Allocator, U2, Node>&& source)
     {
         merge(source);
+    }
+
+    template <typename Self>
+    copy_const_t<Self, node_base*> header(this Self& self)
+    {
+        return std::addressof(self.m_header);
     }
 
 protected:
@@ -1009,23 +1016,13 @@ protected:
         node->init();
     }
 
-public:
-
-    node_base* header()
-    {
-        return &m_header;
-    }
-
-    const node_base* header() const
-    {
-        return &m_header;
-    }
-
+protected:
+    
     static const key_type& keys(const tree_node* node)
     {
         return KeyValue()(node->value());
     }
-
+    
     static const key_type& keys(const node_base* node)
     {
         return keys(static_cast<const tree_node*>(node));
@@ -1033,7 +1030,7 @@ public:
 
     [[no_unique_address]] Compare m_cmp;
     [[no_unique_address]] Allocator m_alloc;
-    Node m_header;
+    node_base m_header;
     size_type m_size;
 };
 

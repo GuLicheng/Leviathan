@@ -33,7 +33,8 @@ concept reversible = iterable<Container> && requires
 
 /**
  * @brief Simply generator iterator interface for container.
- * The container must have begin() and end() member functions.
+ * Generate cbegin/cend/rbegin/rend/rcbegin/rcend member functions 
+ * by begin/end
  */
 struct container_interface
 {

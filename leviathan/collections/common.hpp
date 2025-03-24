@@ -253,12 +253,12 @@ struct value_handle
  *     };
  * 
  * https://en.cppreference.com/w/cpp/named_req/Compare
- * Maybe the Compare is always empty class?
+ * May the Compare always be empty class?
 */
 template <typename Pair, typename Compare>
 struct ordered_map_container_value_compare
 {
-    bool operator()(const Pair& lhs, const Pair& rhs) const
+    constexpr auto operator()(const Pair& lhs, const Pair& rhs) const
     {
         return m_c(lhs.first, rhs.first);
     }
@@ -385,18 +385,36 @@ struct allocator_adaptor
     }
 };
 
-template <typename T>
-auto& as_non_const(T& x)
-{
-    return const_cast<std::remove_const_t<T>&>(x);
-}
-
+/**
+ * @brief Return a non-const reference from a const reference.
+ *  For some interfaces such as lower_bound will offer both const and non-const
+ *  version. However, both const and non-const share same implementation. So we
+ *  can use this helper to avoid duplicate code.
+ * 
+ *  template <typename Self>
+ *  self_iter_t<Self> lower_bound(this Self&& self, const key_arg_t<K>& x)
+ *  { return as_non_const(self).lower_bound_impl(x); }
+ */
 template <typename Self>
 using self_iter_t = std::conditional_t<
     std::is_const_v<std::remove_reference_t<Self>>, 
     typename std::remove_reference_t<Self>::const_iterator, 
     typename std::remove_reference_t<Self>::iterator
 >;
+
+template <typename T>
+auto& as_non_const(T& x)
+{
+    return const_cast<std::remove_const_t<T>&>(x);
+}
+
+template <typename Self, typename T> struct copy_const;
+
+template <typename Self, typename T>
+struct copy_const<Self, T*> : std::conditional<std::is_const_v<Self>, const T*, T*> { };
+
+template <typename Self, typename T> 
+using copy_const_t = typename copy_const<Self, T>::type;
 
 template <typename Allocator, typename... Ts>
 inline constexpr bool nothrow_move_constructible = std::allocator_traits<Allocator>::is_always_equal::value && 
