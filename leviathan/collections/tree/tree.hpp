@@ -60,24 +60,23 @@ concept node = requires (Node* n, const Node* cn, bool insert_left, Node& header
  * if and only if the tree is empty. So our operation can be simplified since we can
  * always assume the parent is not null.
  * 
- * @param KeyValue Extractor extract key from value. identity<T> for set and select1st<K, V> for map
+ * @param KeyOfValue Extractor extract key from value. identity<T> for set and select1st<K, V> for map
  * @param Compare Compare Key comparison function object
  * @param Allocator Allocator Type of the allocator object used to define the storage allocation model
  * @param UniqueKey True for set/map and False for multiset/multimap
  * @param Node Type of tree node with basic tree operations but value field
 */
-template <typename KeyValue, typename Compare, typename Allocator, bool UniqueKey, typename Node>
+template <typename KeyOfValue, typename Compare, typename Allocator, bool UniqueKey, typename Node>
 class tree : public row_drawer, public container_interface
 {
-
     template <typename A, typename B, typename C, bool D, typename E>
     friend class tree;
 
 public:
 
-    using key_value = KeyValue;
-    using value_type = typename KeyValue::value_type;
-    using key_type = typename KeyValue::key_type;
+    using key_value = KeyOfValue;
+    using value_type = typename KeyOfValue::value_type;
+    using key_type = typename KeyOfValue::key_type;
     using size_type = std::size_t;
     using allocator_type = Allocator;
     using difference_type = std::ptrdiff_t;
@@ -102,7 +101,7 @@ public:
     using const_iterator = std::const_iterator<iterator>;
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-    using node_type = node_handle<KeyValue, node_allocator>;
+    using node_type = node_handle<KeyOfValue, node_allocator>;
     using insert_return_type = node_insert_return<iterator, node_type>;
 
 protected:
@@ -303,48 +302,9 @@ public:
     }
 
     template <typename Self, typename K = key_type>
-    std::pair<self_iter_t<Self>, self_iter_t<Self>> equal_range(this Self&& self, const key_arg_t<K>& x)
-    {
-        if constexpr (UniqueKey)
-        {
-            auto lower = self.lower_bound(x);
-
-            // If key is unique, we simply compare the value of current iterator to avoid comparison
-            // since the comparison may be expensive.
-            auto upper = (lower == self.end() || self.m_cmp(x, keys(lower.link()))) ? lower : std::next(lower); 
-            return std::make_pair(lower, upper);
-        }
-        else
-        {
-            return std::make_pair(self.lower_bound(x), self.upper_bound(x));
-        }
-    }
-
-    template <typename Self, typename K = key_type>
     self_iter_t<Self> upper_bound(this Self&& self, const key_arg_t<K>& x)
     {
         return as_non_const(self).upper_bound_impl(x);
-    }
-
-    template <typename K = key_type>
-    bool contains(const key_arg_t<K>& x) const
-    {
-        return find(x) != end();
-    }
-
-    template <typename K = key_type>
-    size_type count(const key_arg_t<K>& x) const
-    {
-        if constexpr (UniqueKey)
-        {
-            return contains(x);
-        }
-        else
-        {
-            // auto [lower, bound] = equal_range(x);
-            // return std::distance(lower, bound);
-            return std::apply(std::ranges::distance, equal_range(x));
-        }
     }
 
     // Modifiers
@@ -378,7 +338,14 @@ public:
     template <typename... Args>
     iterator emplace_hint(const_iterator, Args&&... args)
     {
-        return emplace((Args&&)args...).first;
+        if constexpr (UniqueKey)
+        {
+            return emplace((Args&&)args...).first;
+        }
+        else
+        {
+            return emplace((Args&&)args...);
+        }
     }
 
     iterator erase(iterator pos) 
@@ -422,39 +389,7 @@ public:
         return erase_by_key(x);
     }
 
-    auto insert(const value_type& value)
-    {
-        return emplace(value);
-    }
-
-    auto insert(value_type&& value)
-    {
-        return emplace(std::move(value));
-    }
-
-    iterator insert(const_iterator pos, const value_type& value)
-    {
-        return emplace_hint(pos, value);
-    }
-
-    iterator insert(const_iterator pos, value_type&& value)
-    {
-        return emplace_hint(pos, std::move(value));
-    }
-
-    template <typename InputIt>
-    void insert(InputIt first, InputIt last)
-    {
-        for (; first != last; ++first)
-        {
-            insert(*first);
-        }
-    }
-
-    void insert(std::initializer_list<value_type> ilist)
-    {
-        insert(ilist.begin(), ilist.end());
-    }
+    using container_interface::insert;
 
     auto insert(node_type&& nh)
     {
@@ -490,11 +425,11 @@ public:
         return emplace_hint(hint, (K&&)x);
     }
 
-    template<container_compatible_range<value_type> R>
-    void insert_range(R&& rg)
-    {
-        insert(std::ranges::begin(rg), std::ranges::end(rg)); 
-    }
+    // template<container_compatible_range<value_type> R>
+    // void insert_range(R&& rg)
+    // {
+    //     insert(std::ranges::begin(rg), std::ranges::end(rg)); 
+    // }
 
     bool operator==(const tree& other) const
     {
@@ -547,7 +482,7 @@ public:
     }
 
     template <typename C2, bool U2>
-    void merge(tree<KeyValue, C2, Allocator, U2, Node>& source)
+    void merge(tree<KeyOfValue, C2, Allocator, U2, Node>& source)
     {
         // We check the address directly to avoid self-merge.
         if (static_cast<const void*>(this) == static_cast<const void*>(std::addressof(source)))
@@ -560,7 +495,7 @@ public:
     }
 
     template <typename C2, bool U2>
-    void merge(tree<KeyValue, C2, Allocator, U2, Node>&& source)
+    void merge(tree<KeyOfValue, C2, Allocator, U2, Node>&& source)
     {
         merge(source);
     }
@@ -574,7 +509,7 @@ public:
 protected:
 
     template <typename C2, bool U2>
-    void merge_tree_node(tree<KeyValue, C2, Allocator, U2, Node>& source)
+    void merge_tree_node(tree<KeyOfValue, C2, Allocator, U2, Node>& source)
     {
         if (source.empty())
         {
@@ -802,7 +737,7 @@ protected:
     template <typename Arg>
     std::pair<iterator, bool> insert_unique(Arg&& arg)
     {
-        auto [x, p] = get_insert_unique_pos(KeyValue()(arg));
+        auto [x, p] = get_insert_unique_pos(KeyOfValue()(arg));
         return p 
              ? std::make_pair(insert_value(x, p, (Arg&&)arg), true)  
              : std::make_pair(x, false);
@@ -812,7 +747,7 @@ protected:
     iterator insert_value(node_base* x, node_base* p, Arg&& arg)
     {
         bool insert_left = (x != 0 || p == &m_header
-            || m_cmp(KeyValue()(arg), keys(p)));
+            || m_cmp(KeyOfValue()(arg), keys(p)));
 
         auto z = create_node((Arg&&)arg);
 
@@ -888,7 +823,7 @@ protected:
             }
         }
 
-        if (m_cmp(KeyValue()(*j), k))
+        if (m_cmp(KeyOfValue()(*j), k))
         {
             return { x, y };
         }
@@ -921,7 +856,7 @@ protected:
         }
         else
         {
-            auto [first, last] = equal_range(x);
+            auto [first, last] = this->equal_range(x); 
             size_type cnt = 0;
 
             for (; first != last; first = erase(first), ++cnt);
@@ -1020,7 +955,7 @@ protected:
     
     static const key_type& keys(const tree_node* node)
     {
-        return KeyValue()(node->value());
+        return KeyOfValue()(node->value());
     }
     
     static const key_type& keys(const node_base* node)

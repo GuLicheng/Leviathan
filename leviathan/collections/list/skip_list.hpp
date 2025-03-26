@@ -314,11 +314,9 @@ private:
     template <typename... Args>
     void construct_node(list_node* node, Args&&... args)
     {
-        using AllocTraits = std::allocator_traits<Allocator>; 
-
         try
         {
-            AllocTraits::construct(m_alloc, node->value_ptr(), (Args&&) args...);
+            std::allocator_traits<Allocator>::construct(m_alloc, node->value_ptr(), (Args&&) args...);
         }
         catch (...)
         {
@@ -329,8 +327,7 @@ private:
 
     void destroy_node(list_node* node)
     {
-        using AllocTraits = std::allocator_traits<Allocator>;
-        AllocTraits::destroy(m_alloc, node->value_ptr());
+        std::allocator_traits<Allocator>::destroy(m_alloc, node->value_ptr());
     }
 
     [[nodiscard]] list_node* alloc_node(int count)
@@ -386,11 +383,11 @@ private:
         reset_header();
     }
 
-    list_node* header()
-    { return m_header; }
-
-    const list_node* header() const 
-    { return m_header; }
+    template <typename Self>
+    copy_const_t<Self, list_node*> header(this Self& self)
+    {
+        return self.m_header;
+    }
 
     [[no_unique_address]] Compare m_cmp;
     [[no_unique_address]] Allocator m_alloc;

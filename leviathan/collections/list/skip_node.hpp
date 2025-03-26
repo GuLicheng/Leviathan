@@ -156,7 +156,7 @@ struct skip_iterator
     } 
 
     template <typename Self>
-    constexpr auto link(this Self&& self)
+    constexpr copy_const_t<Self, link_type> link(this Self&& self)
     {
         return self.m_link;
     }

@@ -1,26 +1,19 @@
-#include <leviathan/collections/list/skip_list.hpp>
 #include <leviathan/print.hpp>
+#include <ranges>
+#include <set>
+#include <leviathan/collections/tree/avl_tree.hpp>
 
 using namespace leviathan::collections;
 
-struct F
-{
-    int* X = new int(1);
-
-    template <typename Self>
-    copy_const_t<Self, int*> GetX(this Self& self) 
-    {
-        return self.X;
-    }
-};
-
 int main(int argc, char const *argv[])
 {
-    const F f;
-    auto c = f.GetX();
-    auto d = f.X;
-    *c = 2;
-    Console::WriteLine(*f.X);
+
+    avl_treeset<int> s;
+
+    s.contains(1);
+    s.count(1);
+    s.equal_range(1);
+    s.erase(1);
 
     return 0;
 }
