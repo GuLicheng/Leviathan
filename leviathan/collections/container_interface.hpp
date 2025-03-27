@@ -86,25 +86,25 @@ struct iterable_interface
 struct searchable_interface
 {
     template <typename Self, typename T>
-    constexpr auto count(this Self&& self, T&& x)
+    constexpr auto count(this Self&& self, const T& x)
     {
         // If self is not duplicate, we can optimize this function
         // by using contains.
-        return std::apply(std::ranges::distance, self.equal_range((T&&) x));
+        return std::apply(std::ranges::distance, self.equal_range(x));
     }
 
     template <typename Self, typename T>
-    constexpr auto contains(this Self&& self, T&& x)
+    constexpr auto contains(this Self&& self, const T& x)
     {
-        return self.find((T&&) x) != self.end();
+        return self.find(x) != self.end();
     }
 
     template <typename Self, typename T>
-    constexpr auto equal_range(this Self&& self, T&& x)
+    constexpr auto equal_range(this Self&& self, const T& x)
     {
         return std::make_pair(
-            self.lower_bound((T&&) x), 
-            self.upper_bound((T&&) x)
+            self.lower_bound(x), 
+            self.upper_bound(x)
         );
     }
 };
