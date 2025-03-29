@@ -23,10 +23,11 @@ template <typename T>
 struct identity
 {
     using key_type = T;
+    using value_type = key_type;
+    using reference = value_type&;
+    using const_reference = const value_type&;
 
-    using value_type = T;
-
-    // For set<T>, the key_type is value_type.
+    // For set<T>, the key_type is T.
     template <typename U>
     static constexpr auto&& operator()(U&& x)
     {
@@ -40,12 +41,32 @@ struct identity
  * Since set/map may implemented by same data structure, so we can 
  * add another template parameter to make the data structure set or map.
 */
-template <typename T1, typename T2>
+template <typename K, typename V>
 struct select1st
 {
-    using key_type = T1;
+    using key_type = K;
+    using mapped_type = V;
+    using value_type = std::pair<const key_type, mapped_type>;
+    using reference = value_type&;
+    using const_reference = const value_type&;
 
-    using value_type = std::pair<const T1, T2>;
+    // For map<K, V>, the key_type is K.
+    template <typename U>
+    static constexpr auto&& operator()(U&& x)
+    {
+        return ((U&&)x).first;
+    }
+};
+
+// https://en.cppreference.com/w/cpp/container/flat_map
+template <typename K, typename V>
+struct select1st_zipped
+{
+    using key_type = K;
+    using mapped_type = V;
+    using value_type = std::pair<key_type, mapped_type>;
+    using reference = std::pair<const key_type&, mapped_type&>;
+    using const_reference = std::pair<const key_type&, const mapped_type&>;
 
     template <typename U>
     static constexpr auto&& operator()(U&& x)
@@ -76,9 +97,10 @@ concept transparent = (has_transparent<Ts> && ...);
  *
  * https://en.cppreference.com/w/cpp/language/template_argument_deduction
  * There are some overloads in lookup member functions.
+ * 
  * E.g.
- * iterator find(const key_type& key);
- * template <typename K> iterator find(const K& key);
+ * iterator find(const key_type& key);                 // [1]
+ * template <typename K> iterator find(const K& key);  // [2] participating overload if sth defined transparent.
  * This meta helper can reduce the number from 2 to 1.
  *
  * template <typename U> using key_arg_t = detail::key_arg<IsTransparent, U, key_type>;
@@ -111,6 +133,11 @@ using key_arg = typename key_arg_helper<IsTransparent>::template type<K1, K2>;
  * is const T&/T&/const T&&/T&&(where T model value_type), this step is not necessary. 
  * To avoid unnecessary copy or move operations. We use this meta helper to check 
  * whether the arguments passed in are satisfied above cases.
+ * 
+ * With this helper, we can implement insert by reusing emplace.
+ * 
+ * auto insert(const value_type& value) { return emplace(value); }
+ * auto insert(value_type&& value) { return emplace(std::move(value)); }
  *
  * @return True if std::remove_cvref_t<Args> is same as T.
 */
@@ -384,6 +411,12 @@ struct allocator_adaptor
         alloc_traits::deallocate(alloc, p, n);
     }
 };
+
+template <typename Self>
+using self_iterator_t = typename std::remove_cvref_t<Self>::iterator;
+
+template <typename Self>
+using self_const_iterator_t = typename std::remove_cvref_t<Self>::const_iterator;
 
 /**
  * @brief Return a non-const reference from a const reference.

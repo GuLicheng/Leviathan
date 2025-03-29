@@ -16,7 +16,7 @@ namespace leviathan::collections
 /**
  * @brief A skiplist implementation.
  * 
- * @param KeyValue Extractor extract key from value. identity<T> for set and select1st<K, V> for map.
+ * @param KeyOfValue Extractor extract key from value. identity<T> for set and select1st<K, V> for map.
  * @param Compare
  * @param Allocator
  * @param UniqueKey True for set/map and False for multiset/multimap.
@@ -25,7 +25,7 @@ namespace leviathan::collections
  * @param MaxLevel Max level of node.
  * @param Ratio Reciprocal of probability.
 */
-template <typename KeyValue, 
+template <typename KeyOfValue, 
     typename Compare, 
     typename Allocator, 
     bool UniqueKey, 
@@ -52,19 +52,18 @@ class skip_list : public container_interface
 
 public:
 
-    using key_value = KeyValue;
-    using key_type = typename key_value::key_type;
-    using value_type = typename key_value::value_type;
+    using value_type = typename KeyOfValue::value_type;
+    using key_type = typename KeyOfValue::key_type;
+    using reference = typename KeyOfValue::reference;
+    using const_reference = typename KeyOfValue::const_reference;
     using difference_type = std::ptrdiff_t;
     using key_compare = Compare;
     using value_compare = Compare;
-    using reference = value_type&;
-    using const_reference = const value_type&;
     using pointer = std::allocator_traits<Allocator>::pointer;
     using const_pointer = std::allocator_traits<Allocator>::const_pointer;
     using size_type = size_t;
     using allocator_type = Allocator;
-    using iterator = skip_iterator<key_value>;
+    using iterator = skip_iterator<KeyOfValue>;
     using const_iterator = std::const_iterator<iterator>;
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
@@ -117,41 +116,9 @@ public:
         return AllocTraits::max_size(m_alloc);
     }
 
-    // Modifiers
-    template <typename... Args>
-    std::pair<iterator, bool> emplace(Args&&... args)
+    static KeyOfValue key_of_value()
     {
-        if constexpr (detail::emplace_helper<value_type, Args...>::value)
-        {
-            return insert_unique((Args&&) args...);
-        }
-        else
-        {
-            value_handle<value_type, allocator_type> handle(m_alloc, (Args&&) args...);
-            return insert_unique(*handle);
-        }
-    }
-    
-    size_type erase(const key_type& x)
-    {
-        auto old_size = size();
-        erase_node_by_value(x);
-        return old_size - size();
-    }
-
-    // Observers
-    template <typename Self, typename K = key_type>
-    self_iter_t<Self> lower_bound(this Self&& self, const key_arg_t<K>& x)
-    {
-        auto [it, exist] = as_non_const(self).find_node(x);
-        return exist ? it : std::next(it);
-    }
-
-    template <typename Self, typename K = key_type>
-    self_iter_t<Self> find(this Self&& self, const key_arg_t<K>& x)
-    {
-        // return self.lower_bound(x) == self.end() || self.m_cmp(x, KeyValue()(*self.lower_bound(x))) 
-        //     ? self.end() : self.lower_bound(x);
+        return KeyOfValue();
     }
 
     key_compare key_comp() const
@@ -167,6 +134,49 @@ public:
     int level() const
     {
         return m_level;
+    }
+
+    // Modifiers
+    template <typename... Args>
+    std::conditional_t<UniqueKey, std::pair<iterator, bool>, iterator> emplace(Args&&... args)
+    {
+        if constexpr (detail::emplace_helper<value_type, Args...>::value)
+        {
+            return insert_unique((Args&&) args...);
+        }
+        else
+        {
+            value_handle<value_type, allocator_type> handle(m_alloc, (Args&&) args...);
+            return insert_unique(*handle);
+        }
+    }
+    
+    template <typename... Args>
+    iterator emplace_hint(const_iterator, Args&&... args)
+    {
+        if constexpr (UniqueKey)
+        {
+            return emplace((Args&&) args...).first;
+        }
+        else
+        {
+            return emplace((Args&&) args...);
+        }
+    }
+
+    size_type erase(const key_type& x)
+    {
+        auto old_size = size();
+        erase_node_by_value(x);
+        return old_size - size();
+    }
+
+    // Observers
+    template <typename Self, typename K = key_type>
+    self_iter_t<Self> lower_bound(this Self&& self, const key_arg_t<K>& x)
+    {
+        auto [it, exist] = as_non_const(self).find_node(x);
+        return exist ? it : std::next(it);
     }
 
     skip_list(const Compare& compare, const Allocator& allocator)
@@ -233,10 +243,10 @@ private:
 
         for (int i = m_level; i >= 0; --i)
         {
-            for (; cur.skip(i) != sent && m_cmp(KeyValue()(*cur.skip(i)), val); cur.skip_to(i));
+            for (; cur.skip(i) != sent && m_cmp(KeyOfValue()(*cur.skip(i)), val); cur.skip_to(i));
             auto next = cur.skip(i);
 
-            if (next != sent && !m_cmp(val, KeyValue()(*next)))
+            if (next != sent && !m_cmp(val, KeyOfValue()(*next)))
             {
                 return { next, true };
             }
@@ -250,7 +260,7 @@ private:
         std::array<iterator, MaxLevel> prev;
         prev.fill(end());
 
-        auto [cur, exist] = find_node_with_prev(KeyValue()(val), prev);
+        auto [cur, exist] = find_node_with_prev(KeyOfValue()(val), prev);
 
         if (exist)
         {
@@ -296,11 +306,11 @@ private:
 
         for (int i = m_level - 1; i >= 0; --i)
         {
-            for (; cur.skip(i) != sent && m_cmp(KeyValue()(*cur.skip(i)), val); cur.skip_to(i));
+            for (; cur.skip(i) != sent && m_cmp(KeyOfValue()(*cur.skip(i)), val); cur.skip_to(i));
             auto next = cur.skip(i);
 
             // cur is prev of position, so val <= *next
-            if (next != end() && !m_cmp(val, KeyValue()(*next)))
+            if (next != end() && !m_cmp(val, KeyOfValue()(*next)))
             {
                 exits = true; // find it and do nothing
             }

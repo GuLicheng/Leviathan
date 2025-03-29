@@ -67,23 +67,28 @@ concept node = requires (Node* n, const Node* cn, bool insert_left, Node& header
  * @param Node Type of tree node with basic tree operations but value field
 */
 template <typename KeyOfValue, typename Compare, typename Allocator, bool UniqueKey, typename Node>
-class tree : public row_drawer, public container_interface
+class tree : public row_drawer, 
+             public iterable_interface, 
+             public std::conditional_t<UniqueKey, unique_insert_interface, insert_interface>,
+             public erase_interface,
+             public lookup_interface
 {
     template <typename A, typename B, typename C, bool D, typename E>
     friend class tree;
 
+    using insert_functions = std::conditional_t<UniqueKey, unique_insert_interface, insert_interface>;
+
 public:
 
-    using key_value = KeyOfValue;
     using value_type = typename KeyOfValue::value_type;
     using key_type = typename KeyOfValue::key_type;
+    using reference = typename KeyOfValue::reference;
+    using const_reference = typename KeyOfValue::const_reference;
     using size_type = std::size_t;
     using allocator_type = Allocator;
     using difference_type = std::ptrdiff_t;
     using key_compare = Compare;
     using value_compare = Compare;
-    using reference = value_type&;
-    using const_reference = const value_type&;
     using pointer = std::allocator_traits<Allocator>::pointer;
     using const_pointer = std::allocator_traits<Allocator>::const_pointer;
     using tree_node = value_field<Node, value_type>;
@@ -97,7 +102,7 @@ protected:
 
 public:
 
-    using iterator = tree_iterator<key_value, node_base, tree_node>;
+    using iterator = tree_iterator<KeyOfValue, node_base, tree_node>;
     using const_iterator = std::const_iterator<iterator>;
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
@@ -270,6 +275,11 @@ public:
         return std::allocator_traits<Allocator>::max_size(m_alloc);
     }
 
+    static KeyOfValue key_of_value() 
+    {
+        return KeyOfValue();    
+    }
+
     // Observers
     key_compare key_comp() const
     {
@@ -294,14 +304,6 @@ public:
     }
 
     template <typename Self, typename K = key_type>
-    self_iter_t<Self> find(this Self&& self, const key_arg_t<K>& x)
-    {
-        auto lower = self.lower_bound(x);
-        return (lower == self.end() || self.m_cmp(x, keys(lower.base().link()))) 
-              ? self.end() : lower;
-    }
-
-    template <typename Self, typename K = key_type>
     self_iter_t<Self> upper_bound(this Self&& self, const key_arg_t<K>& x)
     {
         return as_non_const(self).upper_bound_impl(x);
@@ -313,8 +315,18 @@ public:
     {
         if constexpr (UniqueKey)
         {
-            if constexpr (detail::emplace_helper<value_type, Args...>::value)
+            if constexpr (detail::emplace_helper<value_type, Args...>::value || 
+                          (sizeof...(Args) == 1 && detail::transparent<Compare>))
             {
+                // For value_type models std::string,
+                // if arg is std::string, 
+                // or arg is const char* and Compare::transparent is defined, 
+                // we can use insert_unique directly.
+                // 
+                // Follow overloads will enter this branch:
+                // insert(const value_type&);
+                // insert(value_type&&);
+                // template <typename K> insert(K&&);
                 return insert_unique((Args&&)args...);
             }
             else
@@ -335,24 +347,7 @@ public:
         }
     }
 
-    template <typename... Args>
-    iterator emplace_hint(const_iterator, Args&&... args)
-    {
-        if constexpr (UniqueKey)
-        {
-            return emplace((Args&&)args...).first;
-        }
-        else
-        {
-            return emplace((Args&&)args...);
-        }
-    }
-
-    iterator erase(iterator pos) 
-        requires(!std::same_as<iterator, const_iterator>)
-    {
-        return erase(std::make_const_iterator(pos)).base();
-    }
+    using erase_interface::erase;
 
     size_type erase(const key_type& key)
     {
@@ -366,20 +361,6 @@ public:
         return ret;
     }
 
-    iterator erase(const_iterator first, const_iterator last)
-    {
-        if (first == cbegin() && last == cend()) 
-        {
-            clear();
-        }
-        else
-        {
-            for (; first != last; first = erase(first));
-        }
-        
-        return last.base();
-    }
-
     // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p2077r3.html
     template <typename KK> requires (detail::transparent<Compare> && 
                                     !std::is_convertible_v<KK, iterator> && 
@@ -389,7 +370,7 @@ public:
         return erase_by_key(x);
     }
 
-    using container_interface::insert;
+    using insert_functions::insert;
 
     auto insert(node_type&& nh)
     {
@@ -407,29 +388,6 @@ public:
             return insert(std::move(nh));
         }
     }
-
-    template <typename K>
-        requires (detail::transparent<Compare> && UniqueKey)
-    std::pair<iterator, bool> insert(K&& x)
-    {
-        return emplace((K&&)x);
-    }
-
-    template <typename K>
-        requires (detail::transparent<Compare> && 
-                 !std::is_convertible_v<K, iterator> && 
-                 !std::is_convertible_v<K, const_iterator> &&
-                 UniqueKey)
-    iterator insert(const_iterator hint, K&& x)
-    {
-        return emplace_hint(hint, (K&&)x);
-    }
-
-    // template<container_compatible_range<value_type> R>
-    // void insert_range(R&& rg)
-    // {
-    //     insert(std::ranges::begin(rg), std::ranges::end(rg)); 
-    // }
 
     bool operator==(const tree& other) const
     {
@@ -844,7 +802,7 @@ protected:
     {
         if constexpr (UniqueKey)
         {
-            iterator iter = find(x);
+            iterator iter = this->find(x);
     
             if (iter != end())
             {
@@ -983,10 +941,11 @@ protected:
  * @param UniqueKey Whether the container is unique-key or multi-key
  * @param Node Type of tree node with basic tree operations but value field
  */
-template <typename K, typename V, typename Compare, typename Allocator, bool UniqueKey, typename Node>
-class associative_tree : public tree<select1st<K, V>, Compare, Allocator, UniqueKey, Node>
+// template <typename K, typename V, typename Compare, typename Allocator, bool UniqueKey, typename Node>
+template <typename KeyOfValue, typename Compare, typename Allocator, bool UniqueKey, typename Node>
+class associative_tree : public tree<KeyOfValue, Compare, Allocator, UniqueKey, Node>
 {
-    using base = tree<select1st<K, V>, Compare, Allocator, UniqueKey, Node>;
+    using base = tree<KeyOfValue, Compare, Allocator, UniqueKey, Node>;
     
     // Same name as base class, is there any better choice with using?
     template <typename U> 
@@ -1000,7 +959,7 @@ public:
     using typename base::key_type;
     using typename base::iterator;
     using typename base::const_iterator;
-    using mapped_type = V;
+    using mapped_type = typename KeyOfValue::mapped_type;
 
     struct value_compare : ordered_map_container_value_compare<value_type, Compare>
     {
@@ -1072,28 +1031,28 @@ public:
     // map::try_emplace
     template <typename... Args> 
         requires (UniqueKey)
-    std::pair<iterator, bool> try_emplace(const K& key, Args&&... args)
+    std::pair<iterator, bool> try_emplace(const key_type& key, Args&&... args)
     {
         return try_emplace_impl(key, (Args&&)args...);
     }
 
     template <typename... Args> 
         requires (UniqueKey)
-    std::pair<iterator, bool> try_emplace(K&& key, Args&&... args)
+    std::pair<iterator, bool> try_emplace(key_type&& key, Args&&... args)
     {
         return try_emplace_impl(std::move(key), (Args&&)args...);
     }
 
     template <typename... Args> 
         requires (UniqueKey)
-    iterator try_emplace(const_iterator hint, const K& key, Args&&... args)
+    iterator try_emplace(const_iterator hint, const key_type& key, Args&&... args)
     {
         return try_emplace(key, (Args&&)args...);
     }
 
     template <typename... Args> 
         requires (UniqueKey)
-    iterator try_emplace(const_iterator hint, K&& key, Args&&... args)
+    iterator try_emplace(const_iterator hint, key_type&& key, Args&&... args)
     {
         return try_emplace(key, (Args&&)args...);
     }
@@ -1123,28 +1082,28 @@ public:
     // map::insert_or_assign
     template <typename... Args> 
         requires (UniqueKey)
-    std::pair<iterator, bool> insert_or_assign(const K& key, Args&&... args)
+    std::pair<iterator, bool> insert_or_assign(const key_type& key, Args&&... args)
     {
         return insert_or_assign(key, (Args&&)args...);
     }
 
     template <typename... Args> 
         requires (UniqueKey)
-    std::pair<iterator, bool> insert_or_assign(K&& key, Args&&... args)
+    std::pair<iterator, bool> insert_or_assign(key_type&& key, Args&&... args)
     {
         return insert_or_assign_impl(std::move(key), (Args&&)args...);
     }
 
     template <typename... Args> 
         requires (UniqueKey)
-    iterator insert_or_assign(const_iterator hint, const K& key, Args&&... args)
+    iterator insert_or_assign(const_iterator hint, const key_type& key, Args&&... args)
     {
         return insert_or_assign(key, (Args&&)args...);
     }
 
     template <typename... Args> 
         requires (UniqueKey)
-    iterator insert_or_assign(const_iterator hint, K&& key, Args&&... args)
+    iterator insert_or_assign(const_iterator hint, key_type&& key, Args&&... args)
     {
         return insert_or_assign(key, (Args&&)args...);
     }
@@ -1229,9 +1188,9 @@ template <typename Node, typename T, typename Compare = std::less<T>, typename A
 using tree_multiset = tree<identity<T>, Compare, Allocator, false, Node>;
 
 template <typename Node, typename K, typename V, typename Compare = std::less<K>, typename Allocator = std::allocator<std::pair<const K, V>>>
-using tree_map = associative_tree<K, V, Compare, Allocator, true, Node>;
+using tree_map = associative_tree<select1st<K, V>, Compare, Allocator, true, Node>;
 
 template <typename Node, typename K, typename V, typename Compare = std::less<K>, typename Allocator = std::allocator<std::pair<const K, V>>>
-using tree_multimap = associative_tree<K, V, Compare, Allocator, false, Node>;
+using tree_multimap = associative_tree<select1st<K, V>, Compare, Allocator, false, Node>;
 
 }  // namespace leviathan::collections

@@ -148,8 +148,6 @@ struct row_drawer
 
         return std::string(left, filler_character) + text + std::string(right, filler_character);
     }
-
 };
-
 
 }
