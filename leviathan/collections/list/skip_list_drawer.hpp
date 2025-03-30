@@ -9,16 +9,21 @@ namespace leviathan::collections
     
 struct node_drawer
 {
+private:
+
+    constexpr static auto width = 5;
+
+public:
+
     template <typename Self>
     std::string draw(this const Self& self)
     {
         const auto value_and_level = std::views::zip_transform(
             [](auto it, auto value) { return std::make_pair(it.level(), std::move(value)); },
             std::views::iota(self.begin(), self.end()),
-            self | std::views::transform([](auto x) { return std::format(" -> {:5}", x); })
+            self | std::views::transform([](auto x) { return std::format(" -> {:{}}", x, width); })
         ) | std::ranges::to<std::vector>();
         
-        const auto width = 5;
         const auto blank = " -> " + std::string(width, ' ');
 
         auto draw_current_level = [&](int level) 

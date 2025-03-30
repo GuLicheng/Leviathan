@@ -36,8 +36,8 @@ struct std::formatter<View, CharT>
         return m_fmt.parse(ctx);
     }
 
-    template <typename FormatContext>
-    typename FormatContext::iterator format(const View& v, FormatContext& ctx) const
+    template <typename V2, typename FormatContext>
+    typename FormatContext::iterator format(V2&& v, FormatContext& ctx) const
     {
         auto it = ctx.out();
         const char* delimiter = "[";

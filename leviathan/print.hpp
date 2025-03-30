@@ -175,6 +175,15 @@ public:
     inline static ConsoleColor BackgroundColor = ConsoleColor(0);
     inline static ConsoleFont Font = ConsoleFont(0);
 
+    static constexpr auto WriteView = []<typename View>(View&& view)
+    {
+        ChangeStyle();
+        for (auto&& x : view)
+        {
+            WriteImpl::operator()(x);
+        }
+    };
+
     static constexpr auto WriteLine = []<typename... Args>(Args&&... args)
     {
         ChangeStyle();

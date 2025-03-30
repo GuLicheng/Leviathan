@@ -881,6 +881,15 @@ inline constexpr struct
     }
 } addressof;
 
+inline constexpr struct
+{
+    template <typename T>
+    static constexpr decltype(auto) operator()(T&& t)
+    {
+        return *std::ranges::begin(t);
+    }
+} front;
+
 }  // namespace leviathan
 
 namespace leviathan::ranges::views
@@ -896,6 +905,16 @@ inline constexpr closure indirect = []<typename R>(R&& r)
 inline constexpr closure format = []<typename R>(R&& r)
 {
     return (R&&)r | transform(to_string);
+};
+
+inline constexpr closure head = []<typename R>(R&& r)
+{
+    return (R&&)r | transform(front);
+};
+
+inline constexpr closure unique = []<typename R>(R&& r)
+{
+    return (R&&)r | std::views::chunk_by(std::ranges::equal_to()) | head;
 };
 
 inline constexpr auto compose = []<typename... Fs>(Fs&&... fs)
