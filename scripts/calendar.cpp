@@ -1,4 +1,4 @@
-#include <leviathan/extc++/concat.hpp>
+#include <leviathan/extc++/all.hpp>
 #include <iostream>
 #include <vector>
 #include <generator>
@@ -73,7 +73,7 @@ auto RangeAsString = [](auto&& rg) static
 
 auto DereferenceAndAdvance = [](auto&& it) static { return *it++; };
 
-std::generator<std::string>  DereferenceAndAdvanceMultiIterator(auto&& blocks)
+std::generator<std::string> DereferenceAndAdvanceMultiIterator(auto&& blocks)
 {
     auto iterators = blocks | transform(std::ranges::begin) | std::ranges::to<std::vector>();
 
@@ -84,6 +84,18 @@ std::generator<std::string>  DereferenceAndAdvanceMultiIterator(auto&& blocks)
                | join_with(' ') 
                | std::ranges::to<std::string>();
     }
+}
+
+auto DereferenceAndAdvanceMultiIterator2(auto&& blocks)
+{
+    auto AsIterators = [](auto&& it) static { return std::views::iota(std::ranges::begin(it)); };
+
+    return blocks 
+         | std::views::transform(AsIterators) 
+         | std::views::transform([](auto&& x) { return *x; })
+         | std::views::take(8)
+         | std::views::join_with(' ')
+         | std::ranges::to<std::string>();
 }
 
 auto MergeChunk = [](auto&& blocks) static
