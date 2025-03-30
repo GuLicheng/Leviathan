@@ -23,15 +23,14 @@ struct tree_iterator
 
     // The const_iterator and iterator may model same type, so we offer 
     // a base method to avoid if-constexpr.
-    template <typename Self>
-    constexpr auto&& base(this Self&& self)
+    constexpr tree_iterator base() const
     {
-        return (Self&&)self;
+        return *this;
     }
 
     // Access inner link type.
     template <typename Self>
-    constexpr auto link(this Self&& self)
+    constexpr copy_const_t<Self, link_type> link(this Self&& self)
     {
         return self.m_link;
     }

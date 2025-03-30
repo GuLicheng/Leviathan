@@ -112,7 +112,7 @@ struct skip_iterator
 
     constexpr skip_iterator& operator--()
     {
-        m_link = m_link->pointers[0];
+        m_link = m_link->pointers()[0];
         return *this;
     }
 
@@ -159,6 +159,11 @@ struct skip_iterator
     constexpr copy_const_t<Self, link_type> link(this Self&& self)
     {
         return self.m_link;
+    }
+
+    constexpr skip_iterator base() const
+    {
+        return *this;
     }
 };
 

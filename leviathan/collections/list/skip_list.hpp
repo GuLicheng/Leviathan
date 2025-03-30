@@ -5,6 +5,7 @@
 #include <leviathan/utils/layout.hpp>
 #include <leviathan/allocators/adaptor_allocator.hpp>
 #include <leviathan/collections/list/skip_node.hpp>
+#include <leviathan/collections/list/skip_list_drawer.hpp>
 
 #include <span>
 #include <random>
@@ -33,7 +34,7 @@ template <typename KeyOfValue,
     typename SeedGenerator = std::random_device,
     int MaxLevel = 24, 
     int Ratio = 4>
-class skip_list : public container_interface
+class skip_list : public lookup_interface, public insert_interface, public iterable_interface, public erase_interface, public node_drawer
 {
     static_assert(UniqueKey, "Not support multi-key now");
     static_assert(Ratio > 1);
@@ -140,7 +141,8 @@ public:
     template <typename... Args>
     std::conditional_t<UniqueKey, std::pair<iterator, bool>, iterator> emplace(Args&&... args)
     {
-        if constexpr (detail::emplace_helper<value_type, Args...>::value)
+        if constexpr (detail::emplace_helper<value_type, Args...>::value || 
+                     (sizeof...(Args) == 1 && detail::transparent<Compare>))
         {
             return insert_unique((Args&&) args...);
         }
@@ -151,24 +153,18 @@ public:
         }
     }
     
-    template <typename... Args>
-    iterator emplace_hint(const_iterator, Args&&... args)
-    {
-        if constexpr (UniqueKey)
-        {
-            return emplace((Args&&) args...).first;
-        }
-        else
-        {
-            return emplace((Args&&) args...);
-        }
-    }
-
     size_type erase(const key_type& x)
     {
         auto old_size = size();
         erase_node_by_value(x);
         return old_size - size();
+    }
+
+    iterator erase(const_iterator pos)
+    {
+        auto next = std::next(pos).base();
+        erase(*pos);
+        return next;
     }
 
     // Observers
@@ -198,6 +194,12 @@ public:
     void clear()
     {
         reset();
+    }
+
+    template <typename Self>
+    copy_const_t<Self, list_node*> header(this Self& self)
+    {
+        return self.m_header;
     }
 
 private:
@@ -391,12 +393,6 @@ private:
         m_level = 1;
         m_size = 0;
         reset_header();
-    }
-
-    template <typename Self>
-    copy_const_t<Self, list_node*> header(this Self& self)
-    {
-        return self.m_header;
     }
 
     [[no_unique_address]] Compare m_cmp;
