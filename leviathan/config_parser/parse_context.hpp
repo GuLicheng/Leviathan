@@ -205,6 +205,7 @@ struct parse_context
 
 };
 
+#if 0
 template <typename CharT>
 class basic_parse_context
 {
@@ -318,6 +319,7 @@ public:
     }
 
 };
+#endif
 
 }  // leviathan::config
 

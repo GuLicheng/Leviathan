@@ -18,21 +18,19 @@ public:
     template <typename Self>
     std::string draw(this const Self& self)
     {
-        const auto fn = [](auto it) static 
+        const auto fn1 = [](auto it) static 
         {
-            return std::make_pair(it.level(), std::format(" -> {:{}}", *it, width)); 
+            return std::make_pair(it.level(), std::format(" -> {}", *it, width)); 
         };
 
         const auto value_and_level = std::views::iota(self.begin(), self.end()) 
-                                   | std::views::transform(fn) 
+                                   | std::views::transform(fn1) 
                                    | std::ranges::to<std::vector>();
-
-        const auto blank = " -> " + std::string(width, ' ');
 
         auto draw_current_level = [&](int level) 
         {
-            auto fn = [&](auto vl) { return vl.first > level ? vl.second : blank; };
-            auto context = value_and_level | std::views::transform(fn) | std::views::join | std::ranges::to<std::string>();
+            auto fn2 = [&](auto vl) { return vl.first > level ? vl.second : std::string(vl.second.size(), ' '); };
+            auto context = value_and_level | std::views::transform(fn2) | std::views::join | std::ranges::to<std::string>();
             return std::format("head({}){}", level, context);
         };
 

@@ -2,7 +2,7 @@
 
 #include <leviathan/config_parser/common.hpp>
 #include <leviathan/config_parser/parse_context.hpp>
-#include <leviathan/config_parser/value.hpp>
+#include <leviathan/config_parser/json/value.hpp>
 
 namespace leviathan::config::json
 {

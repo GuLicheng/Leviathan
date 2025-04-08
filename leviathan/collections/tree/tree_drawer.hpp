@@ -56,14 +56,15 @@ struct row_drawer
         }
 
         auto [lines, _, __] = recurse<typename Self::tree_node>(root);
-        std::string result;
+        // std::string result;
 
-        for (const auto& line : lines)
-        {
-            result += line;
-            result.append("\n");
-        }
-        return result;
+        // for (const auto& line : lines)
+        // {
+        //     result += line;
+        //     result.append("\n");
+        // }
+        // return result;
+        return lines | std::views::join_with('\n') | std::ranges::to<std::string>();
     }
 
     template <typename D, typename Node>

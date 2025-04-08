@@ -6,7 +6,7 @@
 #include <leviathan/extc++/string.hpp>
 #include <leviathan/variable.hpp>
 #include <leviathan/variable.hpp>
-#include <leviathan/io/file.hpp>
+#include <leviathan/extc++/all.hpp>
 
 #include <utility>
 #include <memory>

@@ -74,5 +74,30 @@ auto make_reverse_iterator(Iterator it)
     }
 }
 
+template <typename Iterator>
+struct output_iterator_interface
+{
+    using iterator_category = std::output_iterator_tag;
+    using value_type = void;
+    using pointer = void;
+    using reference = void;
+    using difference_type = ptrdiff_t;
+
+    constexpr Iterator& operator*() 
+    {
+        return static_cast<Iterator&>(*this);
+    }
+
+    constexpr Iterator& operator++()
+    {
+        return static_cast<Iterator&>(*this);
+    }
+
+    constexpr Iterator& operator++(int)
+    {
+        return static_cast<Iterator&>(*this);
+    }
+};
+
 } // namespace leviathan
 
