@@ -12,20 +12,18 @@ enum class State
     Blank = 0,
     Digit,  // 1-8
     Mine = 9,
+    Unknown = 10,
 };
 
-struct IndexWriterInterator : leviathan::output_iterator_interface<IndexWriterInterator>
+struct IndexWriterInterator 
 {
     std::vector<State>* ptr;
 
     IndexWriterInterator(std::vector<State>& v) : ptr(std::addressof(v)) {}
 
-    IndexWriterInterator& operator=(size_t index)
+    void operator()(size_t index)
     {
-        if (index >= ptr->size())
-            throw std::out_of_range("Index out of range");
-        (*ptr)[index] = State::Mine;
-        return *this;
+        ptr->at(index) = State::Mine;
     }
 };
 
@@ -45,7 +43,8 @@ public:
         const auto size = width * height;
         field.resize(size, State::Blank);
         auto indices = std::views::iota(0, size) | std::ranges::to<std::vector>();
-        std::ranges::sample(indices, IndexWriterInterator(field), mines, std::mt19937{ std::random_device()() });
+        auto writer = leviathan::function_output_iterator<IndexWriterInterator>(field);
+        std::ranges::sample(indices, writer, mines, std::mt19937(std::random_device()()));
         FillNumbers();
         DrawMap();
     }
@@ -58,45 +57,29 @@ public:
         auto XAsis = std::views::iota(0, height);
         auto YAsis = std::views::iota(0, width);
 
-        auto CalculateState = [this](auto xy) {
+        auto CalculateState = [this](auto axis) {
 
-            auto [x, y] = xy;
-            auto index = x * width + y;
+            auto [axis_x, axis_y] = axis;
+            auto index = axis_x * width + axis_y;
 
-            // if (field[index] == State::Mine)
-            // {
-            //     return State::Mine;
-            // }
+            if (field[index] == State::Mine)
+            {
+                return State::Mine;
+            }
 
-            auto AsXY = [=](int k) { return std::make_pair(x + dx[k], y + dy[k]); };
-            auto IsMine = [this](auto p) 
-            { 
-                return static_cast<size_t>(p.first) < static_cast<size_t>(height) 
-                    && static_cast<size_t>(p.second) < static_cast<size_t>(width)  
-                    && field[p.first * width + p.second] == State::Mine; 
+            auto fn = [=, this](int x, int y)
+            {
+                auto xx = x + axis_x;
+                auto yy = y + axis_y;
+                return xx >= 0 && yy >= 0 && xx < height && yy < width && field[xx * width + yy] == State::Mine;
             };
 
-            return field[index] == State::Mine 
-                 ? State::Mine 
-                 : static_cast<State>(std::ranges::size(std::views::iota(0, 8) | std::views::transform(AsXY) | std::views::filter(IsMine)));
-
-            // int count = 0;
-            // for (int k = 0; k < 8; ++k)
-            // {
-            //     const int ni = x + dx[k];
-            //     const int nj = y + dy[k];
-            //     if (ni >= 0 && ni < height && nj >= 0 && nj < width && field[ni * width + nj] == State::Mine)
-            //         ++count;
-            // }
-            // return static_cast<State>(count);
+            return static_cast<State>(
+                std::ranges::count(std::views::zip_transform(fn, dx, dy), true)
+            );
         };
 
-        
-        auto states = std::views::cartesian_product(XAsis, YAsis)
-                    | std::views::transform(CalculateState)
-                    | std::ranges::to<std::vector>();
-
-        std::ranges::copy(states, field.begin());
+        std::ranges::transform(std::views::cartesian_product(XAsis, YAsis), field.begin(), CalculateState);
     }
 
     void DrawMap() const

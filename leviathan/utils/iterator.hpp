@@ -2,19 +2,11 @@
 
 #include <iterator>
 #include <type_traits>
+#include <leviathan/extc++/concepts.hpp>
 
 namespace leviathan
 {
     
-template <typename T>
-struct is_move_iterator : std::false_type { };
-
-template <typename T>
-struct is_move_iterator<std::move_iterator<T>> : std::true_type { };
-
-template <typename T>
-inline constexpr bool is_move_iterator_v = is_move_iterator<T>::value;
-
 /**
  * @brief Automatically convert iterator to move_iterator.
  * 
@@ -38,7 +30,7 @@ auto make_move_iterator_if_noexcept(Iterator it)
 {
     using value_type = std::iter_value_t<Iterator>;
     constexpr bool IsNothrow = std::is_nothrow_move_constructible_v<value_type>;
-    if constexpr (is_move_iterator_v<Iterator> || !IsNothrow)
+    if constexpr (meta::specialization_of<Iterator, std::move_iterator> || !IsNothrow)
     {
         return it;
     }
@@ -48,15 +40,6 @@ auto make_move_iterator_if_noexcept(Iterator it)
     }
 }
 
-template <typename T>
-struct is_reverse_iterator : std::false_type { };
-
-template <typename T>
-struct is_reverse_iterator<std::reverse_iterator<T>> : std::true_type { };
-
-template <typename T>
-inline constexpr bool is_reverse_iterator_v = is_reverse_iterator<T>::value;
-
 /**
  * @brief Same as std::make_reverse_iterator but if 
  * the it is already a reverse_iterator, return it.base().
@@ -64,7 +47,7 @@ inline constexpr bool is_reverse_iterator_v = is_reverse_iterator<T>::value;
 template <typename Iterator>
 auto make_reverse_iterator(Iterator it)
 {
-    if constexpr (is_reverse_iterator_v<Iterator>)
+    if constexpr (meta::specialization_of<Iterator, std::reverse_iterator>)
     {
         return it.base();
     }
@@ -74,29 +57,32 @@ auto make_reverse_iterator(Iterator it)
     }
 }
 
-template <typename Iterator>
-struct output_iterator_interface
+// https://www.boost.org/doc/libs/1_82_0/libs/iterator/doc/function_output_iterator.html
+template <typename UnaryFunction>
+class function_output_iterator 
 {
+    UnaryFunction m_fn; 
+
+public:
+
     using iterator_category = std::output_iterator_tag;
     using value_type = void;
     using pointer = void;
     using reference = void;
     using difference_type = ptrdiff_t;
 
-    constexpr Iterator& operator*() 
+    explicit function_output_iterator(UnaryFunction fn = UnaryFunction()) : m_fn(std::move(fn)) { }
+
+    template <typename T>
+    function_output_iterator& operator=(T&& value)
     {
-        return static_cast<Iterator&>(*this);
+        m_fn((T&&) value);
+        return *this;
     }
 
-    constexpr Iterator& operator++()
-    {
-        return static_cast<Iterator&>(*this);
-    }
-
-    constexpr Iterator& operator++(int)
-    {
-        return static_cast<Iterator&>(*this);
-    }
+    function_output_iterator& operator*() { return *this; }
+    function_output_iterator& operator++() { return *this; }
+    function_output_iterator& operator++(int) { return *this; }
 };
 
 } // namespace leviathan

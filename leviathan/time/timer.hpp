@@ -49,8 +49,11 @@ auto get_system_rtime(const std::chrono::duration<RepType, PeriodType>& rtime)
 {
     using clock_type = std::chrono::system_clock;
     auto rt = std::chrono::duration_cast<clock_type::duration>(rtime);
+
     if (std::ratio_greater<clock_type::period, PeriodType>())
+    {
         ++rt;
+    }
     return rt;
 }
 

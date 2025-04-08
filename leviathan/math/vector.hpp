@@ -13,11 +13,11 @@
 namespace leviathan::math::algebra
 {
 
-template <typename T, size_t Dimension>
+template <std::floating_point T, size_t Dimension>
 struct vector
 {
-    static_assert(std::is_floating_point_v<T>);
-    static_assert(2 <= Dimension && Dimension <= 5);
+    // static_assert(std::is_floating_point_v<T>);
+    static_assert(2 <= Dimension && Dimension <= 4, "Vector dimension must be between 2 and 4.");
 
     using value_type = T;
 
@@ -93,7 +93,7 @@ public:
     // Binary operations
     constexpr bool operator==(const vector& rhs) const = default;
 
-    constexpr bool equals(const vector& rhs) const
+    constexpr bool equals(const vector& rhs, T eps = epsilon) const
     {
         if constexpr (std::integral<T>)
         {
@@ -106,7 +106,7 @@ public:
             
             for (size_t i = 0; i < Dimension; ++i)
             {
-                if (math::abs(d1[i] - d2[i]) > epsilon)
+                if (math::abs(d1[i] - d2[i]) > eps)
                 {
                     return false;
                 }
@@ -353,6 +353,21 @@ private:
 
 };
 
+template <typename T>
+using vector2 = vector<T, 2>;
+
+template <typename T>
+using vector3 = vector<T, 3>;
+
+template <typename T>
+using vector4 = vector<T, 4>;
+
+using vector2f = vector<float, 2>;
+using vector3f = vector<float, 3>;
+using vector4f = vector<float, 4>;
+using vector2d = vector<double, 2>;
+using vector3d = vector<double, 3>;
+using vector4d = vector<double, 4>;
 
 } // namespace leviathan::math::algebra
 

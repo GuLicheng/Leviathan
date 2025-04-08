@@ -887,8 +887,19 @@ inline constexpr struct
     static constexpr decltype(auto) operator()(T&& t)
     {
         return *std::ranges::begin(t);
+        // return t.front();
     }
 } front;
+
+inline constexpr struct
+{
+    template <typename T>
+    static constexpr decltype(auto) operator()(T&& t)
+    {
+        return *(--std::ranges::end(t)); // sentinel ?
+        // return t.back();
+    }
+} back;
 
 }  // namespace leviathan
 
@@ -910,6 +921,11 @@ inline constexpr closure format = []<typename R>(R&& r)
 inline constexpr closure head = []<typename R>(R&& r)
 {
     return (R&&)r | transform(front);
+};
+
+inline constexpr closure head = []<typename R>(R&& r)
+{
+    return (R&&)r | transform(back);
 };
 
 inline constexpr closure unique = []<typename R>(R&& r)
