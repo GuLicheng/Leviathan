@@ -435,6 +435,10 @@ using self_iter_t = std::conditional_t<
     typename std::remove_reference_t<Self>::iterator
 >;
 
+// This meta maybe unnecessary since we can use 'auto' to deduce return type.
+template <bool Unique, typename Iterator>
+using emplace_return_t = std::conditional_t<Unique, std::pair<Iterator, bool>, Iterator>;
+
 template <typename T>
 auto& as_non_const(T& x)
 {

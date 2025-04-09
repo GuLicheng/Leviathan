@@ -311,7 +311,7 @@ public:
 
     // Modifiers
     template <typename... Args>
-    std::conditional_t<UniqueKey, std::pair<iterator, bool>, iterator> emplace(Args&&... args)
+    auto emplace(Args&&... args)
     {
         if constexpr (UniqueKey)
         {

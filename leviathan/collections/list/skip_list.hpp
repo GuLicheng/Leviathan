@@ -34,7 +34,11 @@ template <typename KeyOfValue,
     typename SeedGenerator = std::random_device,
     int MaxLevel = 24, 
     int Ratio = 4>
-class skip_list : public lookup_interface, public insert_interface, public iterable_interface, public erase_interface, public node_drawer
+class skip_list : public lookup_interface, 
+                  public insert_interface, 
+                  public iterable_interface, 
+                  public erase_interface, 
+                  public node_drawer
 {
     static_assert(UniqueKey, "Not support multi-key now");
     static_assert(Ratio > 1);
@@ -140,6 +144,7 @@ public:
     // Modifiers
     template <typename... Args>
     std::conditional_t<UniqueKey, std::pair<iterator, bool>, iterator> emplace(Args&&... args)
+    // emplace_return_t<UniqueKey, iterator> emplace(Args&&... args)
     {
         if constexpr (detail::emplace_helper<value_type, Args...>::value || 
                      (sizeof...(Args) == 1 && detail::transparent<Compare>))

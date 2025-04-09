@@ -12,7 +12,6 @@ enum class State
     Blank = 0,
     Digit,  // 1-8
     Mine = 9,
-    Unknown = 10,
 };
 
 struct IndexWriterInterator 

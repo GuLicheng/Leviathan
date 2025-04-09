@@ -9,25 +9,19 @@ namespace leviathan::collections
     
 struct node_drawer
 {
-private:
-
-    constexpr static auto width = 3;
-
-public:
-
     template <typename Self>
     std::string draw(this const Self& self)
     {
         const auto fn1 = [](auto it) static 
         {
-            return std::make_pair(it.level(), std::format(" -> {}", *it, width)); 
+            return std::make_pair(it.level(), std::format(" -> {}", *it)); 
         };
 
         const auto value_and_level = std::views::iota(self.begin(), self.end()) 
                                    | std::views::transform(fn1) 
                                    | std::ranges::to<std::vector>();
 
-        auto draw_current_level = [&](int level) 
+        const auto draw_current_level = [&](int level) 
         {
             auto fn2 = [&](auto vl) { return vl.first > level ? vl.second : std::string(vl.second.size(), ' '); };
             auto context = value_and_level | std::views::transform(fn2) | std::views::join | std::ranges::to<std::string>();

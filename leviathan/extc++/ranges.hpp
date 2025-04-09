@@ -923,7 +923,7 @@ inline constexpr closure head = []<typename R>(R&& r)
     return (R&&)r | transform(front);
 };
 
-inline constexpr closure head = []<typename R>(R&& r)
+inline constexpr closure tail = []<typename R>(R&& r)
 {
     return (R&&)r | transform(back);
 };

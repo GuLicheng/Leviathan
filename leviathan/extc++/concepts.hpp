@@ -3,9 +3,22 @@
 #include <concepts>
 #include <type_traits>
 #include <tuple> 
+#include <complex>
 
 namespace leviathan::meta
 {
+
+template <typename T, template <typename...> typename Primary>
+struct is_specialization_of : std::false_type { };
+
+template <template <typename...> typename Primary, typename... Args>
+struct is_specialization_of<Primary<Args...>, Primary> : std::true_type { };
+
+template <typename T, template <typename...> typename Primary>
+inline constexpr bool is_specialization_of_v = is_specialization_of<T, Primary>::value;
+
+template <typename T, template <typename...> typename Primary>
+concept specialization_of = is_specialization_of_v<T, Primary>;
 
 template <bool Const, typename T>
 using maybe_const_t = std::conditional_t<Const, const T, T>;
@@ -27,13 +40,50 @@ concept has_tuple_element  = requires(T t)
 };
 
 template <typename T>
-concept tuple_like = !std::is_reference_v<T> && requires
+concept tuple_like2 = !std::is_reference_v<T> && requires
 {
     typename std::tuple_size<T>::type;
     requires std::derived_from<std::tuple_size<T>, 
         std::integral_constant<std::size_t, std::tuple_size_v<T>>>;
 } && []<std::size_t... I>(std::index_sequence<I...>)
 { return (has_tuple_element<T, I> &&...); } (std::make_index_sequence<std::tuple_size_v<T>>{});
+
+namespace detail
+{
+
+template <typename T> 
+struct is_std_array : std::false_type { };
+
+template <typename T, std::size_t N> 
+struct is_std_array<std::array<T, N>> : std::true_type { };
+
+template <typename T> 
+inline constexpr bool is_std_array_v = is_std_array<T>::value;
+
+template <typename T> 
+struct is_std_subrange : std::false_type { };
+
+template <typename T, typename U, std::ranges::subrange_kind K> 
+struct is_std_subrange<std::ranges::subrange<T, U, K>> : std::true_type { };
+
+template <typename T> 
+inline constexpr bool is_std_subrange_v = is_std_subrange<T>::value;
+
+template <typename T>
+concept tuple_like_impl = specialization_of<T, std::tuple> 
+                       || specialization_of<T, std::pair>
+                       || specialization_of<T, std::complex>
+                       || is_std_array_v<T>
+                       || is_std_subrange_v<T>;
+
+}  // namespace detail
+
+// https://cppreference.cn/w/cpp/utility/tuple/tuple-like
+template <typename T>
+concept tuple_like = detail::tuple_like_impl<std::remove_cvref_t<T>>;
+
+template <typename T>
+concept pair_like = tuple_like<T> && std::tuple_size_v<std::remove_cvref_t<T>> == 2;
 
 template <typename Tuple>
 struct tuple_traits;
@@ -65,28 +115,11 @@ struct tuple_or_pair_impl<T, U> : std::type_identity<std::pair<T, U>> { };
 template <typename... Ts>
 using tuple_or_pair = typename tuple_or_pair_impl<Ts...>::type;
 
-// static_assert(tuple_like<std::tuple<>>);
-// static_assert(tuple_like<std::tuple<int, double>>);
-// static_assert(tuple_like<std::pair<bool, bool>>);
-// static_assert(!tuple_like<int>);
+static_assert(tuple_like<std::tuple<>>);
+static_assert(tuple_like<std::tuple<int, double>>);
+static_assert(tuple_like<std::pair<bool, bool>>);
+static_assert(!tuple_like<int>);
 
 #define LV_STATIC_ASSERT_FALSE(s) ([]<bool Flag>() { static_assert(Flag, s); }())
 
 }
-
-namespace leviathan::meta
-{
-
-template <typename T, template <typename...> typename Primary>
-struct is_specialization_of : std::false_type { };
-
-template <template <typename...> typename Primary, typename... Args>
-struct is_specialization_of<Primary<Args...>, Primary> : std::true_type { };
-
-template <typename T, template <typename...> typename Primary>
-inline constexpr bool is_specialization_of_v = is_specialization_of<T, Primary>::value;
-
-template <typename T, template <typename...> typename Primary>
-concept specialization_of = is_specialization_of_v<T, Primary>;
-
-} // namespace leviathan::meta

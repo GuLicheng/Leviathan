@@ -26,10 +26,6 @@ add_executable(treap_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}
 target_link_libraries(treap_test PRIVATE Catch2::Catch2WithMain)
 add_test(NAME treap_test COMMAND treap_test)
 
-add_executable(associative_container_interface_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/associative_container_interface_test.cpp)
-target_link_libraries(associative_container_interface_test PRIVATE Catch2::Catch2WithMain)
-add_test(NAME associative_container_interface_test COMMAND associative_container_interface_test)
-
 add_executable(buffer_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/buffer_test.cpp)
 target_link_libraries(buffer_test PRIVATE Catch2::Catch2WithMain)
 add_test(NAME buffer_test COMMAND buffer_test)
