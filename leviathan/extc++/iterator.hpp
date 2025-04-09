@@ -1,13 +1,49 @@
 #pragma once
 
-#include "iterator_interface.hpp"
 #include <compare>
 
 namespace leviathan
 {
-    
+
+// Generate i++ by ++i.
+struct postfix_increment_operation
+{
+    template <typename I>
+    I operator++(this I& /* lvalue */ it, int)
+    {
+        auto old = it;
+        ++it;
+        return old;
+    }
+};
+
+// Generate i-- by --i.
+struct postfix_decrement_operation
+{
+    template <typename I>
+    I operator--(this I& /* lvalue */ it, int)
+    {
+        auto old = it;
+        --it;
+        return old;
+    }
+};
+
+// Generate i-> by *i.
+struct arrow_operation
+{
+    template <typename I>
+    auto operator->(this I&& it)
+    {
+        return std::addressof(*it);
+    }
+};
+
+struct posfix_and_arrow 
+    : postfix_increment_operation, postfix_decrement_operation, arrow_operation { };
+
 template <typename Iterator, typename Any>
-struct normal_iterator : posfix_and_arrow
+struct normal_iterator 
 {
 protected:
 
@@ -40,7 +76,12 @@ public:
         return *this;    
     }
 
-    using posfix_and_arrow::operator++;
+    constexpr normal_iterator operator++(int) 
+    {
+        auto old = *this;
+        ++m_cur;
+        return old;    
+    }    
 
     constexpr normal_iterator& operator--() 
     {
@@ -48,9 +89,23 @@ public:
         return *this;    
     }
 
-    using posfix_and_arrow::operator--;
+    constexpr normal_iterator operator--(int) 
+    {
+        auto old = *this;
+        --m_cur;
+        return old;    
+    }
 
-    const Iterator& base() const { return m_cur; }
+    constexpr reference operator->() const 
+    {
+        return *m_cur;    
+    }
+
+    template <typename Self>
+    auto&& base(this Self&& self)
+    {
+        return ((Self&&)self).m_cur;
+    }
 
     constexpr reference operator[](difference_type n) const
     {
