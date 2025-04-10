@@ -67,6 +67,11 @@ public:
     constexpr int milliseconds() const { return m_milliseconds; }
     constexpr int microseconds() const { return m_microseconds; }
 
+    constexpr bool is_leap_year() const 
+    {
+        return std::chrono::year(m_year).is_leap();
+    }
+
     constexpr std::chrono::year_month_day ymd() const
     {
         return std::chrono::year_month_day(

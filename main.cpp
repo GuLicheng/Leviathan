@@ -2,12 +2,16 @@
 #include <algorithm>
 #include <leviathan/print.hpp>
 
+
 int main(int argc, char const *argv[])
 {
-    auto now = std::chrono::utc_clock::now();
-    auto calendar_time = leviathan::time::date_time(now);
+    std::ranges::copy(
+        std::views::iota(0, 100) | 
+        leviathan::views::format | 
+        std::views::join_with(' '),
+        leviathan::file_iterator("../a.txt", std::ios::out) 
+    );
 
-    Console::WriteLine("Current time: {}", calendar_time.to_string());
 
     return 0;
 }
