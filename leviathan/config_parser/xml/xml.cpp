@@ -10,7 +10,7 @@
 #include <leviathan/config_parser/xml/document.hpp>
 #include <leviathan/print.hpp>
 
-namespace xml = leviathan::config::xml;
+namespace xml = cpp::config::xml;
 
 /*
 <bookstore>

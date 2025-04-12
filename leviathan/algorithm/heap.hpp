@@ -6,7 +6,7 @@
 #include "common.hpp"
 #include <cmath>
 
-namespace leviathan::algorithm
+namespace cpp::algorithm
 {
 
 /**
@@ -268,7 +268,7 @@ private:
     }  
 };
 
-}  // namespace leviathan::algorithm
+}  // namespace cpp::algorithm
 
 
 

@@ -8,7 +8,7 @@
 #include <ranges>
 #include <cmath>
 
-namespace leviathan::config::toml::detail
+namespace cpp::config::toml::detail
 {
 
 // We define some constant values here.
@@ -415,5 +415,5 @@ inline std::optional<datetime> parse_datetime(std::string_view sv)
     }
 }
 
-} // namespace leviathan::config::toml::detail
+} // namespace cpp::config::toml::detail
 

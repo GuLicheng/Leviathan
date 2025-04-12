@@ -4,7 +4,7 @@
 #include <format>
 #include <leviathan/variable.hpp>
 
-namespace leviathan::config::xml
+namespace cpp::config::xml
 {
     
 template <typename T>
@@ -75,7 +75,7 @@ using element_list = std::vector<element*, global_allocator<element*>>;
 //     <>
 // </note>
 
-using body = leviathan::variable<as_ptr_if_large_than<16>, std::monostate, string, element_list>;
+using body = cpp::variable<as_ptr_if_large_than<16>, std::monostate, string, element_list>;
 
 class element
 {
@@ -233,5 +233,5 @@ inline void show_element_tree(element* root, int depth = 0)
     }
 }
 
-} // namespace leviathan::config::xml
+} // namespace cpp::config::xml
 

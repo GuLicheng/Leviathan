@@ -3,7 +3,7 @@
 #include "core.hpp"
 #include "../meta/concepts.hpp"
 
-namespace leviathan
+namespace cpp
 {
     
 struct tuple_hasher
@@ -19,5 +19,5 @@ struct tuple_hasher
 };
 
 
-} // namespace leviathan
+} // namespace cpp
 

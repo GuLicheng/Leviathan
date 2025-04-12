@@ -18,7 +18,7 @@
 
 #include <assert.h>
 
-namespace leviathan::math::numeric
+namespace cpp::math::numeric
 {
 
 template <bool Signed, std::endian Endian>
@@ -717,10 +717,10 @@ std::ostream& operator<<(std::ostream& os, int128<Endian> x)
 
 // Specialize for std::numeric_limits
 template <std::endian Endian>
-struct std::numeric_limits<leviathan::math::numeric::uint128<Endian>>
+struct std::numeric_limits<cpp::math::numeric::uint128<Endian>>
 {
 private:
-    using uint128 = leviathan::math::numeric::uint128<Endian>;
+    using uint128 = cpp::math::numeric::uint128<Endian>;
 
 public:
     static constexpr bool is_specialized = true;
@@ -760,10 +760,10 @@ public:
 };
 
 template <std::endian Endian>
-struct std::numeric_limits<leviathan::math::numeric::int128<Endian>>
+struct std::numeric_limits<cpp::math::numeric::int128<Endian>>
 {
 private:
-    using int128 = leviathan::math::numeric::int128<Endian>;
+    using int128 = cpp::math::numeric::int128<Endian>;
 
 public:
 
@@ -804,18 +804,18 @@ public:
 
 // Specialize for std::hash
 template <std::endian Endian>
-struct std::hash<leviathan::math::numeric::uint128<Endian>> 
+struct std::hash<cpp::math::numeric::uint128<Endian>> 
 {
-    static constexpr auto operator()(leviathan::math::numeric::uint128<Endian> x)
+    static constexpr auto operator()(cpp::math::numeric::uint128<Endian> x)
     {
         return x.hash_code();
     }
 };
 
 template <std::endian Endian>
-struct std::hash<leviathan::math::numeric::int128<Endian>> 
+struct std::hash<cpp::math::numeric::int128<Endian>> 
 {
-    static constexpr auto operator()(leviathan::math::numeric::int128<Endian> x)
+    static constexpr auto operator()(cpp::math::numeric::int128<Endian> x)
     {
         return x.hash_code();
     }
@@ -823,9 +823,9 @@ struct std::hash<leviathan::math::numeric::int128<Endian>>
 
 // Specialize for std::formatter
 template <std::endian Endian, typename CharT>
-struct std::formatter<leviathan::math::numeric::uint128<Endian>, CharT>
+struct std::formatter<cpp::math::numeric::uint128<Endian>, CharT>
 {
-    using uint128 = leviathan::math::numeric::uint128<Endian>;
+    using uint128 = cpp::math::numeric::uint128<Endian>;
 
     template <typename ParseContext>
     constexpr typename ParseContext::iterator parse(ParseContext& ctx) 
@@ -845,9 +845,9 @@ struct std::formatter<leviathan::math::numeric::uint128<Endian>, CharT>
 };
 
 template <std::endian Endian, typename CharT>
-struct std::formatter<leviathan::math::numeric::int128<Endian>, CharT>
+struct std::formatter<cpp::math::numeric::int128<Endian>, CharT>
 {
-    using int128 = leviathan::math::numeric::int128<Endian>;
+    using int128 = cpp::math::numeric::int128<Endian>;
 
     template <typename ParseContext>
     constexpr typename ParseContext::iterator parse(ParseContext& ctx) 
@@ -866,11 +866,11 @@ struct std::formatter<leviathan::math::numeric::int128<Endian>, CharT>
     std::formatter<signed __int128, CharT> m_fmt;
 };
 
-namespace leviathan
+namespace cpp
 {
 
-using leviathan::math::numeric::uint128_t;
-using leviathan::math::numeric::int128_t;
+using cpp::math::numeric::uint128_t;
+using cpp::math::numeric::int128_t;
 
 }
 

@@ -7,7 +7,7 @@
 #include <string>
 #include <array>
 
-namespace leviathan::logging
+namespace cpp::logging
 {
     struct logging_formatter_error : public std::logic_error 
     {

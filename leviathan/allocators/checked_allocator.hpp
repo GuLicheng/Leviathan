@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace leviathan::alloc
+namespace cpp::alloc
 {
     
 enum alloc_spec : int
@@ -192,4 +192,4 @@ template <typename T>
 using std_pmr_allocator = checked_allocator<T, propagate_on_none>;
 
 
-} // namespace leviathan::alloc
+} // namespace cpp::alloc

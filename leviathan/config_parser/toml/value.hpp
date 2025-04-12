@@ -6,10 +6,10 @@
 #include "../common.hpp"
 #include <leviathan/variable.hpp>
 
-namespace leviathan::config::toml
+namespace cpp::config::toml
 {
     
-using leviathan::string::string_hash_key_equal;
+using cpp::string::string_hash_key_equal;
 
 template <typename T>
 using global_allocator = std::allocator<T>;
@@ -115,9 +115,9 @@ void check_and_throw(bool ok, std::string_view fmt, Args&&... args)
     }
 }
 
-} // namespace leviathan::config::toml
+} // namespace cpp::config::toml
 
-namespace leviathan::toml
+namespace cpp::toml
 {
-using namespace ::leviathan::config::toml;
+using namespace ::cpp::config::toml;
 }

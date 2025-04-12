@@ -6,7 +6,7 @@
 #include <functional>
 
 // Some utils
-namespace leviathan::ranges::detail
+namespace cpp::ranges::detail
 {
 
 template <typename F, typename Tuple>
@@ -93,7 +93,7 @@ constexpr auto simple_iterator_concept()
 
 #if 0
 
-namespace leviathan::ranges
+namespace cpp::ranges
 {
 template <typename Adaptor, typename... Args>
 concept adaptor_invocable = requires 

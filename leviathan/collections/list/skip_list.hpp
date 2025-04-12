@@ -11,7 +11,7 @@
 #include <random>
 #include <cstddef>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
     
 /**
@@ -412,5 +412,5 @@ template <typename T, typename Compare = std::less<T>, typename Allocator = std:
 using skip_set = skip_list<identity<T>, Compare, Allocator, true>;
 
 
-} // namespace leviathan::collections
+} // namespace cpp::collections
 

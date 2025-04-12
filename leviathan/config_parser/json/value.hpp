@@ -17,14 +17,14 @@
 #include <unordered_map>
 #include <type_traits>
 
-namespace leviathan::config::json
+namespace cpp::config::json
 {
 
 template <typename T>
 concept arithmetic = std::is_arithmetic_v<T>;
 
-using leviathan::string::string_viewable;
-using leviathan::string::string_hash_key_equal;
+using cpp::string::string_viewable;
+using cpp::string::string_hash_key_equal;
 
 enum class error_code
 {
@@ -66,7 +66,7 @@ constexpr const char* report_error(error_code ec)
 
 template <typename T>
 using global_allocator = std::allocator<T>;
-// using global_allocator = leviathan::alloc::debug_allocator<T>;
+// using global_allocator = cpp::alloc::debug_allocator<T>;
 
 template <typename T>
 struct deleter
@@ -207,8 +207,8 @@ value make_json(Args&&... args)
 
 }
 
-namespace leviathan::json
+namespace cpp::json
 {
-using namespace ::leviathan::config::json;
+using namespace ::cpp::config::json;
 }
 

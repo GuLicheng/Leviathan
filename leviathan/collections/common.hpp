@@ -10,7 +10,7 @@
 
 #include <assert.h>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 
 /**
@@ -465,4 +465,4 @@ template <typename Allocator, typename... Ts>
 inline constexpr bool nothrow_swappable = std::allocator_traits<Allocator>::is_always_equal::value && 
     (std::is_nothrow_swappable_v<Ts> && ...);
 
-}  // namespace leviathan::collections
+}  // namespace cpp::collections

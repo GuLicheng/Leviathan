@@ -11,7 +11,7 @@
 // #include <bit>
 
 // // Any component should in sub-namespace.
-// namespace leviathan::math
+// namespace cpp::math
 // {
 
 // inline constexpr struct 
@@ -200,4 +200,4 @@
 //     return seed;
 // }
 
-// } // namespace leviathan::math
+// } // namespace cpp::math

@@ -10,11 +10,11 @@
 #include <leviathan/extc++/concepts.hpp>
 
 // Some utils
-namespace leviathan::ranges::detail
+namespace cpp::ranges::detail
 {
 
-using leviathan::meta::maybe_const_t;
-using leviathan::meta::simple_view;
+using cpp::meta::maybe_const_t;
+using cpp::meta::simple_view;
 
 template <typename F, typename Tuple>
 constexpr auto tuple_transform(F&& f, Tuple&& tuple)
@@ -98,7 +98,7 @@ constexpr auto simple_iterator_concept()
 
 }
 
-namespace leviathan::ranges
+namespace cpp::ranges
 {
 
 // https://open-std.org/jtc1/sc22/wg21/docs/papers/2021/p2387r3.html
@@ -143,7 +143,7 @@ public:
 }
 
 // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2542r2.html
-namespace leviathan::ranges
+namespace cpp::ranges
 {
 template <typename... Rs>
 using concat_reference_t = std::common_reference_t<std::ranges::range_reference_t<Rs>...>;
@@ -760,7 +760,7 @@ struct concat_factory
 
     template <std::ranges::input_range... Rs> 
     requires (sizeof...(Rs) > 1) 
-        && ::leviathan::ranges::concatable<std::views::all_t<Rs>...> 
+        && ::cpp::ranges::concatable<std::views::all_t<Rs>...> 
         && (std::ranges::viewable_range<Rs> && ...)
     constexpr auto operator() [[nodiscard]] (Rs&&... rs) const
     {
@@ -776,11 +776,11 @@ namespace std::ranges
 {
 
 template <typename... Rs>
-inline constexpr bool enable_borrowed_range<::leviathan::ranges::concat_view<Rs...>> = (enable_borrowed_range<Rs> && ...);
+inline constexpr bool enable_borrowed_range<::cpp::ranges::concat_view<Rs...>> = (enable_borrowed_range<Rs> && ...);
 
 }
 
-namespace leviathan::ranges
+namespace cpp::ranges
 {
 
 namespace detail
@@ -901,9 +901,9 @@ inline constexpr struct
     }
 } back;
 
-}  // namespace leviathan
+}  // namespace cpp
 
-namespace leviathan::ranges::views
+namespace cpp::ranges::views
 {
 
 using namespace std::views;
@@ -977,10 +977,10 @@ inline constexpr auto remove_if = []<typename Pred>(Pred&& pred)
     return filter([pred = (Pred&&)pred](auto&& x) { return !pred(x); });
 };
 
-}  // namespace leviathan::ranges::views
+}  // namespace cpp::ranges::views
 
 
-namespace leviathan::views
+namespace cpp::views
 {
-    using namespace leviathan::ranges::views;
+    using namespace cpp::ranges::views;
 }

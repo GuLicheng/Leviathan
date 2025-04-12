@@ -6,13 +6,13 @@
 #include <leviathan/algorithm/heap.hpp>
 #include "../common.hpp"
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 
 template <typename T,  
     typename Container = std::vector<T>, 
     typename Compare = std::less<typename Container::value_type>, 
-    typename HeapFunction = leviathan::algorithm::nd_heap_fn<4>>
+    typename HeapFunction = cpp::algorithm::nd_heap_fn<4>>
 class priority_queue
 {
 
@@ -104,5 +104,5 @@ private:
     Compare m_comp;
 };
 
-} // namespace leviathan::collections
+} // namespace cpp::collections
 

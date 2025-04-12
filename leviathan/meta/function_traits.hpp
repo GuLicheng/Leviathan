@@ -3,7 +3,7 @@
 #include <tuple>
 
 // for function_traits
-namespace leviathan::meta
+namespace cpp::meta
 {
 
 namespace detail
@@ -134,7 +134,7 @@ template <typename T>
 struct function_traits : function_traits<decltype(&T::operator())> { };
 
 
-} // leviathan::meta
+} // cpp::meta
 
 
 

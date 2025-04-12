@@ -2,7 +2,7 @@
 #include <iostream>
 #include <catch2/catch_all.hpp>
 
-using u128 = leviathan::uint128_t;
+using u128 = cpp::uint128_t;
 
 namespace uconstant
 {
@@ -278,7 +278,7 @@ TEST_CASE("UnsignedIntegerBinaryOperarion")
 TEST_CASE("UnsignedIntegerBits")
 {
     using namespace uconstant;
-    using namespace leviathan::math;
+    using namespace cpp::math;
 
     SECTION("Popcount")
     {
@@ -328,7 +328,7 @@ TEST_CASE("UnsignedIntegerBits")
 
 // ================================================================================================================
 
-using i128 = leviathan::int128_t;
+using i128 = cpp::int128_t;
 
 namespace iconstant
 {

@@ -2,7 +2,7 @@
 
 #include <type_traits>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
     
 template <typename KeyValue, typename NodeBase, typename TreeNode>
@@ -94,5 +94,5 @@ struct tree_iterator
     friend constexpr bool operator==(tree_iterator, tree_iterator) = default;
 };
 
-} // namespace leviathan::collections
+} // namespace cpp::collections
 

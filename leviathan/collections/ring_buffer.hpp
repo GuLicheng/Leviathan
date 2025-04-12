@@ -14,7 +14,7 @@
 #include <bit>
 #include <compare>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 
 template <typename T, typename Allocator = std::allocator<T>>
@@ -707,5 +707,5 @@ public:
     }
 };
 
-} // namespace leviathan::collections
+} // namespace cpp::collections
 

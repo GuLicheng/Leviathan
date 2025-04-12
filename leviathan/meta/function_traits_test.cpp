@@ -2,7 +2,7 @@
 
 #include "function_traits.hpp"
 
-using namespace leviathan::meta;
+using namespace cpp::meta;
 
 int func(int, double, char) noexcept { return 0; }
 

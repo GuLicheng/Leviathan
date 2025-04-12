@@ -17,12 +17,12 @@
 #include <generator>
 #include <span>
 
-namespace toml = leviathan::toml;
-namespace json = leviathan::json;
+namespace toml = cpp::toml;
+namespace json = cpp::json;
 
 using JsonDecoder = json::decoder;
 using TomlDecoder = toml::decoder;
-using JsonFormatter = leviathan::config::toml2json;
+using JsonFormatter = cpp::config::toml2json;
 
 toml::value ParseAsTomlValue(const char* context)
 {
@@ -1321,7 +1321,7 @@ auto Read(const char* dir, const char* extension)
 void DebugFile(const char* file)
 {
     auto t = toml::load(file);
-    auto j = leviathan::config::toml2json()(t);
+    auto j = cpp::config::toml2json()(t);
     Console::WriteLine(j);
 }
 

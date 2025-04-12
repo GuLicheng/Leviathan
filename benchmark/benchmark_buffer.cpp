@@ -44,7 +44,7 @@ TEST_CASE("benchmark insert at first")
 
     BENCHMARK_ADVANCED("buffer")(Catch::Benchmark::Chronometer meter) {
         meter.measure([]{
-            leviathan::collections::buffer<int> buffer;
+            cpp::collections::buffer<int> buffer;
             AllocatorT alloc;
             RAII guard([&](){ buffer.dispose(alloc); });
             buffer.reserve(alloc, N);
@@ -73,7 +73,7 @@ TEST_CASE("benchmark emplace_back")
 
     BENCHMARK_ADVANCED("buffer")(Catch::Benchmark::Chronometer meter) {
         meter.measure([]{
-            leviathan::collections::buffer<int> buffer;
+            cpp::collections::buffer<int> buffer;
             AllocatorT alloc;
             buffer.reserve(alloc, N);
             RAII guard([&](){ buffer.dispose(alloc); });

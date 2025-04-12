@@ -6,7 +6,7 @@
 #include <string_view>
 #include <fstream>
 
-namespace leviathan
+namespace cpp
 {
     
 /**
@@ -39,7 +39,7 @@ inline std::string read_file_context(const char* filename, std::string_view newl
     }
 
     // return context;
-    return leviathan::string::replace(std::move(context), newline, "\n");
+    return cpp::string::replace(std::move(context), newline, "\n");
 }
 
 inline bool write_file(std::string_view content, const char* filename)
@@ -55,5 +55,5 @@ inline bool write_file(std::string_view content, const char* filename)
     return false;
 }
 
-} // namespace leviathan
+} // namespace cpp
 

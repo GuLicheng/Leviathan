@@ -2,7 +2,7 @@
 #include <leviathan/config_parser/ini.hpp>
 #include <catch2/catch_all.hpp>
 
-using namespace leviathan::config::ini;
+using namespace cpp::config::ini;
 
 read_only_configuration parse_configuration_by_context(std::string c)
 {
@@ -128,7 +128,7 @@ TEST_CASE("Mental Omega 3.3.6")
 
 // int main()
 // {
-//     using namespace leviathan::config::ini;
+//     using namespace cpp::config::ini;
 
 //     auto result = parse_configuration(R"(D:\Library\Leviathan\leviathan\config_parser\config\RA2.ini)");
 

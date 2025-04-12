@@ -4,7 +4,7 @@
 #include <tuple>
 #include <type_traits>
 
-namespace leviathan
+namespace cpp
 {
     template <typename F, typename... BoundArgs>
     class bind_back_fn
@@ -106,7 +106,7 @@ namespace leviathan
 void test_simple_function_with_two_arguments()
 {
     auto minus = [](int a, int b) { return a - b; };
-    auto minus_5 = leviathan::bind_back(minus, 5);
+    auto minus_5 = cpp::bind_back(minus, 5);
     assert(minus_5(10) == 5);
 }
 

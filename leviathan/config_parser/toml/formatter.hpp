@@ -3,7 +3,7 @@
 #include "value.hpp"
 #include <leviathan/extc++/ranges.hpp>
 
-namespace leviathan::config::toml
+namespace cpp::config::toml
 {
 
 inline std::string as_std_string(const string& s)
@@ -88,14 +88,14 @@ inline constexpr auto format_table_array = []<typename Block>(Block block)
 
 //         auto fn2 = [&](const auto& tbl) 
 //         {
-//             return leviathan::ranges::concat(
+//             return cpp::ranges::concat(
 //                 std::format("[[{}]]\n", table_name),
 //                 tbl.template as<toml::table>() | std::views::transform([](const auto& kv) { return std::format(kvfmt, kv.first, toml::encoder()(kv.second)); }) | std::views::join,
 //                 std::views::single('\n')
 //             ) | std::views::join;
 //         };
 
-//         return leviathan::ranges::concat(
+//         return cpp::ranges::concat(
 //             table_name,
 //             v.m_value_ptr->template as<toml::array>() | std::views::transform(fn2)
 //         ) | std::views::join;
@@ -226,10 +226,10 @@ inline std::string dump(const value& tv)
     return formatter()(tv);
 }
 
-}  // namespace leviathan::config::toml
+}  // namespace cpp::config::toml
 
 template <typename CharT>
-struct std::formatter<leviathan::toml::value, CharT> 
+struct std::formatter<cpp::toml::value, CharT> 
 {
     template <typename ParseContext>
     constexpr typename ParseContext::iterator parse(ParseContext& ctx)
@@ -238,9 +238,9 @@ struct std::formatter<leviathan::toml::value, CharT>
     }
 
     template <typename FmtContext>
-    typename FmtContext::iterator format(const leviathan::toml::value& value, FmtContext& ctx) const
+    typename FmtContext::iterator format(const cpp::toml::value& value, FmtContext& ctx) const
     {
-        auto result = leviathan::toml::dump(value);
+        auto result = cpp::toml::dump(value);
         return std::ranges::copy(result, ctx.out()).out;
     }   
 };

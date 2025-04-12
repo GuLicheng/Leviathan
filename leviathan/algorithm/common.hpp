@@ -5,7 +5,7 @@
 #include <iterator>
 #include <algorithm>
 
-namespace leviathan::algorithm::detail
+namespace cpp::algorithm::detail
 {
 
 template <typename Comp, typename Proj>
@@ -27,11 +27,11 @@ constexpr auto make_pred_proj(Pred& pred, Proj& proj)
     };
 }
 
-} // namespace leviathan::algorithm::detail
+} // namespace cpp::algorithm::detail
 
 // TODO: Add range-version
 #if 0
-namespace leviathan::algorithm
+namespace cpp::algorithm
 {
     template <typename I, typename Comp = std::less<>>
     std::pair<I, I> min_and_second_min_element(I first, I last, Comp comp = {})

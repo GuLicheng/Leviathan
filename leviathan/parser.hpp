@@ -5,7 +5,7 @@
 #include <optional>
 #include <string_view>
 
-namespace leviathan
+namespace cpp
 {
 
 template <typename T, typename CharT = char> struct parser;

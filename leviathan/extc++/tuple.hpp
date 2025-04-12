@@ -1,9 +1,9 @@
 #pragma once
 
-namespace leviathan
+namespace cpp
 {
     
 
     
-} // namespace leviathan
+} // namespace cpp
 

@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <condition_variable>
 
-namespace leviathan
+namespace cpp
 {
 
 class thread_pool
@@ -78,7 +78,7 @@ thread_pool::~thread_pool()
         worker.join();s
 }
 
-} // namespace leviathan
+} // namespace cpp
 
 #endif
 
@@ -88,7 +88,7 @@ thread_pool::~thread_pool()
 #include <iostream>
 #include <leviathan/thread_pool.hpp>
 
-using namespace leviathan;
+using namespace cpp;
 // g++ -std=c++20 -s -Wall -Wextra -pthread .\test\src\thread_pool.cpp -o a 
 int main()
 {

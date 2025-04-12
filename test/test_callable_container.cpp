@@ -84,7 +84,7 @@ TEST_CASE("capture")
 
 TEST_CASE("object free")
 {
-    using Int32 = leviathan::controllable_value<int>;
+    using Int32 = cpp::controllable_value<int>;
 
     {
         Int32 i{ 0 };

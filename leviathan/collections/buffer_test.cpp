@@ -16,7 +16,7 @@ AllocatorT allocator;
 
 TEST_CASE("test_default_constructor")
 {
-    leviathan::collections::buffer<int> buffer;
+    cpp::collections::buffer<int> buffer;
     
     REQUIRE(buffer.empty());
     REQUIRE(buffer.size() == 0);
@@ -34,7 +34,7 @@ TEST_CASE("test_default_constructor")
 
 TEST_CASE("test_constructor_with_capacity")
 {
-    leviathan::collections::buffer<int> buffer(allocator, 24);
+    cpp::collections::buffer<int> buffer(allocator, 24);
 
     REQUIRE(buffer.size() == 0);
     REQUIRE(buffer.capacity() == 32);
@@ -44,7 +44,7 @@ TEST_CASE("test_constructor_with_capacity")
 
 TEST_CASE("buffer_reverse")
 {
-    leviathan::collections::buffer<int> buffer;
+    cpp::collections::buffer<int> buffer;
 
     REQUIRE(buffer.size() == 0);
     REQUIRE(buffer.capacity() == 0);
@@ -69,7 +69,7 @@ TEST_CASE("buffer_reverse")
 
 TEST_CASE("emplace_back_and_pop_back")
 {
-    leviathan::collections::buffer<int> buffer;
+    cpp::collections::buffer<int> buffer;
 
     for (int i = 0; i < 10; ++i)
     {
@@ -100,11 +100,11 @@ TEST_CASE("emplace_back_and_pop_back")
 
 TEST_CASE("iterator")
 {
-    using TBuffer = leviathan::collections::buffer<int>;
+    using TBuffer = cpp::collections::buffer<int>;
 
     REQUIRE(std::ranges::contiguous_range<TBuffer>);
 
-    leviathan::collections::buffer<int> buffer;
+    cpp::collections::buffer<int> buffer;
 
     for (int i = 0; i < 10; ++i)
     {
@@ -127,7 +127,7 @@ TEST_CASE("insert")
 
     StringAlloc salloc;
 
-    leviathan::collections::buffer<std::string> buffer;
+    cpp::collections::buffer<std::string> buffer;
 
     buffer.emplace(salloc, buffer.end(), "David");
 
@@ -151,7 +151,7 @@ TEST_CASE("insert")
 
 TEST_CASE("erase_element")
 {
-    leviathan::collections::buffer<int> buffer;
+    cpp::collections::buffer<int> buffer;
 
     for (int i = 0; i < 10; ++i)
     {
@@ -168,7 +168,7 @@ TEST_CASE("erase_element")
 
     REQUIRE(buffer.size() == 8);
 
-    REQUIRE(std::ranges::contiguous_range<leviathan::collections::buffer<int>>);
+    REQUIRE(std::ranges::contiguous_range<cpp::collections::buffer<int>>);
 
     auto ilist = { 1, 2, 3, 4, 5, 6, 7, 8 };
 
@@ -179,7 +179,7 @@ TEST_CASE("erase_element")
 
 TEST_CASE("erase_range")
 {
-    leviathan::collections::buffer<int> buffer;
+    cpp::collections::buffer<int> buffer;
 
     for (int i = 0; i < 10; ++i)
     {
@@ -209,7 +209,7 @@ TEST_CASE("erase_range")
 
 TEST_CASE("insert_range")
 {
-    leviathan::collections::buffer<int> buffer;
+    cpp::collections::buffer<int> buffer;
 
     // Insert empty range
     std::initializer_list<int> empty_list{};
@@ -260,7 +260,7 @@ TEST_CASE("random_insert")
 {
     std::random_device rd;
     std::vector<int> numbers;
-    leviathan::collections::buffer<int> buffer;
+    cpp::collections::buffer<int> buffer;
     
     for (int i = 0; i < 100'000; ++i)
     {
@@ -282,7 +282,7 @@ TEST_CASE("random_insert")
 TEST_CASE("insert_element_from_self")
 {
     using StringAllocator = std::allocator<std::string>;
-    leviathan::collections::buffer<std::string> buffer;
+    cpp::collections::buffer<std::string> buffer;
 
     StringAllocator salloc;
 
@@ -302,7 +302,7 @@ TEST_CASE("insert_element_from_self")
 TEST_CASE("emplace_back_element_from_self")
 {
     using StringAllocator = std::allocator<std::string>;
-    leviathan::collections::buffer<std::string> buffer;
+    cpp::collections::buffer<std::string> buffer;
 
     StringAllocator salloc;
 
@@ -323,7 +323,7 @@ TEST_CASE("emplace_back_element_from_self")
 
 TEST_CASE("initializer_list")
 {
-    leviathan::collections::buffer<int> buffer(allocator, { 1, 2, 3 });
+    cpp::collections::buffer<int> buffer(allocator, { 1, 2, 3 });
     REQUIRE(buffer.size() == 3);
     REQUIRE(buffer.capacity() == 4);
     REQUIRE(buffer[0] == 1);
@@ -337,12 +337,12 @@ TEST_CASE("initializer_list")
 
 TEST_CASE("exception")
 {
-    using T = leviathan::controllable_value<int, 2, -1>;
+    using T = cpp::controllable_value<int, 2, -1>;
     // using T = Int32<false, 2, -1, true>;
     {
         std::allocator<T> alloc;
 
-        leviathan::collections::buffer<T> buffer(alloc, 1);
+        cpp::collections::buffer<T> buffer(alloc, 1);
 
         REQUIRE(std::is_nothrow_move_constructible_v<T> == false);
         REQUIRE(!T::moveable);
@@ -372,7 +372,7 @@ TEST_CASE("exception")
 TEST_CASE("pmr::allocator")
 {
     using PmrAllocator = std::pmr::polymorphic_allocator<int>;
-    using Buffer = leviathan::collections::buffer<int>;
+    using Buffer = cpp::collections::buffer<int>;
 
     Buffer buffer;
 

@@ -4,7 +4,7 @@
 #include <format>
 #include <compare>
 
-namespace leviathan
+namespace cpp
 {
 
 struct controllable_value_exception : std::exception
@@ -131,10 +131,10 @@ using copy_throw_value = controllable_value<T, CopyCtorCount>;
 template <typename T, int MoveCtorCount>
 using move_throw_value = controllable_value<T, 0, MoveCtorCount>;
 
-} // namespace leviathan
+} // namespace cpp
 
 template <typename T>
-struct std::hash<leviathan::controllable_value<T>>
+struct std::hash<cpp::controllable_value<T>>
         : std::hash<T> { };
 
 

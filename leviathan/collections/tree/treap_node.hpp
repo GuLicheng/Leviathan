@@ -5,7 +5,7 @@
 
 #include <random>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 
 template <typename RandomEngine = std::mt19937, typename SeedGenerator = std::random_device>
@@ -141,4 +141,4 @@ struct always
 
 using debug_treap_node = treap_node<std::mt19937, always<0>>;
 
-} // namespace leviathan::collections
+} // namespace cpp::collections

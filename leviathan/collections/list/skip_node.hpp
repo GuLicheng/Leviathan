@@ -5,7 +5,7 @@
 #include <cstddef> 
 #include <algorithm>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 
 /*
@@ -23,7 +23,7 @@ template <typename T>
 struct skip_node
 {
     // Flexible array is forbidden in ISO C++. So we use layout to simulate it.
-    using node_layout_type = leviathan::layout<T, int, skip_node*>;
+    using node_layout_type = cpp::layout<T, int, skip_node*>;
 
     static constexpr auto node_layout = node_layout_type(1, 1, 1);
 

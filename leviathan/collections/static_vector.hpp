@@ -12,7 +12,7 @@
 
 #include <assert.h>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 /**
  * @brief A variable-size array container with fixed capacity.
@@ -29,7 +29,7 @@ namespace leviathan::collections
 template <typename T, size_t N>
 class static_vector
 {
-    using storage = std::vector<T, leviathan::alloc::stack_allocator<T, N, true>>;
+    using storage = std::vector<T, cpp::alloc::stack_allocator<T, N, true>>;
     storage m_vec;
 
     void check_overflow(size_t n)
@@ -274,6 +274,6 @@ public:
 
 };
 
-} // namespace leviathan::collections
+} // namespace cpp::collections
 
 

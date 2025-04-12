@@ -42,7 +42,7 @@ enum ConsoleFont : int
 };
 
 template <>
-inline constexpr bool leviathan::operators::enum_enable_pipe<ConsoleFont> = true;
+inline constexpr bool cpp::operators::enum_enable_pipe<ConsoleFont> = true;
 
 // Static class
 class Console

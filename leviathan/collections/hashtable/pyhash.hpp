@@ -11,7 +11,7 @@
 #include "../common.hpp"
 #include "../associative_container_interface.hpp"
 
-namespace leviathan::collections
+namespace cpp::collections
 {
     
 template <typename KeyValue, 
@@ -669,5 +669,5 @@ private:
 };
 
 
-} // namespace leviathan::collections::hashtable
+} // namespace cpp::collections::hashtable
 

@@ -11,17 +11,17 @@
 #include <algorithm>
 #include <string>
 
-using HashT = ::leviathan::collections::hash_set<int>;
+using HashT = ::cpp::collections::hash_set<int>;
 
 
 TEST_CASE("element destroy", "[dtor]")
 {
 
     // using Int = Int32<false>;
-    using Int = leviathan::controllable_value<int>;
+    using Int = cpp::controllable_value<int>;
 
     {
-        ::leviathan::collections::hash_set<Int> h;
+        ::cpp::collections::hash_set<Int> h;
 
         // rehash
         for (int i = 0; i < 10; ++i)
@@ -42,8 +42,8 @@ TEST_CASE("exception thrown in constructor", "[emplace][exception]")
     
     {
         // using Int = CopyThrowExceptionInt<false, 2>;
-        using Int = leviathan::controllable_value<int, 2>;
-        leviathan::collections::hash_set<
+        using Int = cpp::controllable_value<int, 2>;
+        cpp::collections::hash_set<
             Int> h;
 
         // REQUIRE_THROWS(h.emplace());
@@ -60,7 +60,7 @@ TEST_CASE("exception thrown in constructor", "[emplace][exception]")
 
 TEST_CASE("hash map")
 {
-    ::leviathan::collections::hash_map<int, std::string> hm;
+    ::cpp::collections::hash_map<int, std::string> hm;
     hm.emplace(0, "Hello");
     REQUIRE(hm[0] == "Hello");
 }
@@ -69,14 +69,14 @@ TEST_CASE("hash map")
 
 TEST_CASE("data structure is correct", "[insert][contains][erase]")
 {
-    ::leviathan::test::test_set_is_correct<HashT, false>();
+    ::cpp::test::test_set_is_correct<HashT, false>();
 }
 
 
 #include "test_container_allocator.hpp"
 
 template <typename T, typename Allocator>
-using HashTableT = ::leviathan::collections::hash_set<
+using HashTableT = ::cpp::collections::hash_set<
     T, std::hash<T>, std::equal_to<T>, Allocator
 >;
 

@@ -4,7 +4,7 @@
 
 #include <concepts>
 
-namespace leviathan::config
+namespace cpp::config
 {
     
 template <typename SequenceType>
@@ -78,5 +78,5 @@ struct accessor
 
 
 
-} // namespace leviathan::config
+} // namespace cpp::config
 

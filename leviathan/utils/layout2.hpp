@@ -8,7 +8,7 @@
 #include <span>
 #include <assert.h>
 
-namespace leviathan
+namespace cpp
 {
 
 constexpr size_t align(size_t n, size_t m) 
@@ -113,7 +113,7 @@ struct layout
     std::array<size_t, Count> m_sizes;
 };
 
-}   // namespace leviathan
+}   // namespace cpp
 
 
 

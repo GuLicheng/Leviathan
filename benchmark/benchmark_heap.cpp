@@ -3,7 +3,7 @@
 #include <catch2/catch_all.hpp>
 #include "random_range.hpp"
 
-using BinaryHeapFunction = leviathan::algorithm::nd_heap_fn<2>;
+using BinaryHeapFunction = cpp::algorithm::nd_heap_fn<2>;
 
 void STLHeapSort(auto& vec)
 {
@@ -20,7 +20,7 @@ void HeapSort(auto& vec)
 
 inline constexpr auto default_num = 100000;
 
-inline auto random_generator = leviathan::random_range(default_num, default_num * 10);
+inline auto random_generator = cpp::random_range(default_num, default_num * 10);
 
 inline auto random_int = random_generator.random_range_int(); 
 

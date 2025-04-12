@@ -4,7 +4,7 @@
 #include <ranges>
 #include <vector>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
     
 struct node_drawer
@@ -36,5 +36,5 @@ struct node_drawer
     }
 };
 
-} // namespace leviathan::collections
+} // namespace cpp::collections
 

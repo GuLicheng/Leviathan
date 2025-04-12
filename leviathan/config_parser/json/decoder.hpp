@@ -4,7 +4,7 @@
 #include <leviathan/config_parser/parse_context.hpp>
 #include <leviathan/config_parser/json/value.hpp>
 
-namespace leviathan::config::json
+namespace cpp::config::json
 {
 
 class decoder
@@ -416,12 +416,12 @@ inline value loads(std::string source)
 
 inline value load(const char* filename)
 {
-    return loads(leviathan::read_file_context(filename));
+    return loads(cpp::read_file_context(filename));
 }
 
-} // namespace leviathan::config::json
+} // namespace cpp::config::json
 
-namespace leviathan::config::json::literal
+namespace cpp::config::json::literal
 {
 
 inline value operator""_json(const char* str, size_t len)

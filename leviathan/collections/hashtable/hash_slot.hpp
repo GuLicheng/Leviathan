@@ -2,7 +2,7 @@
 
 #include "../common.hpp"
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 
 template <typename Slot, bool CacheHashCode>
@@ -149,5 +149,5 @@ struct linear_hash_generator
 } // namespace detail
 
 
-} // namespace leviathan::collections
+} // namespace cpp::collections
 

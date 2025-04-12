@@ -8,7 +8,7 @@
 #include <array>
 
 // decleration
-namespace leviathan::metaV2
+namespace cpp::metaV2
 {
 
     // A basic typelist for storing element as return_type
@@ -40,7 +40,7 @@ namespace leviathan::metaV2
 
 
 // implement
-namespace leviathan::metaV2
+namespace cpp::metaV2
 {
     template <typename T> struct is_list : std::false_type { };
 
@@ -96,9 +96,9 @@ namespace leviathan::metaV2
         static constexpr auto value = Proj<type>::value;
     };
 
-} // namespace leviathan::metaV2
+} // namespace cpp::metaV2
 
-namespace leviathan::metaV2::detail
+namespace cpp::metaV2::detail
 {
 
 template <typename... Ts>
@@ -150,7 +150,7 @@ public:
 }  // namespace detail
 
 
-namespace leviathan::metaV2 
+namespace cpp::metaV2 
 {
 
 template <template <typename...> typename List, typename... Ts> 
@@ -187,7 +187,7 @@ public:
 //     using type = typename extract<List, std::remove_cvref_t<type1>>::type;
 // };
 
-} // namespace leviathan::metaV2 
+} // namespace cpp::metaV2 
 
 
 

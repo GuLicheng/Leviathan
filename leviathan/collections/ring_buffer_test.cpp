@@ -15,7 +15,7 @@
 
 TEST_CASE("emplace front and back")
 {
-    leviathan::collections::ring_buffer<int> buffer;
+    cpp::collections::ring_buffer<int> buffer;
 
     buffer.emplace_front(-1);
     buffer.emplace_front(-2);
@@ -34,7 +34,7 @@ TEST_CASE("emplace front and back")
     REQUIRE(buffer[2] == 1);
     REQUIRE(buffer[3] == 2);
 
-    leviathan::collections::ring_buffer<std::string> pool1, pool2;
+    cpp::collections::ring_buffer<std::string> pool1, pool2;
 
     std::string strs[] = {
         "This sentence must be long enough so that it will be put on heap.",
@@ -59,7 +59,7 @@ TEST_CASE("emplace front and back")
 
 TEST_CASE("iterator")
 {
-    leviathan::collections::ring_buffer<int> rb;
+    cpp::collections::ring_buffer<int> rb;
 
     rb.emplace_back(1);
     rb.emplace_back(0);
@@ -122,7 +122,7 @@ TEST_CASE("iterator")
 
 TEST_CASE("emplace")
 {
-    leviathan::collections::ring_buffer<std::string> rb;
+    cpp::collections::ring_buffer<std::string> rb;
 
     rb.emplace(rb.begin(), "1.This string will be inserted at first position.");
     rb.emplace(rb.end(), "2.This string will be inserted at last position.");
@@ -163,11 +163,11 @@ TEST_CASE("exception")
 {
     // using T = Int32<false, 2, -1, true>;
 
-    using T = leviathan::controllable_value<int, 2, -1>;
+    using T = cpp::controllable_value<int, 2, -1>;
     {
         std::allocator<T> alloc;
 
-        leviathan::collections::ring_buffer<T> buffer;
+        cpp::collections::ring_buffer<T> buffer;
 
         REQUIRE(std::is_nothrow_move_constructible_v<T> == false);
         REQUIRE(!T::moveable);
@@ -193,7 +193,7 @@ TEST_CASE("exception")
 
 TEST_CASE("copy ctor and assign")
 {
-    leviathan::collections::ring_buffer<std::string> rb;
+    cpp::collections::ring_buffer<std::string> rb;
 
     rb.emplace_back("1. This string must be long enough.");
     rb.emplace_back("2. This string must be long enough.");
@@ -213,7 +213,7 @@ TEST_CASE("copy ctor and assign")
 
 TEST_CASE("move ctor and assign")
 {
-    leviathan::collections::ring_buffer<std::string> rb;
+    cpp::collections::ring_buffer<std::string> rb;
 
     rb.emplace_back("1. This string must be long enough.");
     rb.emplace_back("2. This string must be long enough.");
@@ -233,7 +233,7 @@ TEST_CASE("move ctor and assign")
 
 TEST_CASE("swap")
 {
-    leviathan::collections::ring_buffer<std::string> rb1, rb2;
+    cpp::collections::ring_buffer<std::string> rb1, rb2;
 
     rb1.emplace_back("Hello");
     rb2.emplace_back("World");
@@ -246,7 +246,7 @@ TEST_CASE("swap")
 
 TEST_CASE("resize")
 {
-    leviathan::collections::ring_buffer<int> buf;
+    cpp::collections::ring_buffer<int> buf;
 
     buf.emplace_back(0);
     buf.emplace_back(1);
@@ -280,9 +280,9 @@ TEST_CASE("resize")
     }
 }
 
-leviathan::collections::ring_buffer<int> MakeRingBuffer(bool contigious)
+cpp::collections::ring_buffer<int> MakeRingBuffer(bool contigious)
 {
-    leviathan::collections::ring_buffer<int> rb;
+    cpp::collections::ring_buffer<int> rb;
 
     rb.emplace_back(0);
     rb.emplace_back(1);

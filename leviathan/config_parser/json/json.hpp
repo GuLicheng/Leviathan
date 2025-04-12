@@ -4,11 +4,11 @@
 #include "decoder.hpp"
 #include "encoder.hpp"
 
-namespace leviathan::literal
+namespace cpp::literal
 {
     
-using namespace leviathan::config::json::literal;
+using namespace cpp::config::json::literal;
 
-} // namespace leviathan::literal
+} // namespace cpp::literal
 
 

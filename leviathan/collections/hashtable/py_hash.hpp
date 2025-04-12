@@ -10,7 +10,7 @@
 
 #include <bit>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 
 template <typename TypePack, 

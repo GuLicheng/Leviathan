@@ -4,11 +4,11 @@
 
 #include <algorithm>
 
-namespace leviathan::action
+namespace cpp::action
 {
     
 using std::ranges::viewable_range;
-using namespace leviathan::ranges;
+using namespace cpp::ranges;
 
 inline constexpr closure size = []<viewable_range R>(R&& r) static
 {
@@ -52,5 +52,5 @@ inline constexpr adaptor with =
 
 // inline constexpr auto 
 
-} // namespace leviathan::action
+} // namespace cpp::action
 

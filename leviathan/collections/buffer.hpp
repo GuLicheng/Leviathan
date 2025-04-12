@@ -7,7 +7,7 @@
 #include <initializer_list>
 #include <assert.h>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 // Difference from std::vector, this class does not contain allocator.
 // Any container can split two parts: implementation and allocator. Some containers 
@@ -397,5 +397,5 @@ struct buffer
 
  };
 
-} // namespace leviathan
+} // namespace cpp
 

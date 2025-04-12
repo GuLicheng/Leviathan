@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 
-namespace leviathan::algorithm
+namespace cpp::algorithm
 {
 
 inline constexpr struct 

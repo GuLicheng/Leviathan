@@ -6,7 +6,7 @@
 #include <format>
 #include <algorithm>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 
 struct column_drawer

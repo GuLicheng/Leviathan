@@ -8,7 +8,7 @@
 #include <memory>
 #include <utility>
 
-namespace leviathan::logging
+namespace cpp::logging
 {
     template <typename... Args>
     auto unmove_make_format_args(Args&&... args)

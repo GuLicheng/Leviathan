@@ -2,7 +2,7 @@
 
 #include <vector>
 
-namespace leviathan::config
+namespace cpp::config
 {
 
 template <typename Value, typename List, typename Dict>
@@ -15,6 +15,6 @@ class path
     };
 };
 
-} // namespace leviathan::config
+} // namespace cpp::config
 
 

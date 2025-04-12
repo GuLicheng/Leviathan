@@ -6,7 +6,7 @@
 #include <variant>
 #include <memory>
 
-namespace leviathan
+namespace cpp
 {
     
 /**
@@ -117,5 +117,5 @@ public:
     }
 };
 
-} // namespace leviathan
+} // namespace cpp
 

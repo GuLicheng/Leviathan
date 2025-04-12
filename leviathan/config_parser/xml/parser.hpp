@@ -4,7 +4,7 @@
 #include "document.hpp"
 #include <stack>
 
-namespace leviathan::config::xml
+namespace cpp::config::xml
 {
 
 class xml_parse_error : public std::runtime_error
@@ -222,5 +222,5 @@ private:
     std::stack<std::string_view> m_stack;  // store the tag name
 };
     
-} // namespace leviathan::config::xml
+} // namespace cpp::config::xml
 

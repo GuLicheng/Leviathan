@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <cstring>
 
-namespace leviathan::time
+namespace cpp::time
 {
 
 constexpr int day_of_month(std::chrono::year_month ym)
@@ -141,5 +141,5 @@ std::tm to_calendar_time(std::chrono::time_point<Clock, Duration> tp)
     
 
 
-} // namespace leviathan
+} // namespace cpp
 

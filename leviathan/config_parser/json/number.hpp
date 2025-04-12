@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <utility>
 
-namespace leviathan::config::json
+namespace cpp::config::json
 {
 
 struct store_self
@@ -27,7 +27,7 @@ struct store_self
 };
 
 // std::variant<int64_t, uint64_t, double>
-class number : public leviathan::variable<store_self, int64_t, uint64_t, double>
+class number : public cpp::variable<store_self, int64_t, uint64_t, double>
 {
     using base = variable<store_self, int64_t, uint64_t, double>;
 
@@ -133,5 +133,5 @@ public:
     }
 };
 
-} // namespace leviathan::config::json
+} // namespace cpp::config::json
 

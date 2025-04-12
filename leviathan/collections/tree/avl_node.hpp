@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
     
 struct avl_node : public binary_node_operation
@@ -288,5 +288,5 @@ struct avl_node : public binary_node_operation
     
 };
 
-} // namespace leviathan::collections
+} // namespace cpp::collections
 

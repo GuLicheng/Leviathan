@@ -1,6 +1,6 @@
 #include "vector.hpp"
 
-namespace leviathan::math
+namespace cpp::math
 {
 
 struct transform
@@ -22,5 +22,5 @@ struct transform
     // }
 };
 
-} // namespace leviathan::math
+} // namespace cpp::math
 

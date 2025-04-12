@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 
-namespace leviathan::config
+namespace cpp::config
 {
 
 struct parse_context
@@ -206,6 +206,6 @@ struct parse_context
 };
 
 
-}  // leviathan::config
+}  // cpp::config
 
 

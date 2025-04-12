@@ -2,8 +2,8 @@
 
 #include <catch2/catch_all.hpp>
 
-template class leviathan::math::vector<float, 3>;
-template class leviathan::math::vector<double, 3>;
+template class cpp::math::vector<float, 3>;
+template class cpp::math::vector<double, 3>;
 
 template <typename Vector>
 constexpr bool CheckEqual(Vector x1, Vector x2, double Tolerance = 1e-5)
@@ -22,7 +22,7 @@ constexpr bool FloatingCmpEqual(float x1, float x2, float Tolerance = 1e-5)
 template <typename Floating>
 constexpr void Vector3DTesting()
 {
-    using FVector = leviathan::math::vector<Floating, 3>;
+    using FVector = cpp::math::vector<Floating, 3>;
 
     constexpr FVector v1(1, 1, 1), v2(1, 2, 3), v3(0, 0, 0), v4(-1, 2, -3);
 

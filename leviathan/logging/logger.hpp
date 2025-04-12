@@ -12,7 +12,7 @@
 #include <map>
 #include <assert.h>
 
-namespace leviathan::logging
+namespace cpp::logging
 {
     class logger : public std::enable_shared_from_this<logger>
     {

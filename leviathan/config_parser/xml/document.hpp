@@ -2,7 +2,7 @@
 
 #include "element.hpp"
 
-namespace leviathan::config::xml
+namespace cpp::config::xml
 {
    
 // <?xml version="1.0" encoding="UTF-8"?>
@@ -32,5 +32,5 @@ public:
 
 };
 
-} // namespace leviathan::config::xml
+} // namespace cpp::config::xml
 

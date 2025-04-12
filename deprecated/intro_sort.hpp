@@ -11,7 +11,7 @@
 #include <bit>
 #include <type_traits>
 
-namespace leviathan::sort
+namespace cpp::sort
 {
     // for IntroSort
     namespace detail

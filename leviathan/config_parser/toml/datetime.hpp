@@ -8,7 +8,7 @@
 #include <string_view>
 #include <optional>
 
-namespace leviathan::config::toml
+namespace cpp::config::toml
 {
 
 // Can we use std::chrono directly?

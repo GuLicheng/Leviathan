@@ -2,7 +2,7 @@
 
 #include "tree_node_operation.hpp"
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 
 struct binary_node : binary_node_operation

@@ -1,8 +1,8 @@
 #include "pyhash.hpp"
 #include <catch2/catch_all.hpp>
 
-using pyhashset = leviathan::collections::py_hashtable<
-    leviathan::collections::identity<int>,
+using pyhashset = cpp::collections::py_hashtable<
+    cpp::collections::identity<int>,
     std::hash<int>,
     std::equal_to<int>,
     std::allocator<int>

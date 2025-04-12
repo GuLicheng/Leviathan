@@ -5,7 +5,7 @@
 
 #include "basic_sort.hpp"
 
-namespace leviathan::algorithm::detail
+namespace cpp::algorithm::detail
 {
 
 template <int TimSortThreshold = 32> 
@@ -160,9 +160,9 @@ struct tim_sort_helper
     }
 };
 
-} // namespace leviathan::algorithm::detail
+} // namespace cpp::algorithm::detail
 
-namespace leviathan::algorithm
+namespace cpp::algorithm
 {
 
 inline constexpr struct

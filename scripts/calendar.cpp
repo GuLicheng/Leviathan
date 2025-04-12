@@ -7,7 +7,7 @@
 #include <ranges>
 
 // using
-using leviathan::ranges::concat;
+using cpp::ranges::concat;
 using namespace std::views;
 
 constexpr int DayofMonth(std::chrono::year_month ym)

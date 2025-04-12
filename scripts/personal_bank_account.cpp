@@ -43,7 +43,7 @@ std::generator<std::string> FillDash(std::string numbers, std::string_view candi
     // {
     //     for (auto ch : candidates)
     //     {
-    //         co_yield leviathan::string::replace(numbers, '-', ch);
+    //         co_yield cpp::string::replace(numbers, '-', ch);
     //     }
 
     // }
@@ -52,11 +52,11 @@ std::generator<std::string> FillDash(std::string numbers, std::string_view candi
     //     co_yield numbers;
     // }
 
-    auto fn = [=](auto ch) { return leviathan::string::replace(numbers, '-', ch); };
+    auto fn = [=](auto ch) { return cpp::string::replace(numbers, '-', ch); };
 
     if (numbers.contains('-'))
     {
-        co_yield std::ranges::elements_of(candidates | leviathan::views::transform(fn));
+        co_yield std::ranges::elements_of(candidates | cpp::views::transform(fn));
     }
     else
     {
@@ -91,7 +91,7 @@ auto FillStar = [](this auto&& self, std::string numbers, std::string_view candi
 
     if (idx != std::string::npos)
     {
-        co_yield std::ranges::elements_of(candidates | leviathan::views::transform(fn) | std::views::join);
+        co_yield std::ranges::elements_of(candidates | cpp::views::transform(fn) | std::views::join);
     }
     else
     {

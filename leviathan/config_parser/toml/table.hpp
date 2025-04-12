@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 
-namespace leviathan::config::toml::detail
+namespace cpp::config::toml::detail
 {
     
 // The locked table will inserted as value.
@@ -28,4 +28,4 @@ public:
     }
 };
 
-} // namespace leviathan::config::toml::detail
+} // namespace cpp::config::toml::detail

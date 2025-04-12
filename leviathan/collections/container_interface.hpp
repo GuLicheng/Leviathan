@@ -4,7 +4,7 @@
 #include <iterator>
 #include <concepts>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 
 template <typename Container>
@@ -292,5 +292,5 @@ struct erase_interface
 // { };
 
 
-} // namespace leviathan
+} // namespace cpp
 

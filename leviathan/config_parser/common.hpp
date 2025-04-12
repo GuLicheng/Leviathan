@@ -16,22 +16,22 @@
 
 #include <ctype.h>
 
-namespace leviathan::config
+namespace cpp::config
 {
     
-using leviathan::read_file_context;
-using leviathan::encode_unicode_to_utf8;
-using leviathan::is_unicode;
+using cpp::read_file_context;
+using cpp::encode_unicode_to_utf8;
+using cpp::is_unicode;
 
-using leviathan::string::ltrim;
-using leviathan::string::rtrim;
-using leviathan::string::trim;
-using leviathan::string::replace;
-using leviathan::string::whitespace_delimiters;
+using cpp::string::ltrim;
+using cpp::string::rtrim;
+using cpp::string::trim;
+using cpp::string::replace;
+using cpp::string::whitespace_delimiters;
 
 }
 
-namespace leviathan::config
+namespace cpp::config
 {
 
 template <std::integral I>
@@ -69,10 +69,10 @@ constexpr optional<T> from_chars_to_optional(std::string_view sv, Args... args)
 }
 }
 
-namespace leviathan::config
+namespace cpp::config
 {
 
-using leviathan::make_character_table;
+using cpp::make_character_table;
 
 namespace detail
 {

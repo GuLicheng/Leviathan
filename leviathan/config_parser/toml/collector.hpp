@@ -2,7 +2,7 @@
 
 #include "value.hpp"
 
-namespace leviathan::config::toml::detail
+namespace cpp::config::toml::detail
 {
 
 // When we call emplace a default value, a temporary variable will always be 
@@ -141,9 +141,9 @@ inline value* insert_section(std::vector<string> keys, value* super, bool table_
     return super;
 }
 
-} // namespace leviathan::config::toml::detail
+} // namespace cpp::config::toml::detail
 
-namespace leviathan::config::toml
+namespace cpp::config::toml
 {
 
 class collector

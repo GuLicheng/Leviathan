@@ -5,7 +5,7 @@
 #include <iostream>
 #include <functional>
 
-namespace json = leviathan::json;
+namespace json = cpp::json;
 
 // using json::null;
 // using json::number;

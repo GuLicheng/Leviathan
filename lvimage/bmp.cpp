@@ -8,7 +8,7 @@ namespace fs = std::filesystem;
 
 int main(int argc, char const *argv[])
 {
-    using namespace leviathan::image;
+    using namespace cpp::image;
     assert(argc == 3);
     const char* src = argv[1];
     const char* dest = argv[2];

@@ -2,7 +2,7 @@
 
 #include "avl_tree.hpp"
 
-using namespace leviathan::collections;
+using namespace cpp::collections;
 
 template <typename T, typename Compare = std::less<T>, typename Allocator = std::allocator<T>>
 using Tree = tree_set<avl_node, T, Compare, Allocator>;

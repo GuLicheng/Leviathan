@@ -7,7 +7,7 @@
 #include "../common.hpp"
 #include "../associative_container_interface.hpp"
 
-namespace leviathan::collections
+namespace cpp::collections
 {
     
 /**
@@ -584,6 +584,6 @@ private:
 };
 
 
-} // namespace leviathan::collections
+} // namespace cpp::collections
 
 #endif

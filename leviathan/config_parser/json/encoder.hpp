@@ -3,7 +3,7 @@
 #include "../formatter.hpp"
 #include "value.hpp"
 
-namespace leviathan::config::json
+namespace cpp::config::json
 {
     
 struct encoder
@@ -138,10 +138,10 @@ inline void dump(const value& x, const char* filename)
     write_file(context, filename);
 }
 
-} // namespace leviathan::config::json
+} // namespace cpp::config::json
 
 template <typename CharT>
-struct std::formatter<leviathan::json::value, CharT> 
+struct std::formatter<cpp::json::value, CharT> 
 {
     template <typename ParseContext>
     constexpr typename ParseContext::iterator parse(ParseContext& ctx)
@@ -150,10 +150,10 @@ struct std::formatter<leviathan::json::value, CharT>
     }
 
     template <typename FmtContext>
-    typename FmtContext::iterator format(const leviathan::json::value& value, FmtContext& ctx) const
+    typename FmtContext::iterator format(const cpp::json::value& value, FmtContext& ctx) const
     {
-        // auto result = leviathan::json::dumps(value);
-        auto result = leviathan::json::encoder2()(value);
+        // auto result = cpp::json::dumps(value);
+        auto result = cpp::json::encoder2()(value);
         return std::ranges::copy(result, ctx.out()).out;
     }   
 };

@@ -10,7 +10,7 @@
 #include <span>
 #include <assert.h>
 
-namespace leviathan::detail
+namespace cpp::detail
 {
 
 // TODO: Replace std::tuple_element with pack indexing
@@ -134,7 +134,7 @@ struct layout_impl<std::tuple<Ts...>, std::index_sequence<Sizes...>>
 
 } // namespace detail
 
-namespace leviathan
+namespace cpp
 {
 
 template <typename... Ts>

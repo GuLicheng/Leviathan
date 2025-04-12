@@ -5,8 +5,8 @@
 #include <algorithm>
 #include <random>
 
-using BinaryMaxHeapFunction = leviathan::algorithm::nd_heap_fn<2>;
-using QuaternaryMaxHeapFunction = leviathan::algorithm::nd_heap_fn<4>;
+using BinaryMaxHeapFunction = cpp::algorithm::nd_heap_fn<2>;
+using QuaternaryMaxHeapFunction = cpp::algorithm::nd_heap_fn<4>;
 
 std::random_device rd;
 

@@ -10,7 +10,7 @@
 
 #include "base.hpp"
 
-namespace leviathan::image 
+namespace cpp::image 
 {
 
 #define BI_RGB            0

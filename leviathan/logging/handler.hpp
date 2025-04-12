@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <leviathan/meta/template_info.hpp>
 
-namespace leviathan::logging
+namespace cpp::logging
 {
     class default_handler : public basic_handler
     {

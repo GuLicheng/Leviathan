@@ -3,10 +3,10 @@
 
 TEST_CASE("simple test")
 {
-    using NameField = leviathan::field<"name", std::string>;
-    using AgeField = leviathan::field<"age", int>;
+    using NameField = cpp::field<"name", std::string>;
+    using AgeField = cpp::field<"age", int>;
 
-    using Struct = leviathan::named_tuple<
+    using Struct = cpp::named_tuple<
         NameField,
         AgeField
     >;
@@ -19,11 +19,11 @@ TEST_CASE("simple test")
 
 TEST_CASE("type convert")
 {
-    using NameField = leviathan::field<"name", std::string>;
-    using AgeField = leviathan::field<"age", std::optional<int>>;
-    using OtherField = leviathan::field<"other", std::optional<std::string>>;
+    using NameField = cpp::field<"name", std::string>;
+    using AgeField = cpp::field<"age", std::optional<int>>;
+    using OtherField = cpp::field<"other", std::optional<std::string>>;
 
-    using Struct = leviathan::named_tuple<
+    using Struct = cpp::named_tuple<
         NameField,
         AgeField,
         OtherField
@@ -38,10 +38,10 @@ TEST_CASE("type convert")
 
 TEST_CASE("structured binding")
 {
-    using NameField = leviathan::field<"name", std::string>;
-    using AgeField = leviathan::field<"age", int>;
+    using NameField = cpp::field<"name", std::string>;
+    using AgeField = cpp::field<"age", int>;
 
-    using Struct = leviathan::named_tuple<
+    using Struct = cpp::named_tuple<
         NameField,
         AgeField
     >;
@@ -55,10 +55,10 @@ TEST_CASE("structured binding")
 
 TEST_CASE("reorder automatically")
 {
-    using NameField = leviathan::field<"name", std::string>;
-    using AgeField = leviathan::field<"age", int>;
+    using NameField = cpp::field<"name", std::string>;
+    using AgeField = cpp::field<"age", int>;
 
-    using Struct = leviathan::named_tuple<
+    using Struct = cpp::named_tuple<
         NameField,
         AgeField
     >;
@@ -78,10 +78,10 @@ TEST_CASE("move test")
         MoveOnly(const MoveOnly&) = delete;
     };
 
-    using Field1 = leviathan::field<"moveonly", MoveOnly>;
-    using Field2 = leviathan::field<"int", int>;
+    using Field1 = cpp::field<"moveonly", MoveOnly>;
+    using Field2 = cpp::field<"int", int>;
 
-    using MoveOnlyStruct = leviathan::named_tuple<Field1, Field2>;
+    using MoveOnlyStruct = cpp::named_tuple<Field1, Field2>;
 
     // Adjust arguments
     MoveOnlyStruct s("int"_arg = 1, "moveonly"_arg = MoveOnly());

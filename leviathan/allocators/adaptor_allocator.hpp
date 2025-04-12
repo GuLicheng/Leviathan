@@ -2,7 +2,7 @@
 
 #include <memory>
 
-namespace leviathan
+namespace cpp
 {
     
 /**
@@ -54,5 +54,5 @@ struct adaptor_allocator
     }
 };
 
-} // namespace leviathan
+} // namespace cpp
 

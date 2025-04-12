@@ -10,7 +10,7 @@
 #include <concepts>
 #include <span>
 
-namespace leviathan::math::algebra
+namespace cpp::math::algebra
 {
 
 template <std::floating_point T, size_t Dimension>
@@ -369,12 +369,12 @@ using vector2d = vector<double, 2>;
 using vector3d = vector<double, 3>;
 using vector4d = vector<double, 4>;
 
-} // namespace leviathan::math::algebra
+} // namespace cpp::math::algebra
 
-namespace leviathan::math
+namespace cpp::math
 {
 
-using leviathan::math::algebra::vector;
+using cpp::math::algebra::vector;
 
 }
 
@@ -382,7 +382,7 @@ using leviathan::math::algebra::vector;
 #include <format>
 
 template <typename T, size_t N, typename CharT>
-struct std::formatter<leviathan::math::vector<T, N>, CharT>
+struct std::formatter<cpp::math::vector<T, N>, CharT>
 {
     template <typename ParseContext>
     constexpr typename ParseContext::iterator parse(ParseContext& ctx)
@@ -391,7 +391,7 @@ struct std::formatter<leviathan::math::vector<T, N>, CharT>
     }
 
     template <typename FormatContext>
-    typename FormatContext::iterator format(const leviathan::math::vector<T, N>& v, FormatContext& ctx) const
+    typename FormatContext::iterator format(const cpp::math::vector<T, N>& v, FormatContext& ctx) const
     {
         auto it = ctx.out();
         const char* delimiter = "(";
@@ -408,9 +408,9 @@ struct std::formatter<leviathan::math::vector<T, N>, CharT>
 
 
 template <typename T, size_t Dimension>
-struct std::hash<leviathan::math::vector<T, Dimension>>
+struct std::hash<cpp::math::vector<T, Dimension>>
 {
-    static constexpr size_t operator()(const leviathan::math::vector<T, Dimension>& v) 
+    static constexpr size_t operator()(const cpp::math::vector<T, Dimension>& v) 
     {
         return v.hash_code();
     }

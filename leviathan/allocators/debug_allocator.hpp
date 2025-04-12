@@ -5,7 +5,7 @@
 #include <format>
 #include <leviathan/meta/template_info.hpp>
 
-namespace leviathan::alloc
+namespace cpp::alloc
 {
 
 inline static size_t counter = 0;  
@@ -29,5 +29,5 @@ struct debug_allocator : std::allocator<T>
     }
 };
 
-} // namespace leviathan::alloc
+} // namespace cpp::alloc
 

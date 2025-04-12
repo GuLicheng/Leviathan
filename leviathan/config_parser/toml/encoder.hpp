@@ -5,7 +5,7 @@
 #include <ranges>
 #include <utility>
 
-namespace leviathan::config::toml
+namespace cpp::config::toml
 {
     
 struct encoder
@@ -53,6 +53,6 @@ struct encoder
     }
 };
 
-} // namespace leviathan::config::toml
+} // namespace cpp::config::toml
 
 

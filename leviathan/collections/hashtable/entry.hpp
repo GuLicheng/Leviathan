@@ -2,7 +2,7 @@
 
 #include <leviathan/collections/common.hpp>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
     
 enum class entry_state : char
@@ -25,5 +25,5 @@ struct entry<true> : entry<false>
     entry_state m_state;
 };
 
-} // namespace leviathan::collections
+} // namespace cpp::collections
 

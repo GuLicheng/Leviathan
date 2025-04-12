@@ -4,7 +4,7 @@
 
 #include <ranges>
 
-namespace leviathan::config
+namespace cpp::config
 {
 
 template <typename... Args>
@@ -49,4 +49,4 @@ std::string format_map(
 }
 
 
-} // namespace leviathan::config
+} // namespace cpp::config

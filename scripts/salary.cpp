@@ -9,7 +9,7 @@
 #include <leviathan/time/timer.hpp>
 #include <leviathan/config_parser/json/json.hpp>
 
-namespace json = leviathan::json;
+namespace json = cpp::json;
 
 constexpr const char* Filename = R"(D:\Library\Leviathan\salary.json)";
 
@@ -26,12 +26,12 @@ inline constexpr auto AsJsonArray = JsonAs<json::array>();
 inline constexpr auto AsJsonObject = JsonAs<json::object>();
 
 template <typename JsonType>
-inline leviathan::ranges::closure AsJson = []<typename R>(R&& r)
+inline cpp::ranges::closure AsJson = []<typename R>(R&& r)
 {
     return (R&&)r | std::views::transform(JsonAs<JsonType>());
 };
 
-using String = std::basic_string<char, std::char_traits<char>, leviathan::json::global_allocator<char>>;
+using String = std::basic_string<char, std::char_traits<char>, cpp::json::global_allocator<char>>;
 
 using Factor = std::map<String, int>;
 
@@ -102,8 +102,8 @@ class Reader
 
     static std::chrono::year_month ToTM(std::string_view date) 
     {
-        auto year = leviathan::config::from_chars_to_optional<int>(date.data(), date.data() + 4);
-        auto month = leviathan::config::from_chars_to_optional<int>(date.data() + 5, date.data() + 7);
+        auto year = cpp::config::from_chars_to_optional<int>(date.data(), date.data() + 4);
+        auto month = cpp::config::from_chars_to_optional<int>(date.data() + 5, date.data() + 7);
         return YearMonth(*year, *month);
     }
 
@@ -205,12 +205,12 @@ int main(int argc, char const *argv[])
 
     Reader::PrintTotal();
 
-    for (auto& s : leviathan::alloc::messages)
+    for (auto& s : cpp::alloc::messages)
     {
         std::cout << s << std::endl;
     }
 
-    // std::cout << leviathan::alloc::counter << '\n';
+    // std::cout << cpp::alloc::counter << '\n';
 
     return 0;
 }

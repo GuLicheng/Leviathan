@@ -3,7 +3,7 @@
 
 #include <leviathan/math/integral.hpp>
 
-namespace leviathan::numeric
+namespace cpp::numeric
 {
 // we should keep ValueType is float or double
 // if you want, you can support long double

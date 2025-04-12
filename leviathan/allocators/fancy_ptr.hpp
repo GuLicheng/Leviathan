@@ -9,7 +9,7 @@
 #include <utility>
 #include <type_traits>
 
-namespace leviathan::alloc
+namespace cpp::alloc
 {
 
 template<typename T>

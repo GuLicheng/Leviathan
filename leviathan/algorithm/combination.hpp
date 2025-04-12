@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 
-namespace leviathan::algorithm::detail
+namespace cpp::algorithm::detail
 {
 
 template <typename I>
@@ -99,7 +99,7 @@ constexpr bool combination_impl(I first, I middle, I last, Comp comp)
 
 } // namespace detail
 
-// namespace leviathan::algorithm
+// namespace cpp::algorithm
 // {
 
 // template <typename I, typename Comp = std::less<>>
@@ -114,9 +114,9 @@ constexpr bool combination_impl(I first, I middle, I last, Comp comp)
 //     return detail::combination_impl(first, middle, last, comp);
 // }
 
-// } // namespace leviathan
+// } // namespace cpp
 
-namespace leviathan::algorithm
+namespace cpp::algorithm
 {
 
 template<typename Iter>

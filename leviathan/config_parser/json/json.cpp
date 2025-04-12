@@ -1,3 +1,5 @@
+// See scripts/salary.cpp
+
 #include <iostream>
 #include <generator>
 #include <ranges>
@@ -9,7 +11,7 @@
 #include <unordered_map>
 #include <map>
 
-namespace json = leviathan::json;
+namespace json = cpp::json;
 
 const char* filename = R"(D:\Library\Leviathan\salary.json)";
 
@@ -67,7 +69,7 @@ void PrettyDictionary(const Dictionary& dict)
     auto write_format = [](const auto& kv) { Console::WriteLine("{:20} = {:.2f}", kv.first, kv.second); };
 
     // dict | std::views::filter(has_key)
-    //      | leviathan::action::for_each(write_format);
+    //      | cpp::action::for_each(write_format);
 
 }
 
@@ -86,12 +88,12 @@ void _2();
 
 int main(int argc, char const *argv[])
 {
-    system("chcp 65001");
+//     system("chcp 65001");
 
-    // _1();
-    _2();
-    return 0;
-}
+//     // _1();
+//     _2();
+//     return 0;
+// }
 
 void _1()
 {
@@ -99,7 +101,7 @@ void _1()
     json::value root;
 
     {
-        leviathan::time::timer _("parse json");
+        cpp::time::timer _("parse json");
         root = json::load(filename);
     }
 
@@ -110,7 +112,7 @@ void _1()
     }
 
     {
-        leviathan::time::timer _("statistic result");
+        cpp::time::timer _("statistic result");
         GetSalarySlips(root);
     }
 

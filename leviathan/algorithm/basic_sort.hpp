@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 
-namespace leviathan::algorithm
+namespace cpp::algorithm
 {
     template <typename I, typename Comp = std::less<>>
     constexpr void insertion_sort(I first, I last, Comp comp = {}) 
@@ -75,5 +75,5 @@ namespace leviathan::algorithm
             }
         }
     } 
-} // namespace leviathan
+} // namespace cpp
 

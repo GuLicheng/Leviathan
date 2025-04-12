@@ -4,7 +4,7 @@
 #include "red_black_node.hpp"
 #include "tree.hpp"
 
-namespace leviathan::collections
+namespace cpp::collections
 {
     
 template <typename T, typename Compare = std::less<T>, typename Allocator = std::allocator<T>>
@@ -19,5 +19,5 @@ using red_black_treemap = tree_map<red_black_node, K, V, Compare, Allocator>;
 template <typename K, typename V, typename Compare = std::less<K>, typename Allocator = std::allocator<std::pair<const K, V>>>
 using red_black_tree_multimap = tree_multimap<red_black_node, K, V, Compare, Allocator>;
 
-} // namespace leviathan::collections
+} // namespace cpp::collections
 

@@ -3,7 +3,7 @@
 #include <memory_resource>
 #include <memory>
 
-namespace leviathan::alloc
+namespace cpp::alloc
 {
     
 // The final keyword may optimize the virtual function. 

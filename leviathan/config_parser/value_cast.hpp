@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <ranges>
 
-namespace leviathan::config
+namespace cpp::config
 {
 
 template <typename Target, typename Source>
@@ -145,4 +145,4 @@ struct json2toml
     }
 };
 
-} // namespace leviathan::config
+} // namespace cpp::config

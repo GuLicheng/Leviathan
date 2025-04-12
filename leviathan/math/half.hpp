@@ -2,7 +2,7 @@
 
 #include <stdfloat>
 
-namespace leviathan
+namespace cpp
 {
 
 using half = std::float16_t;

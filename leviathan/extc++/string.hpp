@@ -6,7 +6,7 @@
 #include <ranges>
 #include <concepts>
 
-namespace leviathan::string
+namespace cpp::string
 {
     
 template <typename T>
@@ -170,5 +170,5 @@ inline std::string center(std::string_view text, int width, char filler_characte
     return retval.replace(left, text.size(), text.data());
 }
 
-} // namespace leviathan::string
+} // namespace cpp::string
 

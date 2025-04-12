@@ -12,7 +12,7 @@
 #include <span>
 #include <vector>
 
-using namespace leviathan;
+using namespace cpp;
 
 void AvoidCommaInMacro(bool b)
 {

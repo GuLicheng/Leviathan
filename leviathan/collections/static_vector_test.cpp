@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <catch2/catch_all.hpp>
 
-using leviathan::collections::static_vector;
+using cpp::collections::static_vector;
 
 TEST_CASE("ctor")
 {

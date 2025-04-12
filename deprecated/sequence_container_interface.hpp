@@ -5,7 +5,7 @@
 #include <concepts>
 #include <type_traits>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 
 template <typename X>

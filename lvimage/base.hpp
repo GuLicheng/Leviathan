@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 
-namespace leviathan::image 
+namespace cpp::image 
 {
 
 struct image_buffer 

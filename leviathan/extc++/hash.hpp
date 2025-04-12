@@ -2,7 +2,7 @@
 
 #include "concepts.hpp"
 
-namespace leviathan::hash
+namespace cpp::hash
 {
     
 inline constexpr struct
@@ -28,5 +28,5 @@ constexpr size_t hash_tuple_like(const TupleLike& tuple)
     return std::apply(hash_combine, tuple);
 }
 
-} // namespace leviathan::hash
+} // namespace cpp::hash
 

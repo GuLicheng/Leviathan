@@ -8,10 +8,10 @@
 #include <iostream>
 
 
-namespace leviathan
+namespace cpp
 {
 
-using leviathan::string::basic_fixed_string;
+using cpp::string::basic_fixed_string;
 
 template <basic_fixed_string... Fs>
 struct fixed_string_list
@@ -221,51 +221,51 @@ private:
 
 };
 
-} // namespace leviathan
+} // namespace cpp
 
 namespace std
 {
 template <typename... Ts>
-struct tuple_size<leviathan::named_tuple<Ts...>>
+struct tuple_size<cpp::named_tuple<Ts...>>
     : integral_constant<size_t, sizeof...(Ts)> { };
 
 template <size_t N, typename... Ts>
-struct tuple_element<N, leviathan::named_tuple<Ts...>> 
-    : tuple_element<N, typename leviathan::named_tuple<Ts...>::tuple_type> { };
+struct tuple_element<N, cpp::named_tuple<Ts...>> 
+    : tuple_element<N, typename cpp::named_tuple<Ts...>::tuple_type> { };
 
 template<size_t I, class... Types>
-constexpr tuple_element_t<I, leviathan::named_tuple<Types...>>&
-get(leviathan::named_tuple<Types...>& t) noexcept
+constexpr tuple_element_t<I, cpp::named_tuple<Types...>>&
+get(cpp::named_tuple<Types...>& t) noexcept
 {
     return t.template get_with<I>();
 }
 
 template<size_t I, class... Types>
-constexpr tuple_element_t<I, leviathan::named_tuple<Types...>>&&
-get(leviathan::named_tuple<Types...>&& t) noexcept
+constexpr tuple_element_t<I, cpp::named_tuple<Types...>>&&
+get(cpp::named_tuple<Types...>&& t) noexcept
 {
     return std::move(t.template get_with<I>());
 }
 
 template<size_t I, class... Types>
-constexpr const tuple_element_t<I, leviathan::named_tuple<Types...>>&
-get(const leviathan::named_tuple<Types...>& t) noexcept
+constexpr const tuple_element_t<I, cpp::named_tuple<Types...>>&
+get(const cpp::named_tuple<Types...>& t) noexcept
 {
     return t.template get_with<I>();
 }
 
 template<size_t I, class... Types>
-constexpr const tuple_element_t<I, leviathan::named_tuple<Types...>>&& 
-get(const leviathan::named_tuple<Types...>&& t) noexcept
+constexpr const tuple_element_t<I, cpp::named_tuple<Types...>>&& 
+get(const cpp::named_tuple<Types...>&& t) noexcept
 {
     return std::move(t.template get_with<I>());
 }
 }
 
-namespace leviathan::literals
+namespace cpp::literals
 {
 template <basic_fixed_string S> 
 constexpr arg_t<S> operator ""_arg() { return {}; }
 }
 
-using namespace leviathan::literals;
+using namespace cpp::literals;

@@ -4,7 +4,7 @@
 
 #include <optional>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 
 /**
@@ -196,5 +196,5 @@ struct node_insert_return
     NodeType node;
 };
 
-} // namespace leviathan::collections
+} // namespace cpp::collections
 

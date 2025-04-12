@@ -3,7 +3,7 @@
 #include <leviathan/collections/common.hpp>
 #include <leviathan/collections/hashtable/entry.hpp>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
     
 template <typename KeyValue, 
@@ -19,5 +19,5 @@ class dictionary
 
 };
 
-} // namespace leviathan::collections
+} // namespace cpp::collections
 

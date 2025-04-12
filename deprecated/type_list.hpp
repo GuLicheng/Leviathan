@@ -9,7 +9,7 @@
 
 
 // Here are some options for type list
-namespace leviathan::meta
+namespace cpp::meta
 {
 
 // using empty_list = std::tuple<>;
@@ -58,7 +58,7 @@ struct concat_impl<Container1<Ts1...>, Container2<Ts2...>, Containers...>
 template <template <typename...> typename Container, typename... Containers>
 struct concat 
     : std::enable_if <true,
-            typename ::leviathan::meta::traits_parameters_from_type_list
+            typename ::cpp::meta::traits_parameters_from_type_list
             <
                 Container, typename detail::concat_impl<std::tuple<>, Containers...>::type    
             >::type
@@ -219,10 +219,10 @@ struct pop_back<std::tuple<Types...>>
 
 
 
-}  // namespace leviathan::meta
+}  // namespace cpp::meta
 
 // Here are some algorithms based on type list
-namespace leviathan::meta
+namespace cpp::meta
 {
 // ----------------------max_type-----------------------
 // return the max type in type list
@@ -395,9 +395,9 @@ struct insert_sort<std::tuple<Ts...>> : detail::insert_sort_impl<std::tuple<>, s
     using T2 = std::tuple<int>;
     using T3 = std::tuple<int, double, char, bool, foo, short>;
 
-    using T4 = leviathan::type::insert_sort<T1>::type;
-    using T5 = leviathan::type::insert_sort<T2>::type;
-    using T6 = leviathan::type::insert_sort<T3>::type;
+    using T4 = cpp::type::insert_sort<T1>::type;
+    using T5 = cpp::type::insert_sort<T2>::type;
+    using T6 = cpp::type::insert_sort<T3>::type;
     static_assert(std::is_same_v<std::tuple<>, T4>);
     static_assert(std::is_same_v<std::tuple<int>, T5>);
     static_assert(std::is_same_v<std::tuple<char, bool, short, int, double, foo>, T6>);
@@ -430,22 +430,22 @@ struct unique<std::tuple<Ts...>>
 
 /*
     using T = std::tuple<int, char, double, char, int, bool, int, double, float>;
-    using Res1 = leviathan::type::unique<T>::type;
-    using Res2 = leviathan::type::unique<int, char, double, char, int, bool, int, double, float>::type;
+    using Res1 = cpp::type::unique<T>::type;
+    using Res2 = cpp::type::unique<int, char, double, char, int, bool, int, double, float>::type;
     static_assert(std::is_same_v<Res1, Res2>);
 */
 
 /*
     2020/12/14 -- specialize variadic parameters for basic template meta
-    constexpr auto size = leviathan::type::size<int, double>::value;
-    using F1 = leviathan::type::front<int, double, char>::type;
-    using F2 = leviathan::type::pop_front<int, double, char>::type;
-    using F3 = leviathan::type::max_type<int, double, char>::type;
-    using F4 = leviathan::type::min_type<int, double, char>::type;
-    using F5 = leviathan::type::index_of<2, int, double, char>::type;
-    using F6 = leviathan::type::reverse<int, double, char>::type;
-    using F7 = leviathan::type::back<int, double, char>::type;
-    using F8 = leviathan::type::pop_back<int, double, char>::type;
+    constexpr auto size = cpp::type::size<int, double>::value;
+    using F1 = cpp::type::front<int, double, char>::type;
+    using F2 = cpp::type::pop_front<int, double, char>::type;
+    using F3 = cpp::type::max_type<int, double, char>::type;
+    using F4 = cpp::type::min_type<int, double, char>::type;
+    using F5 = cpp::type::index_of<2, int, double, char>::type;
+    using F6 = cpp::type::reverse<int, double, char>::type;
+    using F7 = cpp::type::back<int, double, char>::type;
+    using F8 = cpp::type::pop_back<int, double, char>::type;
 */
 
 template <template <typename...> typename Func, typename... Args>
@@ -459,14 +459,14 @@ struct call : std::enable_if<true, typename Func<Args...>::type> { };
 //     using type = typename Func<Args...>::type;
 // };
 
-} // namespace leviathan::meta
+} // namespace cpp::meta
 
 
 
 
 
 // for some utilities
-namespace leviathan::meta
+namespace cpp::meta
 {
 
 
@@ -514,16 +514,16 @@ struct iterate<0, F, List>
 template <typename List, size_t N>
 struct drop
 {
-    using type = typename detail::iterate<N - 1, leviathan::meta::pop_front, List>::type;
+    using type = typename detail::iterate<N - 1, cpp::meta::pop_front, List>::type;
 };
 
 template <typename List, size_t N>
 struct take
 {
 private:
-    static constexpr auto size = leviathan::meta::size<List>::value;
+    static constexpr auto size = cpp::meta::size<List>::value;
 public:
-    using type = typename detail::iterate<size - N - 1, leviathan::meta::pop_back, List>::type;
+    using type = typename detail::iterate<size - N - 1, cpp::meta::pop_back, List>::type;
 };
 
 template <typename List, size_t From, size_t To, size_t Stride = 1>
@@ -541,20 +541,20 @@ template <typename List, size_t N>
 struct take_last
 {
 private:
-    static constexpr auto size = leviathan::meta::size<List>::value;
+    static constexpr auto size = cpp::meta::size<List>::value;
 public:
-    using type = typename detail::iterate<size - N - 1, leviathan::meta::pop_front, List>::type;
+    using type = typename detail::iterate<size - N - 1, cpp::meta::pop_front, List>::type;
 };
 
 template <typename List, size_t N>
 struct drop_last
 {
 public:
-    using type = typename detail::iterate<N - 1, leviathan::meta::pop_back, List>::type;
+    using type = typename detail::iterate<N - 1, cpp::meta::pop_back, List>::type;
 };
 
 
-}  // namespace leviathan meta
+}  // namespace cpp meta
 
 #endif // __TYPE_LIST_HPP__
 

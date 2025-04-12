@@ -13,7 +13,7 @@
 #include <leviathan/extc++/math.hpp>
 
 // Any component should in sub-namespace.
-namespace leviathan::math
+namespace cpp::math
 {
 
 inline constexpr struct 
@@ -200,4 +200,4 @@ inline constexpr struct
 } div;
 
 
-} // namespace leviathan::math
+} // namespace cpp::math

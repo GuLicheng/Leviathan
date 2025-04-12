@@ -5,7 +5,7 @@
 #include <optional>
 #include <cstring>
 
-namespace leviathan::time
+namespace cpp::time
 {
 
 // https://wandbox.org/permlink/UvX03gjNQ6MoPyLF
@@ -26,5 +26,5 @@ std::optional<TimePoint> parse(const char* fmt)
 // {
 // };
 
-} // namespace leviathan::time
+} // namespace cpp::time
 

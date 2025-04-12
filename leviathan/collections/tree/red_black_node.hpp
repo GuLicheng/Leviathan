@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 
 struct red_black_node : binary_node_operation
@@ -219,7 +219,7 @@ struct red_black_node : binary_node_operation
 
 };
 
-}  // namespace leviathan::collections 
+}  // namespace cpp::collections 
 
 
 

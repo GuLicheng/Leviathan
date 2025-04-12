@@ -3,7 +3,7 @@
 #include "concepts.hpp"
 #include <compare>
 
-namespace leviathan
+namespace cpp
 {
 
 // Generate i++ by ++i.
@@ -260,7 +260,8 @@ struct file_stream_fn
 {
     std::ofstream m_ofs;
 
-    file_stream_fn(const char* path, std::ios::openmode mode = std::ios::out) : m_ofs(path, mode) { }
+    file_stream_fn(const char* path, std::ios::openmode mode = std::ios::out | std::ios::binary) 
+        : m_ofs(path, mode) { }
 
     template <typename T>
     void operator()(const T& value)
@@ -274,5 +275,5 @@ struct file_stream_fn
 using console_iterator = function_output_iterator<detail::console_stream_fn>;
 using file_iterator = function_output_iterator<detail::file_stream_fn>;
 
-} // namespace leviathan
+} // namespace cpp
 

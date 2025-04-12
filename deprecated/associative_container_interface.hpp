@@ -3,7 +3,7 @@
 #include "common.hpp"
 #include "sequence_container_interface.hpp"
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 
 template <typename X>
@@ -294,5 +294,5 @@ struct unordered_associative_container_insertion_interface
     }
 };
 
-} // namespace leviathan::collections
+} // namespace cpp::collections
 

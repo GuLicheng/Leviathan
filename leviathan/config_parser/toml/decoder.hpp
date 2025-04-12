@@ -13,7 +13,7 @@ Reference:
 #include <leviathan/config_parser/toml/collector.hpp>
 #include <leviathan/config_parser/toml/parser_helper.hpp>
 
-namespace leviathan::config::toml
+namespace cpp::config::toml
 {
 
 class decoder
@@ -558,12 +558,12 @@ inline value load(const char* filename)
 {
     // Windows
     constexpr const char* linefeed = "\r\n";
-    return loads(leviathan::read_file_context(filename, linefeed));
+    return loads(cpp::read_file_context(filename, linefeed));
 }
 
-} // namespace leviathan::config::toml
+} // namespace cpp::config::toml
 
-namespace leviathan::config
+namespace cpp::config
 {
 
 template <>

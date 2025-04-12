@@ -2,7 +2,7 @@
 #include "skip_list.hpp"
 #include <catch2/catch_all.hpp>
 
-using namespace leviathan::collections;
+using namespace cpp::collections;
 
 using SkipList = skip_set<identity<int>, std::ranges::less, std::allocator<int>, true>;
 

@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 
-namespace leviathan::logging
+namespace cpp::logging
 {
     class default_filter : public basic_filter
     {
@@ -19,4 +19,4 @@ namespace leviathan::logging
 
     };
 
-} // namespace leviathan::logging
+} // namespace cpp::logging

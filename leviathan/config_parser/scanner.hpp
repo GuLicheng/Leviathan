@@ -2,10 +2,10 @@
 
 #include "common.hpp"
 
-namespace leviathan::config
+namespace cpp::config
 {
 
-class context_reader
+class scanner
 {
     std::string_view m_context;
 
@@ -15,11 +15,11 @@ class context_reader
 
 public:
 
-    explicit constexpr context_reader(std::string_view context) : m_context(context), m_line(0) { }
+    explicit constexpr scanner(std::string_view context) : m_context(context), m_line(0) { }
 
-    constexpr context_reader(const context_reader&) = delete;
+    constexpr scanner(const scanner&) = delete;
     
-    constexpr context_reader& operator=(const context_reader&) = delete;
+    constexpr scanner& operator=(const scanner&) = delete;
 
     constexpr int line() const
     {
@@ -41,10 +41,10 @@ public:
         return m_context.empty();
     }
 
-    constexpr context_reader slice(size_t pos, size_t count) const
+    constexpr scanner slice(size_t pos, size_t count) const
     {
         // the substr will throw exception if pos > size().
-        return context_reader(m_context.substr(pos, count));
+        return scanner(m_context.substr(pos, count));
     }
 
     constexpr char peek(size_t n) const
@@ -182,13 +182,13 @@ public:
         return !eof();
     }
 
-    constexpr context_reader& operator++()
+    constexpr scanner& operator++()
     {
         advance_unchecked(1);
         return *this;
     }
 
-    constexpr context_reader& operator+=(size_t n)
+    constexpr scanner& operator+=(size_t n)
     {
         advance_unchecked(n);
         return *this;
@@ -196,4 +196,4 @@ public:
 
 };
 
-}  // namespace leviathan::config
+}  // namespace cpp::config

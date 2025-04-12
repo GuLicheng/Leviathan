@@ -5,7 +5,7 @@
 #include <tuple> 
 #include <complex>
 
-namespace leviathan::meta
+namespace cpp::meta
 {
 
 template <typename T, template <typename...> typename Primary>

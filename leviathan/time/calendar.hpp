@@ -3,7 +3,7 @@
 #include <ranges>
 #include <chrono>
 
-namespace leviathan::time
+namespace cpp::time
 {
 
 namespace chrono = std::chrono;

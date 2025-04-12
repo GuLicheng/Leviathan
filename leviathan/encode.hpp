@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-namespace leviathan::encoding
+namespace cpp::encoding
 {
     
 constexpr bool is_valid_unicode(uint32_t codepoint)
@@ -161,9 +161,9 @@ struct UTF16<char, std::endian::big>
     }
 };
 
-} // namespace leviathan::encoding
+} // namespace cpp::encoding
 
-namespace leviathan
+namespace cpp
 {
 
 /**
@@ -266,5 +266,5 @@ constexpr InputIterator encode_unicode_to_utf8(InputIterator iter, const uint32_
     // return iter;
 }
 
-} // namespace leviathan
+} // namespace cpp
 

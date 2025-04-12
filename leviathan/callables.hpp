@@ -13,7 +13,7 @@
 #include <functional>
 #include <tuple>
 
-namespace leviathan
+namespace cpp
 {
     
 template <typename T>
@@ -38,7 +38,7 @@ template <typename F>
 struct function_args
 {
 private:
-    using traits = leviathan::meta::function_traits<F>;
+    using traits = cpp::meta::function_traits<F>;
     using arg_tuple = typename traits::args;
     using class_type = typename traits::class_type;
     static constexpr bool is_const = traits::attribute & 0x0001;
@@ -48,7 +48,7 @@ public:
 
     using type = std::conditional_t<
         is_class_member_pointer,
-        typename leviathan::meta::push_front<arg_tuple, typename member_object_pointer<class_type, is_const>::type>::type, 
+        typename cpp::meta::push_front<arg_tuple, typename member_object_pointer<class_type, is_const>::type>::type, 
         arg_tuple
     >;
 
@@ -67,7 +67,7 @@ void apply_without_last_element(F&& f, Tuple&& t)
     };
 
     // return type should not be reference such as int&
-    using R = typename leviathan::meta::function_traits<F>::return_type;
+    using R = typename cpp::meta::function_traits<F>::return_type;
     static_assert(std::is_same_v<R, std::remove_reference_t<R>>);
 
     constexpr auto sz = std::tuple_size_v<std::remove_cvref_t<Tuple>> - 1; // remove last 
@@ -91,8 +91,8 @@ struct invoker
     static void apply(F f, std::any arg)
     {
         using arg_type = typename function_args<F>::type;
-        using R = typename leviathan::meta::function_traits<F>::return_type;
-        using any_type = typename leviathan::meta::push_back<arg_type, callable_result<R>&>::type;
+        using R = typename cpp::meta::function_traits<F>::return_type;
+        using any_type = typename cpp::meta::push_back<arg_type, callable_result<R>&>::type;
         // PrintTypeInfo(any_type);
         auto& tp = std::any_cast<any_type&>(arg);
         apply_without_last_element(std::move(f), tp);
@@ -157,5 +157,5 @@ private:
     std::vector<value_type> m_functions;
 };
 
-} // namespace leviathan
+} // namespace cpp
 

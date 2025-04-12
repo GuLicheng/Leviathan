@@ -9,7 +9,7 @@
 #include <iterator>
 #include <array>
 
-namespace leviathan::string
+namespace cpp::string
 {
 
 template <size_t N, typename CharT, typename Traits = std::char_traits<CharT>>
@@ -154,22 +154,22 @@ template <size_t N> using fixed_string = basic_fixed_string<N, char>;
 template <size_t N> using fixed_wstring = basic_fixed_string<N, wchar_t>;
 
 
-} // namespace leviathan
+} // namespace cpp
 
 // Implement std::hash and std::formatter for basic_fixed_string.
 template <size_t N, typename CharT, typename Traits>
-struct std::hash<leviathan::string::basic_fixed_string<N, CharT, Traits>>
+struct std::hash<cpp::string::basic_fixed_string<N, CharT, Traits>>
 {
     constexpr size_t 
-    operator()(const ::leviathan::string::basic_fixed_string<N, CharT, Traits>& x) const  
+    operator()(const ::cpp::string::basic_fixed_string<N, CharT, Traits>& x) const  
     { return x.hash_code(); }
 };
 
 template <size_t N, typename CharT, typename Traits>
-struct std::formatter<leviathan::string::basic_fixed_string<N, CharT, Traits>, CharT>
+struct std::formatter<cpp::string::basic_fixed_string<N, CharT, Traits>, CharT>
     : std::formatter<basic_string_view<CharT, Traits>>
 {
-    using self = std::formatter<leviathan::string::basic_fixed_string<N, CharT, Traits>, CharT>;
+    using self = std::formatter<cpp::string::basic_fixed_string<N, CharT, Traits>, CharT>;
 
     constexpr formatter() = default;
 
@@ -185,7 +185,7 @@ struct std::formatter<leviathan::string::basic_fixed_string<N, CharT, Traits>, C
     { return base::format(fs.sv(), fc); }
 };
 
-namespace leviathan::literals
+namespace cpp::literals
 {
     // std::cout << "{}-{}-{:5d}"_fs("Hello", "World", 2);
     template <string::basic_fixed_string FixedString> 
@@ -197,7 +197,7 @@ namespace leviathan::literals
     }
 }
 
-namespace leviathan
+namespace cpp
 {
 
 using string::basic_fixed_string;

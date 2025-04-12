@@ -5,7 +5,7 @@
 #include <optional>
 #include <memory>
 
-namespace leviathan
+namespace cpp
 {
     template <basic_fixed_string... Names>
     struct builder
@@ -59,7 +59,7 @@ namespace leviathan
     };
 
 
-} // namespace leviathan
+} // namespace cpp
 
 
 

@@ -3,7 +3,7 @@
 #include <memory>
 #include <type_traits>
 
-namespace leviathan::alloc
+namespace cpp::alloc
 {
     
 template <typename T, size_t N, bool ThrowException = true>
@@ -63,5 +63,5 @@ private:
 
 };
 
-} // namespace leviathan::alloc
+} // namespace cpp::alloc
 

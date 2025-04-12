@@ -29,7 +29,7 @@
 
 #include <expected>
 
-namespace leviathan::config::xml
+namespace cpp::config::xml
 {
     
 using attribute = std::pair<std::string, std::string>;
@@ -118,5 +118,5 @@ private:
     element m_root;
 };
 
-} // namespace leviathan::config::xml
+} // namespace cpp::config::xml
 

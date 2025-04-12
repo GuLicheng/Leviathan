@@ -9,7 +9,7 @@
 #include <format>
 #include <assert.h>
 
-namespace leviathan::collections
+namespace cpp::collections
 {
 
 // The operation is based on tree.hpp

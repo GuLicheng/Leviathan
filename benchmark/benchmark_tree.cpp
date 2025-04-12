@@ -8,31 +8,31 @@
 #include <leviathan/collections/tree/treap.hpp>
 #include "random_range.hpp"
 
-using AVLTree = leviathan::collections::avl_treeset<int>;
-using RedBlackTree = leviathan::collections::red_black_treeset<int>;
+using AVLTree = cpp::collections::avl_treeset<int>;
+using RedBlackTree = cpp::collections::red_black_treeset<int>;
 using STLRedBlackTree = std::set<int>;
-using TreapTree = leviathan::collections::treap_set<int>;
+using TreapTree = cpp::collections::treap_set<int>;
 
 TEST_CASE("duplicate_collections_random_insert")
 {
     BENCHMARK("avl random_insert")
     {
-        return leviathan::random_insert_test<AVLTree>();
+        return cpp::random_insert_test<AVLTree>();
     };
 
     BENCHMARK("red black random_insert")
     {
-        return leviathan::random_insert_test<RedBlackTree>();
+        return cpp::random_insert_test<RedBlackTree>();
     };
 
     BENCHMARK("stl set random_insert")
     {
-        return leviathan::random_insert_test<STLRedBlackTree>();
+        return cpp::random_insert_test<STLRedBlackTree>();
     };
 
     BENCHMARK("treap random_insert")
     {
-        return leviathan::random_insert_test<TreapTree>();
+        return cpp::random_insert_test<TreapTree>();
     };
 }
 
@@ -40,22 +40,22 @@ TEST_CASE("duplicate_collections_ascend_insert")
 {
     BENCHMARK("avl ascend_insert")
     {
-        return leviathan::ascending_insert_test<AVLTree>();
+        return cpp::ascending_insert_test<AVLTree>();
     };
 
     BENCHMARK("red black ascend_insert")
     {
-        return leviathan::ascending_insert_test<RedBlackTree>();
+        return cpp::ascending_insert_test<RedBlackTree>();
     };
 
     BENCHMARK("stl set ascend_insert")
     {
-        return leviathan::ascending_insert_test<STLRedBlackTree>();
+        return cpp::ascending_insert_test<STLRedBlackTree>();
     };
 
     BENCHMARK("treap ascend_insert")
     {
-        return leviathan::ascending_insert_test<TreapTree>();
+        return cpp::ascending_insert_test<TreapTree>();
     };
 }
 
@@ -63,50 +63,50 @@ TEST_CASE("duplicate_collections_descend_insert")
 {
     BENCHMARK("avl descend_insert")
     {
-        return leviathan::descending_insert_test<AVLTree>();
+        return cpp::descending_insert_test<AVLTree>();
     };
 
     BENCHMARK("red black descend_insert")
     {
-        return leviathan::descending_insert_test<RedBlackTree>();
+        return cpp::descending_insert_test<RedBlackTree>();
     };
 
     BENCHMARK("stl set descend_insert")
     {
-        return leviathan::descending_insert_test<STLRedBlackTree>();
+        return cpp::descending_insert_test<STLRedBlackTree>();
     };
 
     BENCHMARK("treap descend_insert")
     {
-        return leviathan::descending_insert_test<TreapTree>();
+        return cpp::descending_insert_test<TreapTree>();
     };
 }
 
 TEST_CASE("duplicate_collections_random_insert_string")
 {
-    using AVLTree = leviathan::collections::avl_treeset<std::string>;
-    using RedBlackTree = leviathan::collections::red_black_treeset<std::string>;
+    using AVLTree = cpp::collections::avl_treeset<std::string>;
+    using RedBlackTree = cpp::collections::red_black_treeset<std::string>;
     using STLRedBlackTree = std::set<std::string>;
-    using TreapTree = leviathan::collections::treap_set<std::string>;
+    using TreapTree = cpp::collections::treap_set<std::string>;
 
     BENCHMARK("avl random_insert")
     {
-        return leviathan::random_insert_string_test<AVLTree>();
+        return cpp::random_insert_string_test<AVLTree>();
     };
 
     BENCHMARK("red black random_insert")
     {
-        return leviathan::random_insert_string_test<RedBlackTree>();
+        return cpp::random_insert_string_test<RedBlackTree>();
     };
 
     BENCHMARK("stl set random_insert")
     {
-        return leviathan::random_insert_string_test<STLRedBlackTree>();
+        return cpp::random_insert_string_test<STLRedBlackTree>();
     };
 
     BENCHMARK("treap random_insert")
     {
-        return leviathan::random_insert_string_test<TreapTree>();
+        return cpp::random_insert_string_test<TreapTree>();
     };
 }
 
@@ -117,26 +117,26 @@ TEST_CASE("duplicate_collections_random_search")
     STLRedBlackTree stlrb;
     TreapTree treap;
 
-    leviathan::random_insert(avl, rb, stlrb, treap);
+    cpp::random_insert(avl, rb, stlrb, treap);
 
     BENCHMARK("avl random_search")
     {
-        return leviathan::search_test<AVLTree>(avl);
+        return cpp::search_test<AVLTree>(avl);
     };
 
     BENCHMARK("red black random_search")
     {
-        return leviathan::search_test<RedBlackTree>(rb);
+        return cpp::search_test<RedBlackTree>(rb);
     };
 
     BENCHMARK("stl set random_search")
     {
-        return leviathan::search_test<STLRedBlackTree>(stlrb);
+        return cpp::search_test<STLRedBlackTree>(stlrb);
     };
 
     BENCHMARK("treap random_search")
     {
-        return leviathan::search_test<TreapTree>(treap);
+        return cpp::search_test<TreapTree>(treap);
     };
 }
 
@@ -147,26 +147,26 @@ TEST_CASE("duplicate_collections_random_remove")
     STLRedBlackTree stlrb;
     TreapTree treap;
 
-    leviathan::random_insert(avl, rb, stlrb, treap);
+    cpp::random_insert(avl, rb, stlrb, treap);
 
     BENCHMARK("avl random_remove")
     {
-        return leviathan::remove_test<AVLTree>(avl);
+        return cpp::remove_test<AVLTree>(avl);
     };
 
     BENCHMARK("red black random_remove")
     {
-        return leviathan::remove_test<RedBlackTree>(rb);
+        return cpp::remove_test<RedBlackTree>(rb);
     };
 
     BENCHMARK("stl set random_remove")
     {
-        return leviathan::remove_test<STLRedBlackTree>(stlrb);
+        return cpp::remove_test<STLRedBlackTree>(stlrb);
     };
 
     BENCHMARK("treap random_remove")
     {
-        return leviathan::remove_test<TreapTree>(treap);
+        return cpp::remove_test<TreapTree>(treap);
     };
 }
 

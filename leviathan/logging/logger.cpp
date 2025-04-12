@@ -1,7 +1,7 @@
 #include <iostream>
 #include "logger.hpp"
 
-namespace logging = leviathan::logging;
+namespace logging = cpp::logging;
 
 int main()
 {

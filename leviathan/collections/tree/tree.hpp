@@ -6,7 +6,7 @@
 #include <leviathan/collections/node_handle.hpp>
 #include <leviathan/collections/container_interface.hpp>
 
-namespace leviathan::collections
+namespace cpp::collections
 { 
 
 namespace detail
@@ -1193,4 +1193,4 @@ using tree_map = associative_tree<select1st<K, V>, Compare, Allocator, true, Nod
 template <typename Node, typename K, typename V, typename Compare = std::less<K>, typename Allocator = std::allocator<std::pair<const K, V>>>
 using tree_multimap = associative_tree<select1st<K, V>, Compare, Allocator, false, Node>;
 
-}  // namespace leviathan::collections
+}  // namespace cpp::collections

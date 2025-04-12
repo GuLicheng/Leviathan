@@ -6,7 +6,7 @@
 #include <string>
 #include <assert.h>
 
-namespace leviathan
+namespace cpp
 {
     struct random_range
     {
@@ -103,9 +103,9 @@ namespace leviathan
             return v;
         }
     };
-} // namespace leviathan
+} // namespace cpp
 
-namespace leviathan
+namespace cpp
 {
     inline constexpr auto default_num = 100'000; // DEFAULT_NUM x Catch::DataConfig::benchmarkSamples
 

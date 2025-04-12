@@ -42,7 +42,7 @@ public:
         const auto size = width * height;
         field.resize(size, State::Blank);
         auto indices = std::views::iota(0, size) | std::ranges::to<std::vector>();
-        auto writer = leviathan::function_output_iterator<IndexWriterInterator>(field);
+        auto writer = cpp::function_output_iterator<IndexWriterInterator>(field);
         std::ranges::sample(indices, writer, mines, std::mt19937(std::random_device()()));
         FillNumbers();
         DrawMap();

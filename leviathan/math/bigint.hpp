@@ -9,7 +9,7 @@
 #include <compare>    // for std::strong_ordering, if your comlipier not support C++20, just disable it
 
 
-namespace leviathan::math
+namespace cpp::math
 {
 
 class bad_arithmetic : public std::exception

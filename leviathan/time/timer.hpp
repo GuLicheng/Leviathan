@@ -4,7 +4,7 @@
 #include <chrono>
 #include <string>
 
-namespace leviathan::time
+namespace cpp::time
 {
 
 template <typename Clock = std::chrono::high_resolution_clock> 
@@ -57,6 +57,6 @@ auto get_system_rtime(const std::chrono::duration<RepType, PeriodType>& rtime)
     return rt;
 }
 
-} // namespace leviathan
+} // namespace cpp
 
 

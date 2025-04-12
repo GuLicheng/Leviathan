@@ -2,7 +2,7 @@
 
 #include <vector>
 
-namespace leviathan::config::toml::detail
+namespace cpp::config::toml::detail
 {
 
 // The locked array will inserted as value.

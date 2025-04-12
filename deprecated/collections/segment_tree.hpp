@@ -4,7 +4,7 @@
 #include <cstdint> // std::size_t
 #include <type_traits> // for std::is_convertible_v
 
-namespace leviathan::collections
+namespace cpp::collections
 {
     template <typename T>
     class segment_tree

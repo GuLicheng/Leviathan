@@ -2,7 +2,7 @@
 
 #include "../common.hpp"
 
-namespace leviathan::collections
+namespace cpp::collections
 {
     
 template <typename KeyValue, typename Hasher, typename KeyEqual, typename Allocator, typename Slot>
@@ -28,5 +28,5 @@ protected:
     [[no_unique_address]] Allocator m_alloc;
 };
 
-} // namespace leviathan::collections
+} // namespace cpp::collections
 

@@ -5,7 +5,7 @@
 
 #include <assert.h>
 
-namespace leviathan::config
+namespace cpp::config
 {
 using std::nullopt_t;
 using std::nullopt;

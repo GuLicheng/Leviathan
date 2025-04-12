@@ -23,20 +23,20 @@
 #include <cctype>
 #include <assert.h>
 
-namespace leviathan::config::ini
+namespace cpp::config::ini
 {
 using std::string_view;
 using std::string;
-using leviathan::string::trim;
-using leviathan::string::ltrim;
-using leviathan::string::rtrim;
+using cpp::string::trim;
+using cpp::string::ltrim;
+using cpp::string::rtrim;
 
 template <typename K, typename V>
 using hashmap = std::unordered_map<
     K, 
     V, 
-    leviathan::string::string_hash_key_equal,
-    leviathan::string::string_hash_key_equal
+    cpp::string::string_hash_key_equal,
+    cpp::string::string_hash_key_equal
 >;
 
 // We define some helper function here
@@ -271,5 +271,5 @@ read_only_configuration parse_configuration(const char* filename)
     return { std::move(result), std::move(context) };
 }
 
-} // namespace leviathan::ini
+} // namespace cpp::ini
 

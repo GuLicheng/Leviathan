@@ -1,6 +1,6 @@
 #pragma once
 
-namespace leviathan::config::xml
+namespace cpp::config::xml
 {
     
 enum class error
@@ -27,4 +27,4 @@ enum class error
     error_count,
 };
 
-} // namespace leviathan::config::xml
+} // namespace cpp::config::xml
