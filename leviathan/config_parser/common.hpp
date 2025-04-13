@@ -147,3 +147,20 @@ struct value_parser;
 // }
 }
 
+namespace cpp::config::xml { }
+namespace cpp::config::json { }
+namespace cpp::config::toml { }
+namespace cpp::config::cmd { }
+namespace cpp::config::ini { }
+
+namespace cpp
+{
+
+namespace json = config::json;
+namespace toml = config::toml;
+namespace xml = config::xml;
+namespace cmd = config::cmd;
+namespace ini = config::ini;
+
+} // namespace cpp
+

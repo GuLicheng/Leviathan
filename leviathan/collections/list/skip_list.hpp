@@ -143,8 +143,7 @@ public:
 
     // Modifiers
     template <typename... Args>
-    std::conditional_t<UniqueKey, std::pair<iterator, bool>, iterator> emplace(Args&&... args)
-    // emplace_return_t<UniqueKey, iterator> emplace(Args&&... args)
+    auto emplace(Args&&... args)
     {
         if constexpr (detail::emplace_helper<value_type, Args...>::value || 
                      (sizeof...(Args) == 1 && detail::transparent<Compare>))

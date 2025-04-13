@@ -8,6 +8,41 @@
 namespace cpp::time
 {
 
+constexpr const char* weekday_name(std::chrono::weekday w)
+{
+    static const char* names[] = 
+    {
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    };
+    return names[w.c_encoding() - 1];
+}
+
+constexpr const char* month_name(std::chrono::month m)
+{
+    static const char* names[] = 
+    {
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    };
+    return names[m.operator unsigned int() - 1];
+}
+
 constexpr int day_of_month(std::chrono::year_month ym)
 {
     static int days[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
@@ -139,7 +174,43 @@ std::tm to_calendar_time(std::chrono::time_point<Clock, Duration> tp)
     return result;
 }
     
+// https://wandbox.org/permlink/UvX03gjNQ6MoPyLF
+template <typename TimePoint>
+std::optional<TimePoint> parse(const char* fmt)
+{
+    // "2023-12-02 01:22:36.675349139 +00:00:00"
+    TimePoint tp;
+    std::istringstream ss(fmt);
+    std::chrono::seconds offset;
+    ss >> std::chrono::parse("%F %T", tp) >> std::chrono::parse(" +%T", offset);
+    tp += offset;
+    return ss.tellg() == strlen(fmt) ? std::make_optional(tp) : std::nullopt;
+}
 
+// some help functions
+template <typename DurationType>
+::timespec to_ctime(const std::chrono::time_point<std::chrono::system_clock, DurationType>& atime)
+{
+    auto seconds = std::chrono::time_point_cast<std::chrono::seconds>(atime);
+    auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(atime - seconds);
+    return {
+        static_cast<::time_t>(seconds.time_since_epoch().count()),
+        static_cast<long>(nanoseconds.count())
+    };
+}
+
+template <typename RepType, typename PeriodType>
+auto get_system_rtime(const std::chrono::duration<RepType, PeriodType>& rtime)
+{
+    using clock_type = std::chrono::system_clock;
+    auto rt = std::chrono::duration_cast<clock_type::duration>(rtime);
+
+    if (std::ratio_greater<clock_type::period, PeriodType>())
+    {
+        ++rt;
+    }
+    return rt;
+}
 
 } // namespace cpp
 

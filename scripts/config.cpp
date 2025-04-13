@@ -1,18 +1,10 @@
 #include <leviathan/config_parser/json/json.hpp>
 #include <leviathan/config_parser/toml/toml.hpp>
+#include <leviathan/config_parser/cmd/command.hpp>
 #include <leviathan/config_parser/value_cast.hpp>
 
-int main(int argc, char const *argv[])
+void JsonToToml(const char* source, const char* target)
 {
-    if (argc != 3)
-    {
-        std::cerr << "Usage: config <json|toml> <file>" << std::endl;
-        return 1;
-    }
-
-    const char* source = argv[1];
-    const char* target = argv[2];
-
     auto jv = cpp::json::load(source);
     auto tv = cpp::config::json2toml()(jv);
     
@@ -24,5 +16,17 @@ int main(int argc, char const *argv[])
     }
 
     ofs << cpp::toml::formatter()(tv);
+}
+
+int main(int argc, char const *argv[])
+{
+    cpp::cmd::commandline cmds(argc, argv);
+
+    cmds.check_size(2, true, "Usage: config <json|toml> <file>");
+
+    const char* source = cmds[0].data();
+    const char* target = cmds[1].data();
+
+    JsonToToml(source, target);
 }
 

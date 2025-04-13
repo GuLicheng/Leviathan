@@ -53,8 +53,8 @@ struct UTF8<char>
         return length(str.data(), str.size());
     }
 
-    template <typename InputIterator>
-    static constexpr InputIterator from_unicode(InputIterator iter, const uint32_t codepoint)
+    template <typename OutIterator>
+    static constexpr OutIterator from_unicode(OutIterator iter, const uint32_t codepoint)
     {
         if (codepoint <= 0x0000007F)
         {
@@ -108,8 +108,8 @@ struct UTF8<char>
 template <>
 struct UTF16<char, std::endian::little>
 {
-    template <typename InputIterator>
-    static constexpr InputIterator from_unicode(InputIterator iter, const uint32_t codepoint)
+    template <typename OutIterator>
+    static constexpr OutIterator from_unicode(OutIterator iter, const uint32_t codepoint)
     {
         if (codepoint <= 0xFFFF)
         {
@@ -136,8 +136,8 @@ struct UTF16<char, std::endian::little>
 template <>
 struct UTF16<char, std::endian::big>
 {
-    template <typename InputIterator>
-    static constexpr InputIterator from_unicode(InputIterator iter, const uint32_t codepoint)
+    template <typename OutIterator>
+    static constexpr OutIterator from_unicode(OutIterator iter, const uint32_t codepoint)
     {
         if (codepoint <= 0xFFFF)
         {
@@ -213,8 +213,8 @@ constexpr bool is_unicode(const char* p)
  *      pos = encode_unicode_to_utf8(pos, codepoint);
  *   std::cout << buffer << " - " << std::distance(buffer, pos); // 我爱北京天安门 - 21
 */
-template <typename InputIterator>
-constexpr InputIterator encode_unicode_to_utf8(InputIterator iter, const uint32_t codepoint)
+template <typename OutIterator>
+constexpr OutIterator encode_unicode_to_utf8(OutIterator iter, const uint32_t codepoint)
 {
     return encoding::UTF8<char>::from_unicode(std::move(iter), codepoint);
 

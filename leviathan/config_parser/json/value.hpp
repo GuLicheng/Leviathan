@@ -207,8 +207,4 @@ value make_json(Args&&... args)
 
 }
 
-namespace cpp::json
-{
-using namespace ::cpp::config::json;
-}
 

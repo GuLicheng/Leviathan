@@ -10,3 +10,9 @@
 #include "file.hpp"
 #include "time.hpp"
 #include "iterator.hpp"
+#include "file.hpp"
+
+// Some utils class
+#include "details/stopwatch.hpp"
+#include "details/timer.hpp"
+

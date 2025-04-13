@@ -1,17 +1,20 @@
 #include <leviathan/extc++/all.hpp>
 #include <algorithm>
 #include <leviathan/print.hpp>
+#include <leviathan/extc++/details/stopwatch.hpp>
+#include <leviathan/extc++/details/timer.hpp>
+#include <leviathan/config_parser/cmd/command.hpp>
+#include <thread>
+
 
 int main(int argc, char const *argv[])
 {
-    std::ranges::copy(
-        std::views::iota(0, 100) | 
-        cpp::views::format | 
-        std::views::join_with(' '),
-        cpp::file_iterator("../a.txt", std::ios::out) 
-    );
+    cpp::cmd::commandline line(argc, argv);
 
-    std::identity i;
+    for (auto x : line | std::views::reverse)
+    {
+        Console::WriteLine(x);
+    }
 
     return 0;
 }

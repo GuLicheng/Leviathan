@@ -3,7 +3,7 @@
 #include "array.hpp"
 #include "table.hpp"
 #include "datetime.hpp"
-#include "../common.hpp"
+#include <leviathan/config_parser/common.hpp>
 #include <leviathan/variable.hpp>
 
 namespace cpp::config::toml
@@ -116,8 +116,3 @@ void check_and_throw(bool ok, std::string_view fmt, Args&&... args)
 }
 
 } // namespace cpp::config::toml
-
-namespace cpp::toml
-{
-using namespace ::cpp::config::toml;
-}
