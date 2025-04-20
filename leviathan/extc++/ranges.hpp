@@ -908,48 +908,68 @@ namespace cpp::ranges::views
 
 using namespace std::views;
 
-inline constexpr closure indirect = []<typename R>(R&& r)
+inline constexpr closure indirect = []<typename R>(R&& r) static
 {
     return (R&&)r | transform(indirection);
 };
 
-inline constexpr closure format = []<typename R>(R&& r)
+inline constexpr closure format = []<typename R>(R&& r) static
 {
     return (R&&)r | transform(to_string);
 };
 
-inline constexpr closure head = []<typename R>(R&& r)
+inline constexpr closure head = []<typename R>(R&& r) static
 {
-    return (R&&)r | transform(front);
+    return (R&&)r | transform(front); 
 };
 
-inline constexpr closure tail = []<typename R>(R&& r)
+inline constexpr closure tail = []<typename R>(R&& r) static
 {
     return (R&&)r | transform(back);
 };
 
-inline constexpr closure unique = []<typename R>(R&& r)
+inline constexpr closure unique = []<typename R>(R&& r) static
 {
     return (R&&)r | std::views::chunk_by(std::ranges::equal_to()) | head;
 };
 
-inline constexpr auto compose = []<typename... Fs>(Fs&&... fs)
+inline constexpr closure to_lower = []<typename R>(R&& r) static
+{
+    return (R&&)r | transform([]<typename CharT>(CharT c) static { return (CharT)::tolower(c); });
+};
+
+inline constexpr closure to_upper = []<typename R>(R&& r) static
+{
+    return (R&&)r | transform([]<typename CharT>(CharT c) static { return (CharT)::toupper(c); });
+};
+
+inline constexpr closure split_line = []<typename R>(R&& r) static
+{
+    return (R&&)r | split('\n') | transform([](auto&& x) static { return std::string_view(x); });
+};
+
+}  // namespace cpp::ranges::views
+
+namespace cpp::ranges::views
+{
+
+inline constexpr auto compose = []<typename... Fs>(Fs&&... fs) static
 {
     // The order in ranges is reversed
     return transform(projection((Fs&&)fs...)); 
 };
 
-inline constexpr auto transform_join = []<typename F>(F&& f) 
+inline constexpr auto transform_join = []<typename F>(F&& f) static
 {
     return transform((F&&)f) | join;
 };
 
-inline constexpr auto transform_join_with = []<typename F, typename Delimiter>(F&& f, Delimiter&& d) 
+inline constexpr auto transform_join_with = []<typename F, typename Delimiter>(F&& f, Delimiter&& d) static 
 {
     return transform((F&&)f) | join_with((Delimiter&&)d);
 };
 
-inline constexpr auto replace_if = []<typename Pred, typename T>(Pred&& pred, T&& new_value)
+inline constexpr auto replace_if = []<typename Pred, typename T>(Pred&& pred, T&& new_value) static 
 {
     auto fn = [pred = (Pred&&)pred, new_value = (T&&)new_value](auto&& x) 
     {
@@ -958,7 +978,7 @@ inline constexpr auto replace_if = []<typename Pred, typename T>(Pred&& pred, T&
     return transform(fn);
 };
 
-inline constexpr auto replace = []<typename T>(T&& old_value, T&& new_value)
+inline constexpr auto replace = []<typename T>(T&& old_value, T&& new_value) static 
 {
     auto fn = [old_value = (T&&)old_value, new_value = (T&&)new_value](auto&& x) 
     {
@@ -967,12 +987,12 @@ inline constexpr auto replace = []<typename T>(T&& old_value, T&& new_value)
     return transform(fn);
 };
 
-inline constexpr auto remove = []<typename T>(T&& value)
+inline constexpr auto remove = []<typename T>(T&& value) static 
 {
     return filter([value = (T&&)value](auto&& x) { return x != value; });
 };
 
-inline constexpr auto remove_if = []<typename Pred>(Pred&& pred)
+inline constexpr auto remove_if = []<typename Pred>(Pred&& pred) static 
 {
     return filter([pred = (Pred&&)pred](auto&& x) { return !pred(x); });
 };

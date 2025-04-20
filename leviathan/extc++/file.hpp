@@ -42,13 +42,13 @@ inline std::string read_file_context(const char* filename, std::string_view newl
     return cpp::string::replace(std::move(context), newline, "\n");
 }
 
-inline bool write_file(std::string_view content, const char* filename)
+inline bool write_file(std::string_view context, const char* filename)
 {
     std::ofstream ofs(filename, std::ios_base::out | std::ios_base::binary);
 
     if (ofs)
     {
-        ofs.write(content.data(), content.size());
+        ofs.write(context.data(), context.size());
         return true;
     }
 

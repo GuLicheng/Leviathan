@@ -51,15 +51,13 @@ public:
         typename cpp::meta::push_front<arg_tuple, typename member_object_pointer<class_type, is_const>::type>::type, 
         arg_tuple
     >;
-
-
 };
 
 //////////////////////////////////////////////////////////////////////////////////////
 //                          Helper function
 //////////////////////////////////////////////////////////////////////////////////////
 template <typename F, typename Tuple>
-void apply_without_last_element(F&& f, Tuple&& t)
+void apply_without_last_element(Fn&& f, Tuple&& t)
 {
     auto impl = []<typename F2, size_t... Idx>(F2&& f, Tuple&& t, std::index_sequence<Idx...>)
     {

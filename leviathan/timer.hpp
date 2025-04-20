@@ -1,6 +1,6 @@
 #pragma once
 
-#include <leviathan/extc++/details/stopwatch.hpp>
+#include <leviathan/stopwatch.hpp>
 #include <iostream>
 #include <string>
 

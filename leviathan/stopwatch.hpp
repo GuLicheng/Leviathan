@@ -77,6 +77,11 @@ public:
         return elapsed<std::chrono::seconds>();
     }
 
+    rep_type elapsed_nanosecond() const
+    {
+        return elapsed<std::chrono::nanoseconds>();
+    }
+
 private:
 
     duration_type m_elapsed;

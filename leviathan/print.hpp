@@ -217,3 +217,20 @@ public:
     }
 };
 
+namespace cpp
+{
+
+template <typename... Args>
+void println(std::string_view fmt, Args&&... args)
+{
+    std::cout << std::vformat(fmt, std::make_format_args(args...)) << '\n';
+}
+
+template <typename... Args>
+void print(std::string_view fmt, Args&&... args)
+{
+    std::cout << std::vformat(fmt, std::make_format_args(args...));
+}
+
+}
+

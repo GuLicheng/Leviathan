@@ -1,6 +1,6 @@
 enable_testing()
 
-# add_executable(variable ${CMAKE_SOURCE_DIR}/leviathan/variable.cpp)
-# target_link_libraries(variable PRIVATE Catch2::Catch2WithMain)
-# add_test(NAME variable COMMAND variable)
+add_executable(callable_test ${CMAKE_SOURCE_DIR}/leviathan/callable_test.cpp)
+target_link_libraries(callable_test PRIVATE Catch2::Catch2WithMain)
+add_test(NAME callable_test COMMAND callable_test)
 
