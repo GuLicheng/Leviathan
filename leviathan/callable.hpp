@@ -66,8 +66,7 @@ struct invoker
         }
         else
         {
-            auto res = std::apply(std::move(fn), tp);
-            out.emplace(std::move(res));
+            out.emplace(std::apply(std::move(fn), tp));
         }
     }
 };
@@ -106,8 +105,8 @@ public:
     template <typename R, typename... Args>
     auto call(std::string_view name, Args&&... args)
     {
-        auto it = std::ranges::find_if(m_functions, [=](const auto& value) { return value.first == name; });
-    
+        auto it = std::ranges::find(m_functions, name, &value_type::first);
+        
         if (it == m_functions.end())
         {
             throw std::invalid_argument("Function not found");

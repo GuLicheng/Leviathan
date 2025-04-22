@@ -1,13 +1,9 @@
-import xml.etree.cElementTree as ET
-import toml, time, datetime
-
-def main():
-    xml = ET.parse("a.xml")
-    xml.write("b.xml")
-
+from datetime import datetime
 
 if __name__ == "__main__":
+    dt2 = datetime(2025, 4, 20)
+    dt1 = datetime.now()
+    
+    delta = dt2 - dt1
 
-    dt = datetime.datetime.now()
-    print(dt)
-
+    print(delta)

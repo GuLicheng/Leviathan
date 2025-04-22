@@ -4,13 +4,14 @@
 #include <ctime>
 #include <cstdlib>
 #include <cstring>
+#include <string_view>
 
 namespace cpp::time
 {
 
-constexpr const char* weekday_name(std::chrono::weekday w)
+constexpr std::string_view weekday_name(std::chrono::weekday w)
 {
-    static const char* names[] = 
+    static std::string_view names[] = 
     {
         "Monday",
         "Tuesday",
@@ -23,9 +24,9 @@ constexpr const char* weekday_name(std::chrono::weekday w)
     return names[w.c_encoding() - 1];
 }
 
-constexpr const char* month_name(std::chrono::month m)
+constexpr std::string_view month_name(std::chrono::month m)
 {
-    static const char* names[] = 
+    static std::string_view names[] = 
     {
         "January",
         "February",
@@ -74,6 +75,100 @@ constexpr std::chrono::weekday weekday_of_day(std::chrono::year_month_day ymd)
     return std::chrono::weekday(ith_week + 1);
 } 
 
+template <typename Clock, typename Duration>
+constexpr std::tm to_calendar_time(std::chrono::time_point<Clock, Duration> tp)
+{
+    auto date = std::chrono::floor<std::chrono::days>(tp);
+    auto ymd = std::chrono::year_month_day(date);
+    auto weekday = std::chrono::year_month_weekday(date).weekday_indexed().weekday();
+    auto tod = std::chrono::hh_mm_ss(tp - date);
+    std::chrono::days daysSinceJan1 = date - std::chrono::sys_days(ymd.year() / 1 / 1);
+
+    std::tm result;
+    std::memset(&result, 0, sizeof(result));
+    result.tm_sec   = tod.seconds().count();
+    result.tm_min   = tod.minutes().count();
+    result.tm_hour  = tod.hours().count();
+    result.tm_mday  = unsigned(ymd.day());
+    result.tm_mon   = unsigned(ymd.month()) - 1u; // Zero-based!
+    result.tm_year  = int(ymd.year()) - 1900;
+    result.tm_wday  = weekday.c_encoding();
+    result.tm_yday  = daysSinceJan1.count();
+    result.tm_isdst = -1; // Information not available
+    return result;
+}
+    
+// https://wandbox.org/permlink/UvX03gjNQ6MoPyLF
+template <typename TimePoint>
+constexpr std::optional<TimePoint> parse(const char* fmt)
+{
+    // "2023-12-02 01:22:36.675349139 +00:00:00"
+    TimePoint tp;
+    std::istringstream ss(fmt);
+    std::chrono::seconds offset;
+    ss >> std::chrono::parse("%F %T", tp) >> std::chrono::parse(" +%T", offset);
+    tp += offset;
+    return ss.tellg() == strlen(fmt) ? std::make_optional(tp) : std::nullopt;
+}
+
+// some help functions
+template <typename Duration>
+constexpr ::timespec to_ctime(const std::chrono::time_point<std::chrono::system_clock, Duration>& atime)
+{
+    auto seconds = std::chrono::time_point_cast<std::chrono::seconds>(atime);
+    auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(atime - seconds);
+    return {
+        static_cast<::time_t>(seconds.time_since_epoch().count()),
+        static_cast<long>(nanoseconds.count())
+    };
+}
+
+template <typename Rep, typename Period>
+auto get_system_rtime(const std::chrono::duration<Rep, Period>& rtime)
+{
+    using clock_type = std::chrono::system_clock;
+    auto rt = std::chrono::duration_cast<clock_type::duration>(rtime);
+
+    if (std::ratio_greater<clock_type::period, Period>())
+    {
+        ++rt;
+    }
+    return rt;
+}
+
+constexpr std::chrono::days days_between(std::chrono::year_month_day day1, std::chrono::year_month_day day2)
+{
+    return std::chrono::sys_days(day2) - std::chrono::sys_days(day1);
+}
+
+template <typename TimePoint>
+constexpr std::chrono::days days_between(TimePoint tp1, TimePoint tp2)
+{
+    auto date1 = std::chrono::floor<std::chrono::days>(tp1);
+    auto date2 = std::chrono::floor<std::chrono::days>(tp2);
+    return date2 - date1;
+}
+
+template <typename TimePoint>
+constexpr std::chrono::days days_between(TimePoint tp, std::chrono::year_month_day day)
+{
+    return std::chrono::sys_days(day) - std::chrono::floor<std::chrono::days>(tp);
+}
+
+inline auto now()
+{
+    return std::chrono::system_clock::now();
+}
+
+constexpr std::chrono::year_month_day year_month_day(int year, int month, int day)
+{
+    return std::chrono::year_month_day(
+        std::chrono::year(year),
+        std::chrono::month(month),
+        std::chrono::day(day)
+    );
+}
+
 class date_time
 {
     int m_year;           /* 1-9999 */
@@ -107,7 +202,7 @@ public:
         return std::chrono::year(m_year).is_leap();
     }
 
-    constexpr std::chrono::year_month_day ymd() const
+    constexpr std::chrono::year_month_day year_month_day() const
     {
         return std::chrono::year_month_day(
             std::chrono::year(m_year),
@@ -142,6 +237,23 @@ public:
         m_microseconds = duration_cast<std::chrono::microseconds>(rest).count() % 1000;
     }
 
+    constexpr date_time(int year, int month, int day) : date_time(cpp::time::year_month_day(year, month, day)) { }
+
+    explicit constexpr date_time(std::chrono::year_month_day ymd)
+    {
+        m_year = ymd.year().operator int();
+        m_month = ymd.month().operator unsigned int();
+        m_day = ymd.day().operator unsigned int();
+
+        m_hour = 0;
+        m_minute = 0;
+        m_second = 0;
+
+        m_nanoseconds = 0;
+        m_milliseconds = 0;
+        m_microseconds = 0;
+    }
+
     std::string to_string() const
     {
         constexpr const char* fmt = "%04d-%02d-%02d %02d:%02d:%02d";
@@ -151,66 +263,6 @@ public:
     }
 };
 
-template <typename Clock, typename Duration>
-std::tm to_calendar_time(std::chrono::time_point<Clock, Duration> tp)
-{
-    auto date = std::chrono::floor<std::chrono::days>(tp);
-    auto ymd = std::chrono::year_month_day(date);
-    auto weekday = std::chrono::year_month_weekday(date).weekday_indexed().weekday();
-    auto tod = std::chrono::hh_mm_ss(tp - date);
-    std::chrono::days daysSinceJan1 = date - std::chrono::sys_days(ymd.year() / 1 / 1);
-
-    std::tm result;
-    std::memset(&result, 0, sizeof(result));
-    result.tm_sec   = tod.seconds().count();
-    result.tm_min   = tod.minutes().count();
-    result.tm_hour  = tod.hours().count();
-    result.tm_mday  = unsigned(ymd.day());
-    result.tm_mon   = unsigned(ymd.month()) - 1u; // Zero-based!
-    result.tm_year  = int(ymd.year()) - 1900;
-    result.tm_wday  = weekday.c_encoding();
-    result.tm_yday  = daysSinceJan1.count();
-    result.tm_isdst = -1; // Information not available
-    return result;
-}
-    
-// https://wandbox.org/permlink/UvX03gjNQ6MoPyLF
-template <typename TimePoint>
-std::optional<TimePoint> parse(const char* fmt)
-{
-    // "2023-12-02 01:22:36.675349139 +00:00:00"
-    TimePoint tp;
-    std::istringstream ss(fmt);
-    std::chrono::seconds offset;
-    ss >> std::chrono::parse("%F %T", tp) >> std::chrono::parse(" +%T", offset);
-    tp += offset;
-    return ss.tellg() == strlen(fmt) ? std::make_optional(tp) : std::nullopt;
-}
-
-// some help functions
-template <typename DurationType>
-::timespec to_ctime(const std::chrono::time_point<std::chrono::system_clock, DurationType>& atime)
-{
-    auto seconds = std::chrono::time_point_cast<std::chrono::seconds>(atime);
-    auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(atime - seconds);
-    return {
-        static_cast<::time_t>(seconds.time_since_epoch().count()),
-        static_cast<long>(nanoseconds.count())
-    };
-}
-
-template <typename RepType, typename PeriodType>
-auto get_system_rtime(const std::chrono::duration<RepType, PeriodType>& rtime)
-{
-    using clock_type = std::chrono::system_clock;
-    auto rt = std::chrono::duration_cast<clock_type::duration>(rtime);
-
-    if (std::ratio_greater<clock_type::period, PeriodType>())
-    {
-        ++rt;
-    }
-    return rt;
-}
 
 } // namespace cpp
 

@@ -9,31 +9,31 @@ namespace cpp::meta
 namespace detail
 {
     
-    template <unsigned Attribute, bool IsNoThrow, typename ClassType, typename R, typename... Args>
-    struct function_traits_impl
-    {
-        static constexpr auto argc = sizeof...(Args);
+template <unsigned Attribute, bool IsNoThrow, typename ClassType, typename R, typename... Args>
+struct function_traits_impl
+{
+    static constexpr auto argc = sizeof...(Args);
 
-        using return_type = R;
+    using return_type = R;
 
-        using args = std::tuple<Args...>;
+    using args = std::tuple<Args...>;
 
-        using class_type = ClassType; // for non-class type, it will be void
+    using class_type = ClassType; // for non-class type, it will be void
 
-        template <std::size_t N>
-        using nth_arg = std::tuple_element_t<N, std::tuple<Args...>>;
+    template <std::size_t N>
+    using nth_arg = std::tuple_element_t<N, std::tuple<Args...>>;
 
-        static constexpr bool is_noexcept = IsNoThrow;
+    static constexpr bool is_noexcept = IsNoThrow;
 
-        static constexpr unsigned attribute = Attribute;
-        /*
-            0000 for none
-            0001 for const
-            0010 for volatile
-            0100 for &
-            1000 for &&
-        */
-    };
+    static constexpr unsigned attribute = Attribute;
+    /*
+        0000 for none
+        0001 for const
+        0010 for volatile
+        0100 for &
+        1000 for &&
+    */
+};
 
 } // namespace detail
 
@@ -127,7 +127,6 @@ struct function_traits<R(ClassType::*)(Args...) volatile&& noexcept(IsNoThrow)>
 template <typename R, typename ClassType, bool IsNoThrow, typename... Args>
 struct function_traits<R(ClassType::*)(Args...) const volatile&& noexcept(IsNoThrow)>
     : detail::function_traits_impl<0x1011, IsNoThrow, ClassType, R, Args...> { };
-
 
 // specialize for operator()
 template <typename T>

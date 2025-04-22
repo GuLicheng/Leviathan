@@ -246,13 +246,14 @@ namespace detail
 struct console_stream_fn
 {
     std::ostream& m_os;
+    const char* m_delimiter;
 
-    console_stream_fn(std::ostream& os) : m_os(os) { }
+    console_stream_fn(std::ostream& os, const char* delimiter = "") : m_os(os), m_delimiter(delimiter) { }
 
     template <typename T>
     void operator()(const T& value)
     {
-        m_os << value;
+        m_os << value << m_delimiter;
     }
 };
 
