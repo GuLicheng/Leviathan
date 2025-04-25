@@ -3,11 +3,11 @@ from setuptools import setup
 from setuptools import Extension
 
 # your compiler args
-cpp_args = ['/std:c++latest', '/O2']   
+cpp_args = ['/std:c++latest', '/O2']
 
 # your pybind11 path
 includes = [
-    "E:\\Anaconda3\\anaconda3\\envs\\segmentation\\Lib\\site-packages\\pybind11\\include",
+    "E:\\Anaconda3\\anaconda3\\envs\\learning\\Lib\\site-packages\\pybind11\\include",
     "D:\\Library\\Leviathan",
 ]
 

@@ -822,11 +822,9 @@ struct std::hash<cpp::math::numeric::int128<Endian>>
 };
 
 // Specialize for std::formatter
-template <std::endian Endian, typename CharT>
-struct std::formatter<cpp::math::numeric::uint128<Endian>, CharT>
+template <typename BuiltIn, typename Int128, typename Endian, typename CharT>
+struct format_base
 {
-    using uint128 = cpp::math::numeric::uint128<Endian>;
-
     template <typename ParseContext>
     constexpr typename ParseContext::iterator parse(ParseContext& ctx) 
     {
@@ -834,37 +832,23 @@ struct std::formatter<cpp::math::numeric::uint128<Endian>, CharT>
     }
 
     template <typename FormatContext>
-    typename FormatContext::iterator format(uint128 x, FormatContext& ctx) const
+    typename FormatContext::iterator format(Int128 x, FormatContext& ctx) const
     {
-        unsigned __int128 v = (static_cast<unsigned __int128>(x.upper()) << 64) 
-                            | (static_cast<unsigned __int128>(x.lower()));
+        BuiltIn v = (static_cast<BuiltIn>(x.upper()) << 64) 
+                  | (static_cast<BuiltIn>(x.lower()));
         return m_fmt.format(v, ctx);
     }   
 
-    std::formatter<unsigned __int128, CharT> m_fmt;
+    std::formatter<BuiltIn, CharT> m_fmt;
 };
+
+template <std::endian Endian, typename CharT>
+struct std::formatter<cpp::math::numeric::uint128<Endian>, CharT>
+    : format_base<unsigned __int128, cpp::math::numeric::uint128<Endian>, Endian, CharT> { };
 
 template <std::endian Endian, typename CharT>
 struct std::formatter<cpp::math::numeric::int128<Endian>, CharT>
-{
-    using int128 = cpp::math::numeric::int128<Endian>;
-
-    template <typename ParseContext>
-    constexpr typename ParseContext::iterator parse(ParseContext& ctx) 
-    {
-        return m_fmt.parse(ctx);
-    }
-
-    template <typename FormatContext>
-    typename FormatContext::iterator format(int128 x, FormatContext& ctx) const
-    {
-        signed __int128 v = (static_cast<signed __int128>(x.upper()) << 64) 
-                          | (static_cast<signed __int128>(x.lower()));
-        return m_fmt.format(v, ctx);
-    }   
-
-    std::formatter<signed __int128, CharT> m_fmt;
-};
+    : format_base<signed __int128, cpp::math::numeric::int128<Endian>, Endian, CharT> { };
 
 namespace cpp
 {

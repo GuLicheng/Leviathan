@@ -1,4 +1,4 @@
-// C# Stopwatch.cs
+// https://github.com/microsoft/referencesource/blob/master/System/services/monitoring/system/diagnosticts/Stopwatch.cs
 #pragma once
 
 #include <chrono>
@@ -21,21 +21,18 @@ public:
         reset();
     }   
 
-    basic_stopwatch(const basic_stopwatch&) = delete;
-
     void reset()
     {
         m_elapsed = duration_type::zero();
         m_is_running = false;
-        m_tp = Clock::now();
+        m_tp = time_point_type();
     }
 
     void stop()
     {
         if (m_is_running)
         {
-            auto tp2 = Clock::now();
-            m_elapsed += (tp2 - m_tp);
+            m_elapsed += Clock::now() - m_tp;
             m_is_running = false;
         }
     }
@@ -44,16 +41,16 @@ public:
     {
         if (!m_is_running)
         {
-            m_tp = Clock::now();
             m_is_running = true;
+            m_tp = Clock::now();
         }
     }
 
     void restart()
     {
         m_elapsed = duration_type::zero();
-        m_tp = Clock::now();
         m_is_running = true;
+        m_tp = Clock::now();
     }
 
     bool is_running() const 
@@ -62,7 +59,7 @@ public:
     }
 
     template <typename Duration>
-    rep_type elapsed() const
+    rep_type elapsed() const 
     {
         return std::chrono::duration_cast<Duration>(m_elapsed).count();
     }
@@ -77,19 +74,26 @@ public:
         return elapsed<std::chrono::seconds>();
     }
 
-    rep_type elapsed_nanosecond() const
+    rep_type elapsed_nanoseconds() const
     {
         return elapsed<std::chrono::nanoseconds>();
     }
 
+    static basic_stopwatch start_new() 
+    {
+        basic_stopwatch s;
+        s.start();
+        return s;
+    }
+
 private:
 
-    duration_type m_elapsed;
     bool m_is_running;
+    duration_type m_elapsed;
     time_point_type m_tp;
 };
 
-using stopwatch = basic_stopwatch<std::chrono::high_resolution_clock>;
+using stopwatch = basic_stopwatch<std::chrono::system_clock>;
 
 } // namespace cpp::time
 

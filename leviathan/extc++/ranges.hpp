@@ -127,7 +127,7 @@ public:
     constexpr adaptor(F f) : f(f) {}
 
     template <typename... Args>
-    constexpr auto operator()(Args &&...args) const
+    constexpr auto operator()(Args&&... args) const
     {
         if constexpr (std::invocable<F const &, Args...>)
         {
@@ -907,6 +907,7 @@ namespace cpp::ranges::views
 {
 
 using namespace std::views;
+using ranges::concat;
 
 inline constexpr closure indirect = []<typename R>(R&& r) static
 {
@@ -1003,4 +1004,35 @@ inline constexpr auto remove_if = []<typename Pred>(Pred&& pred) static
 namespace cpp::views
 {
     using namespace cpp::ranges::views;
+}
+
+#include <algorithm>
+
+namespace cpp::action
+{
+
+// inline constexpr cpp::ranges::adaptor for_each = 
+//     []<std::ranges::viewable_range R, 
+//     typename F, typename Proj = std::identity>(R &&r, F f, Proj proj = {}) static -> R
+// {
+//     std::ranges::for_each((R &&)r, std::move(f), std::move(proj));
+//     return (R &&)r;
+// };
+
+inline constexpr cpp::ranges::adaptor for_each = 
+    []<std::ranges::viewable_range R, typename... Args>(R &&r, Args... args) static 
+{
+    return std::ranges::for_each((R &&)r, std::move(args...));
+};
+
+template <auto FunctionObject>
+inline constexpr cpp::ranges::closure function_closure = []<std::ranges::viewable_range R>(R&& r) static
+{
+    return FunctionObject((R&&)r);
+};
+
+inline constexpr auto max = function_closure<std::ranges::max>;
+inline constexpr auto min = function_closure<std::ranges::min>;
+inline constexpr auto size = function_closure<std::ranges::size>;
+
 }

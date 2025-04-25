@@ -3,8 +3,8 @@
 
 namespace py = pybind11;
 
-using cpp::math::int128_t;
-using cpp::math::uint128_t;
+using cpp::int128_t;
+using cpp::uint128_t;
 
 PYBIND11_MODULE(cpp2py, m)
 {

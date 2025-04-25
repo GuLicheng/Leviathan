@@ -10,7 +10,7 @@
 // Only Support cl, gcc and clang
 // Use std::source_location::filename make it general.
 template <typename T>
-constexpr std::string_view type_to_str() noexcept
+consteval std::string_view type_to_str() noexcept
 {
 #if defined(_MSC_VER)
     // class std::basic_string_view<char,struct std::char_traits<char> > __cdecl 
@@ -68,5 +68,4 @@ constexpr std::string_view type_to_str() noexcept
 */
 #define PrintTypeInfo(type) \
     (std::cout << type_to_str< type >() << std::endl)
-
 

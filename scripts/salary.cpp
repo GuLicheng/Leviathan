@@ -6,7 +6,6 @@
 #include <leviathan/meta/template_info.hpp>
 #include <leviathan/print.hpp>
 #include <leviathan/extc++/all.hpp>
-#include <leviathan/time/timer.hpp>
 #include <leviathan/config_parser/json/json.hpp>
 
 namespace json = cpp::json;
@@ -180,21 +179,28 @@ public:
 
     static void PrettyPrint(const SalaryEntry& se)
     {
-        constexpr const char* split_line = "========================================";
+        constexpr std::string_view split_line = "\n========================================\n";
 
-        Console::WriteLine(split_line);
+        // Console::WriteLine(split_line);
 
         std::string split_line2 = std::format("\n{:-<40}\n", '-');
         auto fmt = [](auto&& pair) { return std::format("{:20} || {:15.2f}", pair.first, pair.second, '-'); };
 
-        auto context = se 
-                     | std::views::transform(fmt)
-                     | std::views::join_with(split_line2)
-                     | std::ranges::to<std::string>();
+        // auto context = se 
+        //              | cpp::views::transform_join_with(split_line2)
+        //              | std::ranges::to<std::string>();
         
-        Console::WriteLine(context);
+        // Console::WriteLine(context);
 
-        Console::WriteLine(split_line);
+        // Console::WriteLine(split_line);
+
+        auto context = cpp::views::concat(
+            split_line,
+            se | cpp::views::transform_join_with(fmt, split_line2),
+            split_line
+        ) | std::ranges::to<std::string>();
+
+        Console::WriteLine(context);
     } 
 
 };

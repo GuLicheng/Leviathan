@@ -7,27 +7,28 @@
 #include <algorithm>
 #include <leviathan/extc++/all.hpp>
 
-constexpr int Odd(int x)
+inline auto Odd = [](int x) static 
 {
-    const auto result = x << 1;
-    return result / 10 + result % 10;
-}
+    auto res = cpp::math::div(x << 1, 10);
+    return res.quotient + res.remainder;
+};
 
-constexpr int Even(int x)
+inline auto Even = [](int x) static 
 {
     return x;
-}
+};
+
+inline auto DightTransfrom = [](auto x) static 
+{
+    const auto [idx, digit] = x;
+    const auto n = digit - '0'; 
+    return idx & 1 ? Even(n) : Odd(n);
+};
 
 constexpr int Luhn(std::string_view numbers)
 {
-    auto closure = [](auto x) {
-        const auto [idx, digit] = x;
-        const auto n = digit - '0';
-        return idx & 1 ? Even(n) : Odd(n);
-    };
-
     const auto result = std::ranges::fold_left(
-        numbers | std::views::reverse | std::views::enumerate | std::views::transform(closure),
+        numbers | std::views::reverse | std::views::enumerate | std::views::transform(DightTransfrom),
         0, std::plus<>()) % 10;
 
     return result == 0 ? 0 : 10 - result;
@@ -37,21 +38,6 @@ inline constexpr std::string_view digits = "0123456789";
 
 std::generator<std::string> FillDash(std::string numbers, std::string_view candidates = digits)
 {
-    // const auto idx = numbers.find('-');
-
-    // if (idx != std::string::npos)
-    // {
-    //     for (auto ch : candidates)
-    //     {
-    //         co_yield cpp::string::replace(numbers, '-', ch);
-    //     }
-
-    // }
-    // else
-    // {
-    //     co_yield numbers;
-    // }
-
     auto fn = [=](auto ch) { return cpp::string::replace(numbers, '-', ch); };
 
     if (numbers.contains('-'))
@@ -66,22 +52,6 @@ std::generator<std::string> FillDash(std::string numbers, std::string_view candi
 
 auto FillStar = [](this auto&& self, std::string numbers, std::string_view candidates = digits) -> std::generator<std::string>
 {
-    // const auto idx = numbers.find('*');
-
-    // if (idx != std::string::npos)
-    // {
-    //     for (auto ch : candidates)
-    //     {
-    //         auto next = numbers;
-    //         next[idx] = ch;
-    //         co_yield std::ranges::elements_of(self(next, candidates));
-    //     }
-    // }
-    // else
-    // {
-    //     co_yield numbers;
-    // }
-
     const auto idx = numbers.find('*');
     
     auto fn = [=](auto ch) mutable { 
@@ -91,7 +61,7 @@ auto FillStar = [](this auto&& self, std::string numbers, std::string_view candi
 
     if (idx != std::string::npos)
     {
-        co_yield std::ranges::elements_of(candidates | cpp::views::transform(fn) | std::views::join);
+        co_yield std::ranges::elements_of(candidates | cpp::views::transform_join(fn));
     }
     else
     {
@@ -116,8 +86,7 @@ std::generator<std::string> GenerateAccount(std::string numbers, int expected)
 auto GenerateAccount2(std::string_view numbers, int expected)
 {
     return FillDash(std::string(numbers)) 
-         | std::views::transform(FillStar) 
-         | std::views::join
+         | cpp::views::transform_join(FillStar)
          | std::views::filter([=](auto&& s) { return Luhn(s) == expected; });
 }
 
