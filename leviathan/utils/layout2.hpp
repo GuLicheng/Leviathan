@@ -107,7 +107,6 @@ struct layout
         return std::span<const Ts...[N]>(start, start + size<N>());
     } 
 
-    template <typename... Ts>
     constexpr explicit layout(to_size_t<Ts>... sizes) : m_sizes{ sizes... } { }
 
     std::array<size_t, Count> m_sizes;

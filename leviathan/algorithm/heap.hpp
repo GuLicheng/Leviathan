@@ -6,7 +6,7 @@
 #include "common.hpp"
 #include <cmath>
 
-namespace cpp::algorithm
+namespace cpp::ranges
 {
 
 /**
@@ -268,7 +268,7 @@ private:
     }  
 };
 
-}  // namespace cpp::algorithm
+}  // namespace cpp::ranges
 
 
 

@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 
-namespace cpp::algorithm::detail
+namespace cpp::ranges::detail
 {
 
 template <typename I>
@@ -99,24 +99,7 @@ constexpr bool combination_impl(I first, I middle, I last, Comp comp)
 
 } // namespace detail
 
-// namespace cpp::algorithm
-// {
-
-// template <typename I, typename Comp = std::less<>>
-// constexpr bool next_combination(I first, I middle, I last, Comp comp = {})
-// {
-//     return detail::combination_impl(first, middle, last, comp);
-// }
-
-// template <typename I, typename Comp = std::greater<>>
-// constexpr bool prev_combination(I first, I middle, I last, Comp comp = {})
-// {
-//     return detail::combination_impl(first, middle, last, comp);
-// }
-
-// } // namespace cpp
-
-namespace cpp::algorithm
+namespace cpp::ranges
 {
 
 template<typename Iter>
@@ -129,7 +112,7 @@ inline constexpr struct
     static constexpr next_combination_result<I> operator()(I first, I middle, S last, Comp comp = {}, Proj proj = {}) 
     {
         auto tail = std::ranges::next(first, last);
-        return { tail, detail::combination_impl(first, middle, tail, algorithm::detail::make_comp_proj(comp, proj)) };
+        return { tail, detail::combination_impl(first, middle, tail, detail::make_comp_proj(comp, proj)) };
     } 
 
     template <std::ranges::bidirectional_range R, typename Comp = std::ranges::less, typename Proj = std::identity>

@@ -5,7 +5,7 @@
 
 #include "basic_sort.hpp"
 
-namespace cpp::algorithm::detail
+namespace cpp::ranges::detail
 {
 
 template <int TimSortThreshold = 32> 
@@ -160,9 +160,9 @@ struct tim_sort_helper
     }
 };
 
-} // namespace cpp::algorithm::detail
+} // namespace cpp::ranges::detail
 
-namespace cpp::algorithm
+namespace cpp::ranges
 {
 
 inline constexpr struct

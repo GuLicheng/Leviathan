@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 
-namespace cpp::algorithm
+namespace cpp::ranges
 {
 
 inline constexpr struct 

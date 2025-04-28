@@ -1,15 +1,19 @@
 #include <pybind11/pybind11.h>
-#include <leviathan/math/int128.hpp>
+#include <leviathan/stopwatch.hpp>
 
 namespace py = pybind11;
 
-using cpp::int128_t;
-using cpp::uint128_t;
+using Stopwatch = cpp::time::stopwatch;
 
 PYBIND11_MODULE(cpp2py, m)
 {
-    m.doc() = "Test for cpp int128";
-    py::class_<uint128_t>(m, "uint128")
-        .def(py::init<size_t, size_t>())
-        .def(py::init<size_t>());
+    py::class_<Stopwatch>(m, "Stopwatch")
+        .def("start", &Stopwatch::start, "Start the stopwatch")
+        .def("stop", &Stopwatch::stop, "Stop the stopwatch")
+        .def("reset", &Stopwatch::reset, "Reset the stopwatch")
+        .def("restart", &Stopwatch::restart, "Restart the stopwatch")
+        .def("is_running", &Stopwatch::is_running, "Check if the stopwatch is running")
+        .def("elapsed", &Stopwatch::elapsed<std::chrono::milliseconds>, "Get elapsed time in milliseconds")
+        .def("elapsed_seconds", &Stopwatch::elapsed<std::chrono::seconds>, "Get elapsed time in seconds")
+        .def("elapsed_nanoseconds", &Stopwatch::elapsed<std::chrono::nanoseconds>, "Get elapsed time in nanoseconds");
 }

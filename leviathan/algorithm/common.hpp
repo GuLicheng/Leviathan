@@ -5,7 +5,7 @@
 #include <iterator>
 #include <algorithm>
 
-namespace cpp::algorithm::detail
+namespace cpp::ranges::detail
 {
 
 template <typename Comp, typename Proj>

@@ -2,11 +2,11 @@
 
 #include <catch2/catch_all.hpp>
 #include <vector>
-#include <algorithm>
+#include <ranges>
 #include <random>
 
-using BinaryMaxHeapFunction = cpp::algorithm::nd_heap_fn<2>;
-using QuaternaryMaxHeapFunction = cpp::algorithm::nd_heap_fn<4>;
+using BinaryMaxHeapFunction = cpp::ranges::nd_heap_fn<2>;
+using QuaternaryMaxHeapFunction = cpp::ranges::nd_heap_fn<4>;
 
 std::random_device rd;
 

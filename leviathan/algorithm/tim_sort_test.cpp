@@ -6,7 +6,7 @@ TEST_CASE("TimSortSimpleTest")
 {
     int arr[] = { 3, 2, 1 };
 
-    cpp::algorithm::tim_sort(arr);
+    cpp::ranges::tim_sort(arr);
 
     REQUIRE(arr[0] == 1);
     REQUIRE(arr[1] == 2);

@@ -2,7 +2,7 @@
 
 #include "common.hpp"
 
-namespace cpp::algorithm
+namespace cpp::ranges
 {
     template <typename I, typename Comp = std::less<>>
     constexpr void insertion_sort(I first, I last, Comp comp = {}) 
