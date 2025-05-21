@@ -6,6 +6,21 @@
 namespace cpp::meta
 {
 
+enum function_type : unsigned
+{
+    c_function             = 0b00000000,
+    c_variadic_function    = 0b10000000,
+    
+    cxx_class              = 0b00000001,
+    cxx_class_const        = 0b00000011,
+    cxx_class_volatile     = 0b00000101,
+    cxx_class_lvalue_ref   = 0b00001001,
+    cxx_class_rvalue_ref   = 0b00010001,
+    cxx_class_member_field = 0b00100001,
+};
+
+using enum function_type;
+
 namespace detail
 {
     
@@ -25,7 +40,7 @@ struct function_traits_impl
 
     static constexpr bool is_noexcept = IsNoThrow;
 
-    static constexpr unsigned attribute = Attribute;
+    static constexpr function_type attribute = Attribute;
     /*
         0000 for none
         0001 for const
@@ -50,83 +65,87 @@ struct function_traits;
 // int(*)(int, int)
 template <typename R, bool IsNoThrow, typename... Args>
 struct function_traits<R(*)(Args...) noexcept(IsNoThrow)> 
-    : detail::function_traits_impl<0, IsNoThrow, void, R, Args...> { };
+    : detail::function_traits_impl<c_function, IsNoThrow, void, R, Args...> { };
 
 // int(&)(int, int)
 template <typename R, bool IsNoThrow, typename... Args>
 struct function_traits<R(&)(Args...) noexcept(IsNoThrow)> 
-    : detail::function_traits_impl<0, IsNoThrow, void, R, Args...> { };
+    : detail::function_traits_impl<c_function, IsNoThrow, void, R, Args...> { };
 
 // int(int, int)
 template <typename R, bool IsNoThrow, typename... Args>
 struct function_traits<R(Args... ) noexcept(IsNoThrow)> 
-    : detail::function_traits_impl<0, IsNoThrow, void, R, Args...> { };
+    : detail::function_traits_impl<c_function, IsNoThrow, void, R, Args...> { };
 
 // int printf(const char*, ...)
 template <typename R, bool IsNoThrow, typename... Args>
 struct function_traits<R(Args......) noexcept(IsNoThrow)> 
-    : detail::function_traits_impl<0, IsNoThrow, void, R, Args...> { };
+    : detail::function_traits_impl<c_variadic_function, IsNoThrow, void, R, Args...> { };
 
 // no any cv_ref
 template <typename ClassType, typename R, bool IsNoThrow, typename... Args>
 struct function_traits<R(ClassType::*)(Args...) noexcept(IsNoThrow)> 
-    : detail::function_traits_impl<0, IsNoThrow, ClassType, R, Args...> { };
+    : detail::function_traits_impl<cxx_class, IsNoThrow, ClassType, R, Args...> { };
 
 // const
 template <typename ClassType, typename R, bool IsNoThrow, typename... Args>
 struct function_traits<R(ClassType::*)(Args...) const noexcept(IsNoThrow)> 
-    : detail::function_traits_impl<0x0001, IsNoThrow, ClassType, R, Args...> { };
+    : detail::function_traits_impl<cxx_class_const, IsNoThrow, ClassType, R, Args...> { };
 
 // volatile
 template <typename ClassType, typename R, bool IsNoThrow, typename... Args>
 struct function_traits<R(ClassType::*)(Args...) volatile noexcept(IsNoThrow)> 
-    : detail::function_traits_impl<0x0010, IsNoThrow, ClassType, R, Args...> { };
-
+    : detail::function_traits_impl<cxx_class_volatile, IsNoThrow, ClassType, R, Args...> { };
 
 // const volatile
 template <typename ClassType, typename R, bool IsNoThrow, typename... Args>
 struct function_traits<R(ClassType::*)(Args...) const volatile noexcept(IsNoThrow)> 
-    : detail::function_traits_impl<0x0011, IsNoThrow, ClassType, R, Args...> { };
+    : detail::function_traits_impl<cxx_class_const | cxx_class_volatile, IsNoThrow, ClassType, R, Args...> { };
 
 // const&
 template <typename R, typename ClassType, bool IsNoThrow, typename... Args>
 struct function_traits<R(ClassType::*)(Args...) const& noexcept(IsNoThrow)>
-    : detail::function_traits_impl<0x0101, IsNoThrow, ClassType, R, Args...> { };
+    : detail::function_traits_impl<cxx_class_const | cxx_class_lvalue_ref, IsNoThrow, ClassType, R, Args...> { };
 
 // &
 template <typename R, typename ClassType, bool IsNoThrow, typename... Args>
 struct function_traits<R(ClassType::*)(Args...) & noexcept(IsNoThrow)>
-    : detail::function_traits_impl<0x0100, IsNoThrow, ClassType, R, Args...> { };
+    : detail::function_traits_impl<cxx_class_lvalue_ref, IsNoThrow, ClassType, R, Args...> { };
 
 // volatile&
 template <typename R, typename ClassType, bool IsNoThrow, typename... Args>
 struct function_traits<R(ClassType::*)(Args...) volatile& noexcept(IsNoThrow)>
-    : detail::function_traits_impl<0x0110, IsNoThrow, ClassType, R, Args...> { };
+    : detail::function_traits_impl<cxx_class_volatile | cxx_class_lvalue_ref, IsNoThrow, ClassType, R, Args...> { };
 
 // const volatile&
 template <typename R, typename ClassType, bool IsNoThrow, typename... Args>
 struct function_traits<R(ClassType::*)(Args...) const volatile& noexcept(IsNoThrow)>
-    : detail::function_traits_impl<0x0111, IsNoThrow, ClassType, R, Args...> { };
+    : detail::function_traits_impl<cxx_class_const | cxx_class_volatile | cxx_class_lvalue_ref, IsNoThrow, ClassType, R, Args...> { };
 
 // &&
 template <typename R, typename ClassType, bool IsNoThrow, typename... Args>
 struct function_traits<R(ClassType::*)(Args...) && noexcept(IsNoThrow)>
-    : detail::function_traits_impl<0x1000, IsNoThrow, ClassType, R, Args...> { };
+    : detail::function_traits_impl<cxx_class_rvalue_ref, IsNoThrow, ClassType, R, Args...> { };
 
 // const&&
 template <typename R, typename ClassType, bool IsNoThrow, typename... Args>
 struct function_traits<R(ClassType::*)(Args...) const&& noexcept(IsNoThrow)>
-    : detail::function_traits_impl<0x1001, IsNoThrow, ClassType, R, Args...> { };
+    : detail::function_traits_impl<cxx_class_const | cxx_class_rvalue_ref, IsNoThrow, ClassType, R, Args...> { };
 
 // volatile&&
 template <typename R, typename ClassType, bool IsNoThrow, typename... Args>
 struct function_traits<R(ClassType::*)(Args...) volatile&& noexcept(IsNoThrow)>
-    : detail::function_traits_impl<0x1010, IsNoThrow, ClassType, R, Args...> { };
+    : detail::function_traits_impl<cxx_class_volatile | cxx_class_rvalue_ref, IsNoThrow, ClassType, R, Args...> { };
 
 // const volatile&&
 template <typename R, typename ClassType, bool IsNoThrow, typename... Args>
 struct function_traits<R(ClassType::*)(Args...) const volatile&& noexcept(IsNoThrow)>
-    : detail::function_traits_impl<0x1011, IsNoThrow, ClassType, R, Args...> { };
+    : detail::function_traits_impl<cxx_class_const | cxx_class_volatile | cxx_class_rvalue_ref, IsNoThrow, ClassType, R, Args...> { };
+
+// cpp member field, the argc is 1 and type can be one of [C, const C, ...]
+template <typename ClassType, typename R>
+struct function_traits<R ClassType::*> 
+    : detail::function_traits_impl<cxx_class_member_field, true, ClassType, R, void> { };
 
 // specialize for operator()
 template <typename T>

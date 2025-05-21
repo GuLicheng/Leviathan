@@ -1,9 +1,15 @@
-from datetime import datetime
+from pyext.cpp2py import avl_tree
 
 if __name__ == "__main__":
-    dt2 = datetime(2025, 4, 20)
-    dt1 = datetime.now()
-    
-    delta = dt2 - dt1
 
-    print(delta)
+    t = avl_tree()
+
+    t[1] = 2
+
+    print(1 in t)
+    print(2 in t)
+
+    print(t.get(1))
+    print(t.get(0))
+
+    {}.setdefault()

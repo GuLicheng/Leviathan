@@ -11,15 +11,19 @@ constexpr void shift_left(I first1, I last1, I first2, I last2, std::bidirection
     if (first1 == last1 || first2 == last2)
         return;
 
+    // swap_from_first
+    //    [1, 2][3, 4, 5]
+    // => [2, 1][5, 4, 3]
     std::reverse(first1, last1);
     std::reverse(first2, last2);
 
+    // => [3, 4][5, 1, 2]
     while (first1 != last1 && first2 != last2)
     {
-        std::iter_swap(first1, --last2);
-        ++first1;
+        std::iter_swap(first1++, --last2);
     }
 
+    // => [3, 4][5, 1, 2]
     if (first1 == last1)
     {
         std::reverse(first2, last2);
@@ -147,3 +151,66 @@ inline constexpr struct
 } prev_combination;
 
 }
+
+// [first, from) and [to, last) are non-overlapping ranges
+template<class Iter>
+void reverse_gapped(Iter first, Iter from, Iter to, Iter last) {
+	if (from == to) {
+		std::reverse(first, last);
+		return;
+	}
+	if (first == from) {
+		std::reverse(to, last);
+		return;
+	}
+	if (last == to) {
+		std::reverse(first, from);
+		return;
+	}
+	--last;
+	while (first != last) {
+		std::iter_swap(first, last);
+		++first;
+		if (first == from) first = to;
+		if (first == last) break;
+		if (last == to) last = from;
+		--last;
+	}
+}
+
+//[first, middle) and [middle, last) are sorted before and after every call to this function
+template<class Iter>
+bool next_combination(Iter first, Iter middle, Iter last)
+{
+	if (middle == first || middle == last) {
+		return false;
+	}
+	
+	Iter left, right;
+//	left = std::lower_bound(first, middle, *std::prev(last));
+//	if (left == first) {
+//		std::rotate(first, middle, last);
+//		return false;
+//	}
+//	--left;
+	left = std::prev(middle);
+	for (right = std::prev(last); *left >= *right; --left) {
+		if (left == first) {
+			std::rotate(first, middle, last);
+			return false;
+		}
+	}
+	
+//	right = std::upper_bound(middle, last, *left);
+	while (right != middle && *std::prev(right) > *left) --right;
+	
+	std::iter_swap(left, right);
+	++left; ++right;
+
+	std::reverse(left, middle);
+	std::reverse(right, last);
+	reverse_gapped(left, middle, right, last);
+	
+	return true;
+}
+

@@ -4,30 +4,60 @@
 
 namespace cpp::ranges
 {
+    template <typename I, typename Comp>
+    constexpr void unguarded_linear_insert(I last, Comp comp)
+    {
+        auto val = std::move(*last);
+        auto i = last;
+        --i;
+
+        while (comp(val, *i))
+        {
+            *last = std::move(*i);
+            last = i;
+            --i;
+        }
+
+        *last = std::move(val);
+    }
+
     template <typename I, typename Comp = std::less<>>
-    constexpr void insertion_sort(I first, I last, Comp comp = {}) 
+    constexpr void binary_sort(I first, I last, Comp comp = {})
     {
         if (first == last)
         {
             return;
         }
 
-        auto i = first + 1;
-        
-        for (; i != last; ++i)
+        for (I i = first + 1; i != last; ++i)
         {
-            // if arr[j - 1] <= arr[i] continue
-            if (!comp(*i, *(i - 1))) 
+            auto val = std::move(*i);
+            auto j = std::upper_bound(first, i, val, comp);
+            std::move_backward(j, i, i + 1);
+            *j = std::move(val);
+        }
+    }
+
+    template <typename I, typename Comp = std::less<>>
+    constexpr void insertion_sort(I first, I last, Comp comp = {})
+    {
+        if (first == last) 
+        {
+            return;
+        }
+
+        for (I i = first + 1; i != last; ++i) 
+        {
+            if (comp(*i, *first)) 
             {
-                continue;
+                auto tmp = std::move(*i);
+                std::move_backward(first, i, i + 1);
+                *first = std::move(tmp);
             }
             else
             {
-                auto pos = std::upper_bound(first, i, *i, comp);
-                auto tmp = std::move(*i);
-                std::move_backward(pos, i, i + 1);
-                *pos = std::move(tmp);
-            } 
+                unguarded_linear_insert(i, comp);
+            }
         }
     }
 

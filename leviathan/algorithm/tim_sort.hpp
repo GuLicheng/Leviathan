@@ -9,39 +9,56 @@ namespace cpp::ranges::detail
 {
 
 template <int TimSortThreshold = 32> 
-struct tim_sort_helper
-{
+struct tim_sorter
+{   
     template <typename I, typename Comp>
     static constexpr I count_run_and_make_ascending(I first, I last, Comp& comp) 
     {
-        // comp is less relationship
-        if (first == last)
+        assert(first != last && "something may not happened");
+    
+		auto iter = first + 1;
+
+        if (iter == last)
         {
-            return first; // something may not happened
+            return last;
         }
-    
-        auto left = first;
-        auto right = left + 1;
-    
-        if (right == last)
+
+        if (comp(*iter, *first))
         {
-            return right;
-        }
-    
-        if (comp(*right, *left))
-        {
-            // (first > last  <=>  last < first ) ++ and reverse
-            do { ++right; } 
-            while (right != last && comp(*right, *(right - 1)));
-            std::reverse(first, right);
+            // 2, 1
+			do { ++iter; } while (iter != last && comp(*iter, *(iter - 1)));
+            std::reverse(first, iter);
         }
         else
         {
-            // while first <= last ++
-            do { ++right; } 
-            while (right != last && !comp(*right, *(right - 1)));
+			// 1, 2
+			do { ++iter; } while (iter != last && !comp(*iter, *(iter - 1)));
         }
-        return right;
+
+		return iter;
+
+        // auto left = first;
+        // auto right = left + 1;
+    
+        // if (right == last)
+        // {
+        //     return right;
+        // }
+    
+        // if (comp(*right, *left))
+        // {
+        //     // (first > last  <=>  last < first ) ++ and reverse
+        //     do { ++right; } 
+        //     while (right != last && comp(*right, *(right - 1)));
+        //     std::reverse(first, right);
+        // }
+        // else
+        // {
+        //     // while first <= last ++
+        //     do { ++right; } 
+        //     while (right != last && !comp(*right, *(right - 1)));
+        // }
+        // return right;
     }
         
     template <typename T>
@@ -58,77 +75,84 @@ struct tim_sort_helper
         return n + r;
     }
     
-    template <typename T, typename Comp>
-    static constexpr void merge_collapse(std::vector<T>& runs, Comp& comp)
+    template <typename Iterator, typename Comp>
+    static constexpr void merge_collapse(std::vector<Iterator>& runs, Comp& comp)
     {
         while (runs.size() > 2)
         {
-            if (runs.size() == 3)
+            size_t n = runs.size() - 3; // Y
+            auto last = runs.end();
+            auto X = std::distance(*(last - 2), *(last - 1));
+            auto Y = std::distance(*(last - 3), *(last - 2)); 
+
+            if (n > 0 && std::distance(*(last - 4), *(last - 3)) <= X + Y)
             {
-                // only have two runs
-                auto left = runs[0];
-                auto middle = runs[1];
-                auto right = runs[2];
-                
-                if (middle - left <= right - middle)
+                // Z <= Y + X
+                if (std::distance(*(last - 4), *(last - 3)) < X) 
                 {
-                    std::inplace_merge(left, middle, right, comp);
-                    runs.erase(runs.begin() + 1); // remove middle
+                    // Z < X
+                    --n;
                 }
-                else 
-                {
-                    break;
-                }
+                std::inplace_merge(runs[n], runs[n + 1], runs[n + 2], comp);
+                runs.erase(runs.begin() + n + 1); // remove middle
+            }
+            else if (Y <= X)
+            {
+                // merge Y and X
+                std::inplace_merge(runs[n], runs[n + 1], runs[n + 2], comp);
+                runs.erase(runs.begin() + n + 1); // remove middle
             }
             else
             {
-                auto last_pos = runs.end();
-                auto iter4 = *(last_pos - 1);
-                auto iter3 = *(last_pos - 2);
-                auto iter2 = *(last_pos - 3);
-                auto iter1 = *(last_pos - 4);
-                const auto Z = std::distance(iter1, iter2);
-                const auto Y = std::distance(iter2, iter3);
-                const auto X = std::distance(iter3, iter4); // stack top
-    
-                if (X + Y < Z && X < Y)
-                {
-                    break;
-                }
-                else
-                {
-                    if (Z < X) // merge first 2
-                    {
-                        std::inplace_merge(iter1, iter2, iter3, comp);
-                        runs.erase(last_pos - 3);
-                    }
-                    else // merge last 2
-                    {
-                        std::inplace_merge(iter2, iter3, iter4, comp);
-                        runs.erase(last_pos - 2);
-                    }
-                }
+                break;
             }
         }
     }
-    
+ 
+    template <typename I, typename Comp>
+    static constexpr void insertion_sort_rest(I first, I middle, I last, Comp& comp)
+    {
+        assert(first != middle);
+
+        for (I i = middle; i != last; ++i)
+        {
+            if (comp(*i, *first))
+            {
+                auto tmp = std::move(*i);
+                std::move_backward(first, i, i + 1);
+                *first = std::move(tmp);
+            }
+            else
+            {
+                unguarded_linear_insert(i, comp);
+            }
+        }
+    }
+
     template <typename T, typename Comp>
     static constexpr void merge_force_collapse(std::vector<T>& runs, Comp& comp)
     {
-        const int sz = static_cast<int>(runs.size());
-    
-        for (int i = sz - 2; i >= 1; --i)
+        while (runs.size() > 2)
         {
-            std::inplace_merge(runs[i - 1], runs[i], runs[sz - 1], comp);
+            size_t n = runs.size() - 3; 
+
+            if (n > 0 && std::distance(runs[n - 1], runs[n]) <= std::distance(runs[n], runs[n + 1]))
+            {
+                n--;
+            }
+
+            std::inplace_merge(runs[n], runs[n + 1], runs[n + 2], comp);
+            runs.erase(runs.begin() + n + 1); // remove middle
         }
     }
     
     template <typename I, typename Comp>
-    static constexpr void tim_sort_impl(I first, I last, Comp comp)
+    static constexpr void operator()(I first, I last, Comp comp)
     {
         if (last - first < TimSortThreshold)
         {
-            return insertion_sort(first, last, comp);
+            insertion_sort(first, last, comp);
+            return;
         }
     
         auto iter = first; 
@@ -138,6 +162,7 @@ struct tim_sort_helper
         // min length
         const auto remaining = std::distance(iter, last);
         const auto min_run = min_run_length(remaining);
+
         do 
         {
             auto next_iter = count_run_and_make_ascending(iter, last, comp);
@@ -145,9 +170,11 @@ struct tim_sort_helper
             if (next_iter - iter < min_run)
             {
                 const auto dist = last - iter;
-                auto force = std::min(dist, min_run);
-                next_iter = iter + force;
-                insertion_sort(iter, next_iter, comp);
+                const auto force = std::min(dist, min_run);
+                auto tail = iter + force;
+                insertion_sort_rest(iter, next_iter, tail, comp);
+                // binary_sort_rest(iter, next_iter, tail, comp);
+                next_iter = tail;
             }
     
             stack.emplace_back(next_iter);
@@ -172,7 +199,7 @@ inline constexpr struct
     static constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) 
     {
         auto tail = std::ranges::next(first, last);
-        detail::tim_sort_helper<32>::tim_sort_impl(first, tail, detail::make_comp_proj(comp, proj));
+        detail::tim_sorter<>()(first, tail, detail::make_comp_proj(comp, proj));
         return tail;    
     }   
 

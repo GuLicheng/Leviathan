@@ -822,7 +822,7 @@ struct std::hash<cpp::math::numeric::int128<Endian>>
 };
 
 // Specialize for std::formatter
-template <typename BuiltIn, typename Int128, typename Endian, typename CharT>
+template <typename BuiltIn, typename Int128, typename CharT>
 struct format_base
 {
     template <typename ParseContext>
@@ -844,11 +844,11 @@ struct format_base
 
 template <std::endian Endian, typename CharT>
 struct std::formatter<cpp::math::numeric::uint128<Endian>, CharT>
-    : format_base<unsigned __int128, cpp::math::numeric::uint128<Endian>, Endian, CharT> { };
+    : format_base<unsigned __int128, cpp::math::numeric::uint128<Endian>, CharT> { };
 
 template <std::endian Endian, typename CharT>
 struct std::formatter<cpp::math::numeric::int128<Endian>, CharT>
-    : format_base<signed __int128, cpp::math::numeric::int128<Endian>, Endian, CharT> { };
+    : format_base<signed __int128, cpp::math::numeric::int128<Endian>, CharT> { };
 
 namespace cpp
 {
