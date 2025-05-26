@@ -22,23 +22,6 @@ namespace cpp::ranges
     }
 
     template <typename I, typename Comp = std::less<>>
-    constexpr void binary_sort(I first, I last, Comp comp = {})
-    {
-        if (first == last)
-        {
-            return;
-        }
-
-        for (I i = first + 1; i != last; ++i)
-        {
-            auto val = std::move(*i);
-            auto j = std::upper_bound(first, i, val, comp);
-            std::move_backward(j, i, i + 1);
-            *j = std::move(val);
-        }
-    }
-
-    template <typename I, typename Comp = std::less<>>
     constexpr void insertion_sort(I first, I last, Comp comp = {})
     {
         if (first == last) 

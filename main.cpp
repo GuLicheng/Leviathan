@@ -6,36 +6,42 @@
 #include <tuple>
 #include <ranges>
 #include <functional>
-#include <leviathan/print.hpp>
-#include <leviathan/meta/type.hpp>
-#include <leviathan/meta/function_traits.hpp>
-#include <leviathan/algorithm/combination.hpp>
 #include <map>
 #include <random>
-#include <leviathan/stopwatch.hpp>
 #include <algorithm>
-#include <leviathan/algorithm/tim_sort.hpp>
+#include <chrono>
+#include <leviathan/algorithm/all.hpp>
 
-int Test1()
+template <typename Sorter, typename RandomAccessRange>
+void benchmark_sort(Sorter sorter, RandomAccessRange& range, const char* message)
 {
-    std::vector<int> vec;
-    int i = 0;
-    vec.insert_range(vec.end(), std::views::iota(0, 30));
+    using clock = std::chrono::high_resolution_clock;
 
-    do { ++i; } 
-    while (cpp::ranges::detail::combination_impl(vec.begin(), vec.begin() + 15, vec.end(), std::less<>()));
-    return i;
+	auto tp1 = clock::now();
+    sorter(range.begin(), range.end());
+	auto tp2 = clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count();
+
+    std::println("Sorting {} took {} milliseconds", message, duration);
 }
 
 int main()
 {
-    cpp::time::stopwatch sw;
+    std::vector<int> vec;
+    std::random_device rd;
 
-    sw.restart();
-    auto c1 = Test1();
-    sw.stop();
+    for (int i = 0; i < 1000000; ++i)
+    {
+        vec.emplace_back(rd());
+    }
 
-    std::cout << "Test1: " << sw.elapsed_milliseconds() << "ms" << std::endl;
+    auto vec1 = vec;
+    auto vec2 = vec;
+    auto vec3 = vec;
 
-    std::println("Test1: {}", c1);
+    benchmark_sort(cpp::ranges::tim_sort, vec1, "tim_sort");
+    benchmark_sort(std::ranges::stable_sort, vec2, "std_stable_sort");
+    benchmark_sort(std::ranges::sort, vec3, "std_sort");
+
+    std::cout << (vec1 == vec2 && vec2 == vec3) << '\n';
 }

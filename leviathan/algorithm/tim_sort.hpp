@@ -1,5 +1,5 @@
 // https://www.freesion.com/article/2246255399/
-// http://cr.openjdk.java.net/~martin/webrevs/jdk7/timsort/raw_files/new/src/share/classes/java/util/TimSort.java
+// https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/java/util/TimSort.java
 
 #pragma once
 
@@ -36,29 +36,6 @@ struct tim_sorter
         }
 
 		return iter;
-
-        // auto left = first;
-        // auto right = left + 1;
-    
-        // if (right == last)
-        // {
-        //     return right;
-        // }
-    
-        // if (comp(*right, *left))
-        // {
-        //     // (first > last  <=>  last < first ) ++ and reverse
-        //     do { ++right; } 
-        //     while (right != last && comp(*right, *(right - 1)));
-        //     std::reverse(first, right);
-        // }
-        // else
-        // {
-        //     // while first <= last ++
-        //     do { ++right; } 
-        //     while (right != last && !comp(*right, *(right - 1)));
-        // }
-        // return right;
     }
         
     template <typename T>
@@ -165,21 +142,20 @@ struct tim_sorter
 
         do 
         {
-            auto next_iter = count_run_and_make_ascending(iter, last, comp);
+            auto next_pos = count_run_and_make_ascending(iter, last, comp);
     
-            if (next_iter - iter < min_run)
+            if (next_pos - iter < min_run)
             {
                 const auto dist = last - iter;
                 const auto force = std::min(dist, min_run);
                 auto tail = iter + force;
-                insertion_sort_rest(iter, next_iter, tail, comp);
-                // binary_sort_rest(iter, next_iter, tail, comp);
-                next_iter = tail;
+                insertion_sort_rest(iter, next_pos, tail, comp);
+                next_pos = tail;
             }
     
-            stack.emplace_back(next_iter);
+            stack.emplace_back(next_pos);
             merge_collapse(stack, comp);
-            iter = next_iter;
+            iter = next_pos;
     
         } while (iter != last);
     

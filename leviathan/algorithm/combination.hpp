@@ -1,3 +1,5 @@
+// https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2639.pdf
+
 #pragma once
 
 #include "common.hpp"
@@ -5,12 +7,14 @@
 namespace cpp::ranges::detail
 {
 
-template <typename I>
-constexpr void shift_left(I first1, I last1, I first2, I last2, std::bidirectional_iterator_tag)
+template <std::bidirectional_iterator I>
+constexpr void shift_left(I first1, I last1, I first2, I last2)
 {
     if (first1 == last1 || first2 == last2)
+    {
         return;
-
+    }
+    
     // swap_from_first
     //    [1, 2][3, 4, 5]
     // => [2, 1][5, 4, 3]
@@ -38,14 +42,16 @@ constexpr void shift_left(I first1, I last1, I first2, I last2, std::bidirection
     shift elements between two ranges
     [a, b, c][d, e] -> [d, e, a][b, c]
 */
-template <typename I>
-constexpr void shift_left(I first1, I last1, I first2, I last2, std::random_access_iterator_tag)
+template <std::random_access_iterator I>
+constexpr void shift_left(I first1, I last1, I first2, I last2)
 {
     if (first1 == last1 || first2 == last2)
+    {
         return;
+    }
 
-    const auto left_size = last1 - first1;
-    const auto right_size = last2 - first2;
+    const auto left_size = std::distance(first1, last1);
+    const auto right_size = std::distance(first2, last2);
 
     if (left_size < right_size)
     {
@@ -72,7 +78,9 @@ template <typename I, typename Comp>
 constexpr bool combination_impl(I first, I middle, I last, Comp comp)
 {
     if (first == middle || middle == last)
+    {
         return false;
+    }
 
     auto left = middle, right = last;
 
@@ -95,7 +103,7 @@ constexpr bool combination_impl(I first, I middle, I last, Comp comp)
     }
 
     // Replace (a_1, ..., a_{k-1}) with (a_k + 1, ..., a_k + r - k + 1)
-    shift_left(left, middle, right, last, typename std::iterator_traits<I>::iterator_category());
+    shift_left(left, middle, right, last);
 
     // Return false to stop do-while loop.
     return !is_over;
@@ -151,66 +159,3 @@ inline constexpr struct
 } prev_combination;
 
 }
-
-// [first, from) and [to, last) are non-overlapping ranges
-template<class Iter>
-void reverse_gapped(Iter first, Iter from, Iter to, Iter last) {
-	if (from == to) {
-		std::reverse(first, last);
-		return;
-	}
-	if (first == from) {
-		std::reverse(to, last);
-		return;
-	}
-	if (last == to) {
-		std::reverse(first, from);
-		return;
-	}
-	--last;
-	while (first != last) {
-		std::iter_swap(first, last);
-		++first;
-		if (first == from) first = to;
-		if (first == last) break;
-		if (last == to) last = from;
-		--last;
-	}
-}
-
-//[first, middle) and [middle, last) are sorted before and after every call to this function
-template<class Iter>
-bool next_combination(Iter first, Iter middle, Iter last)
-{
-	if (middle == first || middle == last) {
-		return false;
-	}
-	
-	Iter left, right;
-//	left = std::lower_bound(first, middle, *std::prev(last));
-//	if (left == first) {
-//		std::rotate(first, middle, last);
-//		return false;
-//	}
-//	--left;
-	left = std::prev(middle);
-	for (right = std::prev(last); *left >= *right; --left) {
-		if (left == first) {
-			std::rotate(first, middle, last);
-			return false;
-		}
-	}
-	
-//	right = std::upper_bound(middle, last, *left);
-	while (right != middle && *std::prev(right) > *left) --right;
-	
-	std::iter_swap(left, right);
-	++left; ++right;
-
-	std::reverse(left, middle);
-	std::reverse(right, last);
-	reverse_gapped(left, middle, right, last);
-	
-	return true;
-}
-
