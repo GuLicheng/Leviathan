@@ -114,7 +114,7 @@ constexpr bool combination_impl(I first, I middle, I last, Comp comp)
 namespace cpp::ranges
 {
 
-template<typename Iter>
+template <typename Iter>
 using next_combination_result = std::ranges::in_found_result<Iter>;
 
 inline constexpr struct 

@@ -30,12 +30,12 @@ int main()
     std::vector<int> vec;
     std::random_device rd;
 
-    for (int i = 0; i < 1000000; ++i)
+    for (int i = 0; i < 10000000; ++i)
     {
         vec.emplace_back(rd());
     }
 
-    benchmark_sort(std::ranges::stable_sort, vec, "std::stable_sort");
-    benchmark_sort(std::ranges::sort, vec, "std::sort");
+    benchmark_sort(std::ranges::stable_sort, vec, "std_stable_sort");
+    benchmark_sort(std::ranges::sort, vec, "std_sort");
     benchmark_sort(cpp::ranges::tim_sort, vec, "tim_sort");
 }

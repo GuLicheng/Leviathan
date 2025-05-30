@@ -168,24 +168,6 @@ struct tim_sorter
 namespace cpp::ranges
 {
 
-inline constexpr struct
-{
-    template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity>
-        requires std::sortable<I, Comp, Proj>
-    static constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) 
-    {
-        auto tail = std::ranges::next(first, last);
-        detail::tim_sorter<>()(first, tail, detail::make_comp_proj(comp, proj));
-        return tail;    
-    }   
-
-    template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity> 
-        requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj> 
-    constexpr std::ranges::borrowed_iterator_t<Range> 
-    static operator()(Range &&r, Comp comp = {}, Proj proj = {})  
-    {
-        return operator()(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj));
-    }
-} tim_sort;
+inline constexpr detail::sorter<detail::tim_sorter<>> tim_sort;
 
 }

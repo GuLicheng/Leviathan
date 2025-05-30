@@ -28,40 +28,25 @@ constexpr auto make_pred_proj(Pred& pred, Proj& proj)
     };
 }
 
+template <typename Sorter>
+struct sorter
+{
+    template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity>
+        requires std::sortable<I, Comp, Proj>
+    static constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) 
+    {
+        auto tail = std::ranges::next(first, last);
+        Sorter()(first, tail, detail::make_comp_proj(comp, proj));
+        return tail;    
+    }   
+
+    template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity> 
+        requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj> 
+    constexpr std::ranges::borrowed_iterator_t<Range> static operator()(Range &&r, Comp comp = {}, Proj proj = {})  
+    {
+        return operator()(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj));
+    }
+};
+
 } // namespace cpp::algorithm::detail
 
-// TODO: Add range-version
-#if 0
-namespace cpp::algorithm
-{
-    template <typename I, typename Comp = std::less<>>
-    std::pair<I, I> min_and_second_min_element(I first, I last, Comp comp = {})
-    {
-        auto forward = std::ranges::next(first, 1, last);
-        std::pair<I, I> result { first, forward };
-
-        if (forward == last)
-            return result;
-
-        if (!comp(result.first, result.second))
-            std::swap(result.first, result.second);
-        
-        for (; forward != last; ++forward) 
-        {
-            // result.first < result.second 
-            if (comp(*forward, *result.first))
-            {
-                result.second = result.first;
-                result.first = forward;
-                // result.second = std::exchange(result.first, forward);
-            }
-            else if (comp(*forward, *result.second))
-            {
-                result.second = forward;
-            }
-        }
-
-        return result;
-    }
-}
-#endif

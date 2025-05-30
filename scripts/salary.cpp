@@ -157,8 +157,8 @@ public:
     static void PrintTotal(bool brief = true)
     {
         auto details = Read(
-            YearMonth(2023, 1),
-            YearMonth(2025, 12)
+            YearMonth(2024, 1),
+            YearMonth(2024, 3)
         );
 
         auto result = Collect<SalaryEntry>(details);
