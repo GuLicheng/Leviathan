@@ -122,6 +122,22 @@ struct nd_heap_fn
         return sort_heap(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj));
     }
 
+    template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity>
+        requires std::sortable<I, Comp, Proj>
+    static constexpr I heap_sort(I first, S last, Comp comp = {}, Proj proj = {}) 
+    {
+        make_heap(first, last, comp, proj);
+        sort_heap(first, last, comp, proj);
+        return last;    
+    }   
+
+    template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity> 
+        requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj> 
+    static constexpr std::ranges::borrowed_iterator_t<Range> heap_sort(Range &&r, Comp comp = {}, Proj proj = {})  
+    {
+        return heap_sort(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj));
+    }
+
 private:
 
     // Helpers
@@ -270,10 +286,38 @@ private:
 
 }  // namespace cpp::ranges
 
+namespace cpp::ranges
+{
 
+namespace detail
+{
 
+template <size_t Arity>
+struct heap_sort_fn
+{
+    template <std::random_access_iterator I, std::sentinel_for<I> S, typename Comp = std::ranges::less, typename Proj = std::identity>
+        requires std::sortable<I, Comp, Proj>
+    static constexpr I operator()(I first, S last, Comp comp = {}, Proj proj = {}) 
+    {
+        auto tail = std::ranges::next(first, last);
+        nd_heap_fn<Arity>::heap_sort(first, tail, std::move(comp), std::move(proj));
+        return tail;    
+    }   
 
+    template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity> 
+        requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj> 
+    constexpr std::ranges::borrowed_iterator_t<Range> static operator()(Range &&r, Comp comp = {}, Proj proj = {})  
+    {
+        return operator()(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj));
+    }
+};
 
+}  // namespace detail
+
+template <size_t Arity>
+inline constexpr detail::heap_sort_fn<Arity> heap_sort;
+
+}
 
 
 
