@@ -8,6 +8,7 @@
 
 namespace cpp
 {
+
     struct random_range
     {
         // inline static std::random_device rd;
@@ -103,6 +104,7 @@ namespace cpp
             return v;
         }
     };
+
 } // namespace cpp
 
 namespace cpp

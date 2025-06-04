@@ -2,6 +2,7 @@
     https://github.com/python/cpython/blob/main/Objects/listobject.c
     https://arxiv.org/pdf/1805.04154
     https://github.com/sebawild/powersort/blob/main/src/sorts/powersort.h
+    https://github.com/sebawild/nearly-optimal-mergesort-code/tree/master
 
     POWERSORT(A[1..n]):
 
@@ -42,17 +43,32 @@
 #pragma once
 
 #include <cmath>
-#include <ranges>
 
 #include "basic_sort.hpp"
+#include "tim_sort.hpp"
 
 namespace cpp::ranges::detail
 {
 
-template <int MinRunLen = 24> 
-class power_sorter
+enum class power_mode
 {
-    using power_type = int;
+    // https://github.com/sebawild/nearly-optimal-mergesort-code/tree/master
+    java,    
+    
+    // https://github.com/python/cpython/blob/main/Objects/listobject.c
+    python,
+};
+
+template <int MinRunLen = 24, power_mode Mode = power_mode::java> 
+class power_sorter : public tim_sorter<MinRunLen>
+{
+protected:
+
+    using base::count_run_and_make_ascending;
+    using base::insertion_sort_rest;
+
+    using base = tim_sorter<MinRunLen>;
+    using power_type = uint32_t;
 
     // https://github.com/python/cpython/blob/main/Objects/listobject.c
     template <typename I>
@@ -96,6 +112,42 @@ class power_sorter
         return result;
     }
 
+    // https://github.com/sebawild/nearly-optimal-mergesort-code/tree/master
+    template <typename I>
+    static constexpr power_type node_power_paper(I first, I middle1, I middle2, I middle3, I last)
+    {
+        // run1 => [middle1, middle2)
+        // run2 => [middle2, middle3)
+
+        using DifferenceType = typename std::iterator_traits<I>::difference_type;
+
+        DifferenceType twoN = std::distance(first, last) << 1;
+        DifferenceType startA = std::distance(first, middle1);
+        DifferenceType startB = std::distance(first, middle2);
+        DifferenceType endB = std::distance(first, middle3);
+
+        DifferenceType l = startA + startB;
+        DifferenceType r = startB + endB + 1;
+
+        power_type a = (power_type)((l << (DifferenceType)31) / twoN);
+        power_type b = (power_type)((r << (DifferenceType)31) / twoN);
+
+        return std::countl_zero(a ^ b); // count leading zeros
+    }
+
+    template <typename I>
+    static constexpr power_type node_power(I first, I middle1, I middle2, I middle3, I last)
+    {
+        if constexpr (Mode == power_mode::java)
+        {
+            return node_power_paper(first, middle1, middle2, middle3, last);
+        }
+        else
+        {
+            return powerloop(first, middle1, middle2, middle3, last);
+        }
+    }
+
     template <typename I, typename Comp>
     static constexpr I extend_run_right(I first, I last, Comp comp) 
     {
@@ -103,6 +155,8 @@ class power_sorter
         
         I second = count_run_and_make_ascending(first, last, comp);
 
+        // We use a fixed minimum run length to ensure that the insertion sort described in the paper.
+        // The python implementation uses a minimum run length calculated by Threshold and length of origin sequence.
         if (second - first < MinRunLen)
         {
             auto third = std::ranges::next(first, MinRunLen, last);
@@ -111,53 +165,6 @@ class power_sorter
         }
 
         return second;
-    }
-
-    template <typename I, typename Comp>
-    static constexpr I count_run_and_make_ascending(I first, I last, Comp comp) 
-    {
-        [[assume(first != last)]];
-    
-		auto iter = first + 1;
-
-        if (iter == last)
-        {
-            return last;
-        }
-
-        if (comp(*iter, *first))
-        {
-            // 2, 1 
-			do { ++iter; } while (iter != last && comp(*iter, *(iter - 1)));
-            std::reverse(first, iter);
-        }
-        else
-        {
-			// 1, 2
-			do { ++iter; } while (iter != last && !comp(*iter, *(iter - 1)));
-        }
-
-		return iter;
-    }
-
-    template <typename I, typename Comp>
-    static constexpr void insertion_sort_rest(I first, I middle, I last, Comp comp)
-    {
-        [[assume(first != last)]];
-
-        for (I i = middle; i != last; ++i)
-        {
-            if (comp(*i, *first))
-            {
-                auto tmp = std::move(*i);
-                std::move_backward(first, i, i + 1);
-                *first = std::move(tmp);
-            }
-            else
-            {
-                unguarded_linear_insert(i, comp);
-            }
-        }
     }
 
     template <typename I, typename Comp>
@@ -210,7 +217,7 @@ public:
             // Stack => [iter1, iter2, ...
             // interval1 = [iter1, iter2)
             // interval2 = [iter2, right)
-            auto power = powerloop(first, (runs.end() - 2)->first, (runs.end() - 1)->first, right, last);
+            auto power = node_power(first, (runs.end() - 2)->first, (runs.end() - 1)->first, right, last);
 
             // The runs cannot be empty since the power of first two elements are zero,
             // and the loop will stop when the second run is reached. 

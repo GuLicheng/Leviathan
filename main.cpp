@@ -11,27 +11,14 @@
 #include <algorithm>
 #include <chrono>
 #include <leviathan/algorithm/all.hpp>
+#include <leviathan/algorithm/benchmark_sorter.hpp>
 #include <leviathan/powersort/src/sorts/powersort.h>
 #include <leviathan/powersort/src/sorts/peeksort.h>
 
-template <typename Sorter, typename RandomAccessRange>
-void benchmark_sort(Sorter sorter, RandomAccessRange range, const char* message)
-{
-    using clock = std::chrono::high_resolution_clock;
-
-	auto tp1 = clock::now();
-    sorter(range.begin(), range.end());
-	auto tp2 = clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count();
-
-    std::println("Sorting {} took {} milliseconds. Is sorted ? {}.", message, duration, std::ranges::is_sorted(range));
-}
-
-using ValueT = int;
+using ValueT = double;
 using Iterator = std::vector<ValueT>::iterator;
 
 inline cpp::ranges::detail::sorter<algorithms::powersort<Iterator>> PowerSort;
-inline cpp::ranges::detail::sorter<algorithms::peeksort<Iterator>> PeekSort;
 
 int main(int argc, char* argv[])
 {
@@ -50,13 +37,13 @@ int main(int argc, char* argv[])
         vec.emplace_back(rd());
     }
 
-    benchmark_sort(std::ranges::stable_sort, vec, "std::stable_sort");
-    benchmark_sort(cpp::ranges::tim_sort, vec, "tim_sort");
-    benchmark_sort(cpp::ranges::power_sort, vec, "power_sort");
-    benchmark_sort(PeekSort, vec, "PeekSort");
-    benchmark_sort(PowerSort, vec, "PowerSort");
-    benchmark_sort(std::ranges::sort, vec, "std::sort");
-
+    cpp::benchmark_sorter()
+                       .add_sorter(std::ranges::stable_sort, "std::stable_sort")
+                       .add_sorter(cpp::ranges::tim_sort, "tim_sort")
+                       .add_sorter(cpp::ranges::power_sort, "power_sort")
+                       .add_sorter(PowerSort, "PowerSort")
+                       .add_sorter(std::ranges::sort, "std::sort")
+                       (vec);
 
     std::println("Done sorting {} elements.", N);
 }

@@ -142,7 +142,7 @@ private:
 
     // Helpers
     template <typename RandomAccessIterator, typename Comp>
-    static constexpr RandomAccessIterator make_heap_impl(RandomAccessIterator first, RandomAccessIterator last, Comp& comp)
+    static constexpr RandomAccessIterator make_heap_impl(RandomAccessIterator first, RandomAccessIterator last, Comp comp)
     {
         using DifferenceType = std::iter_difference_t<RandomAccessIterator>;
         using ValueType = std::iter_value_t<RandomAccessIterator>;
@@ -164,7 +164,7 @@ private:
             {
                 RandomAccessIterator lower = first + i;
                 RandomAccessIterator upper = first + std::min(i + DifferenceType(Arity), size);
-                RandomAccessIterator max_child = std::max_element(lower, upper, std::ref(comp));
+                RandomAccessIterator max_child = std::max_element(lower, upper, comp);
 
                 if (!comp(hold_value, *max_child))
                 {
@@ -182,7 +182,7 @@ private:
     }
 
     template <typename RandomAccessIterator, typename Comp>
-    static constexpr RandomAccessIterator push_heap_impl(RandomAccessIterator first, RandomAccessIterator last, Comp& comp)
+    static constexpr RandomAccessIterator push_heap_impl(RandomAccessIterator first, RandomAccessIterator last, Comp comp)
     {
         using DifferenceType = std::iter_difference_t<RandomAccessIterator>;
         using ValueType = std::iter_value_t<RandomAccessIterator>;
@@ -211,7 +211,7 @@ private:
     }
 
     template <typename RandomAccessIterator, typename Comp>
-    static constexpr RandomAccessIterator pop_heap_impl(RandomAccessIterator first, RandomAccessIterator last, Comp& comp)
+    static constexpr RandomAccessIterator pop_heap_impl(RandomAccessIterator first, RandomAccessIterator last, Comp comp)
     {
         using DifferenceType = std::iter_difference_t<RandomAccessIterator>;
         using ValueType = std::iter_value_t<RandomAccessIterator>;
@@ -237,7 +237,7 @@ private:
             RandomAccessIterator lower = first + lower_child_index;
             DifferenceType upper_child_index = lower_child_index + Arity;
             RandomAccessIterator upper = first + std::min(upper_child_index, size);
-            RandomAccessIterator max_child = std::max_element(lower, upper, std::ref(comp));
+            RandomAccessIterator max_child = std::max_element(lower, upper, comp);
 
             if (!comp(hold_value, *max_child))
             {
@@ -254,7 +254,7 @@ private:
     }
 
     template <typename RandomAccessIterator, typename Comp>
-    static constexpr RandomAccessIterator is_heap_until_impl(RandomAccessIterator first, RandomAccessIterator last, Comp& comp)
+    static constexpr RandomAccessIterator is_heap_until_impl(RandomAccessIterator first, RandomAccessIterator last, Comp comp)
     {
         using DifferenceType = std::iter_difference_t<RandomAccessIterator>;
 
@@ -315,7 +315,7 @@ struct heap_sort_fn
 }  // namespace detail
 
 template <size_t Arity>
-inline constexpr detail::heap_sort_fn<Arity> heap_sort;
+inline constexpr detail::heap_sort_fn<Arity> nd_heap_sort;
 
 }
 

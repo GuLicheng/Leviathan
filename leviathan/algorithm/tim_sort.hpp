@@ -11,6 +11,8 @@ namespace cpp::ranges::detail
 template <int TimSortThreshold = 32> 
 class tim_sorter
 {   
+protected:
+
     template <typename I, typename Comp>
     static constexpr I count_run_and_make_ascending(I first, I last, Comp comp) 
     {
