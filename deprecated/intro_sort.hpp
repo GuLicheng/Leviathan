@@ -1,4 +1,4 @@
-#if 0
+#if 1
 #pragma once
 
 #include "common.hpp"
@@ -94,8 +94,6 @@ namespace cpp::sort
             std::iter_swap(middle, last);
             return last;
         } 
-
-
 
         template <typename I, typename Comp>
         constexpr void intro_sort_recursive(I first, I last, Comp comp, int depth)

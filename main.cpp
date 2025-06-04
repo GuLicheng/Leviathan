@@ -12,13 +12,12 @@
 #include <chrono>
 #include <leviathan/algorithm/all.hpp>
 #include <leviathan/algorithm/benchmark_sorter.hpp>
-#include <leviathan/powersort/src/sorts/powersort.h>
-#include <leviathan/powersort/src/sorts/peeksort.h>
+// #include <leviathan/powersort/src/sorts/powersort.h>
 
 using ValueT = double;
 using Iterator = std::vector<ValueT>::iterator;
 
-inline cpp::ranges::detail::sorter<algorithms::powersort<Iterator>> PowerSort;
+// inline cpp::ranges::detail::sorter<algorithms::powersort<Iterator>> PowerSort;
 
 int main(int argc, char* argv[])
 {
@@ -37,12 +36,15 @@ int main(int argc, char* argv[])
         vec.emplace_back(rd());
     }
 
+    // std::sort(vec.begin(), vec.end());
+
     cpp::benchmark_sorter()
                        .add_sorter(std::ranges::stable_sort, "std::stable_sort")
                        .add_sorter(cpp::ranges::tim_sort, "tim_sort")
                        .add_sorter(cpp::ranges::power_sort, "power_sort")
-                       .add_sorter(PowerSort, "PowerSort")
-                       .add_sorter(std::ranges::sort, "std::sort")
+                       .add_sorter(cpp::ranges::intro_sort, "intro_sort-leftmost")
+                       .add_sorter(std::ranges::sort, "std::sort1")
+                       .add_sorter(std::ranges::sort, "std::sort2")
                        (vec);
 
     std::println("Done sorting {} elements.", N);

@@ -64,11 +64,10 @@ class power_sorter : public tim_sorter<MinRunLen>
 {
 protected:
 
-    using base::count_run_and_make_ascending;
-    using base::insertion_sort_rest;
-
     using base = tim_sorter<MinRunLen>;
     using power_type = uint32_t;
+    using base::count_run_and_make_ascending;
+    using base::insertion_sort_rest;
 
     // https://github.com/python/cpython/blob/main/Objects/listobject.c
     template <typename I>
