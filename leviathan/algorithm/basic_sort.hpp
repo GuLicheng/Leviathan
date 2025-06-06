@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.hpp"
+#include <ranges>
 
 namespace cpp::ranges::detail
 {
@@ -73,7 +74,9 @@ template <typename I, typename Comp>
 constexpr void unguarded_insertion_sort(I first, I last, Comp comp)
 {
     if (first == last)
+    {
         return;
+    }
 
     for (auto i = first + 1; i != last; ++i)
     {
@@ -90,6 +93,9 @@ constexpr void unguarded_insertion_sort(I first, I last, Comp comp)
         }
     }
 } 
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename I, typename Comp>
 constexpr void merge_sort(I first, I last, Comp comp)
@@ -109,6 +115,7 @@ constexpr void heap_sort(I first, I last, Comp comp)
     std::make_heap(first, last, comp);
     std::sort_heap(first, last, comp);
 }
+
 
 } // namespace cpp
 

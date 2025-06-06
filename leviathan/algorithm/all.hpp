@@ -6,7 +6,9 @@
 #include "tim_sort.hpp"
 #include "power_sort.hpp"
 #include "intro_sort.hpp"
+#include "pdqsort.hpp"
 
 #include "linear_search.hpp"
+
 #include "heap.hpp"
 

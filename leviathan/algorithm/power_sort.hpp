@@ -71,7 +71,8 @@ protected:
 
     // https://github.com/python/cpython/blob/main/Objects/listobject.c
     template <typename I>
-    static constexpr power_type powerloop(I first, I middle1, I middle2, I middle3, I last)
+        requires (Mode == power_mode::python)
+    static constexpr power_type node_power(I first, I middle1, I middle2, I middle3, I last)
     {
         // run1 => [middle1, middle2)
         // run2 => [middle2, middle3)
@@ -113,7 +114,8 @@ protected:
 
     // https://github.com/sebawild/nearly-optimal-mergesort-code/tree/master
     template <typename I>
-    static constexpr power_type node_power_paper(I first, I middle1, I middle2, I middle3, I last)
+        requires (Mode == power_mode::java)
+    static constexpr power_type node_power(I first, I middle1, I middle2, I middle3, I last)
     {
         // run1 => [middle1, middle2)
         // run2 => [middle2, middle3)
@@ -132,19 +134,6 @@ protected:
         power_type b = (power_type)((r << (DifferenceType)31) / twoN);
 
         return std::countl_zero(a ^ b); // count leading zeros
-    }
-
-    template <typename I>
-    static constexpr power_type node_power(I first, I middle1, I middle2, I middle3, I last)
-    {
-        if constexpr (Mode == power_mode::java)
-        {
-            return node_power_paper(first, middle1, middle2, middle3, last);
-        }
-        else
-        {
-            return powerloop(first, middle1, middle2, middle3, last);
-        }
     }
 
     template <typename I, typename Comp>
