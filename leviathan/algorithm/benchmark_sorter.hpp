@@ -31,7 +31,8 @@ struct benchmark_sorter
     {
         assert(!names.empty() && "Names vector must not be empty.");
         m_names = std::move(names);
-        m_max_name_length = std::ranges::max(m_names, {}, std::string_view::size).size();
+        auto Size = [](auto x) static { return x.size(); };
+        m_max_name_length = std::ranges::max(m_names | std::views::transform(Size) | std::views::cache_latest);
     }
 
     template <typename Sorter>

@@ -176,6 +176,7 @@ namespace pdqsort_detail {
                              unsigned char* offsets_l, unsigned char* offsets_r,
                              size_t num, bool use_swaps) {
         typedef typename std::iterator_traits<Iter>::value_type T;
+        use_swaps = true;
         if (use_swaps) {
             // This case is needed for the descending distribution, where we need
             // to have proper swapping for pdqsort to remain O(n).
@@ -199,6 +200,7 @@ namespace pdqsort_detail {
     // pivot is a median of at least 3 elements and that [begin, end) is at least
     // insertion_sort_threshold long. Uses branchless partitioning.
     template<class Iter, class Compare>
+        requires (true)
     inline std::pair<Iter, bool> partition_right_branchless(Iter begin, Iter end, Compare comp) {
         typedef typename std::iterator_traits<Iter>::value_type T;
 
@@ -243,6 +245,7 @@ namespace pdqsort_detail {
                 size_t left_split = num_l == 0 ? (num_r == 0 ? num_unknown / 2 : num_unknown) : 0;
                 size_t right_split = num_r == 0 ? (num_unknown - left_split) : 0;
 
+#if 1
                 // Fill the offset blocks.
                 if (left_split >= block_size) {
                     for (size_t i = 0; i < block_size;) {
@@ -277,7 +280,7 @@ namespace pdqsort_detail {
                         offsets_r[num_r] = ++i; num_r += comp(*--last, pivot);
                     }
                 }
-
+#endif
                 // Swap elements and update block sizes and first/last boundaries.
                 size_t num = std::min(num_l, num_r);
                 swap_offsets(offsets_l_base, offsets_r_base,
@@ -317,8 +320,6 @@ namespace pdqsort_detail {
 
         return std::make_pair(pivot_pos, already_partitioned);
     }
-
-
 
     // Partitions [begin, end) around pivot *begin using comparison function comp. Elements equal
     // to the pivot are put in the right-hand partition. Returns the position of the pivot after
@@ -397,7 +398,7 @@ namespace pdqsort_detail {
 
 
     template<class Iter, class Compare, bool Branchless>
-    inline void pdqsort_loop(Iter begin, Iter end, Compare comp, int bad_allowed, bool leftmost = true) {
+    inline void pdqsort_loop1(Iter begin, Iter end, Compare comp, int bad_allowed, bool leftmost = true) {
         typedef typename std::iterator_traits<Iter>::difference_type diff_t;
 
         // Use a while loop for tail recursion elimination.
@@ -493,11 +494,118 @@ namespace pdqsort_detail {
 
             // Sort the left partition first using recursion and do tail recursion elimination for
             // the right-hand partition.
-            pdqsort_loop<Iter, Compare, Branchless>(begin, pivot_pos, comp, bad_allowed, leftmost);
+            pdqsort_loop1<Iter, Compare, Branchless>(begin, pivot_pos, comp, bad_allowed, leftmost);
             begin = pivot_pos + 1;
             leftmost = false;
         }
     }
+
+    template<class Iter, class Compare, bool Branchless>
+    inline void pdqsort_loop(Iter begin, Iter end, Compare comp, int bad_allowed, bool leftmost = true) {
+        typedef typename std::iterator_traits<Iter>::difference_type diff_t;
+
+        // Use a while loop for tail recursion elimination.
+        
+            diff_t size = end - begin;
+
+            // Insertion sort is faster for small arrays.
+            if (size < insertion_sort_threshold) {
+                if (leftmost) ::pdqsort_detail::insertion_sort(begin, end, comp);
+                else ::pdqsort_detail::unguarded_insertion_sort(begin, end, comp);
+                return;
+            }
+
+            // Choose pivot as median of 3 or pseudomedian of 9.
+            diff_t s2 = size / 2;
+            if (size > ninther_threshold) {
+                sort3(begin, begin + s2, end - 1, comp);
+                sort3(begin + 1, begin + (s2 - 1), end - 2, comp);
+                sort3(begin + 2, begin + (s2 + 1), end - 3, comp);
+                sort3(begin + (s2 - 1), begin + s2, begin + (s2 + 1), comp);
+                std::iter_swap(begin, begin + s2);
+            } else sort3(begin + s2, begin, end - 1, comp);
+
+            // If *(begin - 1) is the end of the right partition of a previous partition operation
+            // there is no element in [begin, end) that is smaller than *(begin - 1). Then if our
+            // pivot compares equal to *(begin - 1) we change strategy, putting equal elements in
+            // the left partition, greater elements in the right partition. We do not have to
+            // recurse on the left partition, since it's sorted (all equal).
+            if (!leftmost && !comp(*(begin - 1), *begin)) {
+                begin = partition_left(begin, end, comp) + 1;
+                // continue;
+                return;
+            }
+
+            // Partition and get results.
+            std::pair<Iter, bool> part_result =
+                Branchless ? partition_right_branchless(begin, end, comp)
+                           : partition_right(begin, end, comp);
+            Iter pivot_pos = part_result.first;
+            bool already_partitioned = part_result.second;
+
+            // Check for a highly unbalanced partition.
+            diff_t l_size = pivot_pos - begin;
+            diff_t r_size = end - (pivot_pos + 1);
+            bool highly_unbalanced = l_size < size / 8 || r_size < size / 8;
+
+#if 1
+
+            // If we got a highly unbalanced partition we shuffle elements to break many patterns.
+            if (highly_unbalanced) {
+                // If we had too many bad partitions, switch to heapsort to guarantee O(n log n).
+
+                if (--bad_allowed == 0) {
+                    std::make_heap(begin, end, comp);
+                    std::sort_heap(begin, end, comp);
+                    return;
+                }
+
+                if (l_size >= insertion_sort_threshold) {
+                    std::iter_swap(begin,             begin + l_size / 4);
+                    std::iter_swap(pivot_pos - 1, pivot_pos - l_size / 4);
+
+                    if (l_size > ninther_threshold) {
+                        std::iter_swap(begin + 1,         begin + (l_size / 4 + 1));
+                        std::iter_swap(begin + 2,         begin + (l_size / 4 + 2));
+                        std::iter_swap(pivot_pos - 2, pivot_pos - (l_size / 4 + 1));
+                        std::iter_swap(pivot_pos - 3, pivot_pos - (l_size / 4 + 2));
+                    }
+                }
+                
+                if (r_size >= insertion_sort_threshold) {
+                    std::iter_swap(pivot_pos + 1, pivot_pos + (1 + r_size / 4));
+                    std::iter_swap(end - 1,                   end - r_size / 4);
+                    
+                    if (r_size > ninther_threshold) {
+                        std::iter_swap(pivot_pos + 2, pivot_pos + (2 + r_size / 4));
+                        std::iter_swap(pivot_pos + 3, pivot_pos + (3 + r_size / 4));
+                        std::iter_swap(end - 2,             end - (1 + r_size / 4));
+                        std::iter_swap(end - 3,             end - (2 + r_size / 4));
+                    }
+                }
+            } else {
+                // If we were decently balanced and we tried to sort an already partitioned
+                // sequence try to use insertion sort.
+                if (already_partitioned && partial_insertion_sort(begin, pivot_pos, comp)
+                                        && partial_insertion_sort(pivot_pos + 1, end, comp)) 
+                                        {
+                                            // std::println("Over recursion limit, but already sorted.");
+                                            return;
+                                        }
+            }
+     
+#endif            
+
+            // Sort the left partition first using recursion and do tail recursion elimination for
+            // the right-hand partition.
+            pdqsort_loop<Iter, Compare, Branchless>(begin, pivot_pos, comp, bad_allowed, leftmost);
+            pdqsort_loop<Iter, Compare, Branchless>(pivot_pos + 1, end,comp, bad_allowed, false);
+            // begin = pivot_pos + 1;
+            // leftmost = false;
+        
+    }
+
+
 }
 
 
@@ -548,7 +656,7 @@ struct pdqsort_fn
     {
         if (first == last) return;
 
-        pdqsort_detail::pdqsort_loop<I, Comp, Branchless>(
+        pdqsort_detail::pdqsort_loop1<I, Comp, Branchless>(
             first, last, comp, pdqsort_detail::log2(last - first));
     }
 };

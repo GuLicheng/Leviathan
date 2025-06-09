@@ -63,7 +63,24 @@ protected:
     }
 
     template <typename I, typename Comp>
-    static constexpr void partition_insertion_sort(I first, I last, Comp comp);
+    static constexpr void median(I first, I last, Comp comp)
+    {
+        const auto size = std::distance(first, last);
+        auto middle = first + (size >> 1);
+
+        if (size > NintherThreshold)
+        {
+            sort3(first,      middle,     last - 1,   comp);
+            sort3(first + 1,  middle - 1, last - 2,   comp);
+            sort3(first + 2,  middle + 1, last - 3,   comp);
+            sort3(middle - 1, middle,     middle + 1, comp);
+            std::iter_swap(first, middle);
+        }
+        else
+        {
+            sort3(first, middle, last - 1, comp);
+        }
+    }
 
     // We assume that p was selected as the median of at least three elements,
     // and in later iterations previous elements are used as sentinels to prevent going out of
@@ -129,7 +146,7 @@ protected:
     }
 
     template <typename I, typename Comp>
-        requires (Branchless)
+        requires (Branchless && false)
     static constexpr std::pair<I, bool> partition_right(I first, I last, Comp comp)
     {
         I i = first, j = last;
@@ -155,59 +172,255 @@ protected:
 
             constexpr auto offsets_size = BlockSize + CachelineSize;
 
-            alignas(CachelineSize) unsigned char offsets_l[offsets_size];
-            alignas(CachelineSize) unsigned char offsets_r[offsets_size];
+            alignas(CachelineSize) unsigned char offsets_l_storage[offsets_size];
+            alignas(CachelineSize) unsigned char offsets_r_storage[offsets_size];
 
-            // I offsets_l_base = first;
-            // I offsets_r_base = last;
+            unsigned char* offsets_l = offsets_l_storage;
+            unsigned char* offsets_r = offsets_r_storage;
+
+            I offsets_l_base = i;
+            I offsets_r_base = j;
 
             int num_l = 0, num_r = 0;
+            int start_l = 0, start_r = 0;
 
-            while (first < last)
+            while (i < j)
             {
                 // [1, 2, 3, ..., 3, 4, 2]
-                const auto rest = std::distance(first, last);
+                const auto num_known = std::distance(i, j);
 
-                // 1. Both num_l and num_r are zero: split the block into two halves.
-                // 2. Only num_l is zero: 
-
-
-                // Store offsets for left and right partitions
-                for (int i = 0; i < BlockSize; ++i)
+                const int left_split = num_l == 0 ? (num_r == 0 ? num_known >> 1 : num_known) : 0;
+                const int right_split = num_r == 0 ? (num_known - left_split) : 0;
+                
+                if (left_split >= BlockSize)
                 {
-                    offsets_l[num_l] = i;
-                    num_l += !comp(*(first + i), *pivot);
+                    for (int k = 0; k < BlockSize;)
+                    {
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, *pivot);
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, *pivot);
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, *pivot);
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, *pivot);
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, *pivot);
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, *pivot);
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, *pivot);
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, *pivot);
+                    }
+                }
+                else
+                {
+                    for (int k = 0; k < left_split;)
+                    {
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, *pivot);
+                    }
                 }
 
-                for (int i = 0; i < BlockSize; ++i)
+                if (right_split >= BlockSize)
                 {
-                    offsets_r[num_r] = i + 1;
-                    num_r += comp(*(last - 1 - i), *pivot);
+                    for (int k = 0; k < BlockSize;)
+                    {
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, *pivot);
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, *pivot);
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, *pivot);
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, *pivot);
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, *pivot);
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, *pivot);
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, *pivot);
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, *pivot);
+                    }
+                }
+                else
+                {
+                    for (int k = 0; k < right_split;)
+                    {
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, *pivot);
+                    }
                 }
 
-                // Swap elements based on offsets
-                size_t num = std::min(num_l, num_r);
+                const int num = std::min(num_l, num_r);
 
-                for (int i = 0; i < num; ++i)
+                // If the sides are not equal, we swap only the minimum number of elements.
+                for (int k = 0; k < num; ++k)
                 {
-                    std::iter_swap(first + offsets_l[i], last - offsets_r[i]);
+                    std::iter_swap(
+                        offsets_l_base + offsets_l[start_l + k], 
+                        offsets_r_base - offsets_r[start_r + k]
+                    );
                 }
 
+                num_l -= num; num_r -= num;
+                start_l += num; start_r += num;
+
+                if (num_l == 0)
+                {
+                    start_l = 0;
+                    offsets_l_base = i;
+                }
+
+                if (num_r == 0)
+                {
+                    start_r = 0;
+                    offsets_r_base = j;
+                }
             }
 
             if (num_l)
             {
-
+                offsets_l += start_l;
+                while (num_l--) std::iter_swap(offsets_l_base + offsets_l[num_l], --j);
+                i = j;
             }
 
             if (num_r)
             {
-
+                offsets_r += start_r;
+                while (num_r--) std::iter_swap(offsets_r_base - offsets_r[num_r], i++);
+                j = i;
             }
-
         }
 
         std::iter_swap(pivot, i - 1);
+        return std::make_pair(i - 1, no_swaps);
+    }
+
+    template <typename I, typename Comp>
+        requires (Branchless)
+    static constexpr std::pair<I, bool> partition_right(I first, I last, Comp comp)
+    {
+        I i = first, j = last;
+        I pivot = first;
+
+        auto pivot_val = std::move(*pivot);
+
+        while (comp(*++i, pivot_val));
+    
+        if (i - 1 == first)
+        {
+            while (i < j && !comp(*--j, pivot_val));
+        }
+        else
+        {
+            while (!comp(*--j, pivot_val));
+        }
+
+        bool no_swaps = i >= j;
+
+        if (!no_swaps)
+        {
+            std::iter_swap(i, j);
+            ++i;
+
+            constexpr auto offsets_size = BlockSize + CachelineSize;
+
+            alignas(CachelineSize) unsigned char offsets_l_storage[offsets_size];
+            alignas(CachelineSize) unsigned char offsets_r_storage[offsets_size];
+
+            unsigned char* offsets_l = offsets_l_storage;
+            unsigned char* offsets_r = offsets_r_storage;
+
+            I offsets_l_base = i;
+            I offsets_r_base = j;
+
+            int num_l = 0, num_r = 0;
+            int start_l = 0, start_r = 0;
+
+            while (i < j)
+            {
+                // [1, 2, 3, ..., 3, 4, 2]
+                const auto num_known = std::distance(i, j);
+
+                const int left_split = num_l == 0 ? (num_r == 0 ? num_known >> 1 : num_known) : 0;
+                const int right_split = num_r == 0 ? (num_known - left_split) : 0;
+                
+                if (left_split >= BlockSize)
+                {
+                    for (int k = 0; k < BlockSize;)
+                    {
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_val);
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_val);
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_val);
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_val);
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_val);
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_val);
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_val);
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_val);
+                    }
+                }
+                else
+                {
+                    for (int k = 0; k < left_split;)
+                    {
+                        offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_val);
+                    }
+                }
+
+                if (right_split >= BlockSize)
+                {
+                    for (int k = 0; k < BlockSize;)
+                    {
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_val);
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_val);
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_val);
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_val);
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_val);
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_val);
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_val);
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_val);
+                    }
+                }
+                else
+                {
+                    for (int k = 0; k < right_split;)
+                    {
+                        offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_val);
+                    }
+                }
+
+                const int num = std::min(num_l, num_r);
+
+                // If the sides are not equal, we swap only the minimum number of elements.
+                for (int k = 0; k < num; ++k)
+                {
+                    std::iter_swap(
+                        offsets_l_base + offsets_l[start_l + k], 
+                        offsets_r_base - offsets_r[start_r + k]
+                    );
+                }
+
+                num_l -= num; num_r -= num;
+                start_l += num; start_r += num;
+
+                if (num_l == 0)
+                {
+                    start_l = 0;
+                    offsets_l_base = i;
+                }
+
+                if (num_r == 0)
+                {
+                    start_r = 0;
+                    offsets_r_base = j;
+                }
+            }
+
+            if (num_l)
+            {
+                offsets_l += start_l;
+                while (num_l--) std::iter_swap(offsets_l_base + offsets_l[num_l], --j);
+                i = j;
+            }
+
+            if (num_r)
+            {
+                offsets_r += start_r;
+                while (num_r--) std::iter_swap(offsets_r_base - offsets_r[num_r], i++);
+                j = i;
+            }
+        }
+
+        *pivot = std::move(*(i - 1));
+        *(i - 1) = std::move(pivot_val);
+
+        // std::iter_swap(pivot, i - 1);
         return std::make_pair(i - 1, no_swaps);
     }
 
@@ -216,31 +429,13 @@ protected:
     {
         const auto size = std::distance(first, last);
 
-        if (size == 0)
-        {
-            return;
-        }
-
         if (size < InsertionSortThreshold)
         {
             insertion_sort(first, last, comp);
             return;
         }
 
-        auto middle = first + (size >> 1);
-
-        if (size > NintherThreshold)
-        {
-            sort3(first,      middle,     last - 1,   comp);
-            sort3(first + 1,  middle - 1, last - 2,   comp);
-            sort3(first + 2,  middle + 1, last - 3,   comp);
-            sort3(middle - 1, middle,     middle + 1, comp);
-            std::iter_swap(first, middle);
-        }
-        else
-        {
-            sort3(first, middle, last - 1, comp);
-        }
+        median(first, last, comp);
 
         // Intervals => [left1, ..., first - 1] [first, ... ]
         // If *(first - 1) == *(first), all elements in
@@ -305,20 +500,10 @@ protected:
         }
         else
         {
-            if (already_partitioned)
+            if (already_partitioned && partial_insertion_sort(first, pivot, comp) && partial_insertion_sort(pivot + 1, last, comp)) 
             {
-                bool result = partial_insertion_sort(first, pivot, comp) && partial_insertion_sort(pivot + 1, last, comp);
-                
-                if (result) 
-                {
-                    return; // Already sorted.
-                }
+                return; // Already sorted.
             }
-
-            // if (already_partitioned && partial_insertion_sort(first, pivot, comp) && partial_insertion_sort(pivot + 1, last, comp)) 
-            // {
-            //     return; // Already sorted.
-            // }
         }
 
         pdq_sort_recursive(first, pivot, comp, depth, leftmost);
@@ -360,7 +545,7 @@ public:
         using DifferenceType = typename std::iterator_traits<I>::difference_type;
         const DifferenceType n = std::distance(first, last);
         const auto max_depth = std::countl_zero(std::make_unsigned_t<DifferenceType>(n)) << 1; // 2 * log2(n)
-        return pdq_sort_recursive(first, last, comp, max_depth, true);
+        pdq_sort_recursive(first, last, comp, max_depth, true);
     }
 
 };
@@ -371,6 +556,7 @@ namespace cpp::ranges
 {
 
 inline constexpr detail::sorter<detail::pdq_sorter<>> pdq_sort;
+inline constexpr detail::sorter<detail::pdq_sorter<24, 128, 8, 64, 64, true>> pdq_sort_branchless;
 
 }
 
