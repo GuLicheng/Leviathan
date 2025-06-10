@@ -72,51 +72,6 @@ namespace pdqsort_detail {
         return log;
     }
 
-    // Sorts [begin, end) using insertion sort with the given comparison function.
-    template<class Iter, class Compare>
-    inline void insertion_sort(Iter begin, Iter end, Compare comp) {
-        typedef typename std::iterator_traits<Iter>::value_type T;
-        if (begin == end) return;
-
-        for (Iter cur = begin + 1; cur != end; ++cur) {
-            Iter sift = cur;
-            Iter sift_1 = cur - 1;
-
-            // Compare first so we can avoid 2 moves for an element already positioned correctly.
-            if (comp(*sift, *sift_1)) {
-                T tmp = PDQSORT_PREFER_MOVE(*sift);
-
-                do { *sift-- = PDQSORT_PREFER_MOVE(*sift_1); }
-                while (sift != begin && comp(tmp, *--sift_1));
-
-                *sift = PDQSORT_PREFER_MOVE(tmp);
-            }
-        }
-    }
-
-    // Sorts [begin, end) using insertion sort with the given comparison function. Assumes
-    // *(begin - 1) is an element smaller than or equal to any element in [begin, end).
-    template<class Iter, class Compare>
-    inline void unguarded_insertion_sort(Iter begin, Iter end, Compare comp) {
-        typedef typename std::iterator_traits<Iter>::value_type T;
-        if (begin == end) return;
-
-        for (Iter cur = begin + 1; cur != end; ++cur) {
-            Iter sift = cur;
-            Iter sift_1 = cur - 1;
-
-            // Compare first so we can avoid 2 moves for an element already positioned correctly.
-            if (comp(*sift, *sift_1)) {
-                T tmp = PDQSORT_PREFER_MOVE(*sift);
-
-                do { *sift-- = PDQSORT_PREFER_MOVE(*sift_1); }
-                while (comp(tmp, *--sift_1));
-
-                *sift = PDQSORT_PREFER_MOVE(tmp);
-            }
-        }
-    }
-
     // Attempts to use insertion sort on [begin, end). Will return false if more than
     // partial_insertion_sort_limit elements were moved, and abort sorting. Otherwise it will
     // successfully sort and return true.
@@ -147,50 +102,21 @@ namespace pdqsort_detail {
         return true;
     }
 
-    template<class Iter, class Compare>
-    inline void sort2(Iter a, Iter b, Compare comp) {
-        if (comp(*b, *a)) std::iter_swap(a, b);
-    }
+    template <typename I, typename Comp>
+    void sort3(I first, I middle, I last, Comp comp)
+    {
+        if (comp(*middle, *first)) 
+        {
+            std::iter_swap(middle, first);
+        }
 
-    // Sorts the elements *a, *b and *c using comparison function comp.
-    template<class Iter, class Compare>
-    inline void sort3(Iter a, Iter b, Iter c, Compare comp) {
-        sort2(a, b, comp);
-        sort2(b, c, comp);
-        sort2(a, b, comp);
-    }
-
-    template<class T>
-    inline T* align_cacheline(T* p) {
-#if defined(UINTPTR_MAX) && __cplusplus >= 201103L
-        std::uintptr_t ip = reinterpret_cast<std::uintptr_t>(p);
-#else
-        std::size_t ip = reinterpret_cast<std::size_t>(p);
-#endif
-        ip = (ip + cacheline_size - 1) & -cacheline_size;
-        return reinterpret_cast<T*>(ip);
-    }
-
-    template<class Iter>
-    inline void swap_offsets(Iter first, Iter last,
-                             unsigned char* offsets_l, unsigned char* offsets_r,
-                             size_t num, bool use_swaps) {
-        typedef typename std::iterator_traits<Iter>::value_type T;
-        use_swaps = true;
-        if (use_swaps) {
-            // This case is needed for the descending distribution, where we need
-            // to have proper swapping for pdqsort to remain O(n).
-            for (size_t i = 0; i < num; ++i) {
-                std::iter_swap(first + offsets_l[i], last - offsets_r[i]);
+        if (comp(*last, *middle)) 
+        {
+            std::iter_swap(last, middle);
+            if (comp(*middle, *first))
+            {
+                std::iter_swap(middle, first);
             }
-        } else if (num > 0) {
-            Iter l = first + offsets_l[0]; Iter r = last - offsets_r[0];
-            T tmp(PDQSORT_PREFER_MOVE(*l)); *l = PDQSORT_PREFER_MOVE(*r);
-            for (size_t i = 1; i < num; ++i) {
-                l = first + offsets_l[i]; *r = PDQSORT_PREFER_MOVE(*l);
-                r = last - offsets_r[i]; *l = PDQSORT_PREFER_MOVE(*r);
-            }
-            *r = PDQSORT_PREFER_MOVE(tmp);
         }
     }
 
@@ -228,10 +154,10 @@ namespace pdqsort_detail {
             // The following branchless partitioning is derived from "BlockQuicksort: How Branch
             // Mispredictions don’t affect Quicksort" by Stefan Edelkamp and Armin Weiss, but
             // heavily micro-optimized.
-            unsigned char offsets_l_storage[block_size + cacheline_size];
-            unsigned char offsets_r_storage[block_size + cacheline_size];
-            unsigned char* offsets_l = align_cacheline(offsets_l_storage);
-            unsigned char* offsets_r = align_cacheline(offsets_r_storage);
+            alignas(cacheline_size) unsigned char offsets_l_storage[block_size + cacheline_size];
+            alignas(cacheline_size) unsigned char offsets_r_storage[block_size + cacheline_size];
+            unsigned char* offsets_l = offsets_l_storage;
+            unsigned char* offsets_r = offsets_r_storage;
 
             Iter offsets_l_base = first;
             Iter offsets_r_base = last;
@@ -283,9 +209,15 @@ namespace pdqsort_detail {
 #endif
                 // Swap elements and update block sizes and first/last boundaries.
                 size_t num = std::min(num_l, num_r);
-                swap_offsets(offsets_l_base, offsets_r_base,
-                             offsets_l + start_l, offsets_r + start_r,
-                             num, num_l == num_r);
+
+                for (int k = 0; k < num; ++k)
+                {
+                    std::iter_swap(
+                        offsets_l_base + offsets_l[start_l + k], 
+                        offsets_r_base - offsets_r[start_r + k]
+                    );
+                }
+
                 num_l -= num; num_r -= num;
                 start_l += num; start_r += num;
 
@@ -366,39 +298,82 @@ namespace pdqsort_detail {
         return std::make_pair(pivot_pos, already_partitioned);
     }
 
-    // Similar function to the one above, except elements equal to the pivot are put to the left of
-    // the pivot and it doesn't check or return if the passed sequence already was partitioned.
-    // Since this is rarely used (the many equal case), and in that case pdqsort already has O(n)
-    // performance, no block quicksort is applied here for simplicity.
+        // Sorts [begin, end) using insertion sort with the given comparison function.
     template<class Iter, class Compare>
-    inline Iter partition_left(Iter begin, Iter end, Compare comp) {
+    inline void insertion_sort(Iter begin, Iter end, Compare comp) {
         typedef typename std::iterator_traits<Iter>::value_type T;
+        if (begin == end) return;
 
-        T pivot(PDQSORT_PREFER_MOVE(*begin));
-        Iter first = begin;
-        Iter last = end;
-        
-        while (comp(pivot, *--last));
+        for (Iter cur = begin + 1; cur != end; ++cur) {
+            Iter sift = cur;
+            Iter sift_1 = cur - 1;
 
-        if (last + 1 == end) while (first < last && !comp(pivot, *++first));
-        else                 while (                !comp(pivot, *++first));
+            // Compare first so we can avoid 2 moves for an element already positioned correctly.
+            if (comp(*sift, *sift_1)) {
+                T tmp = PDQSORT_PREFER_MOVE(*sift);
 
-        while (first < last) {
-            std::iter_swap(first, last);
-            while (comp(pivot, *--last));
-            while (!comp(pivot, *++first));
+                do { *sift-- = PDQSORT_PREFER_MOVE(*sift_1); }
+                while (sift != begin && comp(tmp, *--sift_1));
+
+                *sift = PDQSORT_PREFER_MOVE(tmp);
+            }
         }
-
-        Iter pivot_pos = last;
-        *begin = PDQSORT_PREFER_MOVE(*pivot_pos);
-        *pivot_pos = PDQSORT_PREFER_MOVE(pivot);
-
-        return pivot_pos;
     }
 
+    // Sorts [begin, end) using insertion sort with the given comparison function. Assumes
+    // *(begin - 1) is an element smaller than or equal to any element in [begin, end).
+    template<class Iter, class Compare>
+    inline void unguarded_insertion_sort(Iter begin, Iter end, Compare comp) {
+        typedef typename std::iterator_traits<Iter>::value_type T;
+        if (begin == end) return;
+
+        for (Iter cur = begin + 1; cur != end; ++cur) {
+            Iter sift = cur;
+            Iter sift_1 = cur - 1;
+
+            // Compare first so we can avoid 2 moves for an element already positioned correctly.
+            if (comp(*sift, *sift_1)) {
+                T tmp = PDQSORT_PREFER_MOVE(*sift);
+
+                do { *sift-- = PDQSORT_PREFER_MOVE(*sift_1); }
+                while (comp(tmp, *--sift_1));
+
+                *sift = PDQSORT_PREFER_MOVE(tmp);
+            }
+        }
+    }
+
+    template <typename I, typename Comp>
+    constexpr I partition_left(I first, I last, Comp comp)
+    {
+        I i = first, j = last;
+        I pivot = first;
+
+        // Find the first element not less than the pivot
+        while (comp(*pivot, *--j));
+
+        if (j + 1 == last)
+        {
+            while (i < j && !comp(*pivot, *++i));
+        }
+        else
+        {
+            while (!comp(*pivot, *++i));
+        }
+
+        while (i < j) 
+        {
+            std::iter_swap(i, j);
+            while (comp(*pivot, *--j));
+            while (!comp(*pivot, *++i));
+        }
+
+        std::iter_swap(j, pivot);
+        return j;
+    }
 
     template<class Iter, class Compare, bool Branchless>
-    inline void pdqsort_loop1(Iter begin, Iter end, Compare comp, int bad_allowed, bool leftmost = true) {
+    inline void pdqsort_loop2(Iter begin, Iter end, Compare comp, int bad_allowed, bool leftmost = true) {
         typedef typename std::iterator_traits<Iter>::difference_type diff_t;
 
         // Use a while loop for tail recursion elimination.
@@ -407,8 +382,8 @@ namespace pdqsort_detail {
 
             // Insertion sort is faster for small arrays.
             if (size < insertion_sort_threshold) {
-                if (leftmost) ::pdqsort_detail::insertion_sort(begin, end, comp);
-                else ::pdqsort_detail::unguarded_insertion_sort(begin, end, comp);
+                leftmost ? ::pdqsort_detail::insertion_sort(begin, end, comp)
+                         : ::cpp::ranges::detail::unguarded_insertion_sort(begin, end, comp);
                 return;
             }
 
@@ -494,7 +469,7 @@ namespace pdqsort_detail {
 
             // Sort the left partition first using recursion and do tail recursion elimination for
             // the right-hand partition.
-            pdqsort_loop1<Iter, Compare, Branchless>(begin, pivot_pos, comp, bad_allowed, leftmost);
+            pdqsort_loop2<Iter, Compare, Branchless>(begin, pivot_pos, comp, bad_allowed, leftmost);
             begin = pivot_pos + 1;
             leftmost = false;
         }
@@ -505,13 +480,11 @@ namespace pdqsort_detail {
         typedef typename std::iterator_traits<Iter>::difference_type diff_t;
 
         // Use a while loop for tail recursion elimination.
-        
             diff_t size = end - begin;
 
             // Insertion sort is faster for small arrays.
             if (size < insertion_sort_threshold) {
-                if (leftmost) ::pdqsort_detail::insertion_sort(begin, end, comp);
-                else ::pdqsort_detail::unguarded_insertion_sort(begin, end, comp);
+                cpp::ranges::detail::insertion_sort(begin, end, comp);
                 return;
             }
 
@@ -532,7 +505,6 @@ namespace pdqsort_detail {
             // recurse on the left partition, since it's sorted (all equal).
             if (!leftmost && !comp(*(begin - 1), *begin)) {
                 begin = partition_left(begin, end, comp) + 1;
-                // continue;
                 return;
             }
 
@@ -547,8 +519,6 @@ namespace pdqsort_detail {
             diff_t l_size = pivot_pos - begin;
             diff_t r_size = end - (pivot_pos + 1);
             bool highly_unbalanced = l_size < size / 8 || r_size < size / 8;
-
-#if 1
 
             // If we got a highly unbalanced partition we shuffle elements to break many patterns.
             if (highly_unbalanced) {
@@ -594,18 +564,9 @@ namespace pdqsort_detail {
                                         }
             }
      
-#endif            
-
-            // Sort the left partition first using recursion and do tail recursion elimination for
-            // the right-hand partition.
             pdqsort_loop<Iter, Compare, Branchless>(begin, pivot_pos, comp, bad_allowed, leftmost);
-            pdqsort_loop<Iter, Compare, Branchless>(pivot_pos + 1, end,comp, bad_allowed, false);
-            // begin = pivot_pos + 1;
-            // leftmost = false;
-        
+            pdqsort_loop<Iter, Compare, Branchless>(pivot_pos + 1, end, comp, bad_allowed, false);
     }
-
-
 }
 
 
@@ -648,7 +609,7 @@ inline void pdqsort_branchless(Iter begin, Iter end) {
 
 #endif
 
-template <bool Branchless>
+template <bool Branchless, bool Recursive = true>
 struct pdqsort_fn
 {
     template <typename I, typename Comp>
@@ -656,7 +617,11 @@ struct pdqsort_fn
     {
         if (first == last) return;
 
-        pdqsort_detail::pdqsort_loop1<I, Comp, Branchless>(
+        if constexpr (Recursive)
+            pdqsort_detail::pdqsort_loop<I, Comp, Branchless>(
+                first, last, comp, pdqsort_detail::log2(last - first));
+        else
+                pdqsort_detail::pdqsort_loop2<I, Comp, Branchless>(
             first, last, comp, pdqsort_detail::log2(last - first));
     }
 };
@@ -664,4 +629,5 @@ struct pdqsort_fn
 #include <leviathan/algorithm/common.hpp>
 
 inline constexpr cpp::ranges::detail::sorter<pdqsort_fn<false>> PdqSort;
-inline constexpr cpp::ranges::detail::sorter<pdqsort_fn<true>> PdqSortBranchless;
+inline constexpr cpp::ranges::detail::sorter<pdqsort_fn<true, false>> PdqSortBranchless;
+inline constexpr cpp::ranges::detail::sorter<pdqsort_fn<true>> PdqSortBranchlessRecursive;
