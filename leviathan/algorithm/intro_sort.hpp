@@ -50,6 +50,7 @@ protected:
         if (comp(*last, *middle)) 
         {
             std::iter_swap(last, middle);
+            
             if (comp(*middle, *first))
             {
                 std::iter_swap(middle, first);

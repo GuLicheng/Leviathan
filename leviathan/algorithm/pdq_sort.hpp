@@ -167,7 +167,7 @@ protected:
     }
 
     template <typename I, typename Comp>
-    static constexpr I swap_block1(I first, I last, I pivot, Comp comp, bool no_swaps)
+    static constexpr I swap_block(I first, I last, I pivot, Comp comp, bool no_swaps)
     {
         if (no_swaps)
         {
@@ -292,137 +292,6 @@ protected:
     }
 
     template <typename I, typename Comp>
-    static constexpr I swap_block(I first, I last, I pivot, Comp comp, bool no_swaps)
-    {
-        if (no_swaps)
-        {
-            return first - 1;
-        }
-
-        I i = first, j = last;
-
-        // Move pivot into local for speed.
-        auto pivot_value = std::move(*pivot);
-
-        std::iter_swap(i, j);
-        ++i;
-
-        constexpr auto offsets_size = BlockSize + CachelineSize;
-
-        alignas(CachelineSize) unsigned char offsets_l_storage[offsets_size];
-        alignas(CachelineSize) unsigned char offsets_r_storage[offsets_size];
-
-        unsigned char* offsets_l = offsets_l_storage;
-        unsigned char* offsets_r = offsets_r_storage;
-
-        I offsets_l_base = i;
-        I offsets_r_base = j;
-
-        int num_l = 0, num_r = 0;
-        int start_l = 0, start_r = 0;
-
-        while (i < j)
-        {
-            // [1, 2, 3, ..., 3, 4, 2]
-            const auto num_known = std::distance(i, j);
-
-            const int left_split = num_l == 0 ? (num_r == 0 ? num_known >> 1 : num_known) : 0;
-            const int right_split = num_r == 0 ? (num_known - left_split) : 0;
-            
-            static_assert(BlockSize % 8 == 0, "BlockSize must be a multiple of 8 for branchless partitioning.");
-
-            if (left_split >= BlockSize)
-            {
-                for (int k = 0; k < BlockSize;)
-                {
-                    offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_value);
-                    offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_value);
-                    offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_value);
-                    offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_value);
-                    offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_value);
-                    offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_value);
-                    offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_value);
-                    offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_value);
-                }
-            }
-            else
-            {
-                for (int k = 0; k < left_split;)
-                {
-                    offsets_l[num_l] = k++; num_l += !comp(*i++, pivot_value);
-                }
-            }
-
-            if (right_split >= BlockSize)
-            {
-                for (int k = 0; k < BlockSize;)
-                {
-                    offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_value);
-                    offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_value);
-                    offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_value);
-                    offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_value);
-                    offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_value);
-                    offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_value);
-                    offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_value);
-                    offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_value);
-                }
-            }
-            else
-            {
-                for (int k = 0; k < right_split;)
-                {
-                    offsets_r[num_r] = ++k; num_r += comp(*--j, pivot_value);
-                }
-            }
-
-            const int num = std::min(num_l, num_r);
-
-            // If the sides are not equal, we swap only the minimum number of elements.
-            for (int k = 0; k < num; ++k)
-            {
-                std::iter_swap(
-                    offsets_l_base + offsets_l[start_l + k], 
-                    offsets_r_base - offsets_r[start_r + k]
-                );
-            }
-
-            num_l -= num; num_r -= num;
-            start_l += num; start_r += num;
-
-            if (num_l == 0)
-            {
-                start_l = 0;
-                offsets_l_base = i;
-            }
-
-            if (num_r == 0)
-            {
-                start_r = 0;
-                offsets_r_base = j;
-            }
-        }
-
-        if (num_l)
-        {
-            offsets_l += start_l;
-            while (num_l--) std::iter_swap(offsets_l_base + offsets_l[num_l], --j);
-            i = j;
-        }
-
-        if (num_r)
-        {
-            offsets_r += start_r;
-            while (num_r--) std::iter_swap(offsets_r_base - offsets_r[num_r], i++);
-            j = i;
-        }
-
-        auto pos = i - 1;
-        *first = std::move(*pos);
-        *pos = std::move(pivot_value);
-        return pos;
-    }
-
-    template <typename I, typename Comp>
     static constexpr void pdq_sort_recursive(I first, I last, Comp comp, int depth, bool leftmost)
     {
         const auto size = std::distance(first, last);
@@ -509,108 +378,36 @@ protected:
     }
 
     template <typename I, typename Comp>
-    static constexpr void pdq_sort_iteration(I first, I last, Comp comp, int depth, bool leftmost)
+    static constexpr bool partial_insertion_sort(I first, I last, Comp comp)
     {
-        while (1)
+        if (first == last) 
         {
-            const auto size = std::distance(first, last);
-
-            if (size < InsertionSortThreshold)
-            {
-                insertion_sort(first, last, comp);
-                return;
-            }
-
-            median(first, last, comp);
-
-            // Intervals => [left1, ..., first - 1] [first, ... ]
-            // If *(first - 1) == *(first), all elements in
-            // the right part are not less than than left part.
-            if (!leftmost && !comp(*(first - 1), *first))
-            {
-                first = partition_left(first, last, comp) + 1;
-                continue;
-            }
-
-            auto [pivot, already_partitioned] = partition_right(first, last, comp);
-
-            const auto lsize = std::distance(first, pivot);
-            const auto rsize = std::distance(pivot + 1, last);
-            bool highly_unbalanced = lsize < size / 8 || rsize < size / 8;
-            
-            if (highly_unbalanced)
-            {
-                if (--depth == 0)
-                {   
-                    heap_sort(first, last, comp);
-                    return;
-                }
-
-                if (lsize >= InsertionSortThreshold)
-                {
-                    std::iter_swap(first, first + lsize / 4);
-                    std::iter_swap(pivot - 1, pivot - lsize / 4);
-                    
-                    if (lsize > NintherThreshold)
-                    {
-                        std::iter_swap(first + 1, first + (lsize / 4 + 1));
-                        std::iter_swap(first + 2, first + (lsize / 4 + 2));
-                        std::iter_swap(pivot - 2, pivot - (lsize / 4 + 1));
-                        std::iter_swap(pivot - 3, pivot - (lsize / 4 + 2));
-                    }
-                }
-
-                if (rsize >= InsertionSortThreshold)
-                {
-                    std::iter_swap(pivot + 1, pivot + (1 + rsize / 4));
-                    std::iter_swap(last - 1, last - rsize / 4);
-                    
-                    if (rsize > NintherThreshold)
-                    {
-                        std::iter_swap(pivot + 2, pivot + (2 + rsize / 4));
-                        std::iter_swap(pivot + 3, pivot + (3 + rsize / 4));
-                        std::iter_swap(last - 2, last - (1 + rsize / 4));
-                        std::iter_swap(last - 3, last - (2 + rsize / 4));
-                    }
-                }
-            }
-            else
-            {
-                if (already_partitioned && partial_insertion_sort(first, pivot, comp) && partial_insertion_sort(pivot + 1, last, comp)) 
-                {
-                    return; // Already sorted.
-                }
-            }
-
-            pdq_sort_iteration(first, pivot, comp, depth, leftmost);
-            first = pivot + 1;
-            leftmost = false;
+            return true;
         }
 
-    }
+        int limit = 0;
 
-    template<class Iter, class Compare>
-    static constexpr bool partial_insertion_sort(Iter begin, Iter end, Compare comp) {
-        typedef typename std::iterator_traits<Iter>::value_type T;
-        if (begin == end) return true;
-        
-        std::size_t limit = 0;
-        for (Iter cur = begin + 1; cur != end; ++cur) {
-            Iter sift = cur;
-            Iter sift_1 = cur - 1;
+        for (I i = first + 1; i != last; ++i)
+        {
+            I j = i - 1;
 
             // Compare first so we can avoid 2 moves for an element already positioned correctly.
-            if (comp(*sift, *sift_1)) {
-                T tmp = std::move(*sift);
+            if (comp(*i, *j)) 
+            {
+                auto val = std::move(*i);
+                
+                do { *i-- = std::move(*j); }
+                while (i != first && comp(val, *--j));
 
-                do { *sift-- = std::move(*sift_1); }
-                while (sift != begin && comp(tmp, *--sift_1));
-
-                *sift = std::move(tmp);
-                limit += cur - sift;
+                *i = std::move(val);
+                limit += std::distance(i, j);
             }
-            
-            if (limit > PartialInsertionSortLimit) return false;
+
+            if (limit > PartialInsertionSortLimit) 
+            {
+                // Too many elements moved, abort sorting.
+                return false; 
+            }
         }
 
         return true;
@@ -624,10 +421,22 @@ public:
         using DifferenceType = typename std::iterator_traits<I>::difference_type;
         const DifferenceType n = std::distance(first, last);
         const auto max_depth = std::countl_zero(std::make_unsigned_t<DifferenceType>(n)) << 1; // 2 * log2(n)
-        // pdq_sort_recursive(first, last, comp, max_depth, true);
-        pdq_sort_iteration(first, last, comp, max_depth, true);
+        pdq_sort_recursive(first, last, comp, max_depth, true);
     }
 
+};
+
+class pdq_sorter2
+{
+public:
+
+    template <typename I, typename Comp>
+    static constexpr void operator()(I first, I last, Comp comp)
+    {
+        using ValueType = std::iter_value_t<I>;
+        constexpr bool Branchless = std::is_arithmetic_v<ValueType>;
+        pdq_sorter<Branchless>()(std::move(first), std::move(last), std::move(comp));
+    }
 };
 
 }
@@ -635,8 +444,9 @@ public:
 namespace cpp::ranges
 {
 
-inline constexpr detail::sorter<detail::pdq_sorter<false>> pdq_sort;
+inline constexpr detail::sorter<detail::pdq_sorter<false>> pdq_sort_branch;
 inline constexpr detail::sorter<detail::pdq_sorter<true>> pdq_sort_branchless;
+inline constexpr detail::sorter<detail::pdq_sorter2> pdq_sort;
 
 }
 

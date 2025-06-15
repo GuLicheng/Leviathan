@@ -313,8 +313,8 @@ struct hash_key_equal : public Hasher, public KeyEqual
     using Hasher::operator();
     using KeyEqual::operator();
 
-    explicit hash_key_equal(const Hasher& hasher = Hasher(), const KeyEqual& ke = KeyEqual())
-         : Hasher(hasher), KeyEqual(ke) { }
+    explicit hash_key_equal(const Hasher& hasher = Hasher(), const KeyEqual& key_equal = KeyEqual())
+         : Hasher(hasher), KeyEqual(key_equal) { }
 };
 
 template <typename T> 

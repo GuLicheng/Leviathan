@@ -53,38 +53,50 @@ struct benchmark_sorter
         return *this;
     }   
 
-    benchmark_sorter& ascending(int num = 1e7, std::string_view distribution = "ascending") 
+    benchmark_sorter& ascending(int num = 1e6, std::string_view distribution = "ascending") 
     {
         std::vector<int> asce(std::from_range, std::views::iota(0, 1000000));
         return (*this)(std::move(asce), distribution);
     }
 
-    benchmark_sorter& descending(int num = 1e7, std::string_view distribution = "descending") 
+    benchmark_sorter& descending(int num = 1e6, std::string_view distribution = "descending") 
     {
         std::vector<int> desc(std::from_range, std::views::iota(0, 1000000) | std::views::reverse);
         return (*this)(std::move(desc), distribution);
     }
 
-    benchmark_sorter& all_zeros(int num = 1e7, std::string_view distribution = "all zeros") 
+    benchmark_sorter& all_zeros(int num = 1e6, std::string_view distribution = "all zeros") 
     {
         std::vector<int> all_zeros(num, 0);
         return (*this)(std::move(all_zeros), distribution);
     }
 
-    benchmark_sorter& random(int num = 1e7, std::string_view distribution = "random") 
+    benchmark_sorter& random(int num = 1e6, std::string_view distribution = "random") 
     {
-        std::vector<int> random_numbers(num);
+        std::vector<double> random_numbers(num);
         // std::generate(random_numbers.begin(), random_numbers.end(), std::mt19937{std::random_device{}()});
         std::generate(random_numbers.begin(), random_numbers.end(), std::mt19937{0});
         return (*this)(std::move(random_numbers), distribution);
     }
 
-    benchmark_sorter& pipeline(int num = 1e7, std::string_view distribution = "pipeline") 
+    benchmark_sorter& pipeline(int num = 1e6, std::string_view distribution = "pipeline") 
     {
         std::vector<int> pipeline_numbers(num);
         std::iota(pipeline_numbers.begin(), pipeline_numbers.end(), 0);
         std::ranges::reverse(pipeline_numbers | std::views::drop(num / 2));
         return (*this)(std::move(pipeline_numbers), distribution);
+    }
+
+    benchmark_sorter& random_string(int num = 1e6, int str_max_length = 50, std::string_view distribution = "random string") 
+    {
+        std::mt19937 rd(0);
+        std::vector<std::string> random_strings(num);
+        std::generate(random_strings.begin(), random_strings.end(), [&]() {
+            std::string str(rd() % str_max_length, ' ');
+            std::generate(str.begin(), str.end(), [&]() { return 'a' + rd() % 26; });
+            return str;
+        });
+        return (*this)(std::move(random_strings), distribution);
     }
 
     template <typename Range, size_t... Idx>

@@ -44,13 +44,12 @@
 
 #include <cmath>
 
-#include "basic_sort.hpp"
 #include "tim_sort.hpp"
 
 namespace cpp::ranges::detail
 {
 
-enum class power_mode
+enum class power_policy
 {
     // https://github.com/sebawild/nearly-optimal-mergesort-code/tree/master
     java,    
@@ -59,7 +58,7 @@ enum class power_mode
     python,
 };
 
-template <int MinRunLen = 24, power_mode Mode = power_mode::java> 
+template <int MinRunLen = 24, power_policy Policy = power_policy::java> 
 class power_sorter : public tim_sorter<MinRunLen>
 {
 protected:
@@ -71,7 +70,7 @@ protected:
 
     // https://github.com/python/cpython/blob/main/Objects/listobject.c
     template <typename I>
-        requires (Mode == power_mode::python)
+        requires (Policy == power_policy::python)
     static constexpr power_type node_power(I first, I middle1, I middle2, I middle3, I last)
     {
         // run1 => [middle1, middle2)
@@ -114,7 +113,7 @@ protected:
 
     // https://github.com/sebawild/nearly-optimal-mergesort-code/tree/master
     template <typename I>
-        requires (Mode == power_mode::java)
+        requires (Policy == power_policy::java)
     static constexpr power_type node_power(I first, I middle1, I middle2, I middle3, I last)
     {
         // run1 => [middle1, middle2)
@@ -144,7 +143,7 @@ protected:
         I second = count_run_and_make_ascending(first, last, comp);
 
         // We use a fixed minimum run length to ensure that the insertion sort described in the paper.
-        // The python implementation uses a minimum run length calculated by Threshold and length of origin sequence.
+        // The Python implementation uses min_run_length(which used in TimSort) to determine the minimum run length.
         if (second - first < MinRunLen)
         {
             auto third = std::ranges::next(first, MinRunLen, last);

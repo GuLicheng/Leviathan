@@ -21,6 +21,28 @@ using Iterator = std::vector<ValueT>::iterator;
 
 // inline cpp::ranges::detail::sorter<algorithms::powersort<Iterator>> PowerSort;
 
+struct STLHeapSorter
+{
+    template <typename I, typename Comp>
+    static constexpr void operator()(I first, I last, Comp comp)
+    {
+        std::ranges::make_heap(first, last, std::ref(comp));
+        std::ranges::sort_heap(first, last, std::move(comp));
+    }
+};
+
+inline constexpr cpp::ranges::detail::sorter<STLHeapSorter> STLHeapSort;
+
+std::ranges::less l1;
+std::identity id1;
+
+auto cp = cpp::ranges::detail::make_comp_proj(l1, id1);
+
+// static_assert(std::is_empty_v<decltype(l1)>);
+// static_assert(std::is_empty_v<decltype(id1)>);
+// static_assert(std::is_empty_v<decltype(cp)>);
+
+
 int main(int argc, char* argv[])
 {
     std::vector<ValueT> vec;
@@ -35,23 +57,20 @@ int main(int argc, char* argv[])
 
     for (int i = 0; i < N; ++i)
     {
-        vec.emplace_back(rd());
+        vec.emplace_back(i);
     }
 
+    std::ranges::reverse(vec | std::views::stride(9));
+
     cpp::benchmark_sorter()
-                    //    .add_sorter(std::ranges::stable_sort, "std::stable_sort")
-                    //    .add_sorter(cpp::ranges::tim_sort, "tim_sort")
-                    //    .add_sorter(cpp::ranges::power_sort, "power_sort")
-                    //    .add_sorter(cpp::ranges::intro_sort, "intro_sort")
-                    //    .add_sorter(std::ranges::sort, "std::sort")
-                    //    .add_sorter(cpp::ranges::pdq_sort, "pdq_sort")
-                    //    .add_sorter(PdqSort, "pdqsort_official")
-                    .add_sorter(PdqSortBranchless, "branchless_official")
-                    .add_sorter(PdqSortBranchlessRecursive, "branchless_official_recursive")
-                    .add_sorter(cpp::ranges::pdq_sort_branchless, "pdq_sort_branchless")
-                    .add_sorter(PdqSortBranchless, "pdqsortbranchless_official")
-                    .add_sorter(cpp::ranges::pdq_sort_branchless, "pdq_sort_branchless")
-                       .random(1e7)
+                       .add_sorter(cpp::ranges::intro_sort, "intro_sort")
+                       .add_sorter(std::ranges::sort, "std::sort")
+                       .add_sorter(STLHeapSort, "stl_heap_sort")
+                        .add_sorter(cpp::ranges::pdq_sort_branchless, "pdq_sort_branchless")
+                        .add_sorter(cpp::ranges::pdq_sort, "pdq_sort")
+                        .add_sorter(PdqSortBranchless, "pdqsortbranchless_official")
+                       .random()
+                       .random_string()
                     //    .all_zeros()
                     //    .pipeline()
                     //    .ascending()
