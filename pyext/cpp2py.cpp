@@ -8,6 +8,7 @@
 #include <pybind11/stl_bind.h>
 #include <leviathan/stopwatch.hpp>
 #include <leviathan/collections/tree/avl_tree.hpp>
+#include <leviathan/algorithm/all.hpp>
 
 namespace py = pybind11;
 
@@ -44,6 +45,16 @@ using CppAvlTreeMapIterator = CppAvlTreeMap::iterator;
 //     using reference = const value_type; // PR #3263
 //     using pointer = arrow_proxy<const value_type>;
 // };
+
+// void tim_sort(py::list ls)
+// {
+//     cpp::ranges::tim_sort(ls.begin(), ls.end(), {}, {});
+// }
+
+// void intro_sort(py::list ls)
+// {
+//     cpp::ranges::intro_sort(ls.begin(), ls.end(), {}, {});
+// }
 
 class AVLTree
 {
@@ -102,11 +113,14 @@ PYBIND11_MODULE(cpp2py, m)
         .def(py::init<>(), "Create an empty AVL tree")
         .def("__str__", &AVLTree::__str__, "Get string representation of the AVL tree")
         .def("__contains__", &AVLTree::__contains__, py::arg("key"), "Check if the AVL tree contains a key")
-        .def("__len__", &AVLTree::__len__, "Get the number of elements in the AVL tree")
+        .def("__len__", &AVLTree::__len__, "Get th‘e number of elements in the AVL tree")
         .def("get", &AVLTree::get, py::arg("key"), py::arg("default_value") = py::none(), "Get the value for a key in the AVL tree")
         .def("setdefault", &AVLTree::setdefault, py::arg("key"), py::arg("default_value"), "Set the default value for a key in the AVL tree")
         .def("__setitem__", &AVLTree::__setitem__, py::arg("key"), py::arg("value"), "Set the value for a key in the AVL tree")
         .def("clear", &AVLTree::clear, "Remove all elements from the AVL tree");
+
+    // m.def("tim_sort", &tim_sort);
+    // m.def("intro_sort", &intro_sort);
 }
 
 
