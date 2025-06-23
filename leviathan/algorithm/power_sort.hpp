@@ -162,6 +162,7 @@ protected:
     }
 
     template <typename I, typename Comp>
+        requires (Policy == power_policy::java)
     static constexpr void merge_force_collapse(std::vector<I>& runs, Comp comp)
     {
         auto last = runs.back().first;
@@ -171,6 +172,29 @@ protected:
         for (auto i = runs.size(); i >= 1; --i)
         {
             std::inplace_merge(runs[i - 1].first, runs[i].first, last, comp);
+        }
+    }
+
+    template <typename I, typename Comp>
+        requires (Policy == power_policy::python)
+    static constexpr void merge_force_collapse(std::vector<I>& runs, Comp comp)
+    {
+        if (runs.size() <= 2)
+        {
+            return; // nothing to collapse
+        }
+
+        while (runs.size() > 2)
+        {
+            size_t n = runs.size() - 3; // Top
+
+            if (n > 0 && std::distance(runs[n - 1].first, runs[n].first) < std::distance(runs[n + 1].first, runs[n + 2].first))
+            {
+                // [..., Z, Y, X
+                n--;
+            }
+
+            merge_at(runs, n, comp);
         }
     }
 

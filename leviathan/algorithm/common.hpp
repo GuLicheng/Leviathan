@@ -10,11 +10,14 @@
 namespace cpp::ranges::detail
 {
 
-consteval auto get_threshold(int N)
+consteval auto L1cacheline()
 {
-    auto L1 = std::hardware_destructive_interference_size;
-    auto L2 = std::hardware_constructive_interference_size;
-    return N;
+    return std::hardware_destructive_interference_size;
+}
+
+consteval auto L2cacheline()
+{
+    return std::hardware_constructive_interference_size;
 }
 
 template <typename Comp, typename Proj>

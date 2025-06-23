@@ -8,7 +8,9 @@
 #include <string>
 #include <string_view>
 #include <concepts>
+#include <assert.h>
 #include <algorithm>
+#include <ranges>
 #include <leviathan/meta/type.hpp>
 
 namespace cpp
@@ -53,6 +55,9 @@ struct benchmark_sorter
         return *this;
     }   
 
+
+    /////////////////////////////
+
     benchmark_sorter& ascending(int num = 1e6, std::string_view distribution = "ascending") 
     {
         std::vector<int> asce(std::from_range, std::views::iota(0, 1000000));
@@ -73,8 +78,7 @@ struct benchmark_sorter
 
     benchmark_sorter& random(int num = 1e6, std::string_view distribution = "random") 
     {
-        std::vector<double> random_numbers(num);
-        // std::generate(random_numbers.begin(), random_numbers.end(), std::mt19937{std::random_device{}()});
+        std::vector<int> random_numbers(num);
         std::generate(random_numbers.begin(), random_numbers.end(), std::mt19937{0});
         return (*this)(std::move(random_numbers), distribution);
     }
@@ -98,6 +102,9 @@ struct benchmark_sorter
         });
         return (*this)(std::move(random_strings), distribution);
     }
+    
+    /////////////////////////////
+
 
     template <typename Range, size_t... Idx>
     void benchmarks(const Range& numbers, std::index_sequence<Idx...>) 

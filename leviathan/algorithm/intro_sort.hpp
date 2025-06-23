@@ -29,12 +29,7 @@
 namespace cpp::ranges::detail
 {
 
-enum class pivot_mode
-{
-    median3,
-};
-
-template <int InsertionSortThreshold = 24, pivot_mode Mode = pivot_mode::median3> 
+template <int InsertionSortThreshold = 24> 
 class intro_sorter 
 {
 protected:
@@ -73,7 +68,6 @@ protected:
     }
 
     template <typename I, typename Comp>
-        requires (Mode == pivot_mode::median3)
     static constexpr I partition_pivot(I first, I last, Comp comp)
     {
         const auto pivot = median_three(first, last, comp);

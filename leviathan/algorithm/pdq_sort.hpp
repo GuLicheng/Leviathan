@@ -142,6 +142,9 @@ protected:
         return std::make_pair(i - 1, no_swaps);
     }
 
+    // Branchless version of partition_right
+    // This version uses a block-based approach to minimize branching.
+    // It is designed to work efficiently with arithmetic types.
     template <typename I, typename Comp>
         requires (Branchless)
     static constexpr std::pair<I, bool> partition_right(I first, I last, Comp comp)
@@ -444,8 +447,8 @@ public:
 namespace cpp::ranges
 {
 
-inline constexpr detail::sorter<detail::pdq_sorter<false>> pdq_sort_branch;
-inline constexpr detail::sorter<detail::pdq_sorter<true>> pdq_sort_branchless;
+// inline constexpr detail::sorter<detail::pdq_sorter<false>> pdq_sort_branch;
+// inline constexpr detail::sorter<detail::pdq_sorter<true>> pdq_sort_branchless;
 inline constexpr detail::sorter<detail::pdq_sorter2> pdq_sort;
 
 }
