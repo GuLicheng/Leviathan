@@ -3,7 +3,7 @@
 #include <catch2/catch_all.hpp>
 #include "random_range.hpp"
 
-using BinaryHeapFunction = cpp::algorithm::nd_heap_fn<2>;
+using BinaryHeapFunction = cpp::ranges::nd_heap_fn<2>;
 
 void STLHeapSort(auto& vec)
 {

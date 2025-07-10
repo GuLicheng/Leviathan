@@ -42,20 +42,21 @@ inline Factor factors = {
     { "失业保险个人缴费",     -1 },
     { "应扣个人所得税",       -1 },
 
-    { "住房补贴", 0 },
-    { "岗位工资", 0 },
-    { "绩效工资", 0 },
-    { "网点一线岗位补贴", 0 },
-    { "防暑降温费", 0 },
+    // { "住房补贴", 0 },
+    // { "岗位工资", 0 },
+    // { "绩效工资", 0 },
+    // { "网点一线岗位补贴", 0 },
+    // { "防暑降温费", 0 },
+    // { "基本工资", 0 },
 
     { "应发工资", 1 },
     { "应扣工资", 2 },
     { "实发工资", 3 },
 };
 
-struct SalaryCompare
+struct SalaryComparer
 {
-    constexpr static bool operator()(const String& lhs, const String& rhs) 
+    static constexpr bool operator()(const String& lhs, const String& rhs) 
     {
         auto f1 = factors[lhs];
         auto f2 = factors[rhs];
@@ -63,7 +64,7 @@ struct SalaryCompare
     }
 };
 
-using SalaryEntry = std::map<String, double, SalaryCompare>;
+using SalaryEntry = std::map<String, double, SalaryComparer>;
 
 inline constexpr auto TransferJsonEntry = [](auto&& pair) static
 { 
@@ -157,8 +158,8 @@ public:
     static void PrintTotal(bool brief = true)
     {
         auto details = Read(
-            YearMonth(2024, 1),
-            YearMonth(2024, 3)
+            YearMonth(2023, 7),
+            YearMonth(2025, 12)
         );
 
         auto result = Collect<SalaryEntry>(details);
@@ -166,12 +167,18 @@ public:
         if (brief)
         {
             // Merge performance salary 
-            static const char* performance[] = { "专项绩效工资1", "专项绩效工资2", "专项绩效工资3", "绩效工资清算", "预发绩效工资", "绩效工资预清算" };
+            static const char* performance[] = { "专项绩效工资1", "专项绩效工资2", "专项绩效工资3", "绩效工资清算", "预发绩效工资", "绩效工资预清算", "处分扣减绩效工资" };
             MergeSameItem(result, "绩效工资", performance);
    
             // Merge supplement salary
             static const char* supplement[] = { "补发基本工资", "补发岗位工资" };
             MergeSameItem(result, "基本工资", supplement);
+
+            static const char* allowance[] = { "补发网点一线岗位补贴", "网点一线岗位补贴" };
+            MergeSameItem(result, "网点一线岗位补贴", allowance);
+            
+            static const char* tax[] = { "应扣个人所得税", "本机构年度累计预缴个税" };
+            MergeSameItem(result, "应扣个人所得税", tax);
         }
 
         PrettyPrint(result);

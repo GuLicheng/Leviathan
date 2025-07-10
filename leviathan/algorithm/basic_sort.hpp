@@ -20,7 +20,7 @@ struct sorter
 
     template <std::ranges::random_access_range Range, typename Comp = std::ranges::less, typename Proj = std::identity> 
         requires std::sortable<std::ranges::iterator_t<Range>, Comp, Proj> 
-    constexpr std::ranges::borrowed_iterator_t<Range> static operator()(Range &&r, Comp comp = {}, Proj proj = {})  
+    constexpr std::ranges::borrowed_iterator_t<Range> static operator()(Range&& r, Comp comp = {}, Proj proj = {})  
     {
         return operator()(std::ranges::begin(r), std::ranges::end(r), std::move(comp), std::move(proj));
     }

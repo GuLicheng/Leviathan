@@ -140,6 +140,26 @@ struct nd_heap_fn
 
 private:
 
+    template <size_t N, typename I, typename Comp>
+    static constexpr I max_child_of(I result, I current, I last, Comp comp)
+    {
+        // [0, 1, 2]
+        if constexpr (N == Arity)
+        {
+            return result;
+        }
+        else
+        {
+            if (current == last)
+            {
+                return result;
+            }
+            
+            return max_child_of<N + 1>(comp(*result, *current) ? current : result, 
+                                        std::next(current), last, comp);
+        }
+    }
+
     // Helpers
     template <typename RandomAccessIterator, typename Comp>
     static constexpr RandomAccessIterator make_heap_impl(RandomAccessIterator first, RandomAccessIterator last, Comp comp)
@@ -164,7 +184,8 @@ private:
             {
                 RandomAccessIterator lower = first + i;
                 RandomAccessIterator upper = first + std::min(i + DifferenceType(Arity), size);
-                RandomAccessIterator max_child = std::max_element(lower, upper, comp);
+                // RandomAccessIterator max_child = std::max_element(lower, upper, comp);
+                RandomAccessIterator max_child = max_child_of<1>(lower, lower + 1, upper, comp);
 
                 if (!comp(hold_value, *max_child))
                 {
@@ -237,7 +258,8 @@ private:
             RandomAccessIterator lower = first + lower_child_index;
             DifferenceType upper_child_index = lower_child_index + Arity;
             RandomAccessIterator upper = first + std::min(upper_child_index, size);
-            RandomAccessIterator max_child = std::max_element(lower, upper, comp);
+            // RandomAccessIterator max_child = std::max_element(lower, upper, comp);
+            RandomAccessIterator max_child = max_child_of<1>(lower, lower + 1, upper, comp);
 
             if (!comp(hold_value, *max_child))
             {

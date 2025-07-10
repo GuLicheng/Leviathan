@@ -142,6 +142,7 @@ public:
 
 }
 
+#if 0
 // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2542r2.html
 namespace cpp::ranges
 {
@@ -772,6 +773,8 @@ inline constexpr concat_factory concat{};
 
 }
 
+#endif
+
 namespace std::ranges
 {
 
@@ -907,7 +910,7 @@ namespace cpp::ranges::views
 {
 
 using namespace std::views;
-using ranges::concat;
+// using ranges::concat;
 
 inline constexpr closure indirect = []<typename R>(R&& r) static
 {
@@ -916,7 +919,7 @@ inline constexpr closure indirect = []<typename R>(R&& r) static
 
 inline constexpr closure format = []<typename R>(R&& r) static
 {
-    return (R&&)r | transform(to_string);
+    return (R&&)r | transform(to_string) | cache_latest;
 };
 
 inline constexpr closure head = []<typename R>(R&& r) static
