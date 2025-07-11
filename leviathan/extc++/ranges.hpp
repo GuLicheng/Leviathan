@@ -773,7 +773,6 @@ inline constexpr concat_factory concat{};
 
 }
 
-#endif
 
 namespace std::ranges
 {
@@ -782,6 +781,8 @@ template <typename... Rs>
 inline constexpr bool enable_borrowed_range<::cpp::ranges::concat_view<Rs...>> = (enable_borrowed_range<Rs> && ...);
 
 }
+
+#endif
 
 namespace cpp::ranges
 {
@@ -950,6 +951,11 @@ inline constexpr closure to_upper = []<typename R>(R&& r) static
 inline constexpr closure split_line = []<typename R>(R&& r) static
 {
     return (R&&)r | split('\n') | transform([](auto&& x) static { return std::string_view(x); });
+};
+
+inline constexpr closure cycle = []<typename R>(R&& r) static
+{
+    return repeat((R&&)r) | join;
 };
 
 }  // namespace cpp::ranges::views
