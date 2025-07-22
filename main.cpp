@@ -1,6 +1,8 @@
 #include <leviathan/meta/type.hpp>
 #include <leviathan/extc++/all.hpp>
+#include <leviathan/config_parser/json/json.hpp>
 #include <print>
+#include <set>
 #include <algorithm>
 #include <iterator>
 #include <vector>
@@ -8,30 +10,43 @@
 #include <functional>
 #include <ranges>
 #include <string>
+#include <list>
 
-inline const std::vector<std::string> Stems = {
-    "甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"
-};
+namespace json = cpp::config::json;
 
-inline const std::vector<std::string> Branches = {
-    "子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"
-};
-
-std::string Sexagenary(int year)
-{
-    int stemIndex = (year - 4) % 10;
-    int branchIndex = (year - 4) % 12;
-    return Stems[stemIndex] + Branches[branchIndex];
-}
+// template <typename T> using Encoder = json::detail::caster<T>;
+template <typename T> using Encoder = cpp::type_caster<T, json::value, cpp::error_policy::exception>;
 
 int main()
 {
-    auto sexagenary = std::views::zip_transform(std::plus<>(), Stems | cpp::views::cycle , Branches | cpp::views::cycle)
-                    | std::views::take(60);
+    Encoder<std::string> encoder;
 
-    std::print("The sexagenary cycle:\n");
+    json::value v = json::make_json<json::object>();
+
+    v.as<json::object>().emplace("name", json::make_json<json::string>("John Doe"));
+    v.as<json::object>().emplace("age", json::make_json<json::number>(18));
+    v.as<json::object>().emplace("married", json::make_json<json::boolean>(false));
+
+    auto result = encoder(v);
+
+    std::print("Encoded JSON: {}\n", result);
+
+    Encoder<std::set<double>> vectorEncoder;
+    json::value arrayValue = json::make_json<json::array>();
+    arrayValue.as<json::array>().emplace_back(json::make_json<json::string>("3.14"));
+    arrayValue.as<json::array>().emplace_back(json::make_json<json::number>(20));
+    arrayValue.as<json::array>().emplace_back(json::make_json<json::number>(30));
+    auto vectorResult = vectorEncoder(arrayValue);
+    std::print("Encoded Vector: {}\n", vectorResult);
+
+
+    v.as<json::object>().clear();
+    v.as<json::object>().emplace("salary", json::make_json<json::number>(1000));
+    v.as<json::object>().emplace("bonus", json::make_json<json::number>(2000));
     
-    std::println("{}", sexagenary);
-    
+    // auto salary = Encoder<std::unordered_map<std::string, int>>()(v);
+    auto salary = Encoder<std::vector<std::pair<std::string, int>>>()(v);
+    std::print("Encoded Salary: {}. \n", salary);
+
     return 0;
 }

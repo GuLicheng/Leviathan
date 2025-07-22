@@ -131,6 +131,27 @@ public:
             return std::abs(x.as_floating() - y.as_floating()) < epsilon;
         }
     }
+
+    template <typename Arithmetic>
+        requires std::integral<Arithmetic> || std::floating_point<Arithmetic>
+    constexpr Arithmetic as() const
+    {
+        if constexpr (std::integral<Arithmetic>)
+        {
+            if constexpr (std::signed_integral<Arithmetic>)
+            {
+                return as_signed_integer();
+            }
+            else 
+            {
+                return as_unsigned_integer();
+            }
+        }
+        else 
+        {
+            return as_floating();
+        }
+    }
 };
 
 } // namespace cpp::config::json

@@ -122,4 +122,17 @@ static_assert(!tuple_like<int>);
 
 #define LV_STATIC_ASSERT_FALSE(s) ([]<bool Flag>() { static_assert(Flag, s); }())
 
+template <typename T>
+concept arithmetic = std::integral<T> || std::floating_point<T>;
+
+// template <typename T>
+// concept sequence_container = std::ranges::range<T> && requires 
+
+// template <typename T>
+// concept associate_container = sequence_container && requires 
+// {
+//     typename T::key_type;
+//     typename T::mapped_type;
+// };
+
 }

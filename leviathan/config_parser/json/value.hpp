@@ -1,16 +1,18 @@
 #pragma once
 
-#include "number.hpp"
-
+#include <leviathan/config_parser/json/number.hpp>
 #include <leviathan/allocators/debug_allocator.hpp>
 #include <leviathan/extc++/string.hpp>
 #include <leviathan/variable.hpp>
 #include <leviathan/variable.hpp>
 #include <leviathan/extc++/all.hpp>
+#include <leviathan/type_caster.hpp>
 
 #include <utility>
 #include <memory>
 #include <vector>
+#include <expected>
+#include <optional>
 #include <iostream>
 #include <compare>
 #include <format>
@@ -143,6 +145,17 @@ using value_base = variable<
 // Clang will complain incomplete type but GCC and MSVC are OK.
 class value : public value_base
 {
+    static constexpr const char* value_type_names[] = 
+    {
+        "null",
+        "boolean",
+        "number",
+        "string",
+        "array",
+        "object",
+        "error_code"
+    };
+
 public:
 
     using value_base::value_base;
@@ -197,6 +210,11 @@ public:
         auto code = std::get_if<error_code>(&m_data);
         return code ? *code : error_code::ok;
     }
+
+    const char* type_name() const
+    {
+        return value_type_names[m_data.index()];
+    }
 };
 
 template <typename Object, typename... Args>
@@ -207,4 +225,8 @@ value make_json(Args&&... args)
 
 }
 
+// template <typename Target, typename Source>
+// class cpp::type_caster
+// {
 
+// };

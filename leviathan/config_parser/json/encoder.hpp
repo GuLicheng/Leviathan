@@ -1,11 +1,17 @@
 #pragma once
 
-#include "../formatter.hpp"
-#include "value.hpp"
+#include <leviathan/config_parser/formatter.hpp>
+#include <leviathan/config_parser/json/value.hpp>
+#include <leviathan/extc++/concepts.hpp>
+#include <leviathan/type_caster.hpp>
 
 namespace cpp::config::json
 {
     
+namespace detail
+{
+
+[[deprecated("Use encoder2 instead")]]
 struct encoder
 {
     std::string m_result;
@@ -125,11 +131,96 @@ struct encoder2
     }
 };
 
+template <typename T> 
+struct caster;
+
+template <>
+struct caster<std::string>
+{
+    static std::string operator()(const value& v)
+    {
+        return encoder2()(v);
+    }
+};
+
+template <cpp::meta::arithmetic Arithmetic>
+struct caster<Arithmetic>
+{
+    static Arithmetic operator()(const value& v)
+    {
+        if (v.is<number>())
+        {
+            return v.as<number>().as<Arithmetic>();
+        }
+        else if (v.is<boolean>())
+        {
+            return v.as<boolean>() ? Arithmetic(1) : Arithmetic(0);
+        }
+        else if (v.is<string>())
+        {
+            std::string_view ctx = v.as<string>();
+            auto result = type_caster<Arithmetic, std::string_view, cpp::error_policy::optional>()(ctx);
+
+            if (result)
+            {
+                return *result;
+            }
+            else
+            {
+                throw std::runtime_error("Failed to convert string to number");
+            }
+        }
+        else
+        {
+           throw std::runtime_error("Value is not a number");
+        }
+    }
+};
+
+template <std::ranges::range Container>
+struct caster<Container>
+{
+    static Container operator()(const value& v)
+    {
+        using ValueType = typename Container::value_type;
+
+        if constexpr (cpp::meta::pair_like<ValueType>)
+        {
+            // object
+            using KeyType = std::tuple_element_t<0, ValueType>;
+            using MappedType = std::tuple_element_t<1, ValueType>;
+
+            if (v.is<object>())
+            {
+                return v.as<object>() | std::views::transform([](const auto& pair) {
+                    return std::pair<KeyType, MappedType>(pair.first, caster<MappedType>()(pair.second));
+                }) | std::ranges::to<Container>();
+            }
+            else
+            {
+                throw std::runtime_error("Value is not an object");
+            }
+        }
+        else
+        {
+            // array
+            if (v.is<array>())
+            {
+                return v.as<array>() | std::views::transform(caster<ValueType>()) | std::ranges::to<Container>();
+            }
+            else
+            {
+                throw std::runtime_error("Value is not an array");
+            }
+        }
+    }
+};
+
+}  // namespace detail
+
 inline std::string dumps(const value& x)
 {
-    encoder e;
-    e(x, 0);
-    return e.m_result;
+    return detail::encoder2()(x);
 }
 
 inline void dump(const value& x, const char* filename) 
@@ -152,8 +243,17 @@ struct std::formatter<cpp::json::value, CharT>
     template <typename FmtContext>
     typename FmtContext::iterator format(const cpp::json::value& value, FmtContext& ctx) const
     {
-        // auto result = cpp::json::dumps(value);
-        auto result = cpp::json::encoder2()(value);
+        auto result = cpp::json::dumps(value);
+        // auto result = cpp::json::encoder2()(value);
         return std::ranges::copy(result, ctx.out()).out;
     }   
+};
+
+template <typename Target>
+struct cpp::type_caster<Target, cpp::json::value, cpp::error_policy::exception>
+{
+    static auto operator()(const cpp::json::value& v)
+    {
+        return cpp::json::detail::caster<Target>()(v);
+    }
 };
