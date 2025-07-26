@@ -10,24 +10,39 @@
 namespace cpp
 {
 
+enum class error_code
+{
+    ok,        
+};
+
 enum class error_policy
 {
     exception,   // -> throw std::exception
-    expected,    // -> return std::expected<T, E>
+    expected,    // -> return std::expected<T, error_code>
     optional,    // -> return std::optional<T>
 };
 
 template <typename Target, typename Source, error_policy Policy = error_policy::exception>
 class type_caster;
 
-template <cpp::meta::arithmetic Arithmetic>
-class type_caster<Arithmetic, std::string_view, error_policy::optional>
+template <typename Target, typename Source>
+auto cast(const Source& source)
 {
+    return type_caster<Target, Source, error_policy::exception>::operator()(source);
+}
+
+// ------------------------------------ String To Arithmetic ------------------------------------
+template <cpp::meta::arithmetic Arithmetic, error_policy Policy>
+class type_caster<Arithmetic, std::string_view, Policy>
+{
+    static_assert(Policy == error_policy::exception || Policy == error_policy::optional, "Policy must be either exception, or optional");
+
 public:
 
-    using result_type = std::optional<Arithmetic>;
+    using result_type = std::conditional_t<Policy == error_policy::exception, Arithmetic, std::optional<Arithmetic>>;
 
     template <typename... Args>
+        requires (Policy == error_policy::optional)
     static constexpr result_type operator()(std::string_view ctx, Args... args)
     {
         Arithmetic result;
@@ -35,6 +50,16 @@ public:
         return ec == std::errc() && ptr == ctx.end() 
              ? std::make_optional(result)
              : std::nullopt;
+    }
+
+    template <typename... Args>
+        requires (Policy == error_policy::exception)
+    static constexpr result_type operator()(std::string_view ctx, Args... args)
+    {
+        auto result = type_caster<Arithmetic, std::string_view, error_policy::optional>::operator()(ctx, args...);
+
+        return result ? *result
+                       : throw std::runtime_error(std::format("Failed to convert string '{}' to arithmetic type", ctx));
     }
 };
 
@@ -51,6 +76,25 @@ public:
         return type_caster<Target, std::string_view, Policy>::operator()(std::string_view(ctx), args...);
     }
 };
+
+
+// ------------------------------------ Arithmetic To String ------------------------------------
+// std::format is enough.
+// template <cpp::meta::arithmetic Arithmetic>
+// class type_caster<std::string, Arithmetic, error_policy::exception>
+// {
+// public:
+
+//     using result_type = std::string;
+
+//     template <typename... Args>
+//     static constexpr result_type operator()(Arithmetic value, std::string_view fmt = "{}")
+//     {
+//         return std::vformat(fmt, std::make_format_args(value));
+//     }
+
+// };
+
 
 } // namespace cpp
 

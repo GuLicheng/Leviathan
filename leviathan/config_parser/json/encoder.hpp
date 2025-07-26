@@ -220,7 +220,7 @@ struct caster<Container>
 
 inline std::string dumps(const value& x)
 {
-    return detail::encoder2()(x);
+    return detail::caster<std::string>()(x);
 }
 
 inline void dump(const value& x, const char* filename) 
@@ -231,8 +231,9 @@ inline void dump(const value& x, const char* filename)
 
 } // namespace cpp::config::json
 
-template <typename CharT>
-struct std::formatter<cpp::json::value, CharT> 
+// template <typename CharT>
+template <>
+struct std::formatter<cpp::json::value, char> 
 {
     template <typename ParseContext>
     constexpr typename ParseContext::iterator parse(ParseContext& ctx)
@@ -244,7 +245,6 @@ struct std::formatter<cpp::json::value, CharT>
     typename FmtContext::iterator format(const cpp::json::value& value, FmtContext& ctx) const
     {
         auto result = cpp::json::dumps(value);
-        // auto result = cpp::json::encoder2()(value);
         return std::ranges::copy(result, ctx.out()).out;
     }   
 };

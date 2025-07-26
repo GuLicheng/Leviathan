@@ -963,6 +963,17 @@ inline constexpr closure cycle = []<typename R>(R&& r) static
 namespace cpp::ranges::views
 {
 
+// inline constexpr auto tuple_transform = []<typename... Fns>(Fns&&... fns) static
+// {
+//     auto fns = std::make_tuple((Fns&&)fns...);
+
+//     return std::views::transform([...fns=std::forward<Fns>(fns)]<typename TupleLike>(TupleLike&& tuple_like) 
+//     {
+//         static_assert(std::tuple_size_v<std::decay_t<TupleLike>> == sizeof...(Fns), "The number of arguments must match the number of functions.");
+//         return std::make_tuple((Fns&&)fns(args...)...);
+//     });
+// };
+
 inline constexpr auto compose = []<typename... Fs>(Fs&&... fs) static
 {
     // The order in ranges is reversed

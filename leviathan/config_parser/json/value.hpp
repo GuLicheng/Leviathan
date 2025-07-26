@@ -225,8 +225,63 @@ value make_json(Args&&... args)
 
 }
 
-// template <typename Target, typename Source>
-// class cpp::type_caster
-// {
+namespace cpp
+{
 
-// };
+template <typename Source>
+class type_caster<json::value, Source, error_policy::exception>
+{
+    using self_type = type_caster<json::value, Source, error_policy::exception>;
+
+public:
+    using result_type = json::value;
+
+    static result_type operator()(const Source& source)
+    {
+        if constexpr (std::is_same_v<Source, bool>)
+        {
+            return json::make_json<json::boolean>(source);
+        }
+        else if constexpr (std::is_same_v<Source, std::nullptr_t>)
+        {
+            return json::make_json<json::null>();
+        }
+        else if constexpr (meta::arithmetic<Source>)
+        {
+            return json::make_json<json::number>(source);
+        }
+        else if constexpr (meta::string_like<Source>)
+        {
+            return json::make_json<json::string>(source);
+        }
+        else if constexpr (std::ranges::range<Source>)
+        {
+            using ValueType = std::ranges::range_value_t<Source>;
+
+            if constexpr (meta::pair_like<ValueType>)
+            {
+                using KeyType = std::tuple_element_t<0, ValueType>;
+                using MappedType = std::tuple_element_t<1, ValueType>;
+            
+                return json::make_json<json::object>(
+                    source | std::views::transform([](const auto& pairlike) {
+                        return std::pair<json::string, json::value>(std::get<0>(pairlike), std::get<1>(pairlike));
+                    }) | std::ranges::to<json::object>()
+                );
+            }
+            else
+            {
+                return json::make_json<json::array>(
+                    source | std::views::transform(self_type()) | std::ranges::to<json::array>()
+                );
+            }
+        }
+        else
+        {
+            // LV_STATIC_ASSERT_FALSE(false);
+            static_assert(false);
+        }
+    } 
+};
+
+}

@@ -103,7 +103,6 @@ struct tuple_traits<Tuple<Args1...>>
     using tuple_element_t = std::tuple_element_t<N, this_type>;
 
     static constexpr auto tuple_size_v = std::tuple_size_v<this_type>;
-
 };
 
 template <typename... Ts>
@@ -125,14 +124,12 @@ static_assert(!tuple_like<int>);
 template <typename T>
 concept arithmetic = std::integral<T> || std::floating_point<T>;
 
-// template <typename T>
-// concept sequence_container = std::ranges::range<T> && requires 
+template <typename T>
+concept string_like = std::ranges::range<T> && std::same_as<std::ranges::range_value_t<T>, char>;
 
 // template <typename T>
-// concept associate_container = sequence_container && requires 
-// {
-//     typename T::key_type;
-//     typename T::mapped_type;
-// };
+// concept string_like = specialization_of<T, std::basic_string>  
+//                    || specialization_of<T, std::basic_string_view>
+//                    || (std::is_array_v<T> && std::same_as<std::ranges::range_value_t<T>, char>);
 
 }

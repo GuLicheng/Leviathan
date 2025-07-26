@@ -1,7 +1,8 @@
 #pragma once
 
-#include "json/value.hpp"
-#include "toml/value.hpp"
+#include <leviathan/config_parser/toml/value.hpp>
+#include <leviathan/config_parser/json/value.hpp>
+#include <leviathan/type_caster.hpp>
 
 #include <algorithm>
 #include <ranges>
@@ -146,3 +147,25 @@ struct json2toml
 };
 
 } // namespace cpp::config
+
+template <>
+struct cpp::type_caster<cpp::json::value, cpp::toml::value, cpp::error_policy::exception>
+{
+    using result_type = cpp::json::value;
+
+    static auto operator()(const cpp::toml::value& v)
+    {
+        return cpp::config::toml2json()(v);
+    }
+};
+
+template <>
+struct cpp::type_caster<cpp::toml::value, cpp::json::value, cpp::error_policy::exception>
+{
+    using result_type = cpp::toml::value;
+
+    static auto operator()(const cpp::json::value& v)
+    {
+        return cpp::config::json2toml()(v);
+    }
+};
