@@ -11,8 +11,8 @@ namespace cpp::config::json
 namespace detail
 {
 
-[[deprecated("Use encoder2 instead")]]
-struct encoder
+
+struct [[deprecated("Use encoder2 instead")]] encoder
 {
     std::string m_result;
 

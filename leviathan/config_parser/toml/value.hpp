@@ -115,4 +115,77 @@ void check_and_throw(bool ok, std::string_view fmt, Args&&... args)
     }
 }
 
+inline constexpr simple_caster<value> make;
+
 } // namespace cpp::config::toml
+
+namespace cpp
+{
+
+template <typename Source>
+class type_caster<toml::value, Source, error_policy::exception>
+{
+public:
+    using result_type = toml::value;
+
+    static result_type operator()(const Source& source)
+    {
+        if constexpr (std::is_same_v<Source, bool>)
+        {
+            return toml::make_toml<toml::boolean>(source);
+        }
+        else if constexpr (std::integral<Source>)
+        {
+            return toml::make_toml<toml::integer>(source);
+        }
+        else if constexpr (std::is_floating_point_v<Source>)
+        {
+            return toml::make_toml<toml::floating>(static_cast<toml::floating>(source));
+        }
+        else if constexpr (cpp::meta::string_like<Source>)
+        {
+            return toml::make_toml<toml::string>(source);
+        }
+        else if constexpr (std::same_as<Source, toml::datetime>)
+        {
+            return toml::make_toml<toml::datetime>(source);
+        }
+        else if constexpr (std::ranges::range<Source>)
+        {
+            using ValueType = std::ranges::range_value_t<Source>;
+
+            if constexpr (meta::pair_like<ValueType>)
+            {
+                using KeyType = std::tuple_element_t<0, ValueType>;
+                using KeyTypeCaster = type_caster<toml::string, KeyType, error_policy::exception>;
+
+                using MappedType = std::tuple_element_t<1, ValueType>;
+                using MappedTypeCaster = type_caster<toml::value, MappedType, error_policy::exception>;
+
+                auto as_pair = [](const auto& pairlike) static {
+                    return std::make_pair(
+                        toml::string(std::get<0>(pairlike)), 
+                        MappedTypeCaster::operator()(std::get<1>(pairlike))
+                    );
+                };
+
+                return toml::make_toml<toml::table>(
+                    source | std::views::transform(as_pair) | std::ranges::to<toml::table>()
+                );
+            }
+            else
+            {
+                return toml::make_toml<toml::array>(
+                    source | std::views::transform(type_caster<toml::value, ValueType, error_policy::exception>()) | std::ranges::to<toml::array>()
+                );
+            }
+        }
+        else
+        {
+            // LV_STATIC_ASSERT_FALSE(false);
+            static_assert(false, "not supported type for toml::value");
+        }
+    } 
+};
+
+}  // namespace cpp

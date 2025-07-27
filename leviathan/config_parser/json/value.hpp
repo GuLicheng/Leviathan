@@ -223,7 +223,9 @@ value make_json(Args&&... args)
     return Object((Args&&) args...);
 }
 
-}
+inline constexpr simple_caster<value> make;
+
+}  // namespace cpp::config::json
 
 namespace cpp
 {
@@ -231,8 +233,6 @@ namespace cpp
 template <typename Source>
 class type_caster<json::value, Source, error_policy::exception>
 {
-    using self_type = type_caster<json::value, Source, error_policy::exception>;
-
 public:
     using result_type = json::value;
 
@@ -261,18 +261,26 @@ public:
             if constexpr (meta::pair_like<ValueType>)
             {
                 using KeyType = std::tuple_element_t<0, ValueType>;
+                using KeyTypeCaster = type_caster<json::string, KeyType, error_policy::exception>;
+
                 using MappedType = std::tuple_element_t<1, ValueType>;
-            
+                using MappedTypeCaster = type_caster<json::value, MappedType, error_policy::exception>;
+
+                auto as_pair = [](const auto& pairlike) static {
+                    return std::make_pair(
+                        json::string(std::get<0>(pairlike)), 
+                        MappedTypeCaster::operator()(std::get<1>(pairlike))
+                    );
+                };
+
                 return json::make_json<json::object>(
-                    source | std::views::transform([](const auto& pairlike) {
-                        return std::pair<json::string, json::value>(std::get<0>(pairlike), std::get<1>(pairlike));
-                    }) | std::ranges::to<json::object>()
+                    source | std::views::transform(as_pair) | std::ranges::to<json::object>()
                 );
             }
             else
             {
                 return json::make_json<json::array>(
-                    source | std::views::transform(self_type()) | std::ranges::to<json::array>()
+                    source | std::views::transform(type_caster<json::value, ValueType, error_policy::exception>()) | std::ranges::to<json::array>()
                 );
             }
         }

@@ -60,8 +60,8 @@ public:
         requires (declaration<Arg>::value)
     constexpr variable(Arg arg) : m_data(Fn::from_value(std::move(arg))) { }
 
-    constexpr variable(const variable&) = delete;
-    constexpr variable& operator=(const variable&) = delete;
+    constexpr variable(const variable&) = delete("not support default copy constructor");
+    constexpr variable& operator=(const variable&) = delete("not support default copy assignment operator");
     
     constexpr variable(variable&&) = default;
     constexpr variable& operator=(variable&&) = default;

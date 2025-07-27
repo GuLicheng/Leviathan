@@ -2,6 +2,7 @@
 #include <generator>
 #include <ranges>
 #include <map>
+#include <print>
 #include <chrono>
 #include <leviathan/meta/template_info.hpp>
 #include <leviathan/print.hpp>
@@ -11,24 +12,6 @@
 namespace json = cpp::json;
 
 constexpr const char* Filename = R"(D:\Library\Leviathan\salary.json)";
-
-template <typename JsonType>
-struct JsonAs
-{
-    static auto& operator()(const json::value& jsonvalue) 
-    {
-        return jsonvalue.as<JsonType>();
-    }
-};
-
-inline constexpr auto AsJsonArray = JsonAs<json::array>();
-inline constexpr auto AsJsonObject = JsonAs<json::object>();
-
-template <typename JsonType>
-inline cpp::ranges::closure AsJson = []<typename R>(R&& r)
-{
-    return (R&&)r | std::views::transform(JsonAs<JsonType>());
-};
 
 using String = std::basic_string<char, std::char_traits<char>, cpp::json::global_allocator<char>>;
 
@@ -66,11 +49,6 @@ struct SalaryComparer
 
 using SalaryEntry = std::map<String, double, SalaryComparer>;
 
-inline constexpr auto TransferJsonEntry = [](auto&& pair) static
-{ 
-    return std::make_pair(pair.first, pair.second.template as<json::number>().as_floating()); 
-};
-
 // Merge multi map objects into one map object
 template <typename Container, typename R, typename Op = std::plus<>>
 Container Collect(R&& r, Op op = {})
@@ -92,47 +70,29 @@ Container Collect(R&& r, Op op = {})
 
 class Reader
 {
-    static std::chrono::year_month YearMonth(int year, int month)
-    {
-        return std::chrono::year_month(
-            std::chrono::year(year),
-            std::chrono::month(month)
-        );
-    }
-
-    static std::chrono::year_month ToTM(std::string_view date) 
-    {
-        auto year = cpp::config::from_chars_to_optional<int>(date.data(), date.data() + 4);
-        auto month = cpp::config::from_chars_to_optional<int>(date.data() + 5, date.data() + 7);
-        return YearMonth(*year, *month);
-    }
-
-    template <typename Salaries>
-    static auto MerPerSalary(const Salaries& salaries) 
-    {
-        return Collect<SalaryEntry>(salaries 
-              | std::views::transform(AsJsonObject) 
-              | std::views::join 
-              | std::views::transform(TransferJsonEntry));
-    }
-
 public:
 
-    static SalaryEntry Read(
-        std::chrono::year_month start, 
-        std::chrono::year_month end, 
-        const char* filename = Filename)
+    static auto ReadSalary(int year1, int month1, int year2, int month2, const char* filename = Filename)
     {
         auto root = json::load(filename);
 
-        auto valid_date = [=](std::chrono::year_month date) {
-            return start <= date && date <= end;
+        auto start = std::chrono::year_month(std::chrono::year(year1), std::chrono::month(month1));
+        auto end = std::chrono::year_month(std::chrono::year(year2), std::chrono::month(month2));
+
+        auto valid_date2 = [=](std::string_view date) {
+            int year = cpp::cast<int>(date.substr(0, 4));
+            int month = cpp::cast<int>(date.substr(5, 2));
+            auto dt = std::chrono::year_month(std::chrono::year(year), std::chrono::month(month));
+            return start <= dt && dt <= end;
         };
 
-        auto rg = AsJsonObject(root) 
-                | std::views::filter([=](auto&& pair) { return valid_date(ToTM(pair.first)); }) 
+        using Details = std::unordered_map<std::string, double>;
+        using Result = std::unordered_map<std::string, std::vector<Details>>;
+
+        auto rg = cpp::cast<Result>(root)
+                | std::views::filter([=](auto&& pair) { return valid_date2(pair.first); }) 
                 | std::views::values
-                | std::views::transform([](auto&& entries) { return MerPerSalary(AsJsonArray(entries)); })
+                | std::views::join
                 | std::views::join;
 
         return Collect<SalaryEntry>(rg);
@@ -157,12 +117,7 @@ public:
 
     static void PrintTotal(bool brief = true)
     {
-        auto details = Read(
-            YearMonth(2023, 7),
-            YearMonth(2025, 12)
-        );
-
-        auto result = Collect<SalaryEntry>(details);
+        auto result = ReadSalary(2023, 1, 2025, 12);
 
         if (brief)
         {
@@ -188,28 +143,15 @@ public:
     {
         constexpr std::string_view split_line = "\n========================================\n";
 
-        // Console::WriteLine(split_line);
-
         std::string split_line2 = std::format("\n{:-<40}\n", '-');
         auto fmt = [](auto&& pair) { return std::format("{:20} || {:15.2f}", pair.first, pair.second, '-'); };
 
-        // auto context = se 
-        //              | cpp::views::transform_join_with(split_line2)
-        //              | std::ranges::to<std::string>();
+        auto context = se 
+                     | cpp::views::transform_join_with(fmt, split_line2)
+                     | std::ranges::to<std::string>();
         
-        // Console::WriteLine(context);
-
-        // Console::WriteLine(split_line);
-
-        auto context = cpp::views::concat(
-            split_line,
-            se | cpp::views::transform_join_with(fmt, split_line2),
-            split_line
-        ) | std::ranges::to<std::string>();
-
-        Console::WriteLine(context);
-    } 
-
+        std::println("{}{}{}", split_line, context, split_line);
+    }
 };
 
 int main(int argc, char const *argv[])
@@ -222,8 +164,6 @@ int main(int argc, char const *argv[])
     {
         std::cout << s << std::endl;
     }
-
-    // std::cout << cpp::alloc::counter << '\n';
 
     return 0;
 }

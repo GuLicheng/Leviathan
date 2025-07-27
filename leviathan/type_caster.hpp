@@ -25,6 +25,18 @@ enum class error_policy
 template <typename Target, typename Source, error_policy Policy = error_policy::exception>
 class type_caster;
 
+template <typename Target, error_policy Policy = error_policy::exception>
+class simple_caster
+{
+public:
+
+    template <typename Source>
+    static constexpr auto operator()(const Source& source)
+    {
+        return type_caster<Target, Source, Policy>::operator()(source);
+    }
+};
+
 template <typename Target, typename Source>
 auto cast(const Source& source)
 {
