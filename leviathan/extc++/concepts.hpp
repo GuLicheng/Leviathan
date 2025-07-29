@@ -8,6 +8,10 @@
 namespace cpp::meta
 {
 
+template <typename T>
+concept complete = requires { sizeof(T); };
+
+// https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2098r1.pdf
 template <typename T, template <typename...> typename Primary>
 struct is_specialization_of : std::false_type { };
 
@@ -118,8 +122,6 @@ static_assert(tuple_like<std::tuple<>>);
 static_assert(tuple_like<std::tuple<int, double>>);
 static_assert(tuple_like<std::pair<bool, bool>>);
 static_assert(!tuple_like<int>);
-
-#define LV_STATIC_ASSERT_FALSE(s) ([]<bool Flag>() { static_assert(Flag, s); }())
 
 template <typename T>
 concept arithmetic = std::integral<T> || std::floating_point<T>;

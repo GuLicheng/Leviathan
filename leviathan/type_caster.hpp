@@ -38,17 +38,25 @@ public:
 };
 
 template <typename Target, typename Source>
-auto cast(const Source& source)
+constexpr auto cast(const Source& source)
 {
-    return type_caster<Target, Source, error_policy::exception>::operator()(source);
+    using Caster = type_caster<Target, Source, error_policy::exception>;
+
+    if constexpr (meta::complete<Caster>)
+    {
+        return Caster::operator()(source);
+    }
+    else 
+    {
+        return static_cast<Target>(source);
+    }
 }
 
 // ------------------------------------ String To Arithmetic ------------------------------------
 template <cpp::meta::arithmetic Arithmetic, error_policy Policy>
+    requires (Policy == error_policy::exception || Policy == error_policy::optional)
 class type_caster<Arithmetic, std::string_view, Policy>
 {
-    static_assert(Policy == error_policy::exception || Policy == error_policy::optional, "Policy must be either exception, or optional");
-
 public:
 
     using result_type = std::conditional_t<Policy == error_policy::exception, Arithmetic, std::optional<Arithmetic>>;
@@ -89,23 +97,6 @@ public:
     }
 };
 
-
-// ------------------------------------ Arithmetic To String ------------------------------------
-// std::format is enough.
-// template <cpp::meta::arithmetic Arithmetic>
-// class type_caster<std::string, Arithmetic, error_policy::exception>
-// {
-// public:
-
-//     using result_type = std::string;
-
-//     template <typename... Args>
-//     static constexpr result_type operator()(Arithmetic value, std::string_view fmt = "{}")
-//     {
-//         return std::vformat(fmt, std::make_format_args(value));
-//     }
-
-// };
 
 
 } // namespace cpp

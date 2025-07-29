@@ -193,7 +193,7 @@ inline constexpr struct
     template <typename T>
     static constexpr div_result<T> operator()(T x, T y)
     {
-        if (std::is_constant_evaluated()) 
+        if consteval 
         {
             return div_result<T>(x / y, x % y);
         }

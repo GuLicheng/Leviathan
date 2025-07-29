@@ -182,7 +182,6 @@ public:
         }
         else
         {
-            // LV_STATIC_ASSERT_FALSE(false);
             static_assert(false, "not supported type for toml::value");
         }
     } 
