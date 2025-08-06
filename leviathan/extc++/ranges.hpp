@@ -963,16 +963,20 @@ inline constexpr closure cycle = []<typename R>(R&& r) static
 namespace cpp::ranges::views
 {
 
-// inline constexpr auto tuple_transform = []<typename... Fns>(Fns&&... fns) static
-// {
-//     auto fns = std::make_tuple((Fns&&)fns...);
+inline constexpr auto pair_transform = []<typename F1, typename F2>(F1&& f1, F2&& f2) static
+{
+    return transform([f1 = (F1&&)f1, f2 = (F2&&)f2]<typename PairLike>(PairLike&& x) 
+    {
+        using T1 = std::invoke_result_t<F1, decltype(std::get<0>((PairLike&&)x))>;
+        using T2 = std::invoke_result_t<F2, decltype(std::get<1>((PairLike&&)x))>;
+        using ReturnType = std::pair<T1, T2>;
 
-//     return std::views::transform([...fns=std::forward<Fns>(fns)]<typename TupleLike>(TupleLike&& tuple_like) 
-//     {
-//         static_assert(std::tuple_size_v<std::decay_t<TupleLike>> == sizeof...(Fns), "The number of arguments must match the number of functions.");
-//         return std::make_tuple((Fns&&)fns(args...)...);
-//     });
-// };
+        return ReturnType(
+            std::invoke(f1, std::get<0>((PairLike&&)x)),
+            std::invoke(f2, std::get<1>((PairLike&&)x))
+        );
+    });
+};
 
 inline constexpr auto compose = []<typename... Fs>(Fs&&... fs) static
 {

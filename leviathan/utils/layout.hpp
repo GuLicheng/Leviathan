@@ -1,3 +1,4 @@
+#if 0
 // https://github.com/abseil/abseil-cpp/blob/master/absl/container/internal/layout.h
 #pragma once
 
@@ -147,3 +148,7 @@ struct layout : detail::layout_impl<
 };
 
 }
+
+#endif  
+
+#include "layout2.hpp"

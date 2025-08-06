@@ -49,7 +49,7 @@ struct SalaryComparer
 
 using SalaryEntry = std::map<String, double, SalaryComparer>;
 
-// Merge multi map objects into one map object
+// Merge multimap objects into one map object
 template <typename Container, typename R, typename Op = std::plus<>>
 Container Collect(R&& r, Op op = {})
 {
@@ -67,6 +67,9 @@ Container Collect(R&& r, Op op = {})
     
     return result;
 }
+
+// template <typename K, typename V>
+
 
 class Reader
 {

@@ -18,6 +18,5 @@ struct tuple_hasher
     } 
 };
 
-
 } // namespace cpp
 

@@ -118,11 +118,6 @@ struct tuple_or_pair_impl<T, U> : std::type_identity<std::pair<T, U>> { };
 template <typename... Ts>
 using tuple_or_pair = typename tuple_or_pair_impl<Ts...>::type;
 
-static_assert(tuple_like<std::tuple<>>);
-static_assert(tuple_like<std::tuple<int, double>>);
-static_assert(tuple_like<std::pair<bool, bool>>);
-static_assert(!tuple_like<int>);
-
 template <typename T>
 concept arithmetic = std::integral<T> || std::floating_point<T>;
 
