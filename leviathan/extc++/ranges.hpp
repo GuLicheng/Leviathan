@@ -66,7 +66,7 @@ template <typename T>
 using iter_category_t = typename iter_category_impl<T, has_iterator_category<T>>::type;
 
 template <typename Base>
-constexpr auto simple_iterator_concept()
+consteval auto simple_iterator_concept()
 {
     if constexpr (std::ranges::random_access_range<Base>)
         return std::random_access_iterator_tag();
@@ -140,7 +140,78 @@ public:
     }
 };
 
-}
+template <typename F, typename... Args>
+class partial : public std::ranges::range_adaptor_closure<partial<F, Args...>>
+{
+    std::tuple<Args...> m_args;
+    F m_f;
+
+    template <typename... Ts>
+    constexpr partial(F closure, Ts&&... ts) : m_args((Ts&&) ts...) 
+    { }
+
+    template <typename Self, std::ranges::viewable_range R>
+    constexpr auto operator()(this Self&& self, R&& r)
+    {
+        return std::invoke(
+            ((Self&&)self).m_f,
+            ((Self&&)self).m_args,
+            (R&&) r
+        );
+    }
+};
+
+template <typename AssociateContainer>
+inline constexpr adaptor collect = []<typename... Args>(Args&&... args) static
+{
+    auto fn = []<typename Tuple, typename R>(Tuple&& t, R&& r) static
+    {
+        auto map = std::make_from_tuple<AssociateContainer>((Tuple&&)t);
+
+        for (auto&& [key, value] : r)
+        {
+            auto [pos, ok] = map.try_emplace(key, value);
+
+            if (!ok)
+            {
+                pos->second += value;
+            }
+        }
+
+        return map;
+    };
+
+    return partial<decltype(fn), std::decay_t<Args>...>(std::move(fn), (Args&&)args...);
+};
+
+template <typename AssociateContainer>
+inline constexpr adaptor counter = []<typename... Args>(Args&&... args) static
+{
+    using MappedType = typename AssociateContainer::mapped_type;
+    static_assert(std::integral<MappedType>);
+
+    auto fn = []<typename Tuple, typename R>(Tuple&& t, R&& r) static
+    {
+        auto map = std::make_from_tuple<AssociateContainer>((Tuple&&)t);
+
+        for (auto&& value : r)
+        {
+            auto [pos, ok] = map.try_emplace(value, (MappedType)1);
+
+            if (!ok)
+            {
+                pos->second++;
+            }
+        }
+
+        return map;
+    };
+
+    return partial<decltype(fn), std::decay_t<Args>...>(std::move(fn), (Args&&)args...);
+};
+
+}  // namespace cpp::ranges
+
 
 #if 1
 // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2542r2.html

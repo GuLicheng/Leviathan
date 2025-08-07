@@ -49,28 +49,6 @@ struct SalaryComparer
 
 using SalaryEntry = std::map<String, double, SalaryComparer>;
 
-// Merge multimap objects into one map object
-template <typename Container, typename R, typename Op = std::plus<>>
-Container Collect(R&& r, Op op = {})
-{
-    Container result;
-
-    for (auto&& [item, amount] : r)
-    {
-        auto [it, ok] = result.try_emplace(item, amount);
-
-        if (!ok)
-        {
-            it->second = op(it->second, amount);
-        }
-    }
-    
-    return result;
-}
-
-// template <typename K, typename V>
-
-
 class Reader
 {
 public:
@@ -96,9 +74,11 @@ public:
                 | std::views::filter([=](auto&& pair) { return valid_date2(pair.first); }) 
                 | std::views::values
                 | std::views::join
-                | std::views::join;
+                | std::views::join
+                | std::views::transform([](auto&& details) { return std::make_pair(details.first + "^_^", details.second); })
+                | cpp::ranges::collect<SalaryEntry>();
 
-        return Collect<SalaryEntry>(rg);
+        return rg;
     }
 
     template <typename Name, typename Names>

@@ -24,77 +24,6 @@
 namespace json = cpp::config::json;
 namespace toml = cpp::config::toml;
 
-template <typename AssociateContainer, typename... Args>
-struct collect_fn : std::ranges::range_adaptor_closure<collect_fn<AssociateContainer, Args...>>
-{
-    std::tuple<Args...> m_args;
-
-    template <typename... Ts>
-    collect_fn(Ts&&... ts) : m_args((Ts&&) ts...) { }
- 
-    template <typename Self, std::ranges::viewable_range R>
-    constexpr auto operator()(this Self&& self, R&& r)
-    {
-        auto map = std::make_from_tuple<AssociateContainer>(((Self&&)self).m_args);
-        
-        for (auto&& [key, value] : r)
-        {
-            auto [pos, ok] = map.try_emplace(key, value);
-
-            if (!ok)
-            {
-                pos->second += value;
-            }
-        }
-
-        return map;
-    }
-};
-
-template <typename AssociateContainer>
-inline constexpr cpp::ranges::adaptor collect = 
-    []<typename... Args>(Args&&... args) static
-{
-    return collect_fn<AssociateContainer, std::decay_t<Args>...>((Args&&)args...);
-};
-
-template <typename AssociateContainer, typename... Args>
-struct counter_fn : std::ranges::range_adaptor_closure<counter_fn<AssociateContainer, Args...>>
-{
-    std::tuple<Args...> m_args;
-
-    template <typename... Ts>
-    counter_fn(Ts&&... ts) : m_args((Ts&&) ts...) { }
- 
-    template <typename Self, std::ranges::viewable_range R>
-    constexpr auto operator()(this Self&& self, R&& r)
-    {
-        using MappedType = typename AssociateContainer::mapped_type;
-        static_assert(std::integral<MappedType>);
-
-        auto map = std::make_from_tuple<AssociateContainer>(((Self&&)self).m_args);
-        
-        for (auto&& value : r)
-        {
-            auto [pos, ok] = map.try_emplace(value, (MappedType)1);
-
-            if (!ok)
-            {
-                pos->second++;
-            }
-        }
-
-        return map;
-    }
-};
-
-template <typename AssociateContainer>
-inline constexpr cpp::ranges::adaptor counter = 
-    []<typename... Args>(Args&&... args) static
-{
-    return counter_fn<AssociateContainer, std::decay_t<Args>...>((Args&&)args...);
-};
-
 int main()
 {
     std::multiset<int> vec = {1, 2, 3, 4, 5, 2, 1, 2, 3};
@@ -105,9 +34,13 @@ int main()
         {"Hello", 3},
     };
 
-    auto rg = vec | counter<std::map<int, int>>();
+    // std::
+
+    auto rg = vec | cpp::ranges::counter<std::map<int, int>>();
 
     std::print("Counter Map: {}\n", rg);
+
+
 
     return 0;
 }
