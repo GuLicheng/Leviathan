@@ -34,9 +34,7 @@ int main()
         {"Hello", 3},
     };
 
-    // std::
-
-    auto rg = vec | cpp::ranges::counter<std::map<int, int>>();
+    auto rg = map | cpp::ranges::collect<std::map<std::string, int>>();
 
     std::print("Counter Map: {}\n", rg);
 

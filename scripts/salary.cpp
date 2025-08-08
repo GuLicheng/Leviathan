@@ -60,65 +60,55 @@ public:
         auto start = std::chrono::year_month(std::chrono::year(year1), std::chrono::month(month1));
         auto end = std::chrono::year_month(std::chrono::year(year2), std::chrono::month(month2));
 
-        auto valid_date2 = [=](std::string_view date) {
+        auto valid_date2 = [=](std::string_view date) 
+        {
             int year = cpp::cast<int>(date.substr(0, 4));
             int month = cpp::cast<int>(date.substr(5, 2));
             auto dt = std::chrono::year_month(std::chrono::year(year), std::chrono::month(month));
             return start <= dt && dt <= end;
         };
 
+        auto filter_valid_date = cpp::views::filter([&](auto&& pair) { return valid_date2(pair.first); });
+
+        static auto KeyMapper = []() static
+        {
+            static const char* performance[] = { "专项绩效工资1", "专项绩效工资2", "专项绩效工资3", "绩效工资清算", "预发绩效工资", "绩效工资预清算", "处分扣减绩效工资" };
+            static const char* supplement[] = { "补发基本工资", "补发岗位工资" };
+            static const char* allowance[] = { "补发网点一线岗位补贴", "网点一线岗位补贴" };
+            static const char* tax[] = { "应扣个人所得税", "本机构年度累计预缴个税" };
+
+            return cpp::ranges::concat(
+                cpp::views::zip(performance, cpp::views::repeat("绩效工资")),
+                cpp::views::zip(supplement, cpp::views::repeat("基本工资")),
+                cpp::views::zip(allowance, cpp::views::repeat("网点一线岗位补贴")),
+                cpp::views::zip(tax, cpp::views::repeat("应扣个人所得税"))
+            ) | std::ranges::to<std::unordered_map<std::string, std::string>>();
+
+        }();
+
+        auto change_name = cpp::views::transform([](auto&& details) 
+        {
+            auto it = KeyMapper.find(details.first);
+            return std::make_pair((it != KeyMapper.end() ? it->second : details.first), details.second);
+        });
+
         using Details = std::unordered_map<std::string, double>;
         using Result = std::unordered_map<std::string, std::vector<Details>>;
 
         auto rg = cpp::cast<Result>(root)
-                | std::views::filter([=](auto&& pair) { return valid_date2(pair.first); }) 
+                | filter_valid_date
                 | std::views::values
                 | std::views::join
                 | std::views::join
-                | std::views::transform([](auto&& details) { return std::make_pair(details.first + "^_^", details.second); })
+                | change_name
                 | cpp::ranges::collect<SalaryEntry>();
 
         return rg;
     }
 
-    template <typename Name, typename Names>
-    static void MergeSameItem(SalaryEntry& se, Name& name, Names& names)
-    {
-        auto& target = se[name];
-
-        for (const auto& n : names)
-        {
-            auto it = se.find(n);
-
-            if (it != se.end())
-            {
-                target += it->second;
-                se.erase(it);
-            }
-        }
-    }
-
-    static void PrintTotal(bool brief = true)
+    static void PrintTotal()
     {
         auto result = ReadSalary(2023, 1, 2025, 12);
-
-        if (brief)
-        {
-            // Merge performance salary 
-            static const char* performance[] = { "专项绩效工资1", "专项绩效工资2", "专项绩效工资3", "绩效工资清算", "预发绩效工资", "绩效工资预清算", "处分扣减绩效工资" };
-            MergeSameItem(result, "绩效工资", performance);
-   
-            // Merge supplement salary
-            static const char* supplement[] = { "补发基本工资", "补发岗位工资" };
-            MergeSameItem(result, "基本工资", supplement);
-
-            static const char* allowance[] = { "补发网点一线岗位补贴", "网点一线岗位补贴" };
-            MergeSameItem(result, "网点一线岗位补贴", allowance);
-            
-            static const char* tax[] = { "应扣个人所得税", "本机构年度累计预缴个税" };
-            MergeSameItem(result, "应扣个人所得税", tax);
-        }
-
         PrettyPrint(result);
     }
 

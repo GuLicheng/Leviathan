@@ -146,6 +146,8 @@ class partial : public std::ranges::range_adaptor_closure<partial<F, Args...>>
     std::tuple<Args...> m_args;
     F m_f;
 
+public:
+
     template <typename... Ts>
     constexpr partial(F closure, Ts&&... ts) : m_args((Ts&&) ts...) 
     { }
@@ -161,6 +163,13 @@ class partial : public std::ranges::range_adaptor_closure<partial<F, Args...>>
     }
 };
 
+/**
+ * @brief Collects elements from a range into an associative container.
+ *  For items with same key, it will sum their values.
+ *   
+ *     std::multimap<std::string, double> ("key1" : 1.0, "key1" : 2.0) 
+ *  -> std::map<std::string, double>      ("key1" : 3.0)
+ */
 template <typename AssociateContainer>
 inline constexpr adaptor collect = []<typename... Args>(Args&&... args) static
 {
@@ -170,6 +179,7 @@ inline constexpr adaptor collect = []<typename... Args>(Args&&... args) static
 
         for (auto&& [key, value] : r)
         {
+            // The multimap will not provide `try_emplace`, it will cause compiler error.
             auto [pos, ok] = map.try_emplace(key, value);
 
             if (!ok)
@@ -184,6 +194,7 @@ inline constexpr adaptor collect = []<typename... Args>(Args&&... args) static
     return partial<decltype(fn), std::decay_t<Args>...>(std::move(fn), (Args&&)args...);
 };
 
+// See Python.collections.Counter
 template <typename AssociateContainer>
 inline constexpr adaptor counter = []<typename... Args>(Args&&... args) static
 {
@@ -298,7 +309,6 @@ namespace detail
     >::value;
 
 }
-
 
 template <typename Ref, typename RRef, typename It>
 concept concat_indirectly_readable_impl = requires (const It it)
@@ -817,10 +827,8 @@ public:
 
 };
 
-
 template <typename... R>
 concat_view(R&&...) -> concat_view<std::views::all_t<R>...>;
-
 
 struct concat_factory 
 {
@@ -843,7 +851,6 @@ struct concat_factory
 inline constexpr concat_factory concat{};
 
 }
-
 
 namespace std::ranges
 {
@@ -982,7 +989,6 @@ namespace cpp::ranges::views
 {
 
 using namespace std::views;
-// using ranges::concat;
 
 inline constexpr closure indirect = []<typename R>(R&& r) static
 {

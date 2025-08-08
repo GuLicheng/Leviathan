@@ -552,12 +552,12 @@ public:
     constexpr explicit operator int32_t(this int128 x) { return static_cast<int32_t>(static_cast<int64_t>(x)); }
     constexpr explicit operator int64_t(this int128 x) { return static_cast<int64_t>(x.lower()); }
 
-    // template <std::unsigned_integral Unsigned>
-    // constexpr explicit operator Unsigned(this int128 x) { return static_cast<Unsigned>(x.lower()); }
-    constexpr explicit operator uint8_t(this int128 x) { return static_cast<uint8_t>(x.lower()); }
-    constexpr explicit operator uint16_t(this int128 x) { return static_cast<uint16_t>(x.lower()); }
-    constexpr explicit operator uint32_t(this int128 x) { return static_cast<uint32_t>(x.lower()); }
-    constexpr explicit operator uint64_t(this int128 x) { return static_cast<uint64_t>(x.lower()); }
+    template <std::unsigned_integral Unsigned>
+    constexpr explicit operator Unsigned(this int128 x) { return static_cast<Unsigned>(x.lower()); }
+    // constexpr explicit operator uint8_t(this int128 x) { return static_cast<uint8_t>(x.lower()); }
+    // constexpr explicit operator uint16_t(this int128 x) { return static_cast<uint16_t>(x.lower()); }
+    // constexpr explicit operator uint32_t(this int128 x) { return static_cast<uint32_t>(x.lower()); }
+    // constexpr explicit operator uint64_t(this int128 x) { return static_cast<uint64_t>(x.lower()); }
 
     template <std::floating_point F>
     constexpr explicit operator F(this int128 x) { return make_float_from_int128<F>(x); }
