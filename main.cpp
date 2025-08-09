@@ -24,6 +24,12 @@
 namespace json = cpp::config::json;
 namespace toml = cpp::config::toml;
 
+template <typename Key, typename Value, typename Allocator>
+class sequence_map
+{
+    
+};
+
 int main()
 {
     std::multiset<int> vec = {1, 2, 3, 4, 5, 2, 1, 2, 3};
@@ -37,8 +43,6 @@ int main()
     auto rg = map | cpp::ranges::collect<std::map<std::string, int>>();
 
     std::print("Counter Map: {}\n", rg);
-
-
 
     return 0;
 }

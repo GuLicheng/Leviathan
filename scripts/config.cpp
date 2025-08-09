@@ -6,7 +6,8 @@
 void JsonToToml(const char* source, const char* target)
 {
     auto jv = cpp::json::load(source);
-    auto tv = cpp::config::json2toml()(jv);
+    // auto tv = cpp::config::json2toml()(jv);
+    auto tv = cpp::cast<cpp::toml::value>(jv);
     
     std::ofstream ofs(target, std::ios::binary | std::ios::out | std::ios::app);
 

@@ -4,9 +4,17 @@
 #include <type_traits>
 #include <tuple> 
 #include <complex>
+#include <array>
 
 namespace cpp::meta
 {
+
+template <typename T, typename... Ts>
+    requires (sizeof...(Ts) > 0)
+consteval bool one_of()
+{
+    return (std::is_same_v<T, Ts> || ...);   
+}
 
 template <typename T>
 concept complete = requires { sizeof(T); };

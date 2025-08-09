@@ -12,7 +12,8 @@ namespace cpp
 
 enum class error_code
 {
-    ok,        
+    ok,     
+    type_error,   
 };
 
 enum class error_policy

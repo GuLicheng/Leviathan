@@ -279,8 +279,10 @@ public:
             }
             else
             {
+                using ValueTypeCaster = type_caster<json::value, ValueType, error_policy::exception>;
+                
                 return json::make_json<json::array>(
-                    source | std::views::transform(type_caster<json::value, ValueType, error_policy::exception>()) | std::ranges::to<json::array>()
+                    source | std::views::transform(ValueTypeCaster()) | std::ranges::to<json::array>()
                 );
             }
         }
