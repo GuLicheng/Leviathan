@@ -1,48 +1,75 @@
 #include <print>
 #include <leviathan/meta/type.hpp>
-#include <leviathan/extc++/all.hpp>
+// #include <leviathan/extc++/all.hpp>
 #include <leviathan/config_parser/json/json.hpp>
-#include <leviathan/config_parser/toml/toml.hpp>
-#include <leviathan/config_parser/value_cast.hpp>
-#include <leviathan/math/int128.hpp>
-#include <set>
-#include <algorithm>
-#include <iterator>
-#include <vector>
-#include <unordered_map>
-#include <set>
-#include <unordered_set>
-#include <list>
-#include <functional>
-#include <ranges>
-#include <map>
-#include <numeric>
-#include <string>
-#include <list>
-#include <leviathan/collections/container_interface.hpp>
+// #include <leviathan/config_parser/toml/toml.hpp>
+// #include <leviathan/config_parser/value_cast.hpp>
+// #include <leviathan/math/int128.hpp>
+// #include <set>
+// #include <algorithm>
+// #include <iterator>
+// #include <vector>
+// #include <unordered_map>
+// #include <set>
+// #include <unordered_set>
+// #include <list>
+// #include <functional>
+// #include <ranges>
+// #include <map>
+// #include <numeric>
+// #include <string>
+// #include <list>
+// #include <leviathan/collections/container_interface.hpp>
 
-namespace json = cpp::config::json;
-namespace toml = cpp::config::toml;
+// namespace json = cpp::config::json;
+// namespace toml = cpp::config::toml;
 
-template <typename Key, typename Value, typename Allocator>
-class sequence_map
+#include <D:/code/json/single_include/nlohmann/json.hpp>
+#include <D:/code/json/single_include/nlohmann/json_fwd.hpp>
+
+struct FooRef
 {
-    
+    template <typename... Args>
+    FooRef(Args &&...args) { }
+
+    FooRef() = default;
+
+    FooRef(FooRef&&) = default;
+    FooRef& operator=(FooRef&&) = default;
+
+
+    FooRef(const FooRef&) = delete;
+    FooRef& operator=(const FooRef&) = delete;
+};
+
+struct Foo
+{
+    template <class Args>
+    Foo(Args &&args) { }
+
+    // template <typename T>
+    Foo(std::initializer_list<FooRef> init)
+    { } 
 };
 
 int main()
 {
-    std::multiset<int> vec = {1, 2, 3, 4, 5, 2, 1, 2, 3};
 
-    std::unordered_multimap<std::string, int> map = {
-        {"Hello", 1},
-        {"World", 2},
-        {"Hello", 3},
+  cpp::json::value obj = {
+      {"pi", 3.141},
+      {"happy", true},
+      {"name", std::string("Niels") },
+      {"nothing", nullptr},
+      {"answer", {{"everything", 42}}},
+      {"list", {1, 0, 2}},
+      {"object", {{"currency", "USD"}, {"value", 42.99}}}
     };
 
-    auto rg = map | cpp::ranges::collect<std::map<std::string, int>>();
+  std::println("{}", obj);
 
-    std::print("Counter Map: {}\n", rg);
 
-    return 0;
+  cpp::json::value arr = { 1, 3.14, nullptr, "Hello", true, { -1 }, { { "Alice", 18 } } };
+  std::println("{}", arr);
+
+  return 0;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <leviathan/extc++/concepts.hpp>
+#include <leviathan/type_caster.hpp>
 #include <functional>
 #include <type_traits>
 #include <variant>
@@ -8,7 +9,7 @@
 
 namespace cpp
 {
-    
+
 /**
  * @brief
  * 
@@ -54,6 +55,7 @@ protected:
 
 public:
 
+    // The std::variant will hold the first type for default ctor.
     constexpr variable() = default;
 
     template <typename Arg>

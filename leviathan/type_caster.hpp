@@ -110,17 +110,17 @@ public:
 /**
  * @brief Type caster for arithmetic types from string using std::from_chars.
  */
-template <typename Target, error_policy Policy>
-class type_caster<Target, std::string, Policy> : public type_caster<Target, std::string_view, Policy>
+template <cpp::meta::arithmetic Arithmetic, error_policy Policy>
+class type_caster<Arithmetic, std::string, Policy> : public type_caster<Arithmetic, std::string_view, Policy>
 {
 public:
 
-    using result_type = typename type_caster<Target, std::string_view, Policy>::result_type;
+    using result_type = typename type_caster<Arithmetic, std::string_view, Policy>::result_type;
 
     template <typename... Args>
     static constexpr result_type operator()(const std::string& ctx, Args... args)
     {
-        return type_caster<Target, std::string_view, Policy>::operator()(std::string_view(ctx), args...);
+        return type_caster<Arithmetic, std::string_view, Policy>::operator()(std::string_view(ctx), args...);
     }
 };
 
