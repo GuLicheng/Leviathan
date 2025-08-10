@@ -10,7 +10,7 @@
 namespace cpp
 {
 
-enum class error_code
+enum class cast_error
 {
     ok,     
     type_error,   
@@ -19,7 +19,7 @@ enum class error_code
 enum class error_policy
 {
     exception,   // -> throw std::exception
-    expected,    // -> return std::expected<T, error_code>
+    expected,    // -> return std::expected<T, cast_error>
     optional,    // -> return std::optional<T>
 };
 
@@ -37,40 +37,6 @@ public:
         return type_caster<Target, Source, Policy>::operator()(source);
     }
 };
-
-/**
- * @brief Casts a value from one type to another.
- * 
- * @param Target The target type to cast to.
- * @param Source The source type to cast from.
- * @param Args... Additional arguments for the caster.
- * @return The casted value of type Target.
- */
-template <typename Target, typename Source, typename... Args>
-constexpr auto cast(const Source& source, Args... args)
-{
-    using Caster = type_caster<Target, Source, error_policy::exception>;
-
-    if constexpr (meta::complete<Caster>)
-    {
-        return Caster::operator()(source, args...);
-    }
-    else 
-    {
-        static_assert(sizeof...(Args) == 0, "Invalid arguments for type_caster");
-        return static_cast<Target>(source);
-    }
-}
-
-/**
- * @brief Specialized cast function for string literals.
- */
-template <typename Target, typename... Args>
-constexpr auto cast(const char* source, Args... args)
-{
-    std::string_view sv(source);
-    return cast<Target>(sv, args...);
-}
 
 // ------------------------------------ String To Arithmetic ------------------------------------
 
@@ -123,6 +89,70 @@ public:
         return type_caster<Arithmetic, std::string_view, Policy>::operator()(std::string_view(ctx), args...);
     }
 };
+
+// /**
+//  * @brief Casts a value from one type to another.
+//  * 
+//  * @param Target The target type to cast to.
+//  * @param Source The source type to cast from.
+//  * @param Args... Additional arguments for the caster.
+//  * @return The casted value of type Target.
+//  */
+// template <typename Target, typename Source, typename... Args>
+// constexpr auto cast(const Source& source, Args... args)
+// {
+//     using Caster = type_caster<Target, Source>;
+
+//     if constexpr (meta::complete<Caster>)
+//     {
+//         return Caster::operator()(source, args...);
+//     }
+//     else 
+//     {
+//         static_assert(sizeof...(Args) == 0, "Invalid arguments for type_caster");
+//         return static_cast<Target>(source);
+//     }
+// }
+
+// /**
+//  * @brief Specialized cast function for string literals.
+//  */
+// template <typename Target, typename... Args>
+// constexpr auto cast(const char* source, Args... args)
+// {
+//     std::string_view sv(source);
+//     return cast<Target>(sv, args...);
+// }
+
+template <typename Target>
+struct caster
+{
+    template <typename Source, typename... Args>
+    static constexpr auto operator()(const Source& source, Args... args)
+    {
+        using Caster = type_caster<Target, Source>;
+
+        if constexpr (meta::complete<Caster>)
+        {
+            return Caster::operator()(source, args...);
+        }
+        else 
+        {
+            static_assert(sizeof...(Args) == 0, "Invalid arguments for type_caster");
+            return static_cast<Target>(source);
+        }
+    }
+
+    template <typename... Args>
+    static constexpr auto operator()(const char* source, Args... args)
+    {
+        std::string_view sv(source);
+        return operator()(sv, args...);
+    }
+};
+
+template <typename Target>
+inline constexpr auto cast = caster<Target>{};
 
 } // namespace cpp
 

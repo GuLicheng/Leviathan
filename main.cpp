@@ -39,10 +39,10 @@ int main()
         {"list", {1, 0, 2, "json"}},
         {"object", {{"currency", "USD"}, {"value", 42.99}}}};
 
-    // std::println("{:i8}", obj);
+    std::println("{:i8}", obj);
 
-    // cpp::json::value arr = {1, 3.14, nullptr, "Hello", true, {-1}, {{"Alice", 18}}};
-    // std::println("{}", arr);
+    cpp::json::value arr = {1, 3.14, nullptr, "Hello", true, {-1}, {{"Alice", 18}}};
+    std::println("{}", arr);
 
     std::unordered_map<int, double> m = {   
         { 1, 3.14 },
@@ -56,8 +56,9 @@ int main()
 
     std::println("{:I8}", obj);
 
-    // std::println("{}", cpp::cast<std::map<std::string, int>>(v));
+    std::println("{}", cpp::cast<std::map<std::string, int>>(v));
     std::println("{}", cpp::cast<std::map<int, int>>(v));
+
 
     return 0;
 }
