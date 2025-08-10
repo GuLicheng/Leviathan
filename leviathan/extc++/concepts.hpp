@@ -16,6 +16,16 @@ consteval bool one_of()
     return (std::is_same_v<T, Ts> || ...);   
 }
 
+template <typename T, typename... Ts>
+consteval size_t index()
+{
+    auto ls = { std::is_same_v<T, Ts>... };
+    return std::ranges::distance(
+        std::ranges::begin(ls),
+        std::ranges::find(ls, true)
+    );
+}
+
 template <typename T>
 concept complete = requires { sizeof(T); };
 
@@ -130,7 +140,8 @@ template <typename T>
 concept arithmetic = std::integral<T> || std::floating_point<T>;
 
 template <typename T>
-concept string_like = std::ranges::range<T> && std::same_as<std::ranges::range_value_t<T>, char>;
+concept string_like = (std::ranges::range<T> && std::same_as<std::ranges::range_value_t<T>, char>)
+                   || std::same_as<std::decay_t<T>, const char*>;
 
 // template <typename T>
 // concept string_like = specialization_of<T, std::basic_string>  

@@ -62,22 +62,26 @@ public:
         requires (declaration<Arg>::value)
     constexpr variable(Arg arg) : m_data(Fn::from_value(std::move(arg))) { }
 
+    // template <typename Arg> requires (declaration<Arg>::value)
+    // constexpr variable& operator=(Arg arg);
+
     constexpr variable(const variable&) = delete("not support default copy constructor");
     constexpr variable& operator=(const variable&) = delete("not support default copy assignment operator");
     
     constexpr variable(variable&&) = default;
     constexpr variable& operator=(variable&&) = default;
 
-    template <typename T, typename... Args>
-    constexpr void emplace(Args&&... args)
-    {
-        m_data.template emplace<T>(Fn::from_value((Args&&)args...));
-    }
-
     // Compare each type directly may be incorrect. For example, if lhs 
     // contains 'int' and rhs contains 'double', the lhs('int') can directly
     // compared with rhs('double'), but they hold different types.   
     // constexpr bool operator==(const variable& rhs) const;
+
+    template <typename T, typename... Args>
+    void emplace(Args&&... args)
+    {
+        constexpr auto idx = meta::index<T, Ts...>();
+        m_data.template emplace<idx>(Fn::from_value(T((Args&&) args...)));
+    }
 
     constexpr size_t index() const 
     {

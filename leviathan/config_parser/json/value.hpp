@@ -142,26 +142,6 @@ using value_base = variable<
     error_code  // If some errors happen, return error_code.
 >;
 
-// Helper class for initializer_list support.
-template <typename ValueType>
-struct value_ref
-{
-    std::optional<ValueType> m_value;
-
-    value_ref(const ValueType& value) = delete("Copying value_ref is not allowed");
-    value_ref& operator=(const ValueType& value) = delete("Copying value_ref is not allowed");
-
-    value_ref(std::initializer_list<value_ref<ValueType>> init) : m_value(init)  
-    { }
-
-    template <typename T>
-    value_ref(T&& x)
-    {
-        using Caster = cpp::type_caster<json::value, T>;
-        m_value.emplace(Caster()((T&&)x));
-    }
-};
-
 // Clang will complain incomplete type but GCC and MSVC are OK.
 class value : public value_base
 {
@@ -182,35 +162,39 @@ public:
     using base::base;
     using value_base::operator=;
 
-    value(std::initializer_list<value_ref<value>> init) 
+    template <typename T>
+    value(T x) : base(cpp::type_caster<value, T>()(std::move(x)))
+    { }
+
+    value(std::initializer_list<value> init) 
     {
         // Check type of each item in the initializer list.
-        bool is_object = std::ranges::all_of(init, [](const value_ref<value>& item) {
-            return item.m_value->is_array() 
-                && item.m_value->as<array>().size() == 2 
-                && item.m_value->as<array>()[0].is_string();
+        bool is_object = std::ranges::all_of(init, [](const value& item) {
+            return item.is_array() 
+                && item.as<array>().size() == 2 
+                && item.as<array>()[0].is_string();
         });
 
         if (is_object)
         {
-            *this = value(object());
+            this->emplace<object>();
 
             for (auto& item : init)
             {
                 this->as<object>().try_emplace(
-                    std::move(item.m_value->as<array>()[0].as<string>()), 
-                    const_cast<value&&>(std::move(item.m_value->as<array>()[1]))                      
+                    std::move(item.as<array>()[0].as<string>()), 
+                    const_cast<value&&>(std::move(item.as<array>()[1]))                      
                 );
             }
         }
         else
         {
-            *this = value(array());
+            this->emplace<array>();
 
             for (auto& item : init)
             {
                 this->as<array>().emplace_back(
-                    const_cast<value&&>(std::move(*item.m_value))
+                    const_cast<value&&>(std::move(item))
                 );
             }
         }
@@ -340,11 +324,6 @@ public:
                     source | std::views::transform(ValueTypeCaster()) | std::ranges::to<json::array>()
                 );
             }
-        }
-        else if constexpr (std::is_same_v<Source, const char* const>)
-        {
-            // For case of string literals.
-            return json::make_json<json::string>(source);
         }
         else
         {
