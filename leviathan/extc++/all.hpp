@@ -11,5 +11,5 @@
 #include "time.hpp"
 #include "iterator.hpp"
 #include "file.hpp"
-
+#include "functional.hpp"
 

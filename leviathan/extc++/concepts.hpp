@@ -11,12 +11,6 @@ namespace cpp::meta
 
 template <typename T, typename... Ts>
     requires (sizeof...(Ts) > 0)
-consteval bool one_of()
-{
-    return (std::is_same_v<T, Ts> || ...);   
-}
-
-template <typename T, typename... Ts>
 consteval size_t index()
 {
     auto ls = { std::is_same_v<T, Ts>... };
@@ -24,6 +18,12 @@ consteval size_t index()
         std::ranges::begin(ls),
         std::ranges::find(ls, true)
     );
+}
+
+template <typename T, typename... Ts>
+consteval bool one_of()
+{
+    return index<T, Ts...>() < sizeof...(Ts); 
 }
 
 template <typename T>
@@ -147,5 +147,7 @@ concept string_like = (std::ranges::range<T> && std::same_as<std::ranges::range_
 // concept string_like = specialization_of<T, std::basic_string>  
 //                    || specialization_of<T, std::basic_string_view>
 //                    || (std::is_array_v<T> && std::same_as<std::ranges::range_value_t<T>, char>);
+
+
 
 }

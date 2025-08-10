@@ -103,7 +103,7 @@ public:
         auto result = type_caster<Arithmetic, std::string_view, error_policy::optional>::operator()(ctx, args...);
 
         return result ? *result
-                       : throw std::runtime_error(std::format("Failed to convert string '{}' to arithmetic type", ctx));
+                      : throw std::runtime_error(std::format("Failed to convert string '{}' to arithmetic type", ctx));
     }
 };
 
