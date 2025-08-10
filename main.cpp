@@ -50,13 +50,14 @@ int main()
     };
 
     cpp::json::value v = { 
-        {"pi", 3.141},
-        {"nature-e", 2.718},
+        {"203", 3.141},
+        {"5477", 2.718},
     };
 
     std::println("{:I8}", obj);
 
-    std::println("{}", std::set{ 1, 2, 3 });
+    // std::println("{}", cpp::cast<std::map<std::string, int>>(v));
+    std::println("{}", cpp::cast<std::map<int, int>>(v));
 
     return 0;
 }

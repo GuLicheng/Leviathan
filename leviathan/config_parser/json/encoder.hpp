@@ -130,14 +130,23 @@ struct caster<Container>
 
         if constexpr (cpp::meta::pair_like<ValueType>)
         {
-            // object
-            using KeyType = std::tuple_element_t<0, ValueType>;
+            // For map<K, V>, the value type is std::pair<const K, V>
+            // we should remove cv-qualifiers for value_type::first_type
+            using KeyType = std::remove_cvref_t<std::tuple_element_t<0, ValueType>>;
+            
+            // If KeyType is std::string, we can use std::identity directly to avoid unnecessary conversion.
+            // Otherwise, we need to use type_caster<KeyType, string>
+            using KeyTypeCaster = std::conditional_t<
+                std::is_same_v<KeyType, string>, std::identity, type_caster<KeyType, string>>;
+            
             using MappedType = std::tuple_element_t<1, ValueType>;
+            using MappedTypeCaster = caster<MappedType>;
 
             if (v.is<object>())
             {
                 return v.as<object>()
-                     | cpp::views::pair_transform(std::identity(), caster<MappedType>())
+                    //  | cpp::views::pair_transform(std::identity(), caster<MappedType>())
+                     | cpp::views::pair_transform(KeyTypeCaster(), MappedTypeCaster())
                      | std::ranges::to<Container>();
             }
             else

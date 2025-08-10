@@ -162,6 +162,8 @@ public:
     using base::base;
     using value_base::operator=;
 
+    // Follow two ctors are used to convert from other std::initializer_list types.
+    // For example, `value v = {1, 2, 3};` will call this ctor.
     template <typename T>
     value(T x) : base(cpp::type_caster<value, T>()(std::move(x)))
     { }
@@ -300,10 +302,10 @@ public:
             if constexpr (meta::pair_like<ValueType>)
             {
                 using KeyType = std::tuple_element_t<0, ValueType>;
-                using KeyTypeCaster = type_caster<json::string, KeyType, error_policy::exception>;
+                using KeyTypeCaster = type_caster<json::string, KeyType>;
 
                 using MappedType = std::tuple_element_t<1, ValueType>;
-                using MappedTypeCaster = type_caster<json::value, MappedType, error_policy::exception>;
+                using MappedTypeCaster = type_caster<json::value, MappedType>;
 
                 auto as_pair = [](const auto& pairlike) static {
                     return std::make_pair(
