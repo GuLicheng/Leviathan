@@ -311,4 +311,106 @@ TEST_CASE("files")
     }
 }
 
+TEST_CASE("json_auto_make")
+{
+    SECTION("number")
+    {
+        auto v = json::make(0);
+        REQUIRE(v.is<json::number>());
+        REQUIRE(v.as<json::number>().as_signed_integer() == 0);
+
+        auto v2 = json::make(3.14);
+        REQUIRE(v2.is<json::number>());
+        REQUIRE(v2.as<json::number>().is_floating());
+        REQUIRE(v2.as<json::number>().as_floating() == 3.14);
+    }
+
+    SECTION("boolean")
+    {
+        auto v = json::make(true);
+        REQUIRE(v.is<json::boolean>());
+        REQUIRE(v.as<json::boolean>() == true);
+
+        auto v2 = json::make(false);
+        REQUIRE(v2.is<json::boolean>());
+        REQUIRE(v2.as<json::boolean>() == false);
+    }
+
+    SECTION("string")
+    {
+        auto v = json::make("Hello, World!");
+        REQUIRE(v.is<json::string>());
+        REQUIRE(v.as<json::string>() == "Hello, World!");
+    
+        auto v2 = json::make(std::string("Hello, World!"));
+        REQUIRE(v2.is<json::string>());
+        REQUIRE(v2.as<json::string>() == "Hello, World!");
+    }
+
+    SECTION("null")
+    {
+        auto v = json::make(nullptr);
+        REQUIRE(v.is<json::null>());
+    }
+
+    SECTION("array")
+    {
+        auto v = json::make(std::vector<int>{1, 2, 3});
+        REQUIRE(v.is<json::array>());
+        auto& arr = v.as<json::array>();
+        REQUIRE(arr.size() == 3);
+        REQUIRE(arr[0].as<json::number>().as_signed_integer() == 1);
+        REQUIRE(arr[1].as<json::number>().as_signed_integer() == 2);
+        REQUIRE(arr[2].as<json::number>().as_signed_integer() == 3);
+    }
+
+    SECTION("object")
+    {
+        auto v = json::make(std::map<std::string, int>{{"key1", 1}, {"key2", 2}});
+        REQUIRE(v.is<json::object>());
+        auto& obj = v.as<json::object>();
+        REQUIRE(obj.size() == 2);
+        REQUIRE(obj["key1"].as<json::number>().as_signed_integer() == 1);
+        REQUIRE(obj["key2"].as<json::number>().as_signed_integer() == 2);
+    }
+
+    SECTION("std::initializer_list")
+    {
+        json::value obj = { true, 1, 3.14, "HelloWorld", nullptr, { 0, 1, 2 }, {{"key1", 1}, {"key2", 2}} };
+        REQUIRE(obj.is<json::array>());
+        auto& arr = obj.as<json::array>();
+        REQUIRE(arr.size() == 7);
+        REQUIRE(arr[0].is<json::boolean>());
+        REQUIRE(arr[1].is<json::number>());
+        REQUIRE(arr[2].is<json::number>());
+        REQUIRE(arr[3].is<json::string>());
+        REQUIRE(arr[4].is<json::null>());
+        REQUIRE(arr[5].is<json::array>());
+        REQUIRE(arr[6].is<json::object>());
+    }
+}
+
+TEST_CASE("json_cast")
+{
+    json::value obj = { 1, 2, 3 };
+
+    auto intVector = cpp::cast<std::vector<int>>(obj);
+    REQUIRE(intVector.size() == 3);
+    REQUIRE(intVector[0] == 1);
+    REQUIRE(intVector[1] == 2);
+    REQUIRE(intVector[2] == 3);
+
+    json::value obj2 = {
+        {"key1", 1},
+        {"key2", 2},
+        {"key3", 3}
+    };
+
+    auto StrIntMap = cpp::cast<std::map<std::string, int>>(obj2);
+    REQUIRE(StrIntMap.size() == 3);
+    REQUIRE(StrIntMap["key1"] == 1);
+    REQUIRE(StrIntMap["key2"] == 2);
+    REQUIRE(StrIntMap["key3"] == 3);
+}
+
 

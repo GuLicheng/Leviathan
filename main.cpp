@@ -30,35 +30,12 @@ struct hack : std::stack<int> {
 int main()
 {
 
-    cpp::json::value obj = {
-        {"pi", 3.141},
-        {"happy", true},
-        {"name", std::string("Niels")},
-        {"nothing", nullptr},
-        {"answer", {{"everything", 42}}},
-        {"list", {1, 0, 2, "json"}},
-        {"object", {{"currency", "USD"}, {"value", 42.99}}}};
+    std::string s = R"""(
+        [true, false, null]
+    )""";
 
-    std::println("{:i8}", obj);
-
-    cpp::json::value arr = {1, 3.14, nullptr, "Hello", true, {-1}, {{"Alice", 18}}};
-    std::println("{}", arr);
-
-    std::unordered_map<int, double> m = {   
-        { 1, 3.14 },
-        { 2, 2.17 }
-    };
-
-    cpp::json::value v = { 
-        {"203", 3.141},
-        {"5477", 2.718},
-    };
-
-    std::println("{:I8}", obj);
-
-    std::println("{}", cpp::cast<std::map<std::string, int>>(v));
-    std::println("{}", cpp::cast<std::map<int, int>>(v));
-    std::println("{}", cpp::json::make(m));
+    auto value = json::loads(s);
+    std::println("{}", value);
 
     return 0;
 }

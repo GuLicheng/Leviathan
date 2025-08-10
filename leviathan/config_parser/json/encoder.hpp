@@ -244,7 +244,7 @@ struct indented_encoder
         m_result += "{\n";
 
         auto size = object.size();
-        auto idx = 0;
+        size_t idx = 0;
         m_level++;
 
         for (auto it = object.begin(); it != object.end(); ++it, idx++)
@@ -346,6 +346,7 @@ private:
     int m_indent;
 };
 
+// Cast json value to c++ type
 template <typename Target>
 struct cpp::type_caster<Target, cpp::json::value, cpp::error_policy::exception>
 {

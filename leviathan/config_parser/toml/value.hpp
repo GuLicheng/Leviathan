@@ -115,7 +115,7 @@ void check_and_throw(bool ok, std::string_view fmt, Args&&... args)
     }
 }
 
-inline constexpr simple_caster<value> make;
+inline constexpr auto make = cpp::cast<value>;
 
 } // namespace cpp::config::toml
 

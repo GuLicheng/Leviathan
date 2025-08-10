@@ -264,13 +264,14 @@ value make_json(Args&&... args)
     return Object((Args&&) args...);
 }
 
-inline constexpr simple_caster<value> make;
+inline constexpr auto make = cpp::cast<value>;
 
 }  // namespace cpp::config::json
 
 namespace cpp
 {
 
+// Implementation of json::make 
 template <typename Source>
 class type_caster<json::value, Source, error_policy::exception>
 {
