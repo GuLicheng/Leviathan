@@ -58,7 +58,7 @@ int main()
 
     std::println("{}", cpp::cast<std::map<std::string, int>>(v));
     std::println("{}", cpp::cast<std::map<int, int>>(v));
-
+    std::println("{}", cpp::json::make(m));
 
     return 0;
 }

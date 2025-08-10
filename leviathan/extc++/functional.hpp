@@ -2,19 +2,22 @@
 
 #include <format>
 #include <functional>
+#include <leviathan/type_caster.hpp>
 
 namespace cpp
 {
     
-inline constexpr struct
-{
-    template <typename T>  
-    static constexpr std::string operator()(T&& value, std::string_view fmt = "{}") 
-    {
-        return std::vformat(fmt, std::make_format_args(value));
-    }
+// inline constexpr struct
+// {
+//     template <typename T>  
+//     static constexpr std::string operator()(T&& value, std::string_view fmt = "{}") 
+//     {
+//         return std::vformat(fmt, std::make_format_args(value));
+//     }
 
-} to_string;
+// } to_string;
+
+inline constexpr auto to_string = cpp::cast<std::string>;
 
 inline constexpr struct 
 {

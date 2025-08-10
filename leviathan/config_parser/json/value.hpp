@@ -301,21 +301,13 @@ public:
 
             if constexpr (meta::pair_like<ValueType>)
             {
-                using KeyType = std::tuple_element_t<0, ValueType>;
-                using KeyTypeCaster = type_caster<json::string, KeyType>;
-
-                using MappedType = std::tuple_element_t<1, ValueType>;
-                using MappedTypeCaster = type_caster<json::value, MappedType>;
-
-                auto as_pair = [](const auto& pairlike) static {
-                    return std::make_pair(
-                        json::string(std::get<0>(pairlike)), 
-                        MappedTypeCaster::operator()(std::get<1>(pairlike))
-                    );
-                };
+                auto as_pair = cpp::views::pair_transform(
+                    cpp::cast<cpp::json::string>,
+                    cpp::cast<cpp::json::value>
+                );
 
                 return json::make_json<json::object>(
-                    source | std::views::transform(as_pair) | std::ranges::to<json::object>()
+                    source | as_pair | std::ranges::to<json::object>()
                 );
             }
             else

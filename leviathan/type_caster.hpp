@@ -6,6 +6,7 @@
 #include <optional>
 #include <string_view>
 #include <string>
+#include <format>
 
 namespace cpp
 {
@@ -87,6 +88,25 @@ public:
     static constexpr result_type operator()(const std::string& ctx, Args... args)
     {
         return type_caster<Arithmetic, std::string_view, Policy>::operator()(std::string_view(ctx), args...);
+    }
+};
+
+template <cpp::meta::arithmetic Arithmetic>
+class type_caster<std::string, Arithmetic, error_policy::exception>
+{
+public:
+
+    using result_type = std::string;
+
+    template <typename... Args>
+    static constexpr result_type operator()(Arithmetic value, std::format_string<Args...> fmt)
+    {
+        return std::vformat(fmt.get(), std::make_format_args(value));
+    }
+
+    static constexpr result_type operator()(Arithmetic value)
+    {
+        return std::format("{}", value);
     }
 };
 
