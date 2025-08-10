@@ -6,7 +6,7 @@
 #include <leviathan/extc++/functional.hpp>
 #include <leviathan/type_caster.hpp>
 
-#include <assert.h>
+#include <cassert>
 
 namespace cpp::config::json
 {
@@ -61,24 +61,6 @@ struct encoder
         }, v.data());
     }
 };
-
-/*
-{
-    "name": "Alice",
-    "age": 30,
-    "is_student": false,
-    "grades": [
-        85,
-        90,
-        78
-    ],
-    "address": {
-        "street": "123 Main St",
-        "city": "Wonderland",
-        "zip": "12345"
-    }
-} 
-*/
 
 template <typename T> 
 struct caster;
@@ -165,79 +147,112 @@ struct caster<Container>
     }
 };
 
+/*
+{
+    "name": "Alice",
+    "age": 30,
+    "is_student": false,
+    "grades": [
+        85,
+        90,
+        78
+    ],
+    "address": {
+        "street": "123 Main St",
+        "city": "Wonderland",
+        "zip": "12345"
+    }
+} 
+*/
 struct indented_encoder
 {
 
-    indented_encoder(int level) : m_level(level) {}
+    indented_encoder(int count) : m_count(count) {}
 
     std::string m_result;
-    int m_level;
+    int m_level = 0;
+    int m_count;
 
     std::string indent() const
     {
-        return std::string(m_level, ' ');
+        return std::string(m_count * m_level, ' ');
     }
 
-    void operator()(const number& number, int count)
+    void operator()(const number& number)
     {
         m_result += std::visit(cpp::to_string, number.data());
     }
 
-    void operator()(const string& str, int count) 
+    void operator()(const string& str) 
     {
         m_result += std::format("\"{}\"", str);
     }
 
-    void operator()(const array& arr, int count) 
+    void operator()(const array& arr) 
     {
-        m_result += '[';
+        m_result += "[\n";
+        m_level++;
 
         for (std::size_t i = 0; i < arr.size(); ++i)
         {
-            if (i != 0) 
+            m_result += indent();
+            this->operator()(arr[i]);
+
+            if (i != arr.size() - 1) 
             {
-                m_result.append(", ");
+                m_result.append(",\n");
             }
-            this->operator()(arr[i], 0);
         }
 
-        m_result += ']';
+        m_result += "\n";
+        m_level--;
+        m_result += indent() + "]";
     }
 
-    void operator()(const boolean& boolean, int count) 
+    void operator()(const boolean& boolean) 
     {
         m_result.append((boolean ? "true" : "false"));
     }
 
-    void operator()(const null&, int count) 
+    void operator()(const null&) 
     {
         m_result.append("null"); 
     }
 
-    void operator()(const object& object, int count) 
+    void operator()(const object& object) 
     {
-        m_result += '{';
-        for (auto it = object.begin(); it != object.end(); ++it)
+        m_result += "{\n";
+
+        auto size = object.size();
+        auto idx = 0;
+        m_level++;
+
+        for (auto it = object.begin(); it != object.end(); ++it, idx++)
         {
-            if (it != object.begin()) 
+            m_result += indent() + std::format(R"("{}" : )", it->first);
+
+            this->operator()(it->second);
+
+            if (idx != size - 1) 
             {
-                m_result += ", ";
+                m_result += ",\n";
             }
-            m_result += std::format(R"("{}" : )", it->first);
-            this->operator()(it->second, count + 1);
         }
-        m_result += '}';
+        
+        m_result += "\n";
+        m_level--;
+        m_result += indent() + "}";
     }
 
-    void operator()(const error_code& ec, int count)
+    void operator()(const error_code& ec)
     {
         std::unreachable();
     }
 
-    void operator()(const value& value, int count) 
+    void operator()(const value& value) 
     {
-        std::visit([count, this]<typename T>(const T& x) {
-            this->operator()(value::accessor()(x), count);
+        std::visit([this]<typename T>(const T& x) {
+            this->operator()(value::accessor()(x));
         }, value.data());
     }
 };
@@ -246,12 +261,24 @@ struct indented_encoder
 
 inline std::string dumps(const value& x, int indent = 0)
 {
-    return detail::caster<std::string>()(x);
+    using NoneEncoder = detail::encoder;
+    using IndentedEncoder = detail::indented_encoder;
+
+    if (indent == 0)
+    {
+        return NoneEncoder()(x);
+    }
+    else
+    {
+        IndentedEncoder encoder(indent);
+        encoder(x);
+        return std::move(encoder.m_result);
+    }
 }
 
 inline void dump(const value& x, const char* filename, int indent = 0) 
 {
-    auto context = dumps(x);
+    auto context = dumps(x, indent);
     write_file(context, filename);
 }
 
@@ -283,20 +310,14 @@ struct std::formatter<cpp::json::value, char>
             throw std::format_error("Invalid format specifier for json::value");
         }
 
-        // assert(m_indent >= 0 && m_indent <= 8, "Indentation level must be between 0 and 8");
+        assert(m_indent >= 0 && m_indent <= 8 && "Indentation level must be between 0 and 8");
         return symbol; // return the end iterator
     }
 
     template <typename FmtContext>
     typename FmtContext::iterator format(const cpp::json::value& value, FmtContext& ctx) const
     {
-        using NoneEncoder = cpp::config::json::detail::encoder;
-        using IndentedEncoder = cpp::config::json::detail::indented_encoder;
-
-        std::string result;
-
-        std::print("indent: {}\n", m_indent);
-        
+        auto result = cpp::json::dumps(value, m_indent);        
         return std::ranges::copy(result, ctx.out()).out;
     }   
 

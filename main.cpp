@@ -30,20 +30,19 @@ struct hack : std::stack<int> {
 int main()
 {
 
-    // cpp::json::value obj = {
-    //     {"pi", 3.141},
-    //     {"happy", true},
-    //     {"name", std::string("Niels")},
-    //     {"nothing", nullptr},
-    //     {"answer", {{"everything", 42}}},
-    //     {"list", {1, 0, 2}},
-    //     {"object", {{"currency", "USD"}, {"value", 42.99}}}};
+    cpp::json::value obj = {
+        {"pi", 3.141},
+        {"happy", true},
+        {"name", std::string("Niels")},
+        {"nothing", nullptr},
+        {"answer", {{"everything", 42}}},
+        {"list", {1, 0, 2}},
+        {"object", {{"currency", "USD"}, {"value", 42.99}}}};
 
-    // std::println("{:i2}", obj);
+    std::println("{:i8}", obj);
 
-    // cpp::json::value arr = {1, 3.14, nullptr, "Hello", true, {-1}, {{"Alice", 18}}};
-    // std::println("{}", arr);
-
+    cpp::json::value arr = {1, 3.14, nullptr, "Hello", true, {-1}, {{"Alice", 18}}};
+    std::println("{}", arr);
 
     return 0;
 }

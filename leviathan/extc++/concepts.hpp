@@ -143,11 +143,26 @@ template <typename T>
 concept string_like = (std::ranges::range<T> && std::same_as<std::ranges::range_value_t<T>, char>)
                    || std::same_as<std::decay_t<T>, const char*>;
 
+// See std::format_kind
+enum class kind : uint32_t
+{
+    disabled,
+    arithmetic,
+    map,
+    set,
+    sequence,
+    string,
+    debug_string
+};
+
 // template <typename T>
-// concept string_like = specialization_of<T, std::basic_string>  
-//                    || specialization_of<T, std::basic_string_view>
-//                    || (std::is_array_v<T> && std::same_as<std::ranges::range_value_t<T>, char>);
-
-
+// inline constexpr kind type_kind<T> = []()
+// {
+//     if constexpr (arithmetic<T>)
+//     {
+//         return type_kind::arithmetic;
+//     }
+//     else if constexpr ()
+// }();
 
 }
