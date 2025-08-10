@@ -36,13 +36,27 @@ int main()
         {"name", std::string("Niels")},
         {"nothing", nullptr},
         {"answer", {{"everything", 42}}},
-        {"list", {1, 0, 2}},
+        {"list", {1, 0, 2, "json"}},
         {"object", {{"currency", "USD"}, {"value", 42.99}}}};
 
-    std::println("{:i8}", obj);
+    // std::println("{:i8}", obj);
 
-    cpp::json::value arr = {1, 3.14, nullptr, "Hello", true, {-1}, {{"Alice", 18}}};
-    std::println("{}", arr);
+    // cpp::json::value arr = {1, 3.14, nullptr, "Hello", true, {-1}, {{"Alice", 18}}};
+    // std::println("{}", arr);
+
+    std::unordered_map<int, double> m = {   
+        { 1, 3.14 },
+        { 2, 2.17 }
+    };
+
+    cpp::json::value v = { 
+        {"pi", 3.141},
+        {"nature-e", 2.718},
+    };
+
+    std::println("{:I8}", obj);
+
+    std::println("{}", std::set{ 1, 2, 3 });
 
     return 0;
 }

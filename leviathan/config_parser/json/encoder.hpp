@@ -1,6 +1,5 @@
 #pragma once
 
-#include <leviathan/config_parser/formatter.hpp>
 #include <leviathan/config_parser/json/value.hpp>
 #include <leviathan/extc++/concepts.hpp>
 #include <leviathan/extc++/functional.hpp>
@@ -31,7 +30,10 @@ struct encoder
 
     static std::string operator()(const array& arr) 
     {
-        return format_sequence(encoder(), arr, ",", "[{}]");
+       auto context = arr 
+                    | cpp::views::transform_join_with(encoder(), ',')
+                    | std::ranges::to<std::string>();
+        return std::format("[{}]", context);
     }
 
     static std::string operator()(const boolean& boolean) 
@@ -46,7 +48,18 @@ struct encoder
 
     static std::string operator()(const object& obj) 
     {
-        return format_map(encoder(), obj);
+        auto kv2string = [=]<typename PairLike>(PairLike&& kv) 
+        {
+            return std::format("{}:{}",
+                encoder()(std::get<0>((PairLike&&)kv)), 
+                encoder()(std::get<1>((PairLike&&)kv))
+            );
+        };
+
+        auto context = obj
+                     | cpp::views::transform_join_with(kv2string, ',')
+                     | std::ranges::to<std::string>();
+        return std::format("{{{}}}", context);
     }
 
     [[noreturn]] static std::string operator()(const error_code& ec)
@@ -123,9 +136,9 @@ struct caster<Container>
 
             if (v.is<object>())
             {
-                return v.as<object>() | std::views::transform([](const auto& pair) {
-                    return std::pair<KeyType, MappedType>(pair.first, caster<MappedType>()(pair.second));
-                }) | std::ranges::to<Container>();
+                return v.as<object>()
+                     | cpp::views::pair_transform(std::identity(), caster<MappedType>())
+                     | std::ranges::to<Container>();
             }
             else
             {
@@ -137,7 +150,9 @@ struct caster<Container>
             // array
             if (v.is<array>())
             {
-                return v.as<array>() | std::views::transform(caster<ValueType>()) | std::ranges::to<Container>();
+                return v.as<array>() 
+                     | std::views::transform(caster<ValueType>()) 
+                     | std::ranges::to<Container>();
             }
             else
             {

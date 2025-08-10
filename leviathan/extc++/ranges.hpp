@@ -3,11 +3,13 @@
 #include <ranges>
 #include <concepts>
 #include <tuple>
+#include <utility>
 #include <functional>
 #include <type_traits>
 #include <assert.h>
 #include <variant>
 #include <leviathan/extc++/concepts.hpp>
+#include <leviathan/extc++/functional.hpp>
 #include <leviathan/math/int128.hpp>
 
 // Some utils
@@ -865,104 +867,6 @@ inline constexpr bool enable_borrowed_range<::cpp::ranges::concat_view<Rs...>> =
 namespace cpp::ranges
 {
 
-namespace detail
-{
-
-template <bool Reverse, typename... Callables>
-class adaptors
-{
-    static constexpr size_t size = sizeof...(Callables);
-
-    [[no_unique_address]] std::tuple<Callables...> m_callables;
-
-    template <size_t N, typename Tuple, typename... Args>
-    constexpr static auto call(Tuple&& tuple_like, Args&&... args)
-    {
-        if constexpr (Reverse)
-        {
-            if constexpr (N == 0)
-            {
-                return std::get<0>((Tuple&&)tuple_like)((Args&&)args...);
-            }
-            else
-            {
-                return std::get<N>((Tuple&&)tuple_like)(call<N - 1>((Tuple&&)tuple_like, (Args&&)args...));
-            }
-        }
-        else
-        {
-            if constexpr (N == size - 1)
-            {
-                return std::get<N>((Tuple&&)tuple_like)((Args&&)args...);
-            }
-            else
-            {
-                return std::get<N>((Tuple&&)tuple_like)(call<N + 1>((Tuple&&)tuple_like, (Args&&)args...));
-            }
-        }
-    }
-
-public:
-
-    template <typename... Callables1>
-    constexpr adaptors(Callables1&&... callables) : m_callables((Callables1&&)callables...) 
-    { }
-
-    template <typename Self, typename... Args>
-    constexpr auto operator()(this Self&& self, Args&&... args)
-    {
-        constexpr auto idx = Reverse ? size - 1 : 0;
-        return call<idx>(((Self&&)self).m_callables, (Args&&)args...);
-    }
-};  
-
-}  // namespace detail
-
-inline constexpr struct 
-{
-    template <typename... Fns>
-    constexpr static auto operator()(Fns&&... fns)
-    {
-        return detail::adaptors<false, std::decay_t<Fns>...>((Fns&&)fns...);
-    }
-} composition;
-
-inline constexpr struct 
-{
-    template <typename... Fns>
-    constexpr static auto operator()(Fns&&... fns)
-    {
-        return detail::adaptors<true, std::decay_t<Fns>...>((Fns&&)fns...);
-    }
-} projection;
-
-inline constexpr struct 
-{
-    template <typename T>
-    static constexpr auto operator()(T&& t) 
-    {
-        return std::format("{}", (T&&)t);
-    }
-} to_string;
-
-inline constexpr struct 
-{
-    template <typename It>
-    static constexpr decltype(auto) operator()(It&& it)
-    {
-        return *it;
-    } 
-} indirection;
-
-inline constexpr struct 
-{
-    template <typename T>
-    static constexpr T* operator()(T& t)
-    {
-        return std::addressof(t);
-    }
-} addressof;
-
 inline constexpr struct
 {
     template <typename T>
@@ -1040,19 +944,26 @@ inline constexpr closure cycle = []<typename R>(R&& r) static
 namespace cpp::ranges::views
 {
 
+inline constexpr auto apply = []<typename F>(F&& f) static
+{
+    auto fn = [f = (F&&)f]<meta::tuple_like TupleLike>(TupleLike&& t) 
+    {
+        return std::apply(f, (TupleLike&&)t);
+    };
+    return transform(std::move(fn));
+};
+
 inline constexpr auto pair_transform = []<typename F1, typename F2>(F1&& f1, F2&& f2) static
 {
-    return transform([f1 = (F1&&)f1, f2 = (F2&&)f2]<typename PairLike>(PairLike&& x) 
+    auto transfer = [f1 = (F1&&)f1, f2 = (F2&&)f2]<meta::pair_like PairLike>(PairLike&& x) 
     {
-        using T1 = std::invoke_result_t<F1, decltype(std::get<0>((PairLike&&)x))>;
-        using T2 = std::invoke_result_t<F2, decltype(std::get<1>((PairLike&&)x))>;
-        using ReturnType = std::pair<T1, T2>;
-
-        return ReturnType(
+        return std::make_pair(
             std::invoke(f1, std::get<0>((PairLike&&)x)),
             std::invoke(f2, std::get<1>((PairLike&&)x))
         );
-    });
+    };
+
+    return transform(std::move(transfer));
 };
 
 inline constexpr auto compose = []<typename... Fs>(Fs&&... fs) static

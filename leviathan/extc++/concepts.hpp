@@ -5,6 +5,7 @@
 #include <tuple> 
 #include <complex>
 #include <array>
+#include <leviathan/operators.hpp>
 
 namespace cpp::meta
 {
@@ -144,25 +145,44 @@ concept string_like = (std::ranges::range<T> && std::same_as<std::ranges::range_
                    || std::same_as<std::decay_t<T>, const char*>;
 
 // See std::format_kind
-enum class kind : uint32_t
+enum class kind : uint8_t
 {
-    disabled,
-    arithmetic,
-    map,
-    set,
-    sequence,
-    string,
-    debug_string
+    disabled   = 0b0000'0000,
+    arithmetic = 0b0000'0001,
+    map        = 0b0000'0010, 
+    set        = 0b0000'0100,
+    sequence   = 0b0000'1000,
+    string     = 0b0001'0000,
+    tuple_like = 0b0010'0000,
 };
 
-// template <typename T>
-// inline constexpr kind type_kind<T> = []()
-// {
-//     if constexpr (arithmetic<T>)
-//     {
-//         return type_kind::arithmetic;
-//     }
-//     else if constexpr ()
-// }();
+}  // namespace cpp::meta
 
-}
+template <>
+inline constexpr bool cpp::operators::enum_enable_pipe<cpp::meta::kind> = true;
+
+namespace cpp::meta
+{
+
+template <typename T>
+inline constexpr kind type_kind = []()
+{
+    auto result = kind::disabled;
+
+    if (arithmetic<T>) result |= kind::arithmetic;
+    if (string_like<T>) result |= kind::string;
+    if (tuple_like<T>) result |= kind::tuple_like;
+
+    if (std::ranges::range<T>)
+    {
+        if (requires { typename T::mapped_type;}) result |= kind::map;
+        else if (requires { typename T::key_type; }) result |= kind::set;
+        else result |= kind::sequence;
+    }
+
+    return result;
+}();
+
+}  // namespace cpp::meta
+
+

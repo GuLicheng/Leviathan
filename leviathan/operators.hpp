@@ -20,4 +20,10 @@ constexpr Enum operator|(Enum x, Enum y)
     return Enum(std::to_underlying(x) | std::to_underlying(y));
 }
 
+template <cpp::operators::pipeable_enum Enum>
+constexpr Enum& operator|=(Enum& x, Enum y)
+{
+    x = Enum(std::to_underlying(x) | std::to_underlying(y));
+    return x;
+}
 
