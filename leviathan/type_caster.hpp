@@ -107,6 +107,14 @@ struct caster
         {
             return Caster::operator()(source, args...);
         }
+        else if constexpr (std::is_same_v<std::string, Target>)
+        {
+            // We add a specialization for std::string temporary. I am not sure 
+            // whether it will cause some errors. The people may only
+            // add overloading for std::format_as or specialization for 
+            // std::formatter. For above cases, our caster can work for std::string.
+            return std::format("{}", source);
+        }
         else 
         {
             static_assert(sizeof...(Args) == 0, "Invalid arguments for type_caster");
