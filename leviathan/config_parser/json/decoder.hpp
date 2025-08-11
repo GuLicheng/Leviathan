@@ -146,6 +146,13 @@ public:
 
             while (1) 
             {
+                // The inner loop may not ensure the next key-value pair
+                // such as {"key" : 1, is illegal, so we must check the first character.
+                if (m_ctx.current() != '"')
+                {
+                    return make_error_code(error_code::illegal_object);
+                }
+
                 auto key = parse_string();
 
                 if (!key)
@@ -379,6 +386,7 @@ public:
         // "A JSON payload should be an object or array."
         // For debugging, we just parse value.
         // auto root parse_array_or_object();
+        m_ctx.skip_whitespace();
         auto root = parse_value();
         
         if (!root)

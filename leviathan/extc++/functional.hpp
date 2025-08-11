@@ -4,31 +4,7 @@
 #include <functional>
 #include <leviathan/type_caster.hpp>
 
-namespace cpp
-{
-    
-// inline constexpr struct
-// {
-//     template <typename T>  
-//     static constexpr std::string operator()(T&& value, std::string_view fmt = "{}") 
-//     {
-//         return std::vformat(fmt, std::make_format_args(value));
-//     }
-
-// } to_string;
-
-inline constexpr auto to_string = cpp::cast<std::string>;
-
-inline constexpr struct 
-{
-    template <typename T>
-    static constexpr T* operator()(T& t)
-    {
-        return std::addressof(t);
-    }
-} addressof;
-
-namespace detail
+namespace cpp::detail
 {
 
 template <bool Reverse, typename... Callables>
@@ -79,8 +55,64 @@ public:
     }
 };  
 
-}  // namespace detail
+template <typename... Callables>
+class tuple_callables 
+{
+    std::tuple<Callables...> m_callables;
 
+    template <size_t... Idx, typename FunctionTuple, typename ArgTuple>
+    static constexpr auto call(std::index_sequence<Idx...>, FunctionTuple&& fns, ArgTuple&& args)
+    {
+        return std::make_tuple(
+            std::invoke(std::get<Idx>((FunctionTuple&&)fns), std::get<Idx>((ArgTuple&&)args))...
+        );
+    }
+
+public:
+
+    template <typename... Fns>
+    constexpr tuple_callables(Fns&&... fns) : m_callables((Fns&&) fns...) { }
+
+    template <typename Self,  meta::tuple_like TupleLike>
+    constexpr auto operator()(this Self&& self, TupleLike&& args)
+    {
+        return call(std::make_index_sequence<sizeof...(Callables)>(), ((Self&&)self).m_callables, (TupleLike&&)args);
+    }
+};
+
+}
+
+namespace cpp
+{
+    
+inline constexpr struct
+{
+    template <typename... Callables>
+    static constexpr auto operator()(Callables&&... callables)
+    {
+        return detail::tuple_callables<std::decay_t<Callables>...>((Callables&&) callables...);
+    }
+} make_tuple_callables;
+
+inline constexpr struct
+{
+    template <typename T>
+    static constexpr std::string operator()(T&& value) 
+    {
+        return std::format("{}", value);
+    }
+} to_string;
+
+inline constexpr struct 
+{
+    template <typename T>
+    static constexpr T* operator()(T& t)
+    {
+        return std::addressof(t);
+    }
+} addressof;
+
+// composition(f, g)(x) == f(g(x))
 inline constexpr struct 
 {
     template <typename... Fns>
@@ -90,6 +122,7 @@ inline constexpr struct
     }
 } composition;
 
+// projection(p, f)(xs...) == f(p(xs)...)
 inline constexpr struct 
 {
     template <typename... Fns>

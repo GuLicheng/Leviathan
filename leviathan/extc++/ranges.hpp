@@ -955,15 +955,17 @@ inline constexpr auto apply = []<typename F>(F&& f) static
 
 inline constexpr auto pair_transform = []<typename F1, typename F2>(F1&& f1, F2&& f2) static
 {
-    auto transfer = [f1 = (F1&&)f1, f2 = (F2&&)f2]<meta::pair_like PairLike>(PairLike&& x) 
-    {
-        return std::make_pair(
-            std::invoke(f1, std::get<0>((PairLike&&)x)),
-            std::invoke(f2, std::get<1>((PairLike&&)x))
-        );
-    };
+    return transform(make_tuple_callables((F1&&)f1, (F2&&)f2));
 
-    return transform(std::move(transfer));
+    // auto transfer = [f1 = (F1&&)f1, f2 = (F2&&)f2]<meta::pair_like PairLike>(PairLike&& x) 
+    // {
+    //     return std::make_pair(
+    //         std::invoke(f1, std::get<0>((PairLike&&)x)),
+    //         std::invoke(f2, std::get<1>((PairLike&&)x))
+    //     );
+    // };
+
+    // return transform(std::move(transfer));
 };
 
 inline constexpr auto compose = []<typename... Fs>(Fs&&... fs) static

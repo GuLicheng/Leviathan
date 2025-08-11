@@ -268,14 +268,12 @@ inline constexpr auto make = cpp::cast<value>;
 
 }  // namespace cpp::config::json
 
-namespace cpp
-{
-
 // Implementation of json::make 
 template <typename Source>
-class type_caster<json::value, Source, error_policy::exception>
+class cpp::type_caster<cpp::json::value, Source, cpp::error_policy::exception>
 {
 public:
+
     using result_type = json::value;
 
     static result_type operator()(const Source& source)
@@ -327,4 +325,4 @@ public:
     } 
 };
 
-}
+

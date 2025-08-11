@@ -29,13 +29,22 @@ struct hack : std::stack<int> {
 
 int main()
 {
+    // std::bind_back()
+    auto t = std::make_pair("123", "3.14");
 
-    std::string s = R"""(
-        [true, false, null]
-    )""";
+    // auto f1 = cpp::make_tuple_callables(cpp::cast<int>, cpp::cast<double>)(std::make_pair("123", "3.14"));
+    auto f1 = cpp::make_tuple_callables(cpp::cast<int>, cpp::cast<double>)(t);
 
-    auto value = json::loads(s);
-    std::println("{}", value);
+    std::map<std::string, int> m = {
+        { "Alice", 18 },  
+        { "Bob", 17 },  
+    };
 
+    auto combine = [](std::string name, int age) { return std::format("name: {} and age: {}", name, age); };
+
+    auto rg = m | cpp::views::apply(combine);
+    // auto rg = std::apply(combine, *m.begin());
+
+    std::println("{}", rg);
     return 0;
 }
