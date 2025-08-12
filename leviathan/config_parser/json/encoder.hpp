@@ -33,9 +33,9 @@ struct encoder
         return std::format("[{}]", context);
     }
 
-    static std::string operator()(const boolean& boolean) 
+    static std::string operator()(const boolean& b) 
     {
-        return boolean ? "true" : "false";
+        return b ? "true" : "false";
     }
 
     static std::string operator()(const null&) 
@@ -312,7 +312,8 @@ struct std::formatter<cpp::json::value, char>
         std::string_view fmt = std::string_view(ctx.begin(), symbol);
         m_indent = fmt.empty() ? 0 : cpp::cast<int>(fmt);
 
-        assert(m_indent >= 0 && m_indent <= 8 && "Indentation level must be between 0 and 8");
+        // assert(m_indent >= 0 && m_indent <= 8 && "Indentation level must be between 0 and 8");
+        m_indent = std::clamp(m_indent, 0, 8);
         return symbol; // return the end iterator
     }
 

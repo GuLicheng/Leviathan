@@ -127,7 +127,7 @@ using array = std::vector<value, global_allocator<value>>;
 
 // The std::unordered_map may not efficient, is 
 // std::vector<std::pair<const string, value>>
-// with a better choice since the object do not contain
+// a better choice since the object do not contain
 // many elements usually.
 using object = std::unordered_map<string, value, string_hash_key_equal, string_hash_key_equal, global_allocator<std::pair<const string, value>>>;
 
@@ -165,7 +165,8 @@ public:
     // Follow two ctors are used to convert from other std::initializer_list types.
     // For example, `value v = {1, 2, 3};` will call this ctor.
     template <typename T>
-    value(T x) : base(cpp::type_caster<value, T>()(std::move(x)))
+    // value(T x) : base(cpp::type_caster<value, T>()(std::move(x)))
+    value(T x) : base(cpp::cast<value>(std::move(x)))
     { }
 
     value(std::initializer_list<value> init) 
