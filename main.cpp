@@ -29,6 +29,6 @@ struct hack : std::stack<int> {
 
 int main()
 {
-    std::println("{}", cpp::cast<std::string>(json::value { true, 1, "Hello" }));
+    std::println("{:4}", (json::value { true, 1, "Hello" }));
     return 0;
 }

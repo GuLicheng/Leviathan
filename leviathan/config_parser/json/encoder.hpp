@@ -17,10 +17,7 @@ struct encoder
 {
     static std::string operator()(const number& num)
     {
-        return std::visit(
-            [](const auto& x) { return std::format("{}", x); },
-            num.data()
-        );
+        return std::visit(to_string, num.data());
     }
 
     static std::string operator()(const string& str) 
@@ -78,15 +75,6 @@ struct encoder
 template <typename T> 
 struct caster;
 
-template <>
-struct caster<std::string>
-{
-    static std::string operator()(const value& v)
-    {
-        return encoder()(v);
-    }
-};
-
 template <cpp::meta::arithmetic Arithmetic>
 struct caster<Arithmetic>
 {
@@ -126,42 +114,48 @@ struct caster<Container>
 {
     static Container operator()(const value& v)
     {
-        using ValueType = typename Container::value_type;
-
-        if constexpr (cpp::meta::pair_like<ValueType>)
+        if constexpr (meta::string_like<Container>)
         {
-            // For map<K, V>, the value type is std::pair<const K, V>
-            // we should remove cv-qualifiers for value_type::first_type
-            using KeyType = std::remove_cvref_t<std::tuple_element_t<0, ValueType>>;
-            using MappedType = std::tuple_element_t<1, ValueType>;
-            
-            // using KeyTypeCaster = cpp::caster<KeyType>;
-            // using MappedTypeCaster = cpp::caster<MappedType>;
-
-            if (v.is<object>())
-            {
-                return v.as<object>()
-                    //  | cpp::views::pair_transform(KeyTypeCaster(), MappedTypeCaster())
-                     | cpp::views::pair_transform(cpp::cast<KeyType>, cpp::cast<MappedType>)
-                     | std::ranges::to<Container>();
-            }
-            else
-            {
-                throw std::runtime_error("Value is not an object");
-            }
+            return encoder()(v);
         }
         else
         {
-            // array
-            if (v.is<array>())
+            using ValueType = typename Container::value_type;
+
+            if constexpr (cpp::meta::pair_like<ValueType>)
             {
-                return v.as<array>() 
-                     | std::views::transform(caster<ValueType>()) 
-                     | std::ranges::to<Container>();
+                // For map<K, V>, the value type is std::pair<const K, V>
+                // we should remove cv-qualifiers for value_type::first_type.
+                // We use std::tuple_element to get the first and second types
+                // instead of typename Container::key_type, it will make
+                // std::vector<std::pair<K, V>> work as well.
+                using KeyType = std::remove_cvref_t<std::tuple_element_t<0, ValueType>>;
+                using MappedType = std::tuple_element_t<1, ValueType>;
+                
+                if (v.is<object>())
+                {
+                    return v.as<object>()
+                        | cpp::views::pair_transform(cpp::cast<KeyType>, cpp::cast<MappedType>)
+                        | std::ranges::to<Container>();
+                }
+                else
+                {
+                    throw std::runtime_error("Value is not an object");
+                }
             }
             else
             {
-                throw std::runtime_error("Value is not an array");
+                // array
+                if (v.is<array>())
+                {
+                    return v.as<array>() 
+                        | std::views::transform(caster<ValueType>()) 
+                        | std::ranges::to<Container>();
+                }
+                else
+                {
+                    throw std::runtime_error("Value is not an array");
+                }
             }
         }
     }
@@ -316,19 +310,7 @@ struct std::formatter<cpp::json::value, char>
     {
         auto symbol = std::ranges::find(ctx.begin(), ctx.end(), '}');
         std::string_view fmt = std::string_view(ctx.begin(), symbol);
-
-        if (fmt.empty())
-        {
-            m_indent = 0; // default no indent
-        }
-        else if (fmt[0] == 'i' || fmt[0] == 'I')
-        {
-            m_indent = cpp::cast<int>(fmt.substr(1));
-        }
-        else    
-        {
-            throw std::format_error("Invalid format specifier for json::value");
-        }
+        m_indent = fmt.empty() ? 0 : cpp::cast<int>(fmt);
 
         assert(m_indent >= 0 && m_indent <= 8 && "Indentation level must be between 0 and 8");
         return symbol; // return the end iterator
@@ -343,7 +325,7 @@ struct std::formatter<cpp::json::value, char>
 
 private:
 
-    int m_indent;
+    int m_indent = 0;
 };
 
 // Cast json value to c++ type
