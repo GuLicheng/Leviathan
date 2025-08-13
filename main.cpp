@@ -30,5 +30,21 @@ struct hack : std::stack<int> {
 int main()
 {
     std::println("{:4}", json::value { true, 1, "Hello", nullptr, { 1, 2, 3 }, { { "name", "Alice" }, { "age", 18 } } });
+
+    // json::value v = { 1, 2, 3 };
+    // v = nullptr;
+
+    json::value v;
+
+    std::println("v: {}", v);
+    
+    v["Hello"] = "World";
+    v["pi"] = 3.14;
+    v["numbers"] = { 1, 2, 3, 4, 5 };
+    v["nested"] = { { "key1", "value1" }, { "key2", "value2" } };
+    v["answer"]["everything"] = 42;
+    std::println("v: {}", v);
+
+
     return 0;
 }

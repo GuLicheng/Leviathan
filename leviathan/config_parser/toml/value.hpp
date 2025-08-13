@@ -83,8 +83,18 @@ class value : public toml_value_base
 {
 public:
 
-    using toml_value_base::toml_value_base;
-    using toml_value_base::operator=;
+    using base = toml_value_base;
+    using base::base;
+    using base::operator=;
+
+    bool is_boolean() const { return this->is<boolean>(); }
+    bool is_integer() const { return this->is<integer>(); }
+    bool is_floating() const { return this->is<floating>(); }
+    bool is_string() const { return this->is<string>(); }
+    bool is_array() const { return this->is<array>(); }
+    bool is_table() const { return this->is<table>(); }
+    bool is_datetime() const { return this->is<datetime>(); }
+
 };
 
 template <typename Object, typename... Args>

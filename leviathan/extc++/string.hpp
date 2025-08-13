@@ -23,7 +23,7 @@ struct string_hash_key_equal
     using is_transparent = void;
 
     template <string_viewable Lhs, string_viewable Rhs>
-    constexpr static bool operator()(const Lhs& l, const Rhs& r) 
+    static constexpr bool operator()(const Lhs& l, const Rhs& r) 
     {
         std::string_view sl = static_cast<std::string_view>(l);
         std::string_view sr = static_cast<std::string_view>(r);
@@ -31,7 +31,7 @@ struct string_hash_key_equal
     }
 
     template <string_viewable Str>
-    constexpr static bool operator()(const Str& s) 
+    static constexpr bool operator()(const Str& s) 
     {
         std::string_view sv = static_cast<std::string_view>(s);
         return hash_impl(sv);

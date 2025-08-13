@@ -165,7 +165,6 @@ public:
     // Follow two ctors are used to convert from other std::initializer_list types.
     // For example, `value v = {1, 2, 3};` will call this ctor.
     template <typename T>
-    // value(T x) : base(cpp::type_caster<value, T>()(std::move(x)))
     value(T x) : base(cpp::cast<value>(std::move(x)))
     { }
 
@@ -203,22 +202,44 @@ public:
         }
     }
 
-    template <string_viewable... Svs>
-    value& operator[](const Svs&... svs) 
+    template <typename T>
+    value& operator=(T x)
     {
-        std::string_view views[] = { std::string_view(svs)... };
-        value* target = this;
-        object default_object = object();
+        base::operator=(cpp::cast<value>(std::move(x)));
+        return *this;
+    }
 
-        for (auto sv : views)
+    template <string_viewable StringView>
+    value& operator[](const StringView& sv)
+    {
+        if (this->is_null())
         {
-            auto& obj = target->as<object>();
-            auto it = obj.try_emplace(string(sv), object());
-            target = &(it.first->second);
+            this->emplace<object>();
+        }
+        else if (!this->is_object())
+        {
+            throw std::runtime_error(std::format("Cannot access '{}' in a non-object value", sv));
         }
 
-        return *target;
+        std::string_view key(sv);
+        auto [pos, _] = this->as<object>().try_emplace(cpp::cast<string>(key), nullptr);
+        return pos->second;
     }
+
+    // template <std::integral Index>
+    // value& operator[](Index index)
+    // {
+    //     if (this->is_null())
+    //     {
+    //         this->emplace<array>();
+    //     }
+    //     else if (!this->is_array())
+    //     {
+    //         throw std::runtime_error(std::format("Cannot access index {} in a non-array value", index));
+    //     }
+
+    //     return this->as<array>().at(static_cast<size_t>(index));
+    // }
 
     bool is_integer() const
     {
@@ -226,23 +247,12 @@ public:
             && as<number>().is_integer();
     }
 
-    bool is_number() const
-    { return is<number>(); }
-    
-    bool is_boolean() const
-    { return is<boolean>(); }
-
-    bool is_null() const
-    { return is<null>(); }
-
-    bool is_array() const
-    { return is<array>(); }
-
-    bool is_object() const
-    { return is<object>(); }
-
-    bool is_string() const
-    { return is<string>(); }
+    bool is_number() const { return is<number>(); }
+    bool is_boolean() const { return is<boolean>(); }
+    bool is_null() const { return is<null>(); }
+    bool is_array() const { return is<array>(); }
+    bool is_object() const { return is<object>(); }
+    bool is_string() const { return is<string>(); }
 
     explicit operator bool() const
     { return m_data.index() < std::variant_size_v<value_type> - 1; }

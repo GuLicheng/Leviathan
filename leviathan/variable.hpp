@@ -62,8 +62,13 @@ public:
         requires (declaration<Arg>::value)
     constexpr variable(Arg arg) : m_data(Fn::from_value(std::move(arg))) { }
 
-    // template <typename Arg> requires (declaration<Arg>::value)
-    // constexpr variable& operator=(Arg arg);
+    template <typename Arg> 
+        requires (declaration<Arg>::value)
+    constexpr variable& operator=(Arg arg)
+    {
+        m_data = Fn::from_value(std::move(arg));
+        return *this;
+    }
 
     constexpr variable(const variable&) = delete("not support default copy constructor");
     constexpr variable& operator=(const variable&) = delete("not support default copy assignment operator");
