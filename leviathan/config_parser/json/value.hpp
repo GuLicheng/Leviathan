@@ -214,6 +214,9 @@ public:
     {
         if (this->is_null())
         {
+            // Implicitly convert null to object.
+            // This is useful when you want to create a new object.
+            // For example, `value v; v["key"] = "value";` will create an object.
             this->emplace<object>();
         }
         else if (!this->is_object())
@@ -226,20 +229,9 @@ public:
         return pos->second;
     }
 
-    // template <std::integral Index>
-    // value& operator[](Index index)
-    // {
-    //     if (this->is_null())
-    //     {
-    //         this->emplace<array>();
-    //     }
-    //     else if (!this->is_array())
-    //     {
-    //         throw std::runtime_error(std::format("Cannot access index {} in a non-array value", index));
-    //     }
-
-    //     return this->as<array>().at(static_cast<size_t>(index));
-    // }
+    // TODO: Add operator[] for array.
+    template <std::integral Index>
+    value& operator[](Index index);
 
     bool is_integer() const
     {
@@ -322,10 +314,8 @@ public:
             }
             else
             {
-                using ValueTypeCaster = type_caster<json::value, ValueType, error_policy::exception>;
-                
                 return json::make_json<json::array>(
-                    source | std::views::transform(ValueTypeCaster()) | std::ranges::to<json::array>()
+                    source | std::views::transform(cpp::cast<cpp::json::value>) | std::ranges::to<json::array>()
                 );
             }
         }

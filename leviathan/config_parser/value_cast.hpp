@@ -10,18 +10,18 @@
 namespace cpp::config
 {
 
-template <typename Target, typename Source>
-Target convert_string(const Source& source)
-{
-    if constexpr (std::is_same_v<Source, Target>)
-    {
-        return source;
-    }
-    else
-    {
-        return Target(source.begin(), source.end());
-    }
-}
+// template <typename Target, typename Source>
+// Target convert_string(const Source& source)
+// {
+//     if constexpr (std::is_same_v<Source, Target>)
+//     {
+//         return source;
+//     }
+//     else
+//     {
+//         return Target(source.begin(), source.end());
+//     }
+// }
 
 struct toml2json
 {
@@ -49,8 +49,7 @@ struct toml2json
 
     static json::value operator()(const toml::string& x)
     {
-        auto jstr = convert_string<json::string>(x);
-        return json::make_json<json::string>(std::move(jstr));
+        return json::make_json<json::string>(x);
     }
 
     static json::value operator()(const toml::array& x)
@@ -61,24 +60,19 @@ struct toml2json
 
     static json::value operator()(const toml::table& x)
     {
-        auto table2object = [](const auto& kv) static 
-        {
-            return std::make_pair(
-                // json::string(kv.first), 
-                convert_string<json::string>(kv.first),
-                toml2json::operator()(kv.second));
-        };
-
-        auto retval = x 
-                    | std::views::transform(table2object)
-                    | std::ranges::to<json::object>();
-        return json::make_json<json::object>(std::move(retval));
+        auto table2object = cpp::views::pair_transform(
+            cpp::cast<json::string>,
+            toml2json()
+        );
+        return json::make_json<json::object>(
+            x | table2object | std::ranges::to<json::object>()
+        );
     }
 
     static json::value operator()(const toml::datetime& x)
     {
         return json::make_json<json::string>(
-            convert_string<json::string>(x.to_string())
+            x.to_string()
         );
     }
 }; 
@@ -87,7 +81,7 @@ struct json2toml
 {
     static toml::value operator()(const json::boolean& x)
     {
-        return x;
+        return toml::make_toml<toml::boolean>(x);
     }
 
     static toml::value operator()(const json::null& x)
@@ -108,29 +102,25 @@ struct json2toml
 
     static toml::value operator()(const json::string& x)
     {
-        return toml::make_toml<toml::string>(
-            convert_string<toml::string>(x)
-        );
+        return toml::make_toml<toml::string>(x);
     }
 
     static toml::value operator()(const json::array& x)
     {
-        auto retval = x | std::views::transform(json2toml()) | std::ranges::to<toml::array>(false);
-        return toml::make_toml<toml::array>(std::move(retval));
+        return toml::make_toml<toml::array>(
+            x | std::views::transform(json2toml()) | std::ranges::to<toml::array>(false)
+        );
     }
 
     static toml::value operator()(const json::object& x)
     {
-        auto object2table = [](const auto& kv) static 
-        {
-            return std::make_pair(
-                // toml::string(kv.first), 
-                convert_string<toml::string>(kv.first),
-                json2toml::operator()(kv.second));
-        };
-
-        auto retval = x | std::views::transform(object2table) | std::ranges::to<toml::table>(false);
-        return toml::make_toml<toml::table>(std::move(retval));
+        auto object2table = cpp::views::pair_transform(
+            cpp::cast<toml::string>,
+            json2toml()
+        );
+        return toml::make_toml<toml::table>(
+            x | object2table | std::ranges::to<toml::table>(false)
+        );
     }
 
     static toml::value operator()(const json::value& jv)

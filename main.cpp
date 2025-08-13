@@ -29,22 +29,17 @@ struct hack : std::stack<int> {
 
 int main()
 {
-    std::println("{:4}", json::value { true, 1, "Hello", nullptr, { 1, 2, 3 }, { { "name", "Alice" }, { "age", 18 } } });
+    json::value root1 = json::object();
 
-    // json::value v = { 1, 2, 3 };
-    // v = nullptr;
+    root1["context1"] = { true, 1, "Hello", nullptr, { 1, 2, 3 }, { { "name", "Alice" }, { "age", 18 } } };
+    root1["context2"]["array"] = { 1, 2, 3, 4, 5 };
+    root1["context3"]["object"] = { { "key1", "value1" }, { "key2", 42 } };
 
-    json::value v;
+    std::println("{:4}", root1);
 
-    std::println("v: {}", v);
-    
-    v["Hello"] = "World";
-    v["pi"] = 3.14;
-    v["numbers"] = { 1, 2, 3, 4, 5 };
-    v["nested"] = { { "key1", "value1" }, { "key2", "value2" } };
-    v["answer"]["everything"] = 42;
-    std::println("v: {}", v);
+    auto roo2 = cpp::cast<toml::value>(root1);  // TOML FIXME: BUG { "key2", 42 }
 
+    std::println("root2 = \n{}", (roo2)); 
 
     return 0;
 }
