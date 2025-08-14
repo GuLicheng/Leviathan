@@ -103,7 +103,7 @@ struct caster<Arithmetic>
         }
         else
         {
-           throw std::runtime_error("Value is not a number");
+           throw std::runtime_error(std::format("Value is not {} a number.", v.type_name()));
         }
     }
 };

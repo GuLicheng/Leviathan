@@ -549,17 +549,40 @@ public:
     }
 };
 
-inline value loads(std::string source)
+inline constexpr struct
 {
-    return decoder(source)();
-}
+    static value operator()(std::string source)
+    {
+        return decoder(source)();
+    }
+} loads;
 
-inline value load(const char* filename)
+inline constexpr struct 
 {
-    // Windows
-    constexpr const char* linefeed = "\r\n";
-    return loads(cpp::read_file_context(filename, linefeed));
-}
+    static value operator()(const char* filename)
+    {
+        // Windows
+        constexpr const char* linefeed = "\r\n";
+        return loads(cpp::read_file_context(filename, linefeed));
+    }
+
+    static value operator()(const std::string& filename)
+    {
+        return operator()(filename.c_str());
+    }
+} load;
+
+// inline value loads(std::string source)
+// {
+//     return decoder(source)();
+// }
+
+// inline value load(const char* filename)
+// {
+//     // Windows
+//     constexpr const char* linefeed = "\r\n";
+//     return loads(cpp::read_file_context(filename, linefeed));
+// }
 
 } // namespace cpp::config::toml
 

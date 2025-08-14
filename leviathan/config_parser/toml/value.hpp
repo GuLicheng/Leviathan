@@ -81,6 +81,19 @@ using toml_value_base = variable<
 
 class value : public toml_value_base
 {
+
+    static constexpr const char* value_type_names[] = 
+    {
+        "boolean",
+        "integer",
+        "floating",
+        "string",
+        "datetime",
+        "object",
+        "array",
+        "table",
+    };
+
 public:
 
     using base = toml_value_base;
@@ -94,6 +107,11 @@ public:
     bool is_array() const { return this->is<array>(); }
     bool is_table() const { return this->is<table>(); }
     bool is_datetime() const { return this->is<datetime>(); }
+
+    const char* type_name() const
+    {
+        return value_type_names[m_data.index()];
+    }
 
 };
 
