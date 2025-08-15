@@ -184,16 +184,13 @@ public:
 
             if constexpr (meta::pair_like<ValueType>)
             {
-                using KeyType = std::tuple_element_t<0, ValueType>;
-                using KeyTypeCaster = type_caster<toml::string, KeyType, error_policy::exception>;
-
+                using KeyType = std::remove_cvref<std::tuple_element_t<0, ValueType>>;
                 using MappedType = std::tuple_element_t<1, ValueType>;
-                using MappedTypeCaster = type_caster<toml::value, MappedType, error_policy::exception>;
 
                 auto as_pair = [](const auto& pairlike) static {
                     return std::make_pair(
-                        toml::string(std::get<0>(pairlike)), 
-                        MappedTypeCaster::operator()(std::get<1>(pairlike))
+                        cpp::cast<KeyType>(std::get<0>(pairlike)),
+                        cpp::cast<MappedType>(std::get<1>(pairlike))
                     );
                 };
 

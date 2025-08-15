@@ -1033,6 +1033,12 @@ namespace cpp::action
 //     return (R &&)r;
 // };
 
+inline constexpr cpp::ranges::closure sort = []<std::ranges::viewable_range R>(R&& r) static
+{
+    std::ranges::sort(r);
+    return (R&&)r;
+};
+
 inline constexpr cpp::ranges::adaptor for_each = 
     []<std::ranges::viewable_range R, typename... Args>(R &&r, Args... args) static 
 {

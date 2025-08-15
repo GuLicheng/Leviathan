@@ -3,6 +3,8 @@
 #include <leviathan/config_parser/value_cast.hpp>
 #include <leviathan/extc++/all.hpp>
 #include <unordered_map>
+#include <map>
+#include <set>
 #include <leviathan/meta/type.hpp>
 #include <leviathan/print.hpp>
 #include <print>
@@ -13,38 +15,63 @@ constexpr const char* Root = R"(F:/CCB/Work/Performance/details)";
 
 using Details = std::unordered_map<std::string, double>;
 
-struct TomlTableMerger
+struct MapMerger
 {
-    static double operator()(double lhs, const cpp::toml::value& rhs)
+    template <typename M1, typename M2>
+    auto void operator()(M1& m1, const M2& m2) const
     {
-        return lhs + rhs.as<cpp::toml::floating>();
+        for (const auto& [key, value] : m2)
+        {
+            auto [pos, ok] = map.try_emplace(key, value);
+
+            if (!ok)
+            {
+                pos->second += value; // Assuming the values are numeric and can be summed
+            }
+        }
     }
 };
 
-inline constexpr cpp::ranges::closure Collect = []<typename R>(R&& r) static
+template <typename AssociateContainer>
+inline constexpr adaptor collect = []<typename... Args>(Args&&... args) static
 {
-    std::unordered_map<std::string, Details> result;
+    auto fn = []<typename Tuple, typename R>(Tuple&& t, R&& r) static
+    {
+        auto map = std::make_from_tuple<AssociateContainer>((Tuple&&)t);
 
+        for (auto&& [key, value] : r)
+        {
+            // The multimap will not provide `try_emplace`, it will cause compiler error.
+            auto [pos, ok] = map.try_emplace(key, value);
 
-    return map;
+            if (!ok)
+            {
+                MapMerger()(pos->second, value);
+            }
+        }
+
+        return map;
+    };
+
+    return partial<decltype(fn), std::decay_t<Args>...>(std::move(fn), (Args&&)args...);
 };
 
 int main(int argc, char const *argv[])
 {
     system("chcp 65001"); // Set console to UTF-8 encoding
 
-    std::setlocale(LC_ALL, ".UTF-8");
 
     auto rg = cpp::listdir(Root, true)
-            | cpp::views::compose(cpp::toml::load, cpp::cast<std::unordered_map<std::string, Details>>)
-            | cpp::views::take(1)
+            | cpp::views::compose(cpp::toml::load, cpp::cast<std::map<std::string, Details>>)
+            | cpp::views::join
+            | std::ranges::to<std::multimap>()
+            | cpp::views::chunk_by(std::ranges::equal_to())
+            | cpp::views::transform([](auto&& subrange) static { return subrange.begin()->first; })
+            | std::ranges::to<std::set>()
             ;
 
-    // std::ranges::for_each(rg, std::bind_front(Console::WriteLine, "{:8}"));
-    for (const auto& item : rg)
-    {
-        Console::WriteLine("{}", item);
-    }
+
+    Console::WriteLine(rg);
 
     return 0;
 }

@@ -273,28 +273,34 @@ struct indented_encoder
 
 }  // namespace detail
 
-inline std::string dumps(const value& x, int indent = 0)
+inline constexpr struct
 {
-    using NoneEncoder = detail::encoder;
-    using IndentedEncoder = detail::indented_encoder;
-
-    if (indent == 0)
+    static std::string operator()(const value& x, int indent = 0)
     {
-        return NoneEncoder()(x);
-    }
-    else
-    {
-        IndentedEncoder encoder(indent);
-        encoder(x);
-        return std::move(encoder.m_result);
-    }
-}
+        using NoneEncoder = detail::encoder;
+        using IndentedEncoder = detail::indented_encoder;
 
-inline void dump(const value& x, const char* filename, int indent = 0) 
+        if (indent == 0)
+        {
+            return NoneEncoder()(x);
+        }
+        else
+        {
+            IndentedEncoder encoder(indent);
+            encoder(x);
+            return std::move(encoder.m_result);
+        }
+    }
+} dumps;
+
+inline constexpr struct
 {
-    auto context = dumps(x, indent);
-    write_file(context, filename);
-}
+    static void operator()(const value& x, const char* filename, int indent = 0) 
+    {
+        auto context = dumps(x, indent);
+        write_file(context, filename);
+    }
+} dump;
 
 } // namespace cpp::config::json
 

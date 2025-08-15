@@ -11,15 +11,6 @@
 namespace cpp
 {
  
-struct file_interface
-{
-    template <typename Self>
-    constexpr auto operator()(Self&& self, const std::string& str) const
-    {
-        return self.operator()(str.c_str());
-    }
-};
-
 inline constexpr struct 
 {
     /**
@@ -40,7 +31,7 @@ inline constexpr struct
 
 } listdir;
 
-inline constexpr struct : file_interface
+inline constexpr struct 
 {
     /**
      * @brief: Read context from file.
@@ -88,26 +79,29 @@ inline constexpr struct : file_interface
 
 } read_file_context;
 
-/**
- * @brief: Write context to file.
- * 
- * @param context Context to write
- * @param filename Path for destination
- * 
- * @return True if file is written successfully, otherwise false.
- */
-inline bool write_file(std::string_view context, const char* filename)
+inline constexpr struct
 {
-    std::ofstream ofs(filename, std::ios_base::out | std::ios_base::binary);
-
-    if (ofs)
+    /**
+     * @brief: Write context to file.
+     * 
+     * @param context Context to write
+     * @param filename Path for destination
+     * 
+     * @return True if file is written successfully, otherwise false.
+     */
+    static bool operator()(std::string_view context, const char* filename)
     {
-        ofs.write(context.data(), context.size());
-        return true;
-    }
+        std::ofstream ofs(filename, std::ios_base::out | std::ios_base::binary);
 
-    return false;
-}
+        if (ofs)
+        {
+            ofs.write(context.data(), context.size());
+            return true;
+        }
+
+        return false;
+    }
+} write_file;
 
 } // namespace cpp
 
