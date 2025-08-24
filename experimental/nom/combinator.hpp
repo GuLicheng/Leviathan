@@ -5,38 +5,23 @@
 namespace nom::combinator
 {
     
-template <typename T, typename F>
-class Value
-{
-    T value;
-    F parser;
-
-public:
-
-    constexpr Value(T v, F f) : value(std::move(v)), parser(std::move(f)) { }
-
-    template <typename ParseContext>
-    constexpr IResult<T> operator()(ParseContext& ctx)
-    {
-        auto result = parser(ctx); 
-        
-        if (result)
-        {
-            return std::move(value);
-        }
-        else
-        {
-            return IResult<T>(std::unexpect, std::move(result.error()));
-        }
-    }
-};
-
 inline constexpr struct 
 {
     template <typename T, typename F>
-    static constexpr auto operator()(T v, F f)
+    static constexpr auto operator()(T&& v, F&& f)
     {
-        return Value<T, F>(std::move(v), std::move(f));
+        auto fn = []<typename FunctionTuple, typename ParseContext>(FunctionTuple&& fns, ParseContext& ctx) static
+        {
+            using R = IResult<std::decay_t<T>>;
+
+            auto [value, parser] = (FunctionTuple&&)fns;
+            auto result = parser(ctx);
+
+            return result ? R(std::in_place, std::move(value)) 
+                          : R(std::unexpect, std::move(result.error()));
+        };
+
+        return make_parser_binder(fn, (T&&)v, (F&&)f);
     }
 } value;
 
@@ -78,6 +63,8 @@ inline constexpr struct
         return make_parser_binder(fn, (ParserFunction&&)pf, (MapFunction&&)mf); 
     }
 } map;
+
+
 
 } // namespace nom
 

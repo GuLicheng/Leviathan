@@ -216,16 +216,22 @@ struct TakeTill
 
 // Wrapping structure for the [alt()] combinator implementation
 // Tests a list of parsers one by one until one succeeds.
-template <typename... Fns>
-class Choice
+struct Choice
 {
-    std::tuple<Fns...> fns;
-    
-    static constexpr size_t N = sizeof...(Fns);
+    template <typename FunctionTuple, typename ParseContext>
+    static constexpr auto operator()(FunctionTuple&& fns, ParseContext& ctx)
+    {
+        using DecayTuple = std::decay_t<FunctionTuple>;
+        using R1 = std::invoke_result_t<std::tuple_element_t<0, DecayTuple>, ParseContext&>;
+        using R = IResult<typename R1::value_type>;
+        return try_parse_one_by_one<0, R>(ctx, (FunctionTuple&&)fns);
+    }
 
     template <size_t Idx, typename R, typename ParseContext, typename FunctionTuple>
     static auto try_parse_one_by_one(ParseContext& ctx, FunctionTuple&& funcs)
     {
+        constexpr auto N = std::tuple_size_v<std::remove_reference_t<FunctionTuple>>;
+
         auto clone = ctx;
 
         if constexpr (Idx == N - 1)
@@ -252,18 +258,6 @@ class Choice
                 return try_parse_one_by_one<Idx + 1, R>(ctx, (FunctionTuple&&)funcs);
             }
         }
-    }
-
-public:
-
-    constexpr Choice(Fns... fs) : fns(std::move(fs)...) { }
-
-    template <typename ParseContext>
-    constexpr auto operator()(ParseContext& ctx)
-    {
-        using R1 = std::invoke_result_t<std::tuple_element_t<0, std::tuple<Fns...>>, ParseContext&>;
-        static_assert((std::is_same_v<R1, std::invoke_result_t<Fns, ParseContext&>> && ...));
-        return try_parse_one_by_one<0, R1>(ctx, fns);
     }
 };
 

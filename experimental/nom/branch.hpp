@@ -11,7 +11,7 @@ inline constexpr struct
     template <typename... Fns>
     constexpr auto operator()(Fns&&... fns) const
     {
-        return Choice<std::decay_t<Fns>...>((Fns&&)fns...);
+        return make_parser_binder(Choice(), (Fns&&)fns...);
     }
 } alt;
 

@@ -1,18 +1,26 @@
-#include <experimental/nom/combinator.hpp>
-#include <experimental/nom/parser.hpp>
 #include <leviathan/type_caster.hpp>
 #include <print>
 #include <functional>
 #include <leviathan/meta/type.hpp>
+#include <variant>
+#include <string>
+#include <vector>
+#include <unordered_map>
 
+class Value;
+
+using Null = std::nullptr_t;
+using Boolean = bool;
+using Number = double;
+using String = std::string;
+using Object = std::unordered_map<std::string, Value>;
+using Array = std::vector<Value>;
+
+class Value : public std::variant<Null, Boolean, Number, String, Object, Array>
+{
+};
 
 int main(int argc, char const *argv[])
 {
-    auto p = std::make_pair(2, std::string("This sentence is long enough and the memory is allocated on heap."));
-
-    auto [a, b] = std::move(p);
-
-    std::print("a = {}, b = {}, p = {}\n", a, b, p);
-
     return 0;
 }
