@@ -10,7 +10,18 @@
 
 namespace nom
 {
+
     
+/**
+ * @brief We use this binder to store the parser function and its arguments (other parsers or predicates).
+ * Each parser function must have the signature like:
+ * 
+ *  template <typename FunctionTuple, typename ParseContext>
+ *  static constexpr auto operator()(FunctionTuple&& fns, ParseContext& ctx) { ... }
+ * 
+ *  The first argument is a tuple of all the callables (parsers or predicates).
+ *  The second argument is the parsing context (usually a string_view&).
+ */
 template <typename ParseFunction, typename... Callables>
 class ParserBinder 
 {
@@ -41,6 +52,8 @@ inline constexpr struct
     }
 } make_parser_binder;
 
+// FIXME: this is not used yet.
+#if 0
 template <typename F1, typename F2>
 class And
 {
@@ -111,6 +124,7 @@ public:
         }
     }
 };
+#endif
 
 template <bool AtLeastOne>
 struct MultiSpace
@@ -291,26 +305,17 @@ struct OneOf
 // The first argument matches the normal characters (it must not accept the control character)
 // The second argument is the control character (like \ in most languages)
 // The third argument matches the escaped characters
-template <typename Normal, typename ControlChar, typename Escapable>
-class Escaped
+struct Escaped
 {
-    Normal normal;
-    ControlChar control_char;
-    Escapable escapable;
+    template <typename FunctionTuple, typename ParseContext>
+    static constexpr IResult<std::string_view> operator()(FunctionTuple&& fns, ParseContext& ctx)
+    {
+        auto [normal, control_char, escapable] = (FunctionTuple&&)fns;
 
-public:
-
-    constexpr Escaped(Normal n, ControlChar c, Escapable e) 
-        : normal(std::move(n)), control_char(std::move(c)), escapable(std::move(e)) 
-    { }
-
-    template <typename ParseContext>
-    constexpr IResult<std::string_view> operator()(ParseContext& ctx)
-    {   
-        using R1 = std::invoke_result_t<Normal, ParseContext&>;
+        using R1 = std::invoke_result_t<std::decay_t<decltype(normal)>, ParseContext&>;
         static_assert(std::is_same_v<R1, IResult<std::string_view>>);
 
-        using R2 = std::invoke_result_t<Escapable, ParseContext&>;
+        using R2 = std::invoke_result_t<std::decay_t<decltype(escapable)>, ParseContext&>;
         static_assert(std::is_same_v<R2, IResult<char>>);
 
         auto start = ctx.begin();
@@ -338,15 +343,7 @@ public:
             }
         }
     }
-
-};  
-
-
-
-
-
-
-
+};
 
 
 } // namespace nom
