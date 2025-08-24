@@ -2,7 +2,7 @@
 
 #include "error.hpp"
 
-namespace nom
+namespace nom::combinator
 {
     
 template <typename T, typename F>
@@ -39,6 +39,45 @@ inline constexpr struct
         return Value<T, F>(std::move(v), std::move(f));
     }
 } value;
+
+// Tries to apply its parser without consuming the input.
+inline constexpr struct 
+{
+    template <typename F1>
+    static constexpr auto operator()(F1&& f1)
+    {
+        auto fn = []<typename FunctionTuple, typename ParseContext>(FunctionTuple&& fns, ParseContext& ctx) static
+        {
+            auto [f] = (FunctionTuple&&)fns;
+            auto clone = ctx; // copy
+            auto result = f(clone);
+            return result;
+        };
+
+        return make_parser_binder(fn, (F1&&)f1);
+    }
+} peek;
+
+inline constexpr struct
+{
+    template <typename ParserFunction, typename MapFunction>
+    static constexpr auto operator()(ParserFunction&& pf, MapFunction&& mf)
+    {
+        auto fn = []<typename FunctionTuple, typename ParseContext>(FunctionTuple&& fns, ParseContext& ctx) static
+        {
+            using R1 = std::invoke_result_t<std::decay_t<ParserFunction>, ParseContext&>;
+            using R = IResult<std::invoke_result_t<std::decay_t<MapFunction>, typename R1::value_type>>;
+
+            auto [parser, mapper] = (FunctionTuple&&)fns;
+            auto result = parser(ctx);
+
+            return result ? R(std::in_place, mapper(std::move(*result))) 
+                          : R(std::unexpect, std::move(result.error()));
+        };
+
+        return make_parser_binder(fn, (ParserFunction&&)pf, (MapFunction&&)mf); 
+    }
+} map;
 
 } // namespace nom
 

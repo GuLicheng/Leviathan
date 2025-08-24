@@ -93,5 +93,34 @@ struct ParseError : public std::runtime_error
     using std::runtime_error::runtime_error;
 };
 
+template <typename F>
+struct Context
+{
+    std::string context;
+    F parser;
+
+    template <typename ParseContext>
+    constexpr auto operator()(ParseContext& ctx)
+    {
+        auto result = parser(ctx);
+
+        if (!result)
+        {
+            result.error().info = std::format("{}: {}", context, result.error().info);
+        }
+
+        return result;
+    }
+};
+
+inline constexpr struct
+{
+    template <typename F>
+    static constexpr Context<F> operator()(std::string ctx, F&& parser)
+    {
+        return { .context = std::move(ctx), .parser = (F&&)parser };
+    }
+} context;
+
 } // namespace nom
 

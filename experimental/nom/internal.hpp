@@ -11,71 +11,35 @@
 namespace nom
 {
     
-template <typename First, typename Second>
-class Terminated
+template <typename ParseFunction, typename... Callables>
+class ParserBinder 
 {
-    First first;
-    Second second;
+    ParseFunction pf;
+    std::tuple<Callables...> callables;
 
 public:
 
-    constexpr Terminated(First f, Second s) 
-        : first(std::move(f)), second(std::move(s)) 
+    constexpr ParserBinder(ParseFunction pf, Callables... callables) : pf(pf), callables(std::move(callables)...) 
     { }
 
-    template <typename ParseContext>
-    constexpr auto operator()(ParseContext& ctx)
+    template <typename Self, typename ParseContext>
+    constexpr auto operator()(this Self&& self, ParseContext& ctx)
     {
-        using R1 = std::invoke_result_t<First, ParseContext&>;
-
-        auto result1 = first(ctx);
-
-        if (!result1)
-        {
-            return R1(std::unexpect, std::move(result1.error()));
-        }
-
-        if (auto result2 = second(ctx); !result2)
-        {
-            return R1(std::unexpect, std::move(result2.error()));
-        }
-
-        return R1(std::in_place, std::move(*result1));
+        return std::invoke(std::forward_like<Self>(self.pf), std::forward_like<Self>(self.callables), ctx);
     }
 };
 
-template <typename First, typename Second>
-class Preceded
+inline constexpr struct
 {
-    First first;
-    Second second;
-
-public:
-
-    constexpr Preceded(First f, Second s) 
-        : first(std::move(f)), second(std::move(s)) 
-    { }
-
-    template <typename ParseContext>
-    constexpr auto operator()(ParseContext& ctx)
+    template <typename ParseFunction, typename... Callables>
+    static constexpr ParserBinder<std::decay_t<ParseFunction>, std::decay_t<Callables>...> 
+    operator()(ParseFunction&& pf, Callables&&... callables)
     {
-        using R2 = std::invoke_result_t<Second, ParseContext&>;
-
-        if (auto result1 = first(ctx); !result1)
-        {
-            return R2(std::unexpect, std::move(result1.error()));
-        }
-
-        auto result2 = second(ctx);
-
-        if (!result2)
-        {
-            return R2(std::unexpect, std::move(result2.error()));
-        }
-
-        return R2(std::in_place, std::move(*result2));
+        return ParserBinder<std::decay_t<ParseFunction>, std::decay_t<Callables>...>(
+            (ParseFunction&&)pf, (Callables&&)callables ...
+        );
     }
-};
+} make_parser_binder;
 
 template <typename F1, typename F2>
 class And
@@ -152,9 +116,13 @@ template <bool AtLeastOne>
 struct MultiSpace
 {
     // Recognizes zero or more spaces, tabs, carriage returns and line feeds.
-    static constexpr bool check(char c) 
+    template <typename CharT>
+    static constexpr bool check(CharT c) 
     { 
-        return c == ' ' || c == '\t' || c == '\n' || c == '\r'; 
+        return c == CharT(' ') 
+            || c == CharT('\t') 
+            || c == CharT('\r') 
+            || c == CharT('\n');
     }
 
     template <typename ParseContext>
@@ -185,6 +153,65 @@ struct MultiSpace
         return IResult<std::string_view>(std::in_place, result);
     }
 
+};
+
+template <bool AtLeastOne>
+struct Dight
+{
+    template <typename ParseContext>
+    static constexpr IResult<std::string_view> operator()(ParseContext& ctx)
+    {
+        auto first = ctx.begin(), last = ctx.end();
+
+        for (; first != last && std::isdigit(*first); ++first);
+
+        std::string_view result = { ctx.begin(), first };
+
+        if constexpr (AtLeastOne)
+        {
+            if (result.empty())
+            {
+                return IResult<std::string_view>(
+                    std::unexpect, 
+                    "Expected at least one digit",
+                    ErrorKind::Digit
+                );
+            }
+        }
+
+        ctx.remove_prefix(result.size());
+        return IResult<std::string_view>(std::in_place, result);
+    }
+};
+
+template <bool AtLeastOne>
+struct TakeTill
+{
+    template <typename FunctionTuple, typename ParseContext>
+    static constexpr auto operator()(FunctionTuple&& fns, ParseContext& ctx)
+    {
+        auto [prediction] = (FunctionTuple&&)fns;
+        auto first = ctx.begin(), last = ctx.end();
+
+        for (; first != last && !std::invoke(prediction, *first); ++first);
+
+        std::string_view result = { ctx.begin(), first };
+
+        if constexpr (AtLeastOne)
+        {
+            if (result.empty())
+            {
+                return IResult<std::string_view>(
+                    std::unexpect, 
+                    "Expected at least one character",
+                    ErrorKind::TakeTill1
+                );
+            }
+        }
+
+        ctx.remove_prefix(result.size());
+        return IResult<std::string_view>(std::in_place, result);
+    }
 };
 
 // Wrapping structure for the [alt()] combinator implementation
@@ -240,16 +267,85 @@ public:
     }
 };
 
+struct OneOf
+{
+    std::string_view chars;
 
+    constexpr OneOf(std::string_view s) : chars(s) { }
 
+    template <typename ParseContext>
+    constexpr IResult<char> operator()(ParseContext& ctx)
+    {
+        const auto idx = ctx.find_first_of(chars);
 
+        if (idx == ctx.npos)
+        {
+            return IResult<char>(
+                std::unexpect, 
+                std::format("Expected one of the characters: '{}'", chars),
+                ErrorKind::OneOf
+            );
+        }
 
+        auto ch = ctx[idx];
+        ctx.remove_prefix(idx + 1);
+        return IResult<char>(std::in_place, ch);
+    }
+};
 
+// Matches a byte string with escaped characters.
+// The first argument matches the normal characters (it must not accept the control character)
+// The second argument is the control character (like \ in most languages)
+// The third argument matches the escaped characters
+template <typename Normal, typename ControlChar, typename Escapable>
+class Escaped
+{
+    Normal normal;
+    ControlChar control_char;
+    Escapable escapable;
 
+public:
 
+    constexpr Escaped(Normal n, ControlChar c, Escapable e) 
+        : normal(std::move(n)), control_char(std::move(c)), escapable(std::move(e)) 
+    { }
 
+    template <typename ParseContext>
+    constexpr IResult<std::string_view> operator()(ParseContext& ctx)
+    {   
+        using R1 = std::invoke_result_t<Normal, ParseContext&>;
+        static_assert(std::is_same_v<R1, IResult<std::string_view>>);
 
+        using R2 = std::invoke_result_t<Escapable, ParseContext&>;
+        static_assert(std::is_same_v<R2, IResult<char>>);
 
+        auto start = ctx.begin();
+
+        while (true)
+        {
+            auto result = normal(ctx);
+
+            if (!result || ctx.empty() || ctx[0] != control_char)
+            {
+                std::string_view result = { start, ctx.begin() };
+                return IResult<std::string_view>(std::in_place, result);
+            }
+
+            // Skip the control character
+            ctx.remove_prefix(1);
+
+            // Now parse the escaped character
+            auto esc_result = escapable(ctx);
+
+            if (!esc_result)
+            {
+                std::string_view result = { start, ctx.begin() };
+                return IResult<std::string_view>(std::in_place, result);
+            }
+        }
+    }
+
+};  
 
 
 

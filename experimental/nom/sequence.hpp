@@ -7,16 +7,42 @@
 #include "error.hpp"
 #include "internal.hpp" 
 
-namespace nom
+// https://docs.rs/nom/latest/nom/sequence/index.html
+namespace nom::sequence
 {
 
 // Gets an object from the first parser, then gets another object from the second parser.
 inline constexpr struct 
 {
     template <typename F1, typename F2>
-    static constexpr auto operator()(F1 f1, F2 f2)
+    static constexpr auto operator()(F1&& f1, F2&& f2)
     {
-        return And<F1, F2>(std::move(f1), std::move(f2));
+        auto fn = []<typename FunctionTuple, typename ParseContext>(FunctionTuple&& fns, ParseContext& ctx) static
+        {
+            using R1 = typename std::invoke_result_t<std::decay_t<F1>, ParseContext&>::value_type;
+            using R2 = typename std::invoke_result_t<std::decay_t<F2>, ParseContext&>::value_type;
+            using R = IResult<std::pair<R1, R2>>;
+
+            auto [first, second] = (FunctionTuple&&)fns;
+
+            auto result1 = first(ctx);
+
+            if (!result1)
+            {
+                return R(std::unexpect, std::move(result1.error()));
+            }
+
+            auto result2 = second(ctx);
+
+            if (!result2)
+            {
+                return R(std::unexpect, std::move(result2.error()));
+            }
+
+            return R(std::in_place, std::move(*result1), std::move(*result2));
+        };
+
+        return make_parser_binder(fn, (F1&&)f1, (F2&&)f2);
     }
 } pair;
 
@@ -24,10 +50,32 @@ inline constexpr struct
 // then gets an object from the second parser.
 inline constexpr struct 
 {
-    template <typename First, typename Second>
-    static constexpr auto operator()(First first, Second second)
+    template <typename F1, typename F2>
+    static constexpr auto operator()(F1&& f1, F2&& f2)
     {
-        return Preceded<First, Second>(std::move(first), std::move(second));
+        // return Preceded<std::decay_t<F1>, std::decay_t<F2>>((F1&&)f1, (F2&&)f2);
+        auto fn = []<typename FunctionTuple, typename ParseContext>(FunctionTuple&& fns, ParseContext& ctx) static
+        {
+            using R2 = std::invoke_result_t<std::decay_t<F2>, ParseContext&>;
+
+            auto [first, second] = (FunctionTuple&&)fns;
+
+            if (auto result1 = first(ctx); !result1)
+            {
+                return R2(std::unexpect, std::move(result1.error()));
+            }
+
+            auto result2 = second(ctx);
+
+            if (!result2)
+            {
+                return R2(std::unexpect, std::move(result2.error()));
+            }
+
+            return R2(std::in_place, std::move(*result2));
+        };
+
+        return make_parser_binder(fn, (F1&&)f1, (F2&&)f2);
     }
 } preceded;
 
@@ -37,11 +85,11 @@ inline constexpr struct
 inline constexpr struct 
 {
     template <typename First, typename Sep, typename Second>
-    static constexpr auto operator()(First first, Sep sep, Second second)
+    static constexpr auto operator()(First&& first, Sep&& sep, Second&& second)
     {
         return pair(
-            std::move(first), 
-            preceded(std::move(sep), std::move(second))
+            (First&&)first, 
+            preceded((Sep&&)sep, (Second&&)second)
         );
     }
 } separated_pair;
@@ -50,10 +98,32 @@ inline constexpr struct
 // an object from the second parser and discards it.
 inline constexpr struct 
 {
-    template <typename First, typename Second>
-    static constexpr auto operator()(First first, Second second)
+    template <typename F1, typename F2>
+    static constexpr auto operator()(F1&& f1, F2&& f2)
     {
-        return Terminated<First, Second>(std::move(first), std::move(second));
+        auto fn = []<typename FunctionTuple, typename ParseContext>(FunctionTuple&& fns, ParseContext& ctx) static
+        {
+            using First = std::decay_t<F1>;
+            using R1 = std::invoke_result_t<First, ParseContext&>;
+
+            auto [first, second] = (FunctionTuple&&)fns;
+
+            auto result1 = first(ctx);
+
+            if (!result1)
+            {
+                return R1(std::unexpect, std::move(result1.error()));
+            }
+
+            if (auto result2 = second(ctx); !result2)
+            {
+                return R1(std::unexpect, std::move(result2.error()));
+            }
+
+            return R1(std::in_place, std::move(*result1));
+        };
+
+        return make_parser_binder(fn, (F1&&)f1, (F2&&)f2);
     }
 } terminated;
 
@@ -63,9 +133,9 @@ inline constexpr struct
 inline constexpr struct 
 {
     template <typename First, typename Second, typename Third>
-    static constexpr auto operator()(First first, Second second, Third third)
+    static constexpr auto operator()(First&& first, Second&& second, Third&& third)
     {
-        return preceded(std::move(first), terminated(std::move(second), std::move(third)));
+        return preceded((First&&)first, terminated((Second&&)second, (Third&&)third));
     }
 } delimited;
 

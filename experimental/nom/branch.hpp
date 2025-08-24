@@ -2,6 +2,7 @@
 
 #include "internal.hpp"
 
+// https://docs.rs/nom/latest/nom/branch/index.html
 namespace nom::branch
 {
 
@@ -14,5 +15,6 @@ inline constexpr struct
     }
 } alt;
 
+// TODO: implement 'permutation'
 
 }  // namespace nom::branch

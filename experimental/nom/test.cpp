@@ -2,6 +2,7 @@
 #include "sequence.hpp"
 #include "combinator.hpp"
 #include "parser.hpp"
+#include "bytes.hpp"
 #include "branch.hpp"
 #include "character.hpp"
 
@@ -18,8 +19,8 @@ void CheckValueEqual(const nom::IResult<T, E>& actual, U expected)
 
 TEST_CASE("value")
 {
-    auto trueParser = nom::value(true, nom::tag("True"));
-    auto falseParser = nom::value(false, nom::tag("False"));
+    auto trueParser = nom::combinator::value(true, nom::tag("True"));
+    auto falseParser = nom::combinator::value(false, nom::tag("False"));
 
     auto input1 = std::string_view("True");
     auto input2 = std::string_view("False");
@@ -53,7 +54,7 @@ void CheckResult(Parser parser, std::string_view input, std::string_view rest, n
 
 TEST_CASE("delimiter")
 {
-    auto parser = nom::delimited(
+    auto parser = nom::sequence::delimited(
         nom::tag("("),
         nom::tag("abc"),
         nom::tag(")")
@@ -67,7 +68,7 @@ TEST_CASE("delimiter")
 
 TEST_CASE("pair")
 {
-    auto parser = nom::pair(
+    auto parser = nom::sequence::pair(
         nom::tag("Hello"),
         nom::tag("World")
     );
@@ -81,7 +82,7 @@ TEST_CASE("pair")
 
 TEST_CASE("preceded")
 {
-    auto parser = nom::preceded(
+    auto parser = nom::sequence::preceded(
         nom::tag("Hello"),
         nom::tag("World")
     );
@@ -95,7 +96,7 @@ TEST_CASE("preceded")
 
 TEST_CASE("separated_pair")
 {
-    auto parser = nom::separated_pair(
+    auto parser = nom::sequence::separated_pair(
         nom::tag("Hello"),
         nom::tag(", "),
         nom::tag("World")
@@ -111,7 +112,7 @@ TEST_CASE("separated_pair")
 
 TEST_CASE("terminated")
 {
-    auto parser = nom::terminated(
+    auto parser = nom::sequence::terminated(
         nom::tag("Hello"),
         nom::tag("World")
     );
@@ -138,14 +139,75 @@ TEST_CASE("alt")
     CheckResult(parser, "", "", nom::ErrorKind::Alt);
 }
 
+TEST_CASE("multispace")
+{
+    auto parser0 = nom::character::multispace0;
+    auto parser1 = nom::character::multispace1;
 
+    CheckResult(parser0, "", "", nom::ErrorKind::Ok);
+    CheckResult(parser0, "   ", "", nom::ErrorKind::Ok);
+    CheckResult(parser0, "   abc", "abc", nom::ErrorKind::Ok);
+    CheckResult(parser0, "abc", "abc", nom::ErrorKind::Ok);
 
+    CheckResult(parser1, "", "", nom::ErrorKind::MultiSpace);
+    CheckResult(parser1, "   ", "", nom::ErrorKind::Ok);
+    CheckResult(parser1, "   abc", "abc", nom::ErrorKind::Ok);
+    CheckResult(parser1, "abc", "abc", nom::ErrorKind::MultiSpace);
+}
 
+TEST_CASE("peek")
+{
+    auto parser = nom::combinator::peek(nom::tag("Hello"));
 
+    CheckResult(parser, "Hello", "Hello", nom::ErrorKind::Ok);
+    CheckResult(parser, "HelloWorld", "HelloWorld", nom::ErrorKind::Ok);
+    CheckResult(parser, "World", "World", nom::ErrorKind::Tag);
+    CheckResult(parser, "", "", nom::ErrorKind::Tag);
+}
 
+TEST_CASE("one_of")
+{
+    CheckResult(nom::character::one_of("abc"), "b", "", nom::ErrorKind::Ok);
+    CheckResult(nom::character::one_of("a"), "bc", "bc", nom::ErrorKind::OneOf);
+    CheckResult(nom::character::one_of("a"), "", "", nom::ErrorKind::OneOf);
+}
 
+TEST_CASE("escaped")
+{
+    auto parser = nom::bytes::escaped(
+            nom::character::digit1, 
+            '\\', 
+            nom::character::one_of(R"("n\)")
+        );
 
+    CheckResult(parser, "123;", ";", nom::ErrorKind::Ok);
+    CheckResult(parser, R"(12\"34;)", ";", nom::ErrorKind::Ok);
+}
 
+TEST_CASE("take_till")
+{
+    auto parser = nom::bytes::take_till([](char c) { return c == ':'; });
+
+    CheckResult(parser, "latin:123", ":123", nom::ErrorKind::Ok);
+    CheckResult(parser, ":empty matched", ":empty matched", nom::ErrorKind::Ok);
+    CheckResult(parser, "12345", "", nom::ErrorKind::Ok);
+    CheckResult(parser, "", "", nom::ErrorKind::Ok);
+}
+
+TEST_CASE("map")
+{
+    auto parser = nom::combinator::map(
+        nom::character::digit1,
+        [](std::string_view sv) { return sv.size(); }
+    );
+
+    CheckResult(parser, "123abc", "abc", nom::ErrorKind::Ok);
+    CheckResult(parser, "abc", "abc", nom::ErrorKind::Digit);
+
+    std::string_view sv("12345");
+    auto result = parser(sv);
+    REQUIRE(*result == 5);
+}
 
 
 
