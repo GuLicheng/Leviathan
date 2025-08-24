@@ -1,78 +1,49 @@
-#include <leviathan/config_parser/toml/toml.hpp>
-#include <leviathan/config_parser/json/json.hpp>
-#include <leviathan/config_parser/value_cast.hpp>
-#include <leviathan/extc++/all.hpp>
-#include <unordered_map>
-#include <map>
-#include <set>
-#include <leviathan/meta/type.hpp>
-#include <leviathan/print.hpp>
+#include <experimental/nom/combinator.hpp>
+#include <experimental/nom/parser.hpp>
+#include <leviathan/type_caster.hpp>
 #include <print>
-#include <filesystem>
-#include <iostream>
 
-constexpr const char* Root = R"(F:/CCB/Work/Performance/details)";
-
-using Details = std::unordered_map<std::string, double>;
-
-struct MapMerger
+struct Color
 {
-    template <typename M1, typename M2>
-    auto void operator()(M1& m1, const M2& m2) const
-    {
-        for (const auto& [key, value] : m2)
-        {
-            auto [pos, ok] = map.try_emplace(key, value);
+    int r;
+    int g;
+    int b;
 
-            if (!ok)
-            {
-                pos->second += value; // Assuming the values are numeric and can be summed
-            }
-        }
+    static Color from_string(std::string_view& ctx)
+    {
+        auto r = cpp::cast<int>(ctx.substr(0, 2), 16);
+        auto g = cpp::cast<int>(ctx.substr(2, 2), 16);
+        auto b = cpp::cast<int>(ctx.substr(4, 2), 16);
+        ctx.remove_prefix(6);
+        return Color{ r, g, b };
     }
 };
 
-template <typename AssociateContainer>
-inline constexpr adaptor collect = []<typename... Args>(Args&&... args) static
+auto parse_literal(std::string_view& ctx)
 {
-    auto fn = []<typename Tuple, typename R>(Tuple&& t, R&& r) static
-    {
-        auto map = std::make_from_tuple<AssociateContainer>((Tuple&&)t);
-
-        for (auto&& [key, value] : r)
-        {
-            // The multimap will not provide `try_emplace`, it will cause compiler error.
-            auto [pos, ok] = map.try_emplace(key, value);
-
-            if (!ok)
-            {
-                MapMerger()(pos->second, value);
-            }
-        }
-
-        return map;
-    };
-
-    return partial<decltype(fn), std::decay_t<Args>...>(std::move(fn), (Args&&)args...);
-};
+    return nom::pair( 
+        nom::value(true, nom::tag("True")),
+        nom::value(false, nom::tag("False"))
+    )(ctx);
+}
 
 int main(int argc, char const *argv[])
 {
-    system("chcp 65001"); // Set console to UTF-8 encoding
+    std::string_view input = "TrueFalse|||";
 
+    auto result = parse_literal(input);
 
-    auto rg = cpp::listdir(Root, true)
-            | cpp::views::compose(cpp::toml::load, cpp::cast<std::map<std::string, Details>>)
-            | cpp::views::join
-            | std::ranges::to<std::multimap>()
-            | cpp::views::chunk_by(std::ranges::equal_to())
-            | cpp::views::transform([](auto&& subrange) static { return subrange.begin()->first; })
-            | std::ranges::to<std::set>()
-            ;
+    if (result)
+    {
+        auto [v1, v2] = *result;
+        std::print("Parsed values: {}, {}\n", v1, v2);
+    }
+    else
+    {
+        std::print("Error: {}\n", result.error().info);
+    }
 
-
-    Console::WriteLine(rg);
+    std::print("Remaining input: '{}'\n", input);
 
     return 0;
 }
-

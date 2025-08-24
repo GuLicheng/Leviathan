@@ -1,37 +1,47 @@
 #include <leviathan/config_parser/toml/toml.hpp>
+#include <leviathan/config_parser/json/json.hpp>
+#include <leviathan/config_parser/value_cast.hpp>
 #include <leviathan/extc++/all.hpp>
-#include <unordered_map>
+#include <map>
 #include <print>
-#include <filesystem>
 
-constexpr const char* Filename = R"(F:\建设银行\Work\业绩汇总\details)";
+constexpr const char* Root = R"(F:/CCB/Work/Performance/details)";
 
-using Details = std::unordered_map<std::string, double>;
+using Details = std::map<std::string, double>;
+using EmployeeDetails = std::map<std::string, Details>;
 
-void ReadFiles(const char* path = Filename)
+template <typename AssociateContainer>
+inline constexpr cpp::ranges::adaptor CollectAs = []<typename... Args>(Args&&... args) static
 {
-    auto files = std::filesystem::directory_iterator(path);
-
-    for (const auto& file : files)
+    auto fn = []<typename Tuple, typename R>(Tuple&& t, R&& r) static
     {
-        std::print("{}\n", file.path().filename().string());
-    }
+        auto retval = std::make_from_tuple<AssociateContainer>((Tuple&&)t);
 
-    // auto files1 = files 
-    //             | cpp::views::indirect
-    //             | cpp::views::transform([](auto x) { return x.path().filename(); })
-    //             | std::ranges::to<std::vector>(files);
+        for (const auto& [name, details] : r)
+        {
+            auto& target_details = retval[name];
+            for (const auto& [item, score] : details)
+            {
+                target_details[item] += score;
+            }
+        }
+        return retval;
+    };
 
-   
-
-    std::print("{}", files1);
-
-}
+    return cpp::ranges::partial<decltype(fn), std::decay_t<Args>...>(std::move(fn), (Args&&)args...);
+};
 
 int main(int argc, char const *argv[])
 {
+    system("chcp 65001"); // Set console to UTF-8 encoding
 
-    
+    // Cast value to EmployeeDetails may not efficient but more readable and clear
+    auto rg = cpp::listdir(Root, true)
+            | cpp::views::compose(cpp::toml::load, cpp::cast<EmployeeDetails>)
+            | cpp::views::join
+            | CollectAs<EmployeeDetails>();
+
+    std::println("{}", rg["08193520"]);
 
     return 0;
 }

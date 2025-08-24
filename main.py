@@ -1,6 +1,7 @@
 from pyext.cpp2py import avl_tree
 from collections import Counter
 import json
+import xml.etree.ElementTree as ET
 
 if __name__ == "__main__":
 
