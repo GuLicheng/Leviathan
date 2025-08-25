@@ -5,6 +5,7 @@
 #include "error.hpp"
 #include <utility>
 #include <type_traits>
+#include <functional>
 
 #pragma once
 
@@ -299,6 +300,47 @@ struct Conditional
     }
 };
 
+template <bool AtLeastOne, typename Fn, ErrorKind kind>
+struct Conditional2
+{
+    template <typename ParseContext>
+    static constexpr IResult<std::string_view> operator()(ParseContext& ctx)
+    {
+        auto first = ctx.begin(), last = ctx.end();
+
+        for (; first != last && std::invoke(Fn(), *first); ++first);
+
+        std::string_view result = { ctx.begin(), first };
+
+        if constexpr (AtLeastOne)
+        {
+            if (result.empty())
+            {
+                return IResult<std::string_view>(
+                    std::unexpect, 
+                    std::string(ctx.begin(), ctx.end()),
+                    kind
+                );
+            }
+        }
+
+        ctx.remove_prefix(result.size());
+        return IResult<std::string_view>(std::in_place, result);
+    }
+};
+
+struct IsMultiSpace
+{
+    template <typename CharT>
+    static constexpr bool operator()(CharT c) 
+    { 
+        return c == CharT(' ') 
+            || c == CharT('\t') 
+            || c == CharT('\r') 
+            || c == CharT('\n');
+    }
+};
+
 template <bool AtLeastOne>
 struct MultiSpace
 {
@@ -439,6 +481,47 @@ struct Space
             ctx, ErrorKind::Space, "Expected at least one space character"
         );
     }
+};
+
+struct CheckFirstCharacter
+{
+    template <typename ParseContext, typename Pred>
+    static constexpr IResult<char> operator()(Pred&& pred, ParseContext& ctx, ErrorKind kind, std::string message1, std::string message2)
+    {
+        if (ctx.empty())
+        {
+            return IResult<char>(
+                std::unexpect, 
+                std::move(message1),
+                kind
+            );
+        }
+
+        if (!std::invoke(pred, ctx[0]))
+        {
+            return IResult<char>(
+                std::unexpect, 
+                std::format("The first character '{}' {}", ctx[0], message2),
+                kind
+            );
+        }
+
+        char ch = ctx[0];
+        ctx.remove_prefix(1);
+        return IResult<char>(std::in_place, ch);
+    }
+};
+
+struct Satisfy
+{
+    template <typename Pred>
+    static constexpr auto operator()(Pred&& pred) 
+    {
+        return [pred = (Pred&&)pred]<typename ParseContext>(ParseContext& ctx) 
+        {
+            return CheckFirstCharacter()(pred, ctx, ErrorKind::Satisfy, "but got end of input", "does not satisfy the predicate");
+        };
+    };
 };
 
 } // namespace nom

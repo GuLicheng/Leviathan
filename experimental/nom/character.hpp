@@ -5,8 +5,11 @@
 namespace nom::character
 {
 
-inline constexpr auto multispace0 = MultiSpace<false>();
-inline constexpr auto multispace1 = MultiSpace<true>();
+// inline constexpr auto multispace0 = MultiSpace<false>();
+// inline constexpr auto multispace1 = MultiSpace<true>();
+
+inline constexpr auto multispace0 = Conditional2<false, IsMultiSpace, ErrorKind::Ok>();
+inline constexpr auto multispace1 = Conditional2<true, IsMultiSpace, ErrorKind::MultiSpace>();
 
 inline constexpr auto digit0 = Dight<false>();
 inline constexpr auto digit1 = Dight<true>();
@@ -34,33 +37,7 @@ inline constexpr auto char_ = [](char ch) static
     };
 }; 
 
-inline constexpr auto satisfy = []<typename Pred>(Pred&& predicate) static
-{
-    return [predicate]<typename ParseContext>(ParseContext& ctx) 
-    {
-        if (ctx.empty())
-        {
-            return IResult<char>(
-                std::unexpect, 
-                std::format("Not enough input to satisfy predicate"),
-                ErrorKind::Satisfy
-            );
-        }
-
-        if (!std::invoke(predicate, ctx[0]))
-        {
-            return IResult<char>(
-                std::unexpect, 
-                std::format("Predicate not satisfied for character: '{}'", ctx[0]),
-                ErrorKind::Satisfy
-            );
-        }
-
-        char ch = ctx[0];
-        ctx.remove_prefix(1);
-        return IResult<char>(std::in_place, ch);
-    };
-};
+inline constexpr auto satisfy = Satisfy();
 
 inline constexpr auto alphanumeric0 = Alphanumeric<false>();
 inline constexpr auto alphanumeric1 = Alphanumeric<true>();
