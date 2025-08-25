@@ -1,8 +1,10 @@
 #include <catch2/catch_all.hpp>
+#include <leviathan/extc++/ranges.hpp>
 #include "sequence.hpp"
 #include "combinator.hpp"
 #include "parser.hpp"
 #include "bytes.hpp"
+#include "multi.hpp"
 #include "branch.hpp"
 #include "character.hpp"
 
@@ -19,8 +21,8 @@ void CheckValueEqual(const nom::IResult<T, E>& actual, U expected)
 
 TEST_CASE("value")
 {
-    auto trueParser = nom::combinator::value(true, nom::tag("True"));
-    auto falseParser = nom::combinator::value(false, nom::tag("False"));
+    auto trueParser = nom::combinator::value(true, nom::bytes::tag("True"));
+    auto falseParser = nom::combinator::value(false, nom::bytes::tag("False"));
 
     auto input1 = std::string_view("True");
     auto input2 = std::string_view("False");
@@ -55,9 +57,9 @@ void CheckResult(Parser parser, std::string_view input, std::string_view rest, n
 TEST_CASE("delimiter")
 {
     auto parser = nom::sequence::delimited(
-        nom::tag("("),
-        nom::tag("abc"),
-        nom::tag(")")
+        nom::bytes::tag("("),
+        nom::bytes::tag("abc"),
+        nom::bytes::tag(")")
     );
 
     CheckResult(parser, "(abc)", "", nom::ErrorKind::Ok);
@@ -69,8 +71,8 @@ TEST_CASE("delimiter")
 TEST_CASE("pair")
 {
     auto parser = nom::sequence::pair(
-        nom::tag("Hello"),
-        nom::tag("World")
+        nom::bytes::tag("Hello"),
+        nom::bytes::tag("World")
     );
 
     CheckResult(parser, "HelloWorld", "", nom::ErrorKind::Ok);
@@ -83,8 +85,8 @@ TEST_CASE("pair")
 TEST_CASE("preceded")
 {
     auto parser = nom::sequence::preceded(
-        nom::tag("Hello"),
-        nom::tag("World")
+        nom::bytes::tag("Hello"),
+        nom::bytes::tag("World")
     );
 
     CheckResult(parser, "HelloWorld", "", nom::ErrorKind::Ok);
@@ -97,9 +99,9 @@ TEST_CASE("preceded")
 TEST_CASE("separated_pair")
 {
     auto parser = nom::sequence::separated_pair(
-        nom::tag("Hello"),
-        nom::tag(", "),
-        nom::tag("World")
+        nom::bytes::tag("Hello"),
+        nom::bytes::tag(", "),
+        nom::bytes::tag("World")
     );
 
     CheckResult(parser, "Hello, World", "", nom::ErrorKind::Ok);
@@ -113,8 +115,8 @@ TEST_CASE("separated_pair")
 TEST_CASE("terminated")
 {
     auto parser = nom::sequence::terminated(
-        nom::tag("Hello"),
-        nom::tag("World")
+        nom::bytes::tag("Hello"),
+        nom::bytes::tag("World")
     );
 
     CheckResult(parser, "HelloWorld", "", nom::ErrorKind::Ok);
@@ -127,8 +129,8 @@ TEST_CASE("terminated")
 TEST_CASE("alt")
 {
     auto parser = nom::branch::alt(
-        nom::tag("Hello"),
-        nom::tag("World")
+        nom::bytes::tag("Hello"),
+        nom::bytes::tag("World")
     );
 
     CheckResult(parser, "Hello", "", nom::ErrorKind::Ok);
@@ -157,7 +159,7 @@ TEST_CASE("multispace")
 
 TEST_CASE("peek")
 {
-    auto parser = nom::combinator::peek(nom::tag("Hello"));
+    auto parser = nom::combinator::peek(nom::bytes::tag("Hello"));
 
     CheckResult(parser, "Hello", "Hello", nom::ErrorKind::Ok);
     CheckResult(parser, "HelloWorld", "HelloWorld", nom::ErrorKind::Ok);
@@ -209,5 +211,77 @@ TEST_CASE("map")
     REQUIRE(*result == 5);
 }
 
+TEST_CASE("take")
+{
+    auto parser = nom::bytes::take(3);
 
+    CheckResult(parser, "abcdef", "def", nom::ErrorKind::Ok);
+    CheckResult(parser, "ab", "ab", nom::ErrorKind::Eof);
+    CheckResult(parser, "", "", nom::ErrorKind::Eof);
+}
+
+TEST_CASE("separated_list")
+{
+    auto parser1 = nom::multi::separated_list0(
+        nom::bytes::tag("|"),
+        nom::bytes::tag("abc")
+    );
+
+    CheckResult(parser1, "abc|abc|abc", "", nom::ErrorKind::Ok);
+    CheckResult(parser1, "abc123abc", "123abc", nom::ErrorKind::Ok);
+    CheckResult(parser1, "abc|def", "|def", nom::ErrorKind::Ok);
+    CheckResult(parser1, "", "", nom::ErrorKind::Ok);
+    CheckResult(parser1, "def|abc", "def|abc", nom::ErrorKind::Ok);
+
+    auto parser2 = nom::multi::separated_list1(
+        nom::bytes::tag("|"),
+        nom::bytes::tag("abc")
+    );
+
+    CheckResult(parser2, "abc|abc|abc", "", nom::ErrorKind::Ok);
+    CheckResult(parser2, "abc123abc", "123abc", nom::ErrorKind::Ok);
+    CheckResult(parser2, "abc|def", "|def", nom::ErrorKind::Ok);
+    CheckResult(parser2, "", "", nom::ErrorKind::Tag);
+    CheckResult(parser2, "def|abc", "def|abc", nom::ErrorKind::Tag);
+
+    auto parser3 = nom::sequence::delimited(
+        nom::character::char_('['),
+        nom::combinator::map(
+            nom::multi::separated_list0(
+                nom::character::char_(','),
+                nom::character::alphanumeric1
+            ),
+            [](auto vec) { return vec | std::views::transform(cpp::cast<int>) | std::ranges::to<std::vector>(); }
+        ),
+        nom::character::char_(']')
+    );
+
+    std::string_view input = "[123,456,789]";
+    auto result = parser3(input);
+    REQUIRE((result == std::vector{123, 456, 789}));
+}
+
+TEST_CASE("char")
+{
+    auto parser = nom::character::char_('a');
+
+    CheckResult(parser, "abc", "bc", nom::ErrorKind::Ok);
+    CheckResult(parser, " abc", " abc", nom::ErrorKind::Char);
+    CheckResult(parser, "bc", "bc", nom::ErrorKind::Char);
+    CheckResult(parser, "", "", nom::ErrorKind::Char);
+}
+
+TEST_CASE("alphanumeric")
+{
+    auto parser0 = nom::character::alphanumeric0;
+    auto parser1 = nom::character::alphanumeric1;
+
+    CheckResult(parser0, "21cZ%1", "%1", nom::ErrorKind::Ok);
+    CheckResult(parser0, "&Z21c", "&Z21c", nom::ErrorKind::Ok);
+    CheckResult(parser0, "", "", nom::ErrorKind::Ok);
+
+    CheckResult(parser1, "21cZ%1", "%1", nom::ErrorKind::Ok);
+    CheckResult(parser1, "&Z21c", "&Z21c", nom::ErrorKind::AlphaNumeric);
+    CheckResult(parser1, "", "", nom::ErrorKind::AlphaNumeric);
+}
 

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <leviathan/extc++/math.hpp>
+#include <leviathan/extc++/hash.hpp>
 #include <leviathan/extc++/concepts.hpp>
 
 #include <limits>

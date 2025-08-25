@@ -126,6 +126,33 @@ public:
 };
 #endif
 
+class Tag
+{
+    std::string_view value;
+
+public:
+
+    constexpr Tag(std::string_view v) : value(v) { }
+
+    template <typename ParseContext>
+    constexpr IResult<std::string_view> operator()(ParseContext& ctx) const
+    {
+        if (ctx.starts_with(value))
+        {
+            ctx.remove_prefix(value.size());
+            return value;
+        }
+        else
+        {
+            return IResult<std::string_view>(
+                std::unexpect, 
+                std::format("Tag parser failed: expected '{}', but got {}.", value, ctx),
+                ErrorKind::Tag
+            );
+        }
+    }
+};
+
 template <bool AtLeastOne>
 struct MultiSpace
 {
@@ -345,6 +372,88 @@ struct Escaped
     }
 };
 
+template <bool AtLeastOne>
+struct SeparatedList
+{
+    template <typename FunctionTuple, typename ParseContext>
+    static constexpr auto operator()(FunctionTuple&& fns, ParseContext& ctx)
+    {
+        // using R1 = std::invoke_result_t<std::tuple_element_t<0, std::decay_t<FunctionTuple>>, ParseContext&>;
+        using R2 = std::invoke_result_t<std::tuple_element_t<1, std::decay_t<FunctionTuple>>, ParseContext&>;
+        using R = IResult<std::vector<typename R2::value_type>>;
+
+        auto [sep_parser, item_parser] = (FunctionTuple&&)fns;
+        std::vector<typename R2::value_type> items;
+
+        // First try to parse the first item
+        auto item_result = item_parser(ctx);
+
+        if (!item_result)
+        {
+            if constexpr (AtLeastOne)
+            {
+                return R(std::unexpect, std::move(item_result.error()));
+            }
+            else
+            {
+                return R(std::in_place, std::move(items)); // empty list
+            }
+        }
+        
+        items.emplace_back(std::move(*item_result));
+
+        while (true)
+        {
+            auto clone = ctx;
+
+            if (auto sep_result = sep_parser(clone); !sep_result)
+            {
+                break;
+            }
+
+            if (auto item_result = item_parser(clone); !item_result)
+            {
+                break;
+            }
+            else
+            {
+                ctx = std::move(clone);
+                items.emplace_back(std::move(*item_result));
+            }
+        }
+
+        return R(std::in_place, std::move(items));
+    }
+};
+
+template <bool AtLeastOne>
+struct Alphanumeric
+{
+    template <typename ParseContext>
+    static constexpr IResult<std::string_view> operator()(ParseContext& ctx)
+    {
+        auto first = ctx.begin(), last = ctx.end();
+
+        for (; first != last && std::isalnum(*first); ++first);
+
+        std::string_view result = { ctx.begin(), first };
+
+        if constexpr (AtLeastOne)
+        {
+            if (result.empty())
+            {
+                return IResult<std::string_view>(
+                    std::unexpect, 
+                    "Expected at least one alphanumeric character",
+                    ErrorKind::AlphaNumeric
+                );
+            }
+        }
+
+        ctx.remove_prefix(result.size());
+        return IResult<std::string_view>(std::in_place, result);
+    }
+};
 
 } // namespace nom
 
