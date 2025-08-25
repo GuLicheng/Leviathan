@@ -19,24 +19,6 @@ void CheckValueEqual(const nom::IResult<T, E>& actual, U expected)
     REQUIRE(false);
 }
 
-TEST_CASE("value")
-{
-    auto trueParser = nom::combinator::value(true, nom::bytes::tag("True"));
-    auto falseParser = nom::combinator::value(false, nom::bytes::tag("False"));
-
-    auto input1 = std::string_view("True");
-    auto input2 = std::string_view("False");
-
-    auto b1 = trueParser(input1);
-    auto b2 = falseParser(input2);
-
-    CheckValueEqual(b1, true);
-    CheckValueEqual(b2, false);
-
-    REQUIRE(input1.empty());
-    REQUIRE(input2.empty());
-}
-
 template <typename Parser>
 void CheckResult(Parser parser, std::string_view input, std::string_view rest, nom::ErrorKind kind)
 {
@@ -54,7 +36,25 @@ void CheckResult(Parser parser, std::string_view input, std::string_view rest, n
     }
 }
 
-TEST_CASE("delimiter")
+TEST_CASE("value", "[combinator]")
+{
+    auto trueParser = nom::combinator::value(true, nom::bytes::tag("True"));
+    auto falseParser = nom::combinator::value(false, nom::bytes::tag("False"));
+
+    auto input1 = std::string_view("True");
+    auto input2 = std::string_view("False");
+
+    auto b1 = trueParser(input1);
+    auto b2 = falseParser(input2);
+
+    CheckValueEqual(b1, true);
+    CheckValueEqual(b2, false);
+
+    REQUIRE(input1.empty());
+    REQUIRE(input2.empty());
+}
+
+TEST_CASE("delimiter", "[sequence]")
 {
     auto parser = nom::sequence::delimited(
         nom::bytes::tag("("),
@@ -68,7 +68,7 @@ TEST_CASE("delimiter")
     CheckResult(parser, "123", "123", nom::ErrorKind::Tag);
 }
 
-TEST_CASE("pair")
+TEST_CASE("pair", "[sequence]")
 {
     auto parser = nom::sequence::pair(
         nom::bytes::tag("Hello"),
@@ -82,7 +82,7 @@ TEST_CASE("pair")
     CheckResult(parser, "", "", nom::ErrorKind::Tag);
 }
 
-TEST_CASE("preceded")
+TEST_CASE("preceded", "[sequence]")
 {
     auto parser = nom::sequence::preceded(
         nom::bytes::tag("Hello"),
@@ -96,7 +96,7 @@ TEST_CASE("preceded")
     CheckResult(parser, "", "", nom::ErrorKind::Tag);
 }
 
-TEST_CASE("separated_pair")
+TEST_CASE("separated_pair", "[sequence]")
 {
     auto parser = nom::sequence::separated_pair(
         nom::bytes::tag("Hello"),
@@ -112,7 +112,7 @@ TEST_CASE("separated_pair")
     CheckResult(parser, "Hello,123", ",123", nom::ErrorKind::Tag);
 }
 
-TEST_CASE("terminated")
+TEST_CASE("terminated", "[sequence]")
 {
     auto parser = nom::sequence::terminated(
         nom::bytes::tag("Hello"),
@@ -126,7 +126,7 @@ TEST_CASE("terminated")
     CheckResult(parser, "", "", nom::ErrorKind::Tag);
 }
 
-TEST_CASE("alt")
+TEST_CASE("alt", "[branch]")
 {
     auto parser = nom::branch::alt(
         nom::bytes::tag("Hello"),
@@ -141,7 +141,7 @@ TEST_CASE("alt")
     CheckResult(parser, "", "", nom::ErrorKind::Alt);
 }
 
-TEST_CASE("multispace")
+TEST_CASE("multispace", "[character]")
 {
     auto parser0 = nom::character::multispace0;
     auto parser1 = nom::character::multispace1;
@@ -157,7 +157,49 @@ TEST_CASE("multispace")
     CheckResult(parser1, "abc", "abc", nom::ErrorKind::MultiSpace);
 }
 
-TEST_CASE("peek")
+TEST_CASE("digit", "[character]")
+{
+    auto parser0 = nom::character::digit0;
+    auto parser1 = nom::character::digit1;
+
+    CheckResult(parser0, "123abc", "abc", nom::ErrorKind::Ok);
+    CheckResult(parser0, "abc", "abc", nom::ErrorKind::Ok);
+    CheckResult(parser0, "", "", nom::ErrorKind::Ok);
+
+    CheckResult(parser1, "123abc", "abc", nom::ErrorKind::Ok);
+    CheckResult(parser1, "abc", "abc", nom::ErrorKind::Digit);
+    CheckResult(parser1, "", "", nom::ErrorKind::Digit);
+}
+
+TEST_CASE("alpha", "[character]")
+{
+    auto parser0 = nom::character::alpha0;
+    auto parser1 = nom::character::alpha1;
+
+    CheckResult(parser0, "abc123", "123", nom::ErrorKind::Ok);
+    CheckResult(parser0, "123abc", "123abc", nom::ErrorKind::Ok);
+    CheckResult(parser0, "", "", nom::ErrorKind::Ok);
+
+    CheckResult(parser1, "abc123", "123", nom::ErrorKind::Ok);
+    CheckResult(parser1, "123abc", "123abc", nom::ErrorKind::Alpha);
+    CheckResult(parser1, "", "", nom::ErrorKind::Alpha);
+}
+
+TEST_CASE("space", "[character]")
+{
+    auto parser0 = nom::character::space0;
+    auto parser1 = nom::character::space1;
+
+    CheckResult(parser0, " \t21c", "21c", nom::ErrorKind::Ok);
+    CheckResult(parser0, "Z21c", "Z21c", nom::ErrorKind::Ok);
+    CheckResult(parser0, "", "", nom::ErrorKind::Ok);
+
+    CheckResult(parser1, " \t21c", "21c", nom::ErrorKind::Ok);
+    CheckResult(parser1, "Z21c", "Z21c", nom::ErrorKind::Space);
+    CheckResult(parser1, "", "", nom::ErrorKind::Space);
+}
+
+TEST_CASE("peek", "[combinator]")
 {
     auto parser = nom::combinator::peek(nom::bytes::tag("Hello"));
 
@@ -167,14 +209,14 @@ TEST_CASE("peek")
     CheckResult(parser, "", "", nom::ErrorKind::Tag);
 }
 
-TEST_CASE("one_of")
+TEST_CASE("one_of", "[character]")
 {
     CheckResult(nom::character::one_of("abc"), "b", "", nom::ErrorKind::Ok);
     CheckResult(nom::character::one_of("a"), "bc", "bc", nom::ErrorKind::OneOf);
     CheckResult(nom::character::one_of("a"), "", "", nom::ErrorKind::OneOf);
 }
 
-TEST_CASE("escaped")
+TEST_CASE("escaped", "[bytes]")
 {
     auto parser = nom::bytes::escaped(
             nom::character::digit1, 
@@ -186,7 +228,7 @@ TEST_CASE("escaped")
     CheckResult(parser, R"(12\"34;)", ";", nom::ErrorKind::Ok);
 }
 
-TEST_CASE("take_till")
+TEST_CASE("take_till", "[bytes]")
 {
     auto parser = nom::bytes::take_till([](char c) { return c == ':'; });
 
@@ -196,7 +238,7 @@ TEST_CASE("take_till")
     CheckResult(parser, "", "", nom::ErrorKind::Ok);
 }
 
-TEST_CASE("map")
+TEST_CASE("map", "[combinator]")
 {
     auto parser = nom::combinator::map(
         nom::character::digit1,
@@ -211,7 +253,7 @@ TEST_CASE("map")
     REQUIRE(*result == 5);
 }
 
-TEST_CASE("take")
+TEST_CASE("take", "[bytes]")
 {
     auto parser = nom::bytes::take(3);
 
@@ -220,7 +262,7 @@ TEST_CASE("take")
     CheckResult(parser, "", "", nom::ErrorKind::Eof);
 }
 
-TEST_CASE("separated_list")
+TEST_CASE("separated_list", "[multi]")
 {
     auto parser1 = nom::multi::separated_list0(
         nom::bytes::tag("|"),
@@ -261,7 +303,7 @@ TEST_CASE("separated_list")
     REQUIRE((result == std::vector{123, 456, 789}));
 }
 
-TEST_CASE("char")
+TEST_CASE("char", "[character]")
 {
     auto parser = nom::character::char_('a');
 
@@ -271,7 +313,7 @@ TEST_CASE("char")
     CheckResult(parser, "", "", nom::ErrorKind::Char);
 }
 
-TEST_CASE("alphanumeric")
+TEST_CASE("alphanumeric", "[character]")
 {
     auto parser0 = nom::character::alphanumeric0;
     auto parser1 = nom::character::alphanumeric1;
@@ -284,4 +326,51 @@ TEST_CASE("alphanumeric")
     CheckResult(parser1, "&Z21c", "&Z21c", nom::ErrorKind::AlphaNumeric);
     CheckResult(parser1, "", "", nom::ErrorKind::AlphaNumeric);
 }
+
+TEST_CASE("opt", "[combinator]")
+{
+    auto parser = nom::combinator::opt(nom::character::alpha1);
+
+    CheckResult(parser, "aB1c", "1c", nom::ErrorKind::Ok);
+    CheckResult(parser, "1c", "1c", nom::ErrorKind::Ok);
+    CheckResult(parser, "", "", nom::ErrorKind::Ok);
+
+    std::string_view input1 = "123xyz";
+    auto result1 = parser(input1);
+    REQUIRE(!result1.value().has_value());
+
+    std::string_view input2 = "abcXYZ";
+    auto result2 = parser(input2);
+    REQUIRE(result2.value().has_value());
+    REQUIRE(*result2.value() == "abcXYZ");
+}
+
+TEST_CASE("newline", "[character]")
+{
+    auto parser = nom::character::newline;
+
+    CheckResult(parser, "\nc", "c", nom::ErrorKind::Ok);
+    CheckResult(parser, "\r\nc", "\r\nc", nom::ErrorKind::Char);
+    CheckResult(parser, "", "", nom::ErrorKind::Char);
+}
+
+TEST_CASE("tab", "[character]")
+{
+    auto parser = nom::character::tab;
+
+    CheckResult(parser, "\tc", "c", nom::ErrorKind::Ok);
+    CheckResult(parser, "\r\nc", "\r\nc", nom::ErrorKind::Char);
+    CheckResult(parser, "", "", nom::ErrorKind::Char);
+}
+
+TEST_CASE("satisfy", "[character]")
+{
+    auto parser = nom::character::satisfy([](char c) { return c == 'a' || c == 'b'; });
+
+    CheckResult(parser, "abc", "bc", nom::ErrorKind::Ok);
+    CheckResult(parser, "cd", "cd", nom::ErrorKind::Satisfy);
+    CheckResult(parser, "", "", nom::ErrorKind::Satisfy);
+}
+
+
 

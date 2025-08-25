@@ -64,6 +64,30 @@ inline constexpr struct
     }
 } map;
 
+inline constexpr struct
+{
+    template <typename F1>
+    static constexpr auto operator()(F1& f1)
+    {   
+        auto fn = []<typename FunctionTuple, typename ParseContext>(FunctionTuple&& fns, ParseContext& ctx) static
+        {
+            using R1 = std::invoke_result_t<std::tuple_element_t<0, std::decay_t<FunctionTuple>>, ParseContext&>;
+            using Optional = std::optional<typename R1::value_type>;
+            using R = IResult<Optional>;
+
+            auto [parser] = (FunctionTuple&&)fns;
+            auto result = parser(ctx);
+            
+            return result ? R(std::in_place, std::in_place, std::move(*result))
+                          : R(std::in_place, std::nullopt); // always succeed
+        };
+        return make_parser_binder(fn, (F1&&)f1);
+    }
+} opt;
+
+
+
+
 
 
 } // namespace nom

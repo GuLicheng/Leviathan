@@ -53,15 +53,15 @@ inline constexpr auto take = [](size_t count) static
 
 inline constexpr struct 
 {
-    static constexpr auto operator()(const char* input)
-    {
-        std::string_view sv(input);
-        return Tag(sv);
-    }
-
     static constexpr auto operator()(std::string_view input)
     {
         return Tag(input);
+    }
+
+    static constexpr auto operator()(const char* input)
+    {
+        std::string_view sv(input);
+        return operator()(sv);
     }
 } tag;
 
