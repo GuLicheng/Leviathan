@@ -12,7 +12,6 @@
 namespace nom
 {
 
-    
 /**
  * @brief We use this binder to store the parser function and its arguments (other parsers or predicates).
  * Each parser function must have the signature like:
@@ -396,19 +395,6 @@ struct SeparatedList
     }
 };
 
-// template <bool AtLeastOne>
-// struct TakeTill
-// {
-//     template <typename FunctionTuple, typename ParseContext>
-//     static constexpr auto operator()(FunctionTuple&& fns, ParseContext& ctx)
-//     {
-//         return Conditional<AtLeastOne>()(
-//             std::not_fn(std::get<0>((FunctionTuple&&)fns)), 
-//             ctx, ErrorKind::TakeTill1, "Expected at least one character"
-//         );
-//     }
-// };
-
 template <typename Prediction>
 struct CheckFirstCharacter
 {
@@ -438,6 +424,12 @@ struct CheckFirstCharacter
 
 template <typename Prediction>
 CheckFirstCharacter(Prediction&&, ErrorKind) -> CheckFirstCharacter<std::decay_t<Prediction>>;
+
+template <typename Prediction>
+struct Many01
+{
+
+};
 
 } // namespace nom
 

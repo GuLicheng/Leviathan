@@ -20,7 +20,6 @@ inline constexpr struct
             return result ? R(std::in_place, std::move(value)) 
                           : R(std::unexpect, std::move(result.error()));
         };
-
         return make_parser_binder(fn, (T&&)v, (F&&)f);
     }
 } value;
@@ -38,7 +37,6 @@ inline constexpr struct
             auto result = f(clone);
             return result;
         };
-
         return make_parser_binder(fn, (F1&&)f1);
     }
 } peek;

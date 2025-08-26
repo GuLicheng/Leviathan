@@ -32,7 +32,7 @@ void CheckResult(Parser parser, std::string_view input, std::string_view rest, n
     }
     else 
     {
-        REQUIRE (result.error().code == kind);
+        REQUIRE(result.error().code == kind);
     }
 }
 
