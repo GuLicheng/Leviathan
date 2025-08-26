@@ -200,6 +200,12 @@ struct Choice
     }
 };
 
+// Wrapping structure for the permutation combinator implementation
+// Applies a list of parsers in any order.
+// Permutation will succeed if all of the child parsers succeeded. 
+// It takes as argument a tuple of parsers, and returns a tuple of the parser results.
+struct Permutation;
+
 struct OneOf
 {
     std::string_view chars;
@@ -425,11 +431,67 @@ struct CheckFirstCharacter
 template <typename Prediction>
 CheckFirstCharacter(Prediction&&, ErrorKind) -> CheckFirstCharacter<std::decay_t<Prediction>>;
 
-template <typename Prediction>
-struct Many01
+struct Many0
 {
+    template <typename FunctionTuple, typename ParseContext>
+    static constexpr auto operator()(FunctionTuple&& fns, ParseContext& ctx)
+    {
+        using R1 = std::invoke_result_t<std::tuple_element_t<0, std::decay_t<FunctionTuple>>, ParseContext&>;
+        using R = IResult<std::vector<typename R1::value_type>>;
 
+        auto [parser] = (FunctionTuple&&)fns;
+        std::vector<typename R1::value_type> items;
+
+        while (true)
+        {
+            if (ctx.empty())
+            {
+                break;
+            }
+
+            auto clone = ctx;
+
+            if (auto result = parser(clone); !result)
+            {
+                break;
+            }
+            else
+            {
+                ctx = std::move(clone);
+                items.emplace_back(std::move(*result));
+            }
+        }
+
+        return R(std::in_place, std::move(items));
+    }    
 };
+
+template <typename AllowEmpty>
+struct RequireNonEmpty 
+{
+    AllowEmpty allow_empty;
+    ErrorKind kind;
+
+    constexpr RequireNonEmpty(AllowEmpty ae, ErrorKind k) : allow_empty(std::move(ae)), kind(k) { }
+
+    template <typename ParseContext>
+    constexpr auto operator()(ParseContext& ctx)
+    {
+        auto result = allow_empty(ctx);
+
+        using R = decltype(result);
+
+        if (!result || std::ranges::empty(*result))
+        {
+            return R(std::unexpect, std::string(ctx), kind);
+        }
+
+        return result;
+    }    
+};
+
+template <typename AllowEmpty>
+RequireNonEmpty(AllowEmpty&&, ErrorKind) -> RequireNonEmpty<std::decay_t<AllowEmpty>>;
 
 } // namespace nom
 

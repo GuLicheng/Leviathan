@@ -23,4 +23,18 @@ inline constexpr struct
     }
 } separated_list1;
 
+inline constexpr struct
+{
+    template <typename ItemParser>
+    static constexpr auto operator()(ItemParser&& ip)
+    {
+        return make_parser_binder(Many0(), (ItemParser&&)ip);
+    }
+} many0;
+
+inline constexpr auto many1 = []<typename ItemParser>(ItemParser&& ip) static
+{
+    return RequireNonEmpty(many0((ItemParser&&)ip), ErrorKind::Many1);
+};
+
 }  // namespace nom::multi

@@ -2,79 +2,128 @@
 #include <experimental/nom/parser.hpp>
 #include <leviathan/type_caster.hpp>
 #include <print>
+#include <leviathan/extc++/file.hpp>
 
+class InIParser
+{
+public:
 
-// [section] -> '[' + section_name + ']'
+    InIParser() = default;
 
-auto left_bracket = nom::sequence::delimited(
-    nom::character::multispace0,
-    nom::character::char_('['),
-    nom::character::multispace0
-);
+    auto parse(std::string_view context)
+    {
+        // ';' + Anycontext but linefeed
 
-auto right_bracket = nom::sequence::delimited(
-    nom::character::multispace0,
-    nom::character::char_(']'),
-    nom::character::multispace0
-);
+        // [section] -> '[' + section_name + ']' ; comment
+        auto left_bracket = nom::sequence::delimited(
+            nom::character::multispace0,
+            nom::character::char_('['),
+            nom::character::multispace0
+        );
 
-auto identifier = nom::character::alphanumeric1;
+        auto right_bracket = nom::sequence::delimited(
+            nom::character::multispace0,
+            nom::character::char_(']'),
+            nom::sequence::terminated(
+                nom::character::multispace0,
+                nom::combinator::opt(
+                    nom::sequence::delimited(
+                        nom::character::char_(';'),
+                        nom::bytes::take_till([](char c) { return c == '\n'; }),
+                        nom::character::newline
+                    )
+                )
+            )
+        );
 
-auto section_parser = nom::sequence::delimited(
-    left_bracket,
-    identifier,
-    right_bracket
-);
+        auto identifier = nom::bytes::take_while1([](char c) { 
+            return std::isalnum(c) || c == '.'; 
+        });
 
-// key = value
-auto key_parser = nom::sequence::delimited(
-    nom::character::multispace0,
-    nom::character::alphanumeric1,
-    nom::character::multispace0
-);
+        auto section_parser = nom::sequence::delimited(
+            left_bracket,
+            identifier,
+            right_bracket
+        );
 
-auto value_parser = nom::sequence::delimited(
-    nom::character::multispace0,
-    nom::character::alphanumeric1,
-    nom::character::multispace0
-);
+        // key = value
+        auto key_parser = nom::sequence::delimited(
+            nom::character::multispace0,
+            identifier,
+            nom::character::multispace0
+        );
 
-auto entry_parser = nom::sequence::separated_pair(
-    key_parser,
-    nom::character::char_('='),
-    value_parser
-);
+        auto value_parser = nom::sequence::delimited(
+            nom::character::multispace0,
+            identifier,
+            nom::sequence::terminated(
+                nom::character::multispace0,
+                nom::combinator::opt(
+                    nom::sequence::delimited(
+                        nom::character::char_(';'),
+                        nom::bytes::take_till([](char c) { return c == '\n'; }),
+                        nom::character::newline
+                    )
+                )
+            )
+        );
 
+        auto entry_parser = nom::multi::many0( 
+            nom::sequence::separated_pair(
+                key_parser,
+                nom::character::char_('='),
+                value_parser
+            )
+        );
+
+        auto parser = nom::multi::many0(
+            nom::sequence::pair(
+                section_parser,
+                nom::combinator::opt(entry_parser)
+            )
+        );
+
+        return parser(context);
+    }
+};
 
 int main(int argc, char const *argv[])
 {
+    InIParser parser;
 
-    std::string_view context1 = " [ Boris0Weapon0Anno ] ";
+    auto result = parser.parse(std::string_view(R"(
+        [SectionOne] ; comment
+        key1=value1 ; comment
+        key2 = value2
+                    ; comment
+        [SectionTwo]
+        keyA=valueA
+        keyB = valueB
 
-    auto result = section_parser(context1);
+        [Boris.Weapons]
+        Name=AK47
+        Damage=30
+        Range=300
+        Ammo=1
+    )"));
 
-    if (result)
+    if (!result)
     {
-        std::print("Parsed section: '{}'\n", *result);
-        std::print("Remaining context1: '{}'\n", context1);
+        std::print("Parse error: {}\n", (int)result.error().code);
+        return -1;
     }
-    else
-    {
-        std::print("Failed to parse section: {}\n", result.error().info);
-    }
 
-    auto context2 = std::string_view(" key1 = value1 \n  ");
-    auto result2 = entry_parser(context2);
+    for (const auto& [section, entries] : *result)
+    {
+        std::print("Section: [{}]\n", section);
 
-    if (result2)
-    {
-        auto [key, value] = *result2;
-        std::print("Parsed entry: key='{}', value='{}'\n", key, value);
-        std::print("Remaining context2: '{}'\n", context2);
-    }
-    else
-    {
-        std::print("Failed to parse entry: {}\n", result2.error().info);
+        if (entries)
+        {
+            for (const auto& [key, value] : *entries)
+            {
+                std::print("{} = {}\n", key, value);
+            }
+        }
     }
 
     return 0;

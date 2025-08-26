@@ -65,7 +65,7 @@ inline constexpr struct
 inline constexpr struct
 {
     template <typename F1>
-    static constexpr auto operator()(F1& f1)
+    static constexpr auto operator()(F1&& f1)
     {   
         auto fn = []<typename FunctionTuple, typename ParseContext>(FunctionTuple&& fns, ParseContext& ctx) static
         {

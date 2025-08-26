@@ -20,7 +20,7 @@ void CheckValueEqual(const nom::IResult<T, E>& actual, U expected)
 }
 
 template <typename Parser>
-void CheckResult(Parser parser, std::string_view input, std::string_view rest, nom::ErrorKind kind)
+auto CheckResult(Parser parser, std::string_view input, std::string_view rest, nom::ErrorKind kind)
 {
     auto result = parser(input);
 
@@ -34,6 +34,8 @@ void CheckResult(Parser parser, std::string_view input, std::string_view rest, n
     {
         REQUIRE(result.error().code == kind);
     }
+
+    return result;
 }
 
 TEST_CASE("value", "[combinator]")
@@ -386,3 +388,30 @@ TEST_CASE("take_while", "[bytes]")
     CheckResult(parser1, "", "", nom::ErrorKind::TakeWhile1);
 }
 
+TEST_CASE("many0", "[multi]")
+{
+    auto parser = nom::multi::many0(nom::bytes::tag("abc"));
+
+    auto result1 = CheckResult(parser, "abcabc", "", nom::ErrorKind::Ok);
+    auto result2 = CheckResult(parser, "abc123", "123", nom::ErrorKind::Ok);
+    auto result3 = CheckResult(parser, "123123", "123123", nom::ErrorKind::Ok);
+    auto result4 = CheckResult(parser, "", "", nom::ErrorKind::Ok);
+
+    REQUIRE((result1 == std::vector<std::string_view>{"abc", "abc"}));
+    REQUIRE((result2 == std::vector<std::string_view>{"abc"}));
+    REQUIRE((result3 == std::vector<std::string_view>{}));
+    REQUIRE((result4 == std::vector<std::string_view>{}));
+}
+
+TEST_CASE("many1", "[multi]")
+{
+    auto parser = nom::multi::many1(nom::bytes::tag("abc"));
+
+    auto result1 = CheckResult(parser, "abcabc", "", nom::ErrorKind::Ok);
+    auto result2 = CheckResult(parser, "abc123", "123", nom::ErrorKind::Ok);
+    CheckResult(parser, "123123", "123123", nom::ErrorKind::Many1);
+    CheckResult(parser, "", "", nom::ErrorKind::Many1);
+
+    REQUIRE((result1 == std::vector<std::string_view>{"abc", "abc"}));
+    REQUIRE((result2 == std::vector<std::string_view>{"abc"}));
+}
