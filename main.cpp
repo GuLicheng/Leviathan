@@ -3,6 +3,7 @@
 #include <leviathan/type_caster.hpp>
 #include <print>
 #include <leviathan/extc++/file.hpp>
+#include <leviathan/extc++/ranges.hpp>
 
 class InIParser
 {
@@ -83,7 +84,27 @@ public:
             )
         );
 
-        return parser(context);
+        auto result = parser(context);
+
+        using ResultDictionary = std::unordered_map<
+            std::string, 
+            std::unordered_map<std::string, std::string>    
+        >;
+    
+        if (!result)
+        {
+            throw std::runtime_error(std::format("Parse error: {}", (int)result.error().code));
+        }
+
+        return *result | cpp::views::pair_transform(
+            cpp::cast<std::string>,
+            [](auto optEntries) 
+            { 
+                return *optEntries 
+                     | cpp::views::pair_transform(cpp::cast<std::string>, cpp::cast<std::string>) 
+                     | std::ranges::to<std::unordered_map<std::string, std::string>>();
+            }
+        ) | std::ranges::to<ResultDictionary>();
     }
 };
 
@@ -107,24 +128,7 @@ int main(int argc, char const *argv[])
         Ammo=1
     )"));
 
-    if (!result)
-    {
-        std::print("Parse error: {}\n", (int)result.error().code);
-        return -1;
-    }
-
-    for (const auto& [section, entries] : *result)
-    {
-        std::print("Section: [{}]\n", section);
-
-        if (entries)
-        {
-            for (const auto& [key, value] : *entries)
-            {
-                std::print("{} = {}\n", key, value);
-            }
-        }
-    }
+    std::print("{}\n", result);
 
     return 0;
 }
