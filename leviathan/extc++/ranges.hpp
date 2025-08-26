@@ -110,7 +110,7 @@ class closure : public std::ranges::range_adaptor_closure<closure<F>>
     F f;
 
 public:
-    constexpr closure(F f) : f(f) {}
+    constexpr closure(F f) : f(std::move(f)) {}
 
     template <std::ranges::viewable_range R>
         requires std::invocable<F const &, R>
@@ -126,7 +126,7 @@ class adaptor
     F f;
 
 public:
-    constexpr adaptor(F f) : f(f) {}
+    constexpr adaptor(F f) : f(std::move(f)) {}
 
     template <typename... Args>
     constexpr auto operator()(Args&&... args) const

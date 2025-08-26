@@ -271,66 +271,58 @@ struct Escaped
     }
 };
 
-template <bool AtLeastOne>
-struct Conditional
+template <typename Prediction>
+struct ConditionalLoop0
 {
-    template <typename ParseContext, typename Pred>
-    static constexpr IResult<std::string_view> operator()(Pred&& pred, ParseContext& ctx, ErrorKind kind, std::string message)
+    Prediction pred;
+
+    constexpr ConditionalLoop0(Prediction p) : pred(std::move(p)) { }
+
+    template <typename ParseContext>
+    constexpr IResult<std::string_view> operator()(ParseContext& ctx)
     {
         auto first = ctx.begin(), last = ctx.end();
 
         for (; first != last && std::invoke(pred, *first); ++first);
 
         std::string_view result = { ctx.begin(), first };
-
-        if constexpr (AtLeastOne)
-        {
-            if (result.empty())
-            {
-                return IResult<std::string_view>(
-                    std::unexpect, 
-                    std::move(message),
-                    kind
-                );
-            }
-        }
-
         ctx.remove_prefix(result.size());
         return IResult<std::string_view>(std::in_place, result);
     }
 };
 
-template <bool AtLeastOne, typename Fn, ErrorKind kind>
-struct Conditional2
+template <typename Prediction>
+ConditionalLoop0(Prediction&&) -> ConditionalLoop0<std::decay_t<Prediction>>;
+
+template <typename Prediction>
+struct ConditionalLoop1 : ConditionalLoop0<Prediction>
 {
+    using base = ConditionalLoop0<Prediction>;
+
+    ErrorKind kind;
+
+    constexpr ConditionalLoop1(Prediction p, ErrorKind k) : base(std::move(p)), kind(k) { }
+
     template <typename ParseContext>
-    static constexpr IResult<std::string_view> operator()(ParseContext& ctx)
+    constexpr IResult<std::string_view> operator()(ParseContext& ctx)
     {
-        auto first = ctx.begin(), last = ctx.end();
+        auto result = base::operator()(ctx);
 
-        for (; first != last && std::invoke(Fn(), *first); ++first);
-
-        std::string_view result = { ctx.begin(), first };
-
-        if constexpr (AtLeastOne)
+        if (!result || result->empty())
         {
-            if (result.empty())
-            {
-                return IResult<std::string_view>(
-                    std::unexpect, 
-                    std::string(ctx.begin(), ctx.end()),
-                    kind
-                );
-            }
+            return IResult<std::string_view>(std::unexpect, std::string(ctx), kind);
         }
 
-        ctx.remove_prefix(result.size());
-        return IResult<std::string_view>(std::in_place, result);
+        return result;
     }
 };
 
-struct IsMultiSpace
+template <typename Prediction>
+ConditionalLoop1(Prediction&&, ErrorKind) -> ConditionalLoop1<std::decay_t<Prediction>>;
+
+struct MultiSpace
 {
+    // Recognizes zero or more spaces, tabs, carriage returns and line feeds.
     template <typename CharT>
     static constexpr bool operator()(CharT c) 
     { 
@@ -341,39 +333,12 @@ struct IsMultiSpace
     }
 };
 
-template <bool AtLeastOne>
-struct MultiSpace
+struct Space
 {
-    // Recognizes zero or more spaces, tabs, carriage returns and line feeds.
     template <typename CharT>
-    static constexpr bool check(CharT c) 
+    static constexpr bool operator()(CharT c) 
     { 
-        return c == CharT(' ') 
-            || c == CharT('\t') 
-            || c == CharT('\r') 
-            || c == CharT('\n');
-    }
-
-    template <typename ParseContext>
-    static constexpr IResult<std::string_view> operator()(ParseContext& ctx)
-    {   
-        return Conditional<AtLeastOne>()(
-            [](auto ch){ return check(ch); }, 
-            ctx, ErrorKind::MultiSpace, "Expected at least one whitespace character"
-        );
-    }
-};
-
-template <bool AtLeastOne>
-struct Dight
-{
-    template <typename ParseContext>
-    static constexpr IResult<std::string_view> operator()(ParseContext& ctx)
-    {
-        return Conditional<AtLeastOne>()(
-            [](auto ch){ return std::isdigit(ch); }, 
-            ctx, ErrorKind::Digit, "Expected at least one digit character"
-        );
+        return c == CharT(' ') || c == CharT('\t');
     }
 };
 
@@ -431,98 +396,48 @@ struct SeparatedList
     }
 };
 
-template <bool AtLeastOne>
-struct Alpha 
-{
-    template <typename ParseContext>
-    static constexpr auto operator()(ParseContext& ctx)
-    {
-        return Conditional<AtLeastOne>()(
-            [](auto ch){ return std::isalpha(ch); }, 
-            ctx, ErrorKind::Alpha, "Expected at least one alphabetic character"
-        );
-    }
-};
+// template <bool AtLeastOne>
+// struct TakeTill
+// {
+//     template <typename FunctionTuple, typename ParseContext>
+//     static constexpr auto operator()(FunctionTuple&& fns, ParseContext& ctx)
+//     {
+//         return Conditional<AtLeastOne>()(
+//             std::not_fn(std::get<0>((FunctionTuple&&)fns)), 
+//             ctx, ErrorKind::TakeTill1, "Expected at least one character"
+//         );
+//     }
+// };
 
-template <bool AtLeastOne>
-struct Alphanumeric
-{
-    template <typename ParseContext>
-    static constexpr IResult<std::string_view> operator()(ParseContext& ctx)
-    {
-        return Conditional<AtLeastOne>()(
-            [](auto ch){ return std::isalnum(ch); }, 
-            ctx, ErrorKind::AlphaNumeric, "Expected at least one alphanumeric character"
-        );
-    }
-};
-
-template <bool AtLeastOne>
-struct TakeTill
-{
-    template <typename FunctionTuple, typename ParseContext>
-    static constexpr auto operator()(FunctionTuple&& fns, ParseContext& ctx)
-    {
-        return Conditional<AtLeastOne>()(
-            std::not_fn(std::get<0>((FunctionTuple&&)fns)), 
-            ctx, ErrorKind::TakeTill1, "Expected at least one character"
-        );
-    }
-};
-
-template <bool AtLeastOne>
-struct Space
-{
-    template <typename ParseContext>
-    static constexpr IResult<std::string_view> operator()(ParseContext& ctx)
-    {   
-        return Conditional<AtLeastOne>()(
-            []<typename CharT>(CharT ch){ return ch == CharT(' ') || ch == CharT('\t'); }, 
-            ctx, ErrorKind::Space, "Expected at least one space character"
-        );
-    }
-};
-
+template <typename Prediction>
 struct CheckFirstCharacter
 {
-    template <typename ParseContext, typename Pred>
-    static constexpr IResult<char> operator()(Pred&& pred, ParseContext& ctx, ErrorKind kind, std::string message1, std::string message2)
+    Prediction pred;
+    ErrorKind kind;
+
+    constexpr CheckFirstCharacter(Prediction p, ErrorKind k) : pred(std::move(p)), kind(k) { }
+
+    template <typename ParseContext>
+    constexpr IResult<std::string_view> operator()(ParseContext& ctx)
     {
         if (ctx.empty())
         {
-            return IResult<char>(
-                std::unexpect, 
-                std::move(message1),
-                kind
-            );
+            return IResult<std::string_view>(std::unexpect, std::string(ctx), kind);
         }
 
         if (!std::invoke(pred, ctx[0]))
         {
-            return IResult<char>(
-                std::unexpect, 
-                std::format("The first character '{}' {}", ctx[0], message2),
-                kind
-            );
+            return IResult<std::string_view>(std::unexpect, std::string(ctx), kind);
         }
 
-        char ch = ctx[0];
+        std::string_view retval = ctx.substr(0, 1);
         ctx.remove_prefix(1);
-        return IResult<char>(std::in_place, ch);
+        return IResult<std::string_view>(std::in_place, retval);
     }
 };
 
-struct Satisfy
-{
-    template <typename Pred>
-    static constexpr auto operator()(Pred&& pred) 
-    {
-        return [pred = (Pred&&)pred]<typename ParseContext>(ParseContext& ctx) 
-        {
-            return CheckFirstCharacter()(pred, ctx, ErrorKind::Satisfy, "but got end of input", "does not satisfy the predicate");
-        };
-    };
-};
+template <typename Prediction>
+CheckFirstCharacter(Prediction&&, ErrorKind) -> CheckFirstCharacter<std::decay_t<Prediction>>;
 
 } // namespace nom
 

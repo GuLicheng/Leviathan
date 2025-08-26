@@ -7,19 +7,19 @@
 // [section]
 
 auto left_bracket = nom::sequence::preceded(
-    nom::character::space0,
+    nom::character::multispace0,
     nom::character::char_('[')
 );
 
 auto right_bracket = nom::sequence::terminated(
     nom::character::char_(']'),
-    nom::character::space0
+    nom::character::multispace0
 );
 
 auto identifier = nom::sequence::delimited(
-    nom::character::space0,
+    nom::character::multispace0,
     nom::character::alphanumeric1,
-    nom::character::space0
+    nom::character::multispace0
 );
 
 auto section_parser = nom::sequence::delimited(

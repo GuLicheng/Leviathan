@@ -5,23 +5,29 @@
 namespace nom::bytes
 {
 
-inline constexpr struct
+/*=========================== take_till ===========================*/
+inline constexpr auto take_till = []<typename Pred>(Pred&& pred) static
 {
-    template <typename Prediction>
-    static constexpr auto operator()(Prediction&& pred)
-    {
-        return make_parser_binder(TakeTill<false>(), (Prediction&&)pred);
-    }
-} take_till;
+    return ConditionalLoop0(std::not_fn((Pred&&)pred));
+};
 
-inline constexpr struct
+inline constexpr auto take_till1 = []<typename Pred>(Pred&& pred) static
 {
-    template <typename Prediction>
-    static constexpr auto operator()(Prediction&& pred)
-    {
-        return make_parser_binder(TakeTill<true>(), (Prediction&&)pred);
-    }
-} take_till1;
+    return ConditionalLoop1(std::not_fn((Pred&&)pred), ErrorKind::TakeTill1);
+};
+/*=========================== take_till ===========================*/
+
+/*=========================== take_while ===========================*/
+inline constexpr auto take_while0 = []<typename Pred>(Pred&& pred) static
+{
+    return ConditionalLoop0<std::decay_t<Pred>>((Pred&&)pred);
+};
+
+inline constexpr auto take_while1 = []<typename Pred>(Pred&& pred) static
+{
+    return ConditionalLoop1<std::decay_t<Pred>>((Pred&&)pred, ErrorKind::TakeWhile1);
+};
+/*=========================== take_while ===========================*/
 
 inline constexpr struct
 {

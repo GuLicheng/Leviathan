@@ -372,5 +372,17 @@ TEST_CASE("satisfy", "[character]")
     CheckResult(parser, "", "", nom::ErrorKind::Satisfy);
 }
 
+TEST_CASE("take_while", "[bytes]")
+{
+    auto parser0 = nom::bytes::take_while0([](char c) { return std::isalpha(c); });
+    auto parser1 = nom::bytes::take_while1([](char c) { return std::isalpha(c); });
 
+    CheckResult(parser0, "abc123", "123", nom::ErrorKind::Ok);
+    CheckResult(parser0, "123abc", "123abc", nom::ErrorKind::Ok);
+    CheckResult(parser0, "", "", nom::ErrorKind::Ok);
+
+    CheckResult(parser1, "abc123", "123", nom::ErrorKind::Ok);
+    CheckResult(parser1, "123abc", "123abc", nom::ErrorKind::TakeWhile1);
+    CheckResult(parser1, "", "", nom::ErrorKind::TakeWhile1);
+}
 
