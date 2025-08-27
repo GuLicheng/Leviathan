@@ -85,6 +85,21 @@ struct Error
     ErrorKind code;
 };
 
+struct Incomplete 
+{
+    size_t needed; // number of additional bytes needed
+};
+
+template <typename Failure, typename Error = Failure>
+class Err
+{
+    std::variant<Incomplete, Failure, Error> m_value;
+
+public:
+
+
+};
+
 template <typename T, typename E = Error<std::string>>
 using IResult = std::expected<T, E>;
 

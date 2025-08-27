@@ -15,6 +15,12 @@ public:
     {
         // ';' + Anycontext but linefeed
 
+        auto comment_consumer = nom::sequence::delimited(
+            nom::character::char_(';'),
+            nom::character::not_line_ending,
+            nom::character::line_ending
+        );
+
         // [section] -> '[' + section_name + ']' ; comment
         auto left_bracket = nom::sequence::delimited(
             nom::character::multispace0,
@@ -27,13 +33,7 @@ public:
             nom::character::char_(']'),
             nom::sequence::terminated(
                 nom::character::multispace0,
-                nom::combinator::opt(
-                    nom::sequence::delimited(
-                        nom::character::char_(';'),
-                        nom::bytes::take_till([](char c) { return c == '\n'; }),
-                        nom::character::newline
-                    )
-                )
+                nom::combinator::opt(comment_consumer)
             )
         );
 
@@ -59,13 +59,7 @@ public:
             identifier,
             nom::sequence::terminated(
                 nom::character::multispace0,
-                nom::combinator::opt(
-                    nom::sequence::delimited(
-                        nom::character::char_(';'),
-                        nom::bytes::take_till([](char c) { return c == '\n'; }),
-                        nom::character::newline
-                    )
-                )
+                nom::combinator::opt(comment_consumer)
             )
         );
 
@@ -77,12 +71,28 @@ public:
             )
         );
 
+        // FIXME: comment at the begin of text.
         auto parser = nom::multi::many0(
             nom::sequence::pair(
                 section_parser,
                 nom::combinator::opt(entry_parser)
             )
         );
+
+        // auto parser = nom::sequence::preceded(
+        //         nom::multi::many0(
+        //             nom::branch::alt(
+        //                 comment_consumer,
+        //                 nom::character::multispace0
+        //             )
+        //         ),
+        //         nom::multi::many0(
+        //             nom::sequence::pair(
+        //                 section_parser,
+        //                 nom::combinator::opt(entry_parser)
+        //             )
+        //         )
+        //     );
 
         auto result = parser(context);
 
@@ -113,13 +123,15 @@ int main(int argc, char const *argv[])
     InIParser parser;
 
     auto result = parser.parse(std::string_view(R"(
+        
         [SectionOne] ; comment
         key1=value1 ; comment
-        key2 = value2
+         key2 = value2
                     ; comment
         [SectionTwo]
-        keyA=valueA
         keyB = valueB
+
+        [noentry]
 
         [Boris.Weapons]
         Name=AK47

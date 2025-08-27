@@ -6,6 +6,7 @@
 #include <utility>
 #include <type_traits>
 #include <functional>
+#include <algorithm>
 
 #pragma once
 
@@ -247,7 +248,7 @@ struct Escaped
         static_assert(std::is_same_v<R1, IResult<std::string_view>>);
 
         using R2 = std::invoke_result_t<std::decay_t<decltype(escapable)>, ParseContext&>;
-        static_assert(std::is_same_v<R2, IResult<char>>);
+        static_assert(std::is_same_v<R2, IResult<std::string_view>>);
 
         auto start = ctx.begin();
 
@@ -466,6 +467,104 @@ struct Many0
     }    
 };
 
+struct Many1
+{
+    template <typename FunctionTuple, typename ParseContext>
+    static constexpr auto operator()(FunctionTuple&& fns, ParseContext& ctx)
+    {
+        auto result = Many0::operator()(std::forward<FunctionTuple>(fns), ctx);
+        using R = decltype(result);
+
+        // Many0 always succeed, so we need to check the result here.
+        if (result->empty())
+        {
+            return R(std::unexpect, std::string(ctx), ErrorKind::Many1);
+        }
+
+        return result;
+    }    
+};
+
+struct Count
+{
+    template <typename FunctionTuple, typename ParseContext>
+    static constexpr auto operator()(FunctionTuple&& fns, ParseContext& ctx)
+    {
+        using R1 = std::invoke_result_t<std::tuple_element_t<0, std::decay_t<FunctionTuple>>, ParseContext&>;
+        using R = IResult<std::vector<typename R1::value_type>>;
+
+        auto [parser, cnt] = (FunctionTuple&&)fns;
+        std::vector<typename R1::value_type> items;
+
+        for (size_t i = 0; i < cnt; ++i)
+        {
+            auto result = parser(ctx);
+
+            if (!result)
+            {
+                return R(std::unexpect, std::move(result.error()));
+            }
+
+            items.emplace_back(std::move(*result));
+        }
+
+        return R(std::in_place, std::move(items));
+    }    
+};
+
+// Runs the embedded parser repeatedly, filling the given slice with results.
+// This parser fails if the input runs out before the given slice is full.
+// Since we use an output iterator, the output container must be pre-sized.
+// So we cannot check whether the given slice is full or not, we add
+// another argument `sentinel`, which used for indicate whether the
+// parse should be stopped.
+struct Fill
+{
+    template <typename FunctionTuple, typename ParseContext>
+    static constexpr auto operator()(FunctionTuple&& fns, ParseContext& ctx)
+    {
+        auto [parser, iterator, sentinel] = (FunctionTuple&&)fns;
+
+        using R = IResult<std::decay_t<decltype(iterator)>>;
+
+        for (; iterator != sentinel; )
+        {   
+            auto result = parser(ctx);
+
+            if (!result)
+            {
+                return R(std::unexpect, std::move(result.error()));
+            }
+
+            *iterator++ = std::move(*result);
+        }
+
+        return R(std::in_place, std::move(iterator));
+    }  
+};
+
+struct ManyFolder
+{
+    template <typename FunctionTuple, typename ParseContext>
+    static constexpr auto operator()(FunctionTuple&& fns, ParseContext& ctx)
+    {
+        auto [many_parser, init, fn] = (FunctionTuple&&)fns;
+
+        auto result = many_parser(ctx);
+
+        using R = decltype(result);
+
+        if (!result)
+        {
+            return R(std::unexpect, std::move(result.error())); 
+        }
+
+        return R(std::in_place, std::ranges::fold_left(std::move(*result), std::move(init), std::move(fn)));
+    }
+};
+
+
+#if 0
 template <typename AllowEmpty>
 struct RequireNonEmpty 
 {
@@ -492,6 +591,84 @@ struct RequireNonEmpty
 
 template <typename AllowEmpty>
 RequireNonEmpty(AllowEmpty&&, ErrorKind) -> RequireNonEmpty<std::decay_t<AllowEmpty>>;
+#endif
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+struct LineEnding
+{
+    template <typename ParseContext>
+    constexpr IResult<std::string_view> operator()(ParseContext& ctx)
+    {
+        if (ctx.starts_with('\n'))
+        {
+            std::string_view result = ctx.substr(0, 1);
+            ctx.remove_prefix(1);
+            return IResult<std::string_view>(std::in_place, result);
+        }
+        else if (ctx.starts_with("\r\n"))
+        {
+            std::string_view result = ctx.substr(0, 2);
+            ctx.remove_prefix(2);
+            return IResult<std::string_view>(std::in_place, result);
+        }
+        else
+        {
+            return IResult<std::string_view>(std::unexpect, std::string(ctx), ErrorKind::CrLf);
+        }
+    }
+};
+
+struct NotLineEnding
+{
+    template <typename ParseContext>
+    constexpr IResult<std::string_view> operator()(ParseContext& ctx)
+    {
+        const auto idx = ctx.find_first_of("\r\n");
+        
+        if (idx == ctx.npos)
+        {
+            std::string_view result = ctx;
+            ctx.remove_prefix(ctx.size());
+            return IResult<std::string_view>(std::in_place, result);
+        }
+
+        if (ctx[idx] == '\n')
+        {
+            std::string_view result = ctx.substr(0, idx);
+            ctx.remove_prefix(idx);
+            return IResult<std::string_view>(std::in_place, result);
+        }
+        else if (ctx.substr(idx, 2).starts_with("\r\n"))
+        {
+            std::string_view result = ctx.substr(0, idx);
+            ctx.remove_prefix(idx);
+            return IResult<std::string_view>(std::in_place, result);
+        }
+        else
+        {
+            return IResult<std::string_view>(std::unexpect, std::string(ctx), ErrorKind::Tag);
+        }
+    }
+};
+
+struct Ctrl
+{
+    template <typename ParseContext>
+    constexpr IResult<std::string_view> operator()(ParseContext& ctx)
+    {
+        if (ctx.starts_with("\r\n"))
+        {
+            std::string_view result = ctx.substr(0, 2);
+            ctx.remove_prefix(2);
+            return IResult<std::string_view>(std::in_place, result);
+        }
+        else
+        {
+            return IResult<std::string_view>(std::unexpect, std::string(ctx), ErrorKind::CrLf);
+        }
+    }
+};
+
 
 } // namespace nom
 

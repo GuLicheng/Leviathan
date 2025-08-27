@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <leviathan/extc++/chars.hpp>
 #include "internal.hpp"
 
 namespace nom::character
@@ -27,8 +28,12 @@ inline constexpr auto space1 = ConditionalLoop1(Space(), ErrorKind::Space);
 
 inline constexpr auto one_of = [](std::string_view s) static
 {
-    // auto pred = [=](char c) { return s.contains(c) != s.npos; };
-    return OneOf(s);
+    return CheckFirstCharacter(std::bind_front([=](char c) { return s.contains(c); }), ErrorKind::OneOf);
+};
+
+inline constexpr auto none_of = [](std::string_view s) static
+{
+    return CheckFirstCharacter(std::bind_front([=](char c) { return !s.contains(c); }), ErrorKind::NoneOf);
 };
 
 inline constexpr auto satisfy = []<typename Pred>(Pred&& pred) static
@@ -43,6 +48,21 @@ inline constexpr auto char_ = [](char ch) static
 
 inline constexpr auto tab = char_('\t');
 inline constexpr auto newline = char_('\n');
+
+inline constexpr auto anychar = CheckFirstCharacter([](auto ch) static { return true; }, ErrorKind::Eof);
+
+inline constexpr auto bin_digit0 = ConditionalLoop0(cpp::isbindigit);
+inline constexpr auto bin_digit1 = ConditionalLoop1(cpp::isbindigit, ErrorKind::BinDigit);
+
+inline constexpr auto oct_digit0 = ConditionalLoop0(cpp::isoctdighit);
+inline constexpr auto oct_digit1 = ConditionalLoop1(cpp::isoctdighit, ErrorKind::OctDigit);
+
+inline constexpr auto hex_digit0 = ConditionalLoop0(cpp::ishexdigit);
+inline constexpr auto hex_digit1 = ConditionalLoop1(cpp::ishexdigit, ErrorKind::HexDigit);
+
+inline constexpr auto crlf = Ctrl();
+inline constexpr auto line_ending = LineEnding();
+inline constexpr auto not_line_ending = NotLineEnding();
 
 }  // namespace nom
 

@@ -10,7 +10,7 @@
 #include <variant>
 #include <leviathan/extc++/concepts.hpp>
 #include <leviathan/extc++/functional.hpp>
-#include <leviathan/math/int128.hpp>
+// #include <leviathan/math/int128.hpp>
 
 // Some utils
 namespace cpp::ranges::detail
@@ -80,20 +80,20 @@ consteval auto simple_iterator_concept()
         return std::input_iterator_tag();
 }
 
-template <typename T>
-constexpr auto to_signed_like(T x) 
-{
-    if constexpr (!std::integral<T>)
-        return std::iter_difference_t<T>();
-    else if constexpr (sizeof(std::iter_difference_t<T>) > sizeof(T))
-        return std::iter_difference_t<T>(x);
-    else if constexpr (sizeof(std::ptrdiff_t) > sizeof(T))
-        return std::ptrdiff_t(x);
-    else if constexpr (sizeof(long long) > sizeof(T))
-        return (long long)(x);
-    else
-        return int128_t(x);  // return __max_diff_type(x);
-}
+// template <typename T>
+// constexpr auto to_signed_like(T x) 
+// {
+//     if constexpr (!std::integral<T>)
+//         return std::iter_difference_t<T>();
+//     else if constexpr (sizeof(std::iter_difference_t<T>) > sizeof(T))
+//         return std::iter_difference_t<T>(x);
+//     else if constexpr (sizeof(std::ptrdiff_t) > sizeof(T))
+//         return std::ptrdiff_t(x);
+//     else if constexpr (sizeof(long long) > sizeof(T))
+//         return (long long)(x);
+//     else
+//         return int128_t(x);  // return __max_diff_type(x);
+// }
 
 template<typename T>
 using iota_diff_t = decltype(to_signed_like(std::declval<T>()));

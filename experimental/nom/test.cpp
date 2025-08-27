@@ -415,3 +415,176 @@ TEST_CASE("many1", "[multi]")
     REQUIRE((result1 == std::vector<std::string_view>{"abc", "abc"}));
     REQUIRE((result2 == std::vector<std::string_view>{"abc"}));
 }
+
+TEST_CASE("anychar", "[character]")
+{
+    auto parser = nom::character::anychar;
+
+    CheckResult(parser, "", "", nom::ErrorKind::Eof);
+    CheckResult(parser, "abc", "bc", nom::ErrorKind::Ok);
+    CheckResult(parser, "1bc", "bc", nom::ErrorKind::Ok);
+}
+
+TEST_CASE("bin_digit")
+{
+    auto parser0 = nom::character::bin_digit0;
+    auto parser1 = nom::character::bin_digit1;
+
+    CheckResult(parser0, "01cZ", "cZ", nom::ErrorKind::Ok);
+    CheckResult(parser0, "Z01c", "Z01c", nom::ErrorKind::Ok);
+    CheckResult(parser0, "", "", nom::ErrorKind::Ok);
+
+    CheckResult(parser1, "01cZ", "cZ", nom::ErrorKind::Ok);
+    CheckResult(parser1, "Z01c", "Z01c", nom::ErrorKind::BinDigit);
+    CheckResult(parser1, "", "", nom::ErrorKind::BinDigit);
+}
+
+TEST_CASE("hex_digit")
+{
+    auto parser0 = nom::character::hex_digit0;
+    auto parser1 = nom::character::hex_digit1;
+
+    CheckResult(parser0, "21cZ", "Z", nom::ErrorKind::Ok);
+    CheckResult(parser0, "Z21c", "Z21c", nom::ErrorKind::Ok);
+    CheckResult(parser0, "", "", nom::ErrorKind::Ok);
+
+    CheckResult(parser1, "21cZ", "Z", nom::ErrorKind::Ok);
+    CheckResult(parser1, "Z21c", "Z21c", nom::ErrorKind::HexDigit);
+    CheckResult(parser1, "", "", nom::ErrorKind::HexDigit);
+}
+
+TEST_CASE("oct_digit")
+{
+    auto parser0 = nom::character::oct_digit0;
+    auto parser1 = nom::character::oct_digit1;
+
+    CheckResult(parser0, "21cZ", "cZ", nom::ErrorKind::Ok);
+    CheckResult(parser0, "Z21c", "Z21c", nom::ErrorKind::Ok);
+    CheckResult(parser0, "", "", nom::ErrorKind::Ok);
+
+    CheckResult(parser1, "21cZ", "cZ", nom::ErrorKind::Ok);
+    CheckResult(parser1, "Z21c", "Z21c", nom::ErrorKind::OctDigit);
+    CheckResult(parser1, "", "", nom::ErrorKind::OctDigit);
+}
+
+TEST_CASE("crlf", "[character]")
+{
+    auto parser = nom::character::crlf;
+
+    CheckResult(parser, "\r\nc", "c", nom::ErrorKind::Ok);
+    CheckResult(parser, "ab\r\nc", "ab\r\nc", nom::ErrorKind::CrLf);
+    CheckResult(parser, "", "", nom::ErrorKind::CrLf);
+}
+
+TEST_CASE("line_ending", "[character]")
+{
+    auto parser = nom::character::line_ending;
+
+    CheckResult(parser, "\nabc", "abc", nom::ErrorKind::Ok);
+    CheckResult(parser, "\r\nabc", "abc", nom::ErrorKind::Ok);
+    CheckResult(parser, "abc", "abc", nom::ErrorKind::CrLf);
+    CheckResult(parser, "", "", nom::ErrorKind::CrLf);
+}
+
+TEST_CASE("none_of", "[character]")
+{
+    auto parser = nom::character::none_of("abc");
+
+    CheckResult(parser, "z", "", nom::ErrorKind::Ok);
+    CheckResult(parser, "a", "a", nom::ErrorKind::NoneOf);
+    CheckResult(parser, "", "", nom::ErrorKind::NoneOf);
+}
+
+TEST_CASE("not_line_ending", "[character]")
+{
+    auto parser = nom::character::not_line_ending;
+
+    CheckResult(parser, "ab\r\nc", "\r\nc", nom::ErrorKind::Ok);
+    CheckResult(parser, "ab\nc", "\nc", nom::ErrorKind::Ok);
+    CheckResult(parser, "abc", "", nom::ErrorKind::Ok);
+    CheckResult(parser, "", "", nom::ErrorKind::Ok);
+    CheckResult(parser, "a\rb\nc", "a\rb\nc", nom::ErrorKind::Tag);
+    CheckResult(parser, "a\rbc", "a\rbc", nom::ErrorKind::Tag);
+}
+
+TEST_CASE("count", "[multi]")
+{
+    auto parser = nom::multi::count(nom::bytes::tag("abc"), 2);
+
+    auto result1 = CheckResult(parser, "abcabc", "", nom::ErrorKind::Ok);
+    auto result2 = CheckResult(parser, "abc123", "123", nom::ErrorKind::Tag);
+    auto result3 = CheckResult(parser, "123123", "123123", nom::ErrorKind::Tag);
+    auto result4 = CheckResult(parser, "", "", nom::ErrorKind::Tag);
+    auto result5 = CheckResult(parser, "abcabcabc", "abc", nom::ErrorKind::Ok);
+
+    REQUIRE((result1 == std::vector<std::string_view>{"abc", "abc"}));
+    REQUIRE((result5 == std::vector<std::string_view>{"abc", "abc"}));
+}
+
+TEST_CASE("fill", "[multi]")
+{
+    std::vector<std::string_view> results;
+
+    auto parser1 = nom::multi::fill(nom::bytes::tag("123"), std::back_inserter(results), std::unreachable_sentinel);
+    std::string_view input = "123123123abc";
+
+    parser1(input);
+    REQUIRE(results == std::vector<std::string_view>{"123", "123", "123"});
+    input = "abc";
+    
+    input = "abcabcabc";
+    results.clear();
+    parser1(input);
+
+    REQUIRE(results.empty());
+    REQUIRE(input == "abcabcabc");
+
+    results.clear();
+    results.resize(2);
+    auto parser2 = nom::multi::fill(nom::bytes::tag("123"), results.begin(), results.end());
+    input = "123123123abc";
+    parser2(input);
+
+    REQUIRE(results == std::vector<std::string_view>{"123", "123"});
+    REQUIRE(input == "123abc");
+}
+
+TEST_CASE("fold_many0")
+{
+    auto parser = nom::multi::fold_many0(
+        nom::bytes::tag("abc"), 
+        std::vector<std::string_view>(), 
+        [](std::vector<std::string_view> init, std::string_view value) { init.emplace_back(value); return std::move(init); }
+    );
+    
+    auto result1 = CheckResult(parser, "abcabc", "", nom::ErrorKind::Ok);
+    REQUIRE(*result1 == std::vector<std::string_view>{"abc", "abc"});
+
+    auto result2 = CheckResult(parser, "abc123", "123", nom::ErrorKind::Ok);
+    REQUIRE(*result2 == std::vector<std::string_view>{"abc"});
+
+    auto result3 = CheckResult(parser, "123123", "123123", nom::ErrorKind::Ok);
+    REQUIRE(*result3 == std::vector<std::string_view>{});
+
+    auto result4 = CheckResult(parser, "", "", nom::ErrorKind::Ok);
+    REQUIRE(*result4 == std::vector<std::string_view>{});
+
+}
+
+TEST_CASE("fold_many1")
+{
+    auto parser = nom::multi::fold_many1(
+        nom::bytes::tag("abc"), 
+        std::vector<std::string_view>(), 
+        [](std::vector<std::string_view> init, std::string_view value) { init.emplace_back(value); return std::move(init); }
+    );
+    
+    auto result1 = CheckResult(parser, "abcabc", "", nom::ErrorKind::Ok);
+    REQUIRE(*result1 == std::vector<std::string_view>{"abc", "abc"});
+
+    auto result2 = CheckResult(parser, "abc123", "123", nom::ErrorKind::Ok);
+    REQUIRE(*result2 == std::vector<std::string_view>{"abc"});
+    
+    CheckResult(parser, "123123", "123123", nom::ErrorKind::Many1);
+    CheckResult(parser, "", "", nom::ErrorKind::Many1);
+}
