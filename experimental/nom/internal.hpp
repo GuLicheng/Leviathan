@@ -563,36 +563,6 @@ struct ManyFolder
     }
 };
 
-
-#if 0
-template <typename AllowEmpty>
-struct RequireNonEmpty 
-{
-    AllowEmpty allow_empty;
-    ErrorKind kind;
-
-    constexpr RequireNonEmpty(AllowEmpty ae, ErrorKind k) : allow_empty(std::move(ae)), kind(k) { }
-
-    template <typename ParseContext>
-    constexpr auto operator()(ParseContext& ctx)
-    {
-        auto result = allow_empty(ctx);
-
-        using R = decltype(result);
-
-        if (!result || std::ranges::empty(*result))
-        {
-            return R(std::unexpect, std::string(ctx), kind);
-        }
-
-        return result;
-    }    
-};
-
-template <typename AllowEmpty>
-RequireNonEmpty(AllowEmpty&&, ErrorKind) -> RequireNonEmpty<std::decay_t<AllowEmpty>>;
-#endif
-
 //////////////////////////////////////////////////////////////////////////////////////////////////
 struct LineEnding
 {

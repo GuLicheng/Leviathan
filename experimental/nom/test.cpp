@@ -588,3 +588,20 @@ TEST_CASE("fold_many1")
     CheckResult(parser, "123123", "123123", nom::ErrorKind::Many1);
     CheckResult(parser, "", "", nom::ErrorKind::Many1);
 }
+
+TEST_CASE("eof", "[combinator]")
+{
+    auto parser = nom::combinator::eof;
+
+    CheckResult(parser, "abc", "abc", nom::ErrorKind::Eof);
+    CheckResult(parser, "", "", nom::ErrorKind::Ok);
+}
+
+TEST_CASE("fail", "[combinator]")
+{
+    auto parser = nom::combinator::fail;
+
+    CheckResult(parser, "", "", nom::ErrorKind::Fail);
+    CheckResult(parser, "123", "123", nom::ErrorKind::Fail);
+}
+

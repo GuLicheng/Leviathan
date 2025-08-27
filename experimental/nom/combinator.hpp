@@ -83,9 +83,52 @@ inline constexpr struct
     }
 } opt;
 
+inline constexpr struct
+{
+    template <typename ParseContext>
+    static constexpr auto operator()(ParseContext& ctx)
+    {
+        using R = IResult<std::string_view>;    
+        auto result = std::string_view(ctx.begin(), ctx.end());
 
+        return ctx.empty() 
+             ? R(std::in_place, result)
+             : R(std::unexpect, std::string(result), ErrorKind::Eof);
+    }   
+} eof;
 
+inline constexpr struct
+{
+    template <typename ParseContext>
+    static constexpr auto operator()(ParseContext& ctx)
+    {
+        return IResult<std::string_view>(
+            std::unexpect, 
+            std::string(ctx.begin(), ctx.end()), 
+            ErrorKind::Fail
+        );
+    }       
+} fail;
 
+// inline constexpr struct 
+// {
+//     template <typename F1>
+//     static constexpr auto operator()(F1&& f1)
+//     {   
+//         auto fn = []<typename FunctionTuple, typename ParseContext>(FunctionTuple&& fns, ParseContext& ctx) static
+//         {
+//             using R1 = std::invoke_result_t<std::tuple_element_t<0, std::decay_t<FunctionTuple>>, ParseContext&>;
+//             using R = IResult<R1>;
+
+//             auto [parser] = (FunctionTuple&&)fns;
+//             auto result = parser(ctx);
+            
+//             return result ? R(std::unexpect, std::string(ctx.begin(), ctx.end(), ErrorKind::Not))
+//                           : R(std::in_place, std::nullopt); 
+//         };
+//         return make_parser_binder(fn, (F1&&)f1);
+//     }
+// } not_;
 
 
 } // namespace nom
