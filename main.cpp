@@ -115,6 +115,7 @@ public:
             cpp::cast<std::string>,
             [](auto optEntries) static { 
                 return *optEntries | 
+                // return optEntries  // Ok if std::optional given range support. P3168R2 what about expected?
                        cpp::views::pair_transform(&InIParser::trim_str, &InIParser::trim_str) |
                        std::ranges::to<std::unordered_map<std::string, std::string>>();
             }
@@ -123,6 +124,8 @@ public:
         return cpp::cast<cpp::json::value>(temp);
     }
 };
+
+// static_assert(std::ranges::range<std::optional<int>>);
 
 int main(int argc, char const *argv[])
 {
