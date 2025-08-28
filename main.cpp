@@ -100,16 +100,16 @@ public:
         );
 
         auto result = parser(context);
-
-        using ResultDictionary = std::unordered_map<
-            std::string, 
-            std::unordered_map<std::string, std::string>    
-        >;
     
         if (!result)
         {
             throw std::runtime_error(std::format("Parse error: {}", (int)result.error().code));
         }
+
+        using ResultDictionary = std::unordered_map<
+            std::string, 
+            std::unordered_map<std::string, std::string>    
+        >;
 
         auto temp = *result | cpp::views::pair_transform(
             cpp::cast<std::string>,
