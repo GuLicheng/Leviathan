@@ -4,6 +4,7 @@
 #include <charconv>
 #include <concepts>
 #include <optional>
+#include <expected>
 #include <string_view>
 #include <string>
 #include <format>
@@ -31,16 +32,13 @@ class type_caster;
 
 // Type caster for arithmetic types from string_view using std::from_chars.
 template <cpp::meta::arithmetic Arithmetic, error_policy Policy>
-    requires (Policy == error_policy::exception || Policy == error_policy::optional)
 class type_caster<Arithmetic, std::string_view, Policy>
 {
 public:
 
-    using result_type = std::conditional_t<Policy == error_policy::exception, Arithmetic, std::optional<Arithmetic>>;
-
     template <typename... Args>
         requires (Policy == error_policy::optional)
-    static constexpr result_type operator()(std::string_view ctx, Args... args)
+    static constexpr std::optional<Arithmetic> operator()(std::string_view ctx, Args... args)
     {
         Arithmetic result;
         auto [ptr, ec] = std::from_chars(ctx.data(), ctx.data() + ctx.size(), result, args...);
@@ -50,8 +48,20 @@ public:
     }
 
     template <typename... Args>
+        requires (Policy == error_policy::expected)
+    static constexpr std::expected<Arithmetic, std::errc> operator()(std::string_view ctx, Args... args)
+    {
+        Arithmetic result;
+        auto [ptr, ec] = std::from_chars(ctx.data(), ctx.data() + ctx.size(), result, args...);
+        return ec == std::errc() && ptr == ctx.end() 
+             ? std::expected<Arithmetic, std::errc>(std::in_place, result)
+             : std::expected<Arithmetic, std::errc>(std::unexpect, ec);   // FIXME: ec may not a good choice
+    }
+
+
+    template <typename... Args>
         requires (Policy == error_policy::exception)
-    static constexpr result_type operator()(std::string_view ctx, Args... args)
+    static constexpr Arithmetic operator()(std::string_view ctx, Args... args)
     {
         auto result = type_caster<Arithmetic, std::string_view, error_policy::optional>::operator()(ctx, args...);
 

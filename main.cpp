@@ -1,9 +1,11 @@
 #include <experimental/nom/nom.hpp>
 #include <experimental/nom/parser.hpp>
 #include <leviathan/type_caster.hpp>
+#include <leviathan/extc++/string.hpp>
 #include <print>
 #include <leviathan/extc++/file.hpp>
 #include <leviathan/extc++/ranges.hpp>
+#include <leviathan/config_parser/json/encoder.hpp>
 
 class InIParser
 {
@@ -11,12 +13,19 @@ public:
 
     InIParser() = default;
 
+    static std::string trim_str(std::string_view sv)
+    {
+        return std::string(cpp::string::trim(sv));
+    }
+
     auto parse(std::string_view context)
     {
         // ';' + Anycontext but linefeed
-
         auto comment_consumer = nom::sequence::delimited(
-            nom::character::char_(';'),
+            nom::sequence::preceded(
+                nom::character::multispace0,
+                nom::character::char_(';')
+            ),
             nom::character::not_line_ending,
             nom::character::line_ending
         );
@@ -54,9 +63,15 @@ public:
             nom::character::multispace0
         );
 
+        static std::string_view valid_value_chars = 
+            "abcdefghijklmnopqrstuvwxyz"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "0123456789"
+            "`~!@#$%^&*()-_=+[{]}\\|:'\",<.>/? ";
+
         auto value_parser = nom::sequence::delimited(
             nom::character::multispace0,
-            identifier,
+            nom::bytes::take_while1([](char c) { return valid_value_chars.contains(c); }),
             nom::sequence::terminated(
                 nom::character::multispace0,
                 nom::combinator::opt(comment_consumer)
@@ -72,27 +87,17 @@ public:
         );
 
         // FIXME: comment at the begin of text.
-        auto parser = nom::multi::many0(
+        auto parser2 = nom::multi::many0(
             nom::sequence::pair(
                 section_parser,
                 nom::combinator::opt(entry_parser)
             )
         );
 
-        // auto parser = nom::sequence::preceded(
-        //         nom::multi::many0(
-        //             nom::branch::alt(
-        //                 comment_consumer,
-        //                 nom::character::multispace0
-        //             )
-        //         ),
-        //         nom::multi::many0(
-        //             nom::sequence::pair(
-        //                 section_parser,
-        //                 nom::combinator::opt(entry_parser)
-        //             )
-        //         )
-        //     );
+        auto parser = nom::sequence::preceded(
+            nom::multi::many0(comment_consumer),
+            parser2
+        );
 
         auto result = parser(context);
 
@@ -106,15 +111,16 @@ public:
             throw std::runtime_error(std::format("Parse error: {}", (int)result.error().code));
         }
 
-        return *result | cpp::views::pair_transform(
+        auto temp = *result | cpp::views::pair_transform(
             cpp::cast<std::string>,
-            [](auto optEntries) 
-            { 
-                return *optEntries 
-                     | cpp::views::pair_transform(cpp::cast<std::string>, cpp::cast<std::string>) 
-                     | std::ranges::to<std::unordered_map<std::string, std::string>>();
+            [](auto optEntries) static { 
+                return *optEntries | 
+                       cpp::views::pair_transform(&InIParser::trim_str, &InIParser::trim_str) |
+                       std::ranges::to<std::unordered_map<std::string, std::string>>();
             }
         ) | std::ranges::to<ResultDictionary>();
+
+        return cpp::cast<cpp::json::value>(temp);
     }
 };
 
@@ -122,25 +128,11 @@ int main(int argc, char const *argv[])
 {
     InIParser parser;
 
-    auto result = parser.parse(std::string_view(R"(
-        
-        [SectionOne] ; comment
-        key1=value1 ; comment
-         key2 = value2
-                    ; comment
-        [SectionTwo]
-        keyB = valueB
+    auto context = cpp::read_file_context(R"(D:\Library\Leviathan\test.ini)");
 
-        [noentry]
+    auto result = parser.parse(std::string_view(context));
 
-        [Boris.Weapons]
-        Name=AK47
-        Damage=30
-        Range=300
-        Ammo=1
-    )"));
-
-    std::print("{}\n", result);
+    std::print("{:4}\n", result);
 
     return 0;
 }

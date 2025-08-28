@@ -1,4 +1,5 @@
 #include <catch2/catch_all.hpp>
+#include <leviathan/type_caster.hpp>
 #include <leviathan/extc++/ranges.hpp>
 #include "sequence.hpp"
 #include "combinator.hpp"
@@ -604,4 +605,116 @@ TEST_CASE("fail", "[combinator]")
     CheckResult(parser, "", "", nom::ErrorKind::Fail);
     CheckResult(parser, "123", "123", nom::ErrorKind::Fail);
 }
+
+TEST_CASE("recognize", "[combinator]")
+{
+    auto parser = nom::combinator::recognize(
+        nom::sequence::separated_pair(
+            nom::character::alpha1,
+            nom::character::char_(','),
+            nom::character::alpha1
+        )
+    );
+
+    CheckResult(parser, "abcd,efgh", "", nom::ErrorKind::Ok);
+    CheckResult(parser, "abcd;", ";", nom::ErrorKind::Char);
+}
+
+TEST_CASE("rest", "[combinator]")
+{
+    auto parser = nom::combinator::rest;
+
+    auto result1 = CheckResult(parser, "abcdef", "", nom::ErrorKind::Ok);
+    auto result2 = CheckResult(parser, "", "", nom::ErrorKind::Ok);
+
+    REQUIRE(*result1 == "abcdef");
+    REQUIRE(*result2 == "");
+}
+
+TEST_CASE("rest_len")
+{
+    auto result1 = CheckResult(nom::combinator::rest_len, "abc", "abc", nom::ErrorKind::Ok);
+    auto result2 = CheckResult(nom::combinator::rest_len, "", "", nom::ErrorKind::Ok);
+    REQUIRE(*result1 == 3);
+    REQUIRE(*result2 == 0);
+}
+
+TEST_CASE("success", "[combinator]")
+{
+    auto parser = nom::combinator::success(10);
+    auto result = CheckResult(parser, "xyz", "xyz", nom::ErrorKind::Ok);
+    REQUIRE(*result == 10);
+
+    auto sign = nom::branch::alt(
+        nom::combinator::value(-1, nom::character::char_('-')),
+        nom::combinator::value(1, nom::character::char_('+')),
+        nom::combinator::success(1)
+    );
+
+    REQUIRE(*CheckResult(sign, "+10", "10", nom::ErrorKind::Ok) == 1);
+    REQUIRE(*CheckResult(sign, "-10", "10", nom::ErrorKind::Ok) == -1);
+    REQUIRE(*CheckResult(sign, "10", "10", nom::ErrorKind::Ok) == 1);
+}
+
+TEST_CASE("verify", "[combinator]")
+{
+    auto parser = nom::combinator::verify(
+        nom::character::alpha1,
+        [](std::string_view sv) { return sv.size() == 4; }
+    );
+
+    CheckResult(parser, "abcd", "", nom::ErrorKind::Ok);
+    CheckResult(parser, "abcde", "abcde", nom::ErrorKind::Verify);
+    CheckResult(parser, "123abcd;", "123abcd;", nom::ErrorKind::Alpha);
+}
+
+TEST_CASE("map_res")
+{
+    using ExceptionCaster = cpp::type_caster<unsigned char, std::string_view, cpp::error_policy::exception>;
+
+    auto parser1 = nom::combinator::map_res(
+        nom::character::digit1,
+        [](std::string_view sv) static { return ExceptionCaster()(sv); }
+    );
+
+    REQUIRE(*CheckResult(parser1, "123", "", nom::ErrorKind::Ok) == 123);
+    CheckResult(parser1, "abc", "abc", nom::ErrorKind::Digit);
+    CheckResult(parser1, "123456", "123456", nom::ErrorKind::MapRes);
+
+    using OptionalCaster = cpp::type_caster<unsigned char, std::string_view, cpp::error_policy::optional>;
+
+    auto parser2 = nom::combinator::map_res(
+        nom::character::digit1,
+        [](std::string_view sv) static { return OptionalCaster()(sv); }
+    );
+
+    REQUIRE(*CheckResult(parser2, "123", "", nom::ErrorKind::Ok) == 123);
+    CheckResult(parser2, "abc", "abc", nom::ErrorKind::Digit);
+    CheckResult(parser2, "123456", "123456", nom::ErrorKind::MapRes);
+
+    using ExpectedCaster = cpp::type_caster<unsigned char, std::string_view, cpp::error_policy::expected>;
+
+    auto parser3 = nom::combinator::map_res(
+        nom::character::digit1,
+        [](std::string_view sv) static { return ExpectedCaster()(sv); }
+    );
+
+    REQUIRE(*CheckResult(parser3, "123", "", nom::ErrorKind::Ok) == 123);
+    CheckResult(parser3, "abc", "abc", nom::ErrorKind::Digit);
+    CheckResult(parser3, "123456", "123456", nom::ErrorKind::MapRes);
+}       
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
