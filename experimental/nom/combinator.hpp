@@ -153,7 +153,6 @@ inline constexpr struct
     }
 } value;
 
-// Tries to apply its parser without consuming the input.
 inline constexpr struct 
 {
     template <typename F1>
@@ -190,6 +189,39 @@ inline constexpr struct
         return make_parser_binder(fn, (ParserFunction&&)pf, (MapFunction&&)mf); 
     }
 } map;
+
+inline constexpr struct
+{
+    template <typename F1, typename F2>
+    static constexpr auto operator()(F1&& f1, F2&& f2)
+    {
+        auto fn = []<typename FunctionTuple, typename ParseContext>(FunctionTuple&& fns, ParseContext& ctx) static
+        {
+            using R2 = std::invoke_result_t<std::decay_t<F2>, ParseContext&>;
+            using R = IResult<typename R2::value_type>;
+
+            auto [first, second] = (FunctionTuple&&)fns;
+            auto clone = ctx; // copy
+            auto result1 = first(ctx);
+
+            if (!result1)
+            {
+                return R(std::unexpect, std::move(result1.error()));
+            }
+
+            auto result2 = second(*result1);
+
+            if (!result2)
+            {
+                ctx = std::move(clone);
+                return R(std::unexpect, std::move(result2.error()));
+            }
+
+            return R(std::in_place, std::move(*result2));
+        };
+        return make_parser_binder(fn, (F1&&)f1, (F2&&)f2);
+    }
+} map_parser;
 
 inline constexpr struct
 {
@@ -334,6 +366,8 @@ inline constexpr struct
         return make_parser_binder(fn, (F1&&)f1, (F2&&)f2); 
     }
 } verify;
+
+
 
 } // namespace nom
 

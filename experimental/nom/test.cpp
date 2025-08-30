@@ -733,8 +733,17 @@ TEST_CASE("is_not", "[bytes]")
     CheckResult(parser, "", "", nom::ErrorKind::IsNot);
 }
 
+TEST_CASE("map_parser", "[combinator]")
+{
+    auto parser = nom::combinator::map_parser(
+        nom::bytes::take(5),
+        nom::character::digit1
+    );
 
-
+    CheckResult(parser, "12345", "", nom::ErrorKind::Ok);
+    CheckResult(parser, "123ab", "", nom::ErrorKind::Ok);
+    CheckResult(parser, "123", "123", nom::ErrorKind::Eof);
+}
 
 
 
