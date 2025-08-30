@@ -71,4 +71,16 @@ inline constexpr struct
     }
 } tag;
 
+inline constexpr auto is_a = [](std::string_view input) static
+{
+    auto searcher = [=]<typename CharT>(CharT ch) { return input.contains(ch); };
+    return ConditionalLoop1<std::decay_t<decltype(searcher)>>(searcher, ErrorKind::IsA);
+};
+
+inline constexpr auto is_not = [](std::string_view input) static
+{
+    auto searcher = [=]<typename CharT>(CharT ch) { return !input.contains(ch); };
+    return ConditionalLoop1<std::decay_t<decltype(searcher)>>(searcher, ErrorKind::IsNot);
+};
+
 }   // namespace nom::bytes

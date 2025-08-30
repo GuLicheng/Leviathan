@@ -30,3 +30,20 @@ if __name__ == "__main__":
 
     json_str = json.dumps(obj, indent=4)
     print(json_str)
+
+
+    json.loads(
+        """
+        {
+            "name": "Alice",
+            "age": 30,
+            "is_student": false,
+            "grades": [|85, 90, 78],
+            "address": {
+                "street": "123 Main St",    
+                "city": "Wonderland",
+                "zip": "12345"
+            }
+        }
+        """
+    )

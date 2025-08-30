@@ -183,7 +183,7 @@ struct Choice
             }
             else
             {
-                return R(std::unexpect, "All parsers in choice failed", ErrorKind::Alt);
+                return R(std::unexpect, std::format("{}", ctx), ErrorKind::Alt);
             }
         }
         else

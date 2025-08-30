@@ -704,11 +704,34 @@ TEST_CASE("map_res")
     CheckResult(parser3, "123456", "123456", nom::ErrorKind::MapRes);
 }       
 
+TEST_CASE("not", "[combinator]")
+{
+    auto parser = nom::combinator::not_(nom::character::alpha1);
 
+    CheckResult(parser, "123", "123", nom::ErrorKind::Ok);
+    CheckResult(parser, "abcd", "abcd", nom::ErrorKind::Not);
+}
 
+TEST_CASE("is_a", "[bytes]")
+{
+    auto parser = nom::bytes::is_a("1234567890ABCDEF");
 
+    CheckResult(parser, "123 and voila", " and voila", nom::ErrorKind::Ok);
+    CheckResult(parser, "DEADBEEF and others", " and others", nom::ErrorKind::Ok);
+    CheckResult(parser, "BADBABEsomething", "something", nom::ErrorKind::Ok);
+    CheckResult(parser, "D15EA5E", "", nom::ErrorKind::Ok);
+    CheckResult(parser, "", "", nom::ErrorKind::IsA);
+}
 
+TEST_CASE("is_not", "[bytes]")
+{
+    auto parser = nom::bytes::is_not(" \t\r\n");
 
+    CheckResult(parser, "Hello, World!", " World!", nom::ErrorKind::Ok);
+    CheckResult(parser, "Sometimes\t", "\t", nom::ErrorKind::Ok);
+    CheckResult(parser, "Nospace", "", nom::ErrorKind::Ok);
+    CheckResult(parser, "", "", nom::ErrorKind::IsNot);
+}
 
 
 

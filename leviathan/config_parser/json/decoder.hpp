@@ -9,6 +9,7 @@ namespace cpp::config::json
 
 class decoder
 {
+
     static bool valid_number_character(char ch)
     {
         struct valid_character_config
@@ -237,7 +238,8 @@ public:
                     case 'n': s += '\n'; break;   // linefeed
                     case 'r': s += '\r'; break;   // carriage return
                     case 't': s += '\t'; break;   // horizontal tab
-                    case 'u': {
+                    case 'u': 
+                    {
                         // https://codebrowser.dev/llvm/llvm/lib/Support/JSON.cpp.html#_ZN4llvm4json12_GLOBAL__N_110encodeUtf8EjRNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
                         auto parse_4_hex = [this](std::string_view sv) -> optional<uint16_t> {
                             if (sv.size() < 4 || !is_unicode<4>(sv.data()))
@@ -251,7 +253,6 @@ public:
 
                         // Invalid UTF is not a JSON error (RFC 8529§8.2). It gets replaced by U+FFFD.
                         auto invalid = [&] { s.append({'\xef', '\xbf', '\xbd'}); };
-
                         uint16_t first;
 
                         if (auto op = parse_4_hex(m_ctx.slice(1, 4)); !op)
@@ -410,6 +411,11 @@ public:
     {
         m_ctx = context;
         return this->operator()();
+    }
+
+    parse_context context() const
+    {
+        return m_ctx;
     }
 
 private:

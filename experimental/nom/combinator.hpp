@@ -11,7 +11,6 @@
     x - iterator
     x - map_opt
     x - map_parser
-    x - not
 */
 
 #pragma once
@@ -21,6 +20,52 @@
 
 namespace nom::combinator
 {
+
+// inline constexpr struct
+// {
+//     template <typename F>
+//     static constexpr auto operator()(F&& f) 
+//     {
+//         auto fn = []<typename FunctionTuple, typename ParseContext>(FunctionTuple&& fns, ParseContext& ctx) static
+//         {
+//             using R1 = std::invoke_result_t<std::decay_t<ParserFunction>, ParseContext&>;
+//             using R = std::optional<typename R1::value_type>;
+
+//             auto [parser] = (FunctionTuple&&)fns;
+//             auto result = parser(ctx);
+
+//             return result ? R(std::in_place, std::make_optional(std::move(*result))) 
+//                           : R(std::nullopt);
+//         };
+//         return make_parser_binder(fn, (F&&)f);
+//     }
+// } map_opt;
+
+inline constexpr struct
+{
+    template <typename F>
+    static constexpr auto operator()(F&& f) 
+    {
+        auto fn = []<typename FunctionTuple, typename ParseContext>(FunctionTuple&& fns, ParseContext& ctx) static
+        {
+            using R = IResult<Unit>;
+
+            auto [parser] = (FunctionTuple&&)fns;
+            auto clone = ctx; // copy
+            auto result = parser(clone);
+
+            if (result)
+            {
+                return R(std::unexpect, std::string(ctx.begin(), ctx.end()), ErrorKind::Not);
+            }
+            else
+            {
+                return R(std::in_place, Unit());
+            }
+        };
+        return make_parser_binder(fn, (F&&)f);
+    }
+} not_;
 
 inline constexpr struct
 {
