@@ -135,6 +135,8 @@ public:
 
     constexpr Tag(std::string_view v) : value(v) { }
 
+    constexpr Tag(const char* s) : value(s) { }
+
     template <typename ParseContext>
     constexpr IResult<std::string_view> operator()(ParseContext& ctx) const
     {
@@ -276,6 +278,8 @@ struct Escaped
         }
     }
 };
+
+struct EscapedTransform;
 
 template <typename Prediction>
 struct ConditionalLoop0
