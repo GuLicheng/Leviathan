@@ -105,13 +105,26 @@ public:
     }
 };
 
-template <typename Target>
+template <typename Enum, error_policy Policy>
+class type_caster<Enum, Enum, Policy>
+{
+public:
+
+    using result_type = Enum;
+
+    static constexpr result_type operator()(Enum value)
+    {
+        return value;
+    }
+};
+
+template <typename Target, error_policy Policy>
 struct caster
 {
     template <typename Source, typename... Args>
     static constexpr auto operator()(const Source& source, Args... args)
     {
-        using Caster = type_caster<Target, Source>;
+        using Caster = type_caster<Target, Source, Policy>;
 
         if constexpr (meta::complete<Caster>)
         {
@@ -142,7 +155,7 @@ struct caster
 };
 
 template <typename Target>
-inline constexpr auto cast = caster<Target>{};
+inline constexpr auto cast = caster<Target, error_policy::exception>();
 
 } // namespace cpp
 

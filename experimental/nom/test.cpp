@@ -3,7 +3,6 @@
 #include <leviathan/extc++/ranges.hpp>
 #include "sequence.hpp"
 #include "combinator.hpp"
-#include "parser.hpp"
 #include "bytes.hpp"
 #include "multi.hpp"
 #include "branch.hpp"
@@ -303,7 +302,7 @@ TEST_CASE("separated_list", "[multi]")
 
     std::string_view input = "[123,456,789]";
     auto result = parser3(input);
-    REQUIRE((result == std::vector{123, 456, 789}));
+    REQUIRE((*result == std::vector{123, 456, 789}));
 }
 
 TEST_CASE("char", "[character]")
@@ -398,10 +397,10 @@ TEST_CASE("many0", "[multi]")
     auto result3 = CheckResult(parser, "123123", "123123", nom::ErrorKind::Ok);
     auto result4 = CheckResult(parser, "", "", nom::ErrorKind::Ok);
 
-    REQUIRE((result1 == std::vector<std::string_view>{"abc", "abc"}));
-    REQUIRE((result2 == std::vector<std::string_view>{"abc"}));
-    REQUIRE((result3 == std::vector<std::string_view>{}));
-    REQUIRE((result4 == std::vector<std::string_view>{}));
+    REQUIRE((*result1 == std::vector<std::string_view>{"abc", "abc"}));
+    REQUIRE((*result2 == std::vector<std::string_view>{"abc"}));
+    REQUIRE((*result3 == std::vector<std::string_view>{}));
+    REQUIRE((*result4 == std::vector<std::string_view>{}));
 }
 
 TEST_CASE("many1", "[multi]")
@@ -413,8 +412,8 @@ TEST_CASE("many1", "[multi]")
     CheckResult(parser, "123123", "123123", nom::ErrorKind::Many1);
     CheckResult(parser, "", "", nom::ErrorKind::Many1);
 
-    REQUIRE((result1 == std::vector<std::string_view>{"abc", "abc"}));
-    REQUIRE((result2 == std::vector<std::string_view>{"abc"}));
+    REQUIRE((*result1 == std::vector<std::string_view>{"abc", "abc"}));
+    REQUIRE((*result2 == std::vector<std::string_view>{"abc"}));
 }
 
 TEST_CASE("anychar", "[character]")
@@ -518,8 +517,8 @@ TEST_CASE("count", "[multi]")
     auto result4 = CheckResult(parser, "", "", nom::ErrorKind::Tag);
     auto result5 = CheckResult(parser, "abcabcabc", "abc", nom::ErrorKind::Ok);
 
-    REQUIRE((result1 == std::vector<std::string_view>{"abc", "abc"}));
-    REQUIRE((result5 == std::vector<std::string_view>{"abc", "abc"}));
+    REQUIRE((*result1 == std::vector<std::string_view>{"abc", "abc"}));
+    REQUIRE((*result5 == std::vector<std::string_view>{"abc", "abc"}));
 }
 
 TEST_CASE("fill", "[multi]")

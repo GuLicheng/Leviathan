@@ -1,14 +1,13 @@
 /*
     We define some helper classes for sequencing parsers.
 */
+#pragma once
 
 #include "error.hpp"
 #include <utility>
 #include <type_traits>
 #include <functional>
 #include <algorithm>
-
-#pragma once
 
 namespace nom
 {
@@ -352,18 +351,22 @@ struct Space
     }
 };
 
+template <size_t Index, typename FunctionTuple, typename ParseContext>
+using FunctionTupleInvokeResultType = std::invoke_result_t<std::tuple_element_t<Index, std::decay_t<FunctionTuple>>, ParseContext>;
+
 template <bool AtLeastOne>
 struct SeparatedList
 {
     template <typename FunctionTuple, typename ParseContext>
     static constexpr auto operator()(FunctionTuple&& fns, ParseContext& ctx)
     {
-        // using R1 = std::invoke_result_t<std::tuple_element_t<0, std::decay_t<FunctionTuple>>, ParseContext&>;
-        using R2 = std::invoke_result_t<std::tuple_element_t<1, std::decay_t<FunctionTuple>>, ParseContext&>;
-        using R = IResult<std::vector<typename R2::value_type>>;
+        using R2 = FunctionTupleInvokeResultType<1, FunctionTuple, ParseContext&>;
+        using ValueType = typename R2::value_type;
+        // using ErrorType = typename R2::error_type;
+        using R = IResult<std::vector<ValueType>>;
 
         auto [sep_parser, item_parser] = (FunctionTuple&&)fns;
-        std::vector<typename R2::value_type> items;
+        std::vector<ValueType> items;
 
         // First try to parse the first item
         auto item_result = item_parser(ctx);
@@ -642,7 +645,6 @@ struct Ctrl
         }
     }
 };
-
 
 } // namespace nom
 
