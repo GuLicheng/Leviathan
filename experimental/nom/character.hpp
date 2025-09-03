@@ -26,6 +26,8 @@ inline constexpr auto alpha1 = ConditionalLoop1(&::isalpha, ErrorKind::Alpha);
 inline constexpr auto space0 = ConditionalLoop0(Space());
 inline constexpr auto space1 = ConditionalLoop1(Space(), ErrorKind::Space);
 
+/////////////////////////////////////////////////////////////////////////////
+
 inline constexpr auto one_of = [](std::string_view s) static
 {
     return CheckFirstCharacter(std::bind_front([=](char c) { return s.contains(c); }), ErrorKind::OneOf);

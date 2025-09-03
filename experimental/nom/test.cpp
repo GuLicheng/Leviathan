@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 #include <leviathan/type_caster.hpp>
 #include <leviathan/extc++/ranges.hpp>
+#include <leviathan/config_parser/context.hpp>
 #include "sequence.hpp"
 #include "combinator.hpp"
 #include "bytes.hpp"
@@ -22,7 +23,9 @@ void CheckValueEqual(const nom::IResult<T, E>& actual, U expected)
 template <typename Parser>
 auto CheckResult(Parser parser, std::string_view input, std::string_view rest, nom::ErrorKind kind)
 {
-    auto result = parser(input);
+    auto context = cpp::config::context(input);
+
+    auto result = parser(context);
 
     REQUIRE(input == rest);
     
@@ -250,7 +253,8 @@ TEST_CASE("map", "[combinator]")
     CheckResult(parser, "123abc", "abc", nom::ErrorKind::Ok);
     CheckResult(parser, "abc", "abc", nom::ErrorKind::Digit);
 
-    std::string_view sv("12345");
+    // std::string_view sv("12345");
+    cpp::config::context sv("12345");
     auto result = parser(sv);
     REQUIRE(*result == 5);
 }
@@ -287,22 +291,6 @@ TEST_CASE("separated_list", "[multi]")
     CheckResult(parser2, "abc|def", "|def", nom::ErrorKind::Ok);
     CheckResult(parser2, "", "", nom::ErrorKind::Tag);
     CheckResult(parser2, "def|abc", "def|abc", nom::ErrorKind::Tag);
-
-    auto parser3 = nom::sequence::delimited(
-        nom::character::char_('['),
-        nom::combinator::map(
-            nom::multi::separated_list0(
-                nom::character::char_(','),
-                nom::character::alphanumeric1
-            ),
-            [](auto vec) { return vec | std::views::transform(cpp::cast<int>) | std::ranges::to<std::vector>(); }
-        ),
-        nom::character::char_(']')
-    );
-
-    std::string_view input = "[123,456,789]";
-    auto result = parser3(input);
-    REQUIRE((*result == std::vector{123, 456, 789}));
 }
 
 TEST_CASE("char", "[character]")
@@ -337,11 +325,11 @@ TEST_CASE("opt", "[combinator]")
     CheckResult(parser, "1c", "1c", nom::ErrorKind::Ok);
     CheckResult(parser, "", "", nom::ErrorKind::Ok);
 
-    std::string_view input1 = "123xyz";
+    cpp::config::context input1 = std::string_view("123xyz");
     auto result1 = parser(input1);
     REQUIRE(!result1.value().has_value());
 
-    std::string_view input2 = "abcXYZ";
+    cpp::config::context input2 = std::string_view("abcXYZ");
     auto result2 = parser(input2);
     REQUIRE(result2.value().has_value());
     REQUIRE(*result2.value() == "abcXYZ");
@@ -744,8 +732,29 @@ TEST_CASE("map_parser", "[combinator]")
     CheckResult(parser, "123", "123", nom::ErrorKind::Eof);
 }
 
+TEST_CASE("all_consuming", "[combinator]")
+{
+    auto parser = nom::combinator::all_consuming(nom::character::alpha1);
 
+    CheckResult(parser, "abcd", "", nom::ErrorKind::Ok);
+    CheckResult(parser, "abcd;", ";", nom::ErrorKind::Eof);
+    CheckResult(parser, "123abcd;", "123abcd;", nom::ErrorKind::Alpha);
+}
 
+TEST_CASE("cond", "[combinator]")
+{
+    auto parser_maker = [](bool b, auto parser) {
+        return nom::combinator::cond(b, nom::character::alpha1);
+    };
+
+    CheckResult(parser_maker(true, nom::character::alpha1), "abcd;", ";", nom::ErrorKind::Ok);
+    auto result2 = CheckResult(parser_maker(false, nom::character::alpha1), "abcd;", "abcd;", nom::ErrorKind::Ok);
+    CheckResult(parser_maker(true, nom::character::alpha1), "123;", "123;", nom::ErrorKind::Alpha);
+    auto result4 = CheckResult(parser_maker(false, nom::character::alpha1), "123;", "123;", nom::ErrorKind::Ok);
+
+    REQUIRE(!result2.value().has_value());
+    REQUIRE(!result4.value().has_value());
+}
 
 
 

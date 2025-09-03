@@ -1,36 +1,37 @@
-#include <print>
-#include <vector>
 #include <leviathan/type_caster.hpp>
-#include <experimental/nom/nom.hpp>
+#include <leviathan/extc++/ranges.hpp>
+#include <leviathan/config_parser/context.hpp>
+#include <leviathan/meta/type.hpp>
+#include <leviathan/nom/nom.hpp>
+#include <iostream>
+#include <print>
 
-
-enum class MyErrorKind
-{
-    Error1,
-    Error2,
-};
-
-auto parser1 = [](std::string_view& sv) static -> nom::IResult<std::string_view, MyErrorKind>
-{
-    auto p1 = nom::bytes::tag("abc");
-    return p1(sv);
-};
-
+using Context = cpp::config::context;
 
 int main(int argc, char const *argv[])
 {
-    std::string_view input = "abcabc123";
+    // auto parser = nom::combinator::recognize(
+        auto parser = nom::sequence::separated_pair(
+            nom::character::alpha1,
+            nom::character::char_(','),
+            nom::character::alpha1
+        );
+    // );
 
-    auto result = parser1(input);
+    auto result = parser(cpp::config::context("abcd,efgh"));
 
     if (result)
     {
-        std::print("Parsed: '{}', Remaining: '{}'\n", *result, input);
+        auto [rest_input, value] = std::move(result).value();
+        std::println("Parsing succeeded. {}", cpp::meta::name_of<decltype(result.value())>);
+        std::println("Rest input: '{}'", rest_input.to_string_view());
+        std::println("Parsed value: ('{}', '{}')", value.first, value.second);
     }
     else
     {
-        std::print("Error: {}, Info: {}\n", static_cast<int>(result.error().code), result.error().info);
+        std::cout << "Parsing failed with error code: " << static_cast<int>(result.error().code) << std::endl;
     }
-    
+
     return 0;
 }
+

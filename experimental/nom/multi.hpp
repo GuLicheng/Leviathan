@@ -5,17 +5,17 @@
 namespace nom::multi
 {
 
-inline constexpr auto separated_list0 = 
-    []<typename SepParser, typename ItemParser>(SepParser&& sp, ItemParser&& ip) static
-{
-    return make_parser_binder(SeparatedList<false>(), (SepParser&&)sp, (ItemParser&&)ip);
-};
+// inline constexpr auto separated_list0 = 
+//     []<typename SepParser, typename ItemParser>(SepParser&& sp, ItemParser&& ip) static
+// {
+//     return make_parser_binder(SeparatedList<false>(), (SepParser&&)sp, (ItemParser&&)ip);
+// };
 
-inline constexpr auto separated_list1 = 
-    []<typename SepParser, typename ItemParser>(SepParser&& sp, ItemParser&& ip) static
-{
-    return make_parser_binder(SeparatedList<true>(), (SepParser&&)sp, (ItemParser&&)ip);
-};
+// inline constexpr auto separated_list1 = 
+//     []<typename SepParser, typename ItemParser>(SepParser&& sp, ItemParser&& ip) static
+// {
+//     return make_parser_binder(SeparatedList<true>(), (SepParser&&)sp, (ItemParser&&)ip);
+// };
 
 inline constexpr auto many0 = 
     []<typename ItemParser>(ItemParser&& ip) static

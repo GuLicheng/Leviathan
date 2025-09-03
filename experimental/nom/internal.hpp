@@ -139,7 +139,7 @@ public:
     template <typename ParseContext>
     constexpr IResult<std::string_view> operator()(ParseContext& ctx) const
     {
-        if (ctx.starts_with(value))
+        if (ctx.match(value))
         {
             ctx.remove_prefix(value.size());
             return value;
@@ -319,7 +319,7 @@ struct ConditionalLoop1 : ConditionalLoop0<Prediction>
 
         if (!result || result->empty())
         {
-            return IResult<std::string_view>(std::unexpect, std::string(ctx), kind);
+            return IResult<std::string_view>(std::unexpect, std::string(ctx.begin(), ctx.end()), kind);
         }
 
         return result;
@@ -422,12 +422,12 @@ struct CheckFirstCharacter
     {
         if (ctx.empty())
         {
-            return IResult<std::string_view>(std::unexpect, std::string(ctx), kind);
+            return IResult<std::string_view>(std::unexpect, std::string(ctx.begin(), ctx.end()), kind);
         }
 
         if (!std::invoke(pred, ctx[0]))
         {
-            return IResult<std::string_view>(std::unexpect, std::string(ctx), kind);
+            return IResult<std::string_view>(std::unexpect, std::string(ctx.begin(), ctx.end()), kind);
         }
 
         std::string_view retval = ctx.substr(0, 1);
@@ -576,13 +576,13 @@ struct LineEnding
     template <typename ParseContext>
     constexpr IResult<std::string_view> operator()(ParseContext& ctx)
     {
-        if (ctx.starts_with('\n'))
+        if (ctx.match('\n'))
         {
             std::string_view result = ctx.substr(0, 1);
             ctx.remove_prefix(1);
             return IResult<std::string_view>(std::in_place, result);
         }
-        else if (ctx.starts_with("\r\n"))
+        else if (ctx.match("\r\n"))
         {
             std::string_view result = ctx.substr(0, 2);
             ctx.remove_prefix(2);
@@ -615,7 +615,7 @@ struct NotLineEnding
             ctx.remove_prefix(idx);
             return IResult<std::string_view>(std::in_place, result);
         }
-        else if (ctx.substr(idx, 2).starts_with("\r\n"))
+        else if (ctx.substr(idx, 2).match("\r\n"))
         {
             std::string_view result = ctx.substr(0, idx);
             ctx.remove_prefix(idx);
@@ -633,7 +633,7 @@ struct Ctrl
     template <typename ParseContext>
     constexpr IResult<std::string_view> operator()(ParseContext& ctx)
     {
-        if (ctx.starts_with("\r\n"))
+        if (ctx.match("\r\n"))
         {
             std::string_view result = ctx.substr(0, 2);
             ctx.remove_prefix(2);

@@ -1,15 +1,4 @@
-/*
-    We only implement a very small subset of nom with nom::complete part.
-    The streaming part is not implemented.
-*/
-#pragma once
-
-#include "error.hpp"
-#include "internal.hpp" 
-
-// https://docs.rs/nom/latest/nom/sequence/index.html
-namespace nom::sequence
-{
+``
 
 // Gets an object from the first parser, then gets another object from the second parser.
 inline constexpr struct 

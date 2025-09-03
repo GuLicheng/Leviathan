@@ -25,7 +25,7 @@ inline constexpr struct
     }
 } isbindigit;
 
-inline constexpr struct chars
+inline constexpr struct 
 {
     template <typename CharT>
     static constexpr bool operator()(CharT c)
@@ -33,7 +33,6 @@ inline constexpr struct chars
         return c >= CharT('0') && c <= CharT('7');
     }
 } isoctdighit;
-
 
 } // namespace cpp
 

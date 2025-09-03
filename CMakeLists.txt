@@ -37,6 +37,12 @@ endif()
 #     include(CTest)
 # endif()
 
+set(LEVIATHAN_BUILD_NOM ON)
+if(LEVIATHAN_BUILD_NOM STREQUAL "ON")
+    message(STATUS "Build nom")
+    add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/nom)
+endif()
+
 set(LEVIATHAN_BUILD_LOGGING ON)
 if(LEVIATHAN_BUILD_LOGGING STREQUAL "ON")
     message(STATUS "Build logging")
