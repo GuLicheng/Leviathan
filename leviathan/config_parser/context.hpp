@@ -73,6 +73,8 @@ public:
 
     constexpr CharT current() const { return peek(0); }
     constexpr CharT next() const { return peek(1); }
+
+    constexpr bool eof() const { return empty(); }
     
     // Unchecked advance
     constexpr void advance(size_type n) { m_data.remove_prefix(n); }

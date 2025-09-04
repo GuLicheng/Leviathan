@@ -44,6 +44,14 @@ inline constexpr auto map = []<typename F, typename M>(F f, M m) static
     };
 };
 
+inline constexpr auto map_parser = []<typename F, typename M>(F f, M m) static
+{
+    return [f = std::move(f), m = std::move(m)]<typename Context>(Context ctx)
+    {
+        return detail::map_parser_parser<Context, F, M>(std::move(f), std::move(m))(std::move(ctx));
+    };
+};
+
 inline constexpr auto opt = []<typename F>(F f) static
 {
     return [f = std::move(f)]<typename Context>(Context ctx)

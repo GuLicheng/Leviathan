@@ -292,7 +292,7 @@ struct one_of_fn
     template <typename Context>
     constexpr auto operator()(Context ctx)
     {
-        auto pred = std::bind_front([this](CharT c) { return pattern.contains(c); });
+        auto pred = [this](CharT c) { return pattern.contains(c); };
         return check_first_character<Context, decltype(pred), error_kind>(std::move(pred), error_kind::one_of)(std::move(ctx));
     }
 };
@@ -308,7 +308,7 @@ struct none_of_fn
     template <typename Context>
     constexpr auto operator()(Context ctx)
     {
-        auto pred = std::bind_front([this](CharT c) { return !pattern.contains(c); });
+        auto pred = [this](CharT c) { return !pattern.contains(c); };
         return check_first_character<Context, decltype(pred), error_kind>(std::move(pred), error_kind::none_of)(std::move(ctx));
     }
 };
@@ -647,6 +647,45 @@ struct map_parser
 
         return result ? result_type(rust::in_place, std::move(result->first), mapper(std::move(result->second)))
                       : result_type(rust::unexpect, std::move(ctx), result.error().code);
+    }
+};
+
+template <typename Context, typename F1, typename F2>
+struct map_parser_parser
+{
+    using result_type1 = std::invoke_result_t<F1, Context>;  // iresult<Context, T1, E>
+    using output_type1 = typename result_type1::output_type;
+    using input_type1 = typename result_type1::input_type;
+    using error_type1 = typename result_type1::error_type;
+
+    using result_type2 = std::invoke_result_t<F2, output_type1>;  // iresult<Context, T2, E>
+    using output_type2 = typename result_type2::output_type;
+    using error_type2 = typename result_type2::error_type;
+    using result_type = iresult<Context, output_type2>;
+
+    static_assert(all_same<typename result_type1::input_type, Context>);
+    static_assert(all_same<error_type1, error_type2>);
+
+    F1 parser;
+    F2 mapper;
+
+    constexpr map_parser_parser(F1 f1, F2 m1) : parser(std::move(f1)), mapper(std::move(m1)) { }
+
+    constexpr result_type operator()(Context ctx)
+    {
+        auto result1 = parser(ctx);
+
+        if (!result1)
+        {
+            return result_type(rust::unexpect, std::move(ctx), result1.error().code);
+        }
+
+        ctx = std::move(result1->first);
+        auto o1 = std::move(result1->second);
+        auto result2 = mapper(o1);
+
+        return result2 ? result_type(rust::in_place, std::move(std::move(ctx)), std::move(result2->second))
+                       : result_type(rust::unexpect, std::move(o1), result2.error().code);
     }
 };
 
@@ -1055,12 +1094,12 @@ struct count_parser
 template <typename Context, typename Parser, typename Iterator, typename Sentinel>
 struct fill_parser
 {
-    using result1_type = std::invoke_result_t<Parser, Context>;  // iresult<Context, T1, E>
-    using error_type = typename result1_type::error_type;
+    using result_type1 = std::invoke_result_t<Parser, Context>;  // iresult<Context, T1, E>
+    using error_type = typename result_type1::error_type;
     using output_type = Iterator;
     using result_type = iresult<Context, output_type, error_type>;
 
-    static_assert(std::is_same_v<typename result1_type::input_type, Context>);
+    static_assert(std::is_same_v<typename result_type1::input_type, Context>);
 
     Parser parser;
     Iterator iter;

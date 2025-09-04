@@ -487,6 +487,19 @@ TEST_CASE("map", "[combinator]")
     CheckResult(parser, "abc", "abc", nom::error_kind::digit);
 }
 
+TEST_CASE("map_parser", "[combinator]")
+{
+    auto parser = nom::combinator::map_parser(
+        nom::bytes::take(5),
+        nom::character::digit1
+    );
+
+    CheckResult(parser, "12345", "", nom::error_kind::ok, "12345");
+    CheckResult(parser, "123ab", "", nom::error_kind::ok, "123");
+    CheckResult(parser, "123", "123", nom::error_kind::eof);
+    CheckResult(parser, "abc123", "abc12", nom::error_kind::digit);
+}
+
 TEST_CASE("opt", "[combinator]")
 {
     auto parser = nom::combinator::opt(nom::character::alpha1);
