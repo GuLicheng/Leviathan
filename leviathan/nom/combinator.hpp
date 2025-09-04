@@ -33,10 +33,8 @@ inline constexpr auto eof = []<typename Context>(Context ctx)
     return detail::eof_parser<Context>()(std::move(ctx));
 };
 
-inline constexpr auto fail = []<typename Context>(Context ctx)
-{
-    return detail::fail_parser<Context>()(std::move(ctx));
-};
+template <typename T>
+inline constexpr auto fail = detail::fail_fn<T>();
 
 inline constexpr auto map = []<typename F, typename M>(F f, M m) static
 {

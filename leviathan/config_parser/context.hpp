@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string_view>
+#include <utility>
+#include <assert.h>
 
 namespace cpp::config
 {
@@ -33,14 +35,25 @@ public:
         : m_data(str)
     {
     }
+    
+    constexpr basic_context() = default;
+    constexpr basic_context(const basic_context& other) = default;
+    constexpr basic_context(basic_context&& other) noexcept = default;
+    constexpr basic_context& operator=(const basic_context& other) = default;
 
     constexpr const_iterator begin() const { return m_data.begin(); }
     constexpr iterator begin() { return m_data.begin(); }
     constexpr const_iterator cbegin() const { return m_data.cbegin(); }
+    constexpr reversed_iterator rbegin() { return m_data.rbegin(); }
+    constexpr const_reversed_iterator rbegin() const { return m_data.rbegin(); }
+    constexpr const_reversed_iterator crbegin() const { return m_data.crbegin(); }
 
     constexpr iterator end() { return m_data.end(); }
     constexpr const_iterator end() const { return m_data.end(); }
     constexpr const_iterator cend() const { return m_data.cend(); }
+    constexpr reversed_iterator rend() { return m_data.rend(); }
+    constexpr const_reversed_iterator rend() const { return m_data.rend(); }
+    constexpr const_reversed_iterator crend() const { return m_data.crend(); }
 
     constexpr size_type size() const { return m_data.size(); }
     constexpr bool empty() const { return m_data.empty(); }
@@ -103,6 +116,12 @@ public:
     }
 
     constexpr std::basic_string_view<CharT> to_string_view() const { return m_data; }
+
+    constexpr std::pair<basic_context, basic_context> split_at(size_type n) const
+    {
+        assert(n <= m_data.size());
+        return { basic_context(m_data.substr(0, n)), basic_context(m_data.substr(n)) };
+    }
 
     // Operators
     constexpr explicit operator bool() const { return !m_data.empty(); }

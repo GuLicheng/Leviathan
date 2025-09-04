@@ -11,26 +11,12 @@ using Context = cpp::config::context;
 int main(int argc, char const *argv[])
 {
     // auto parser = nom::combinator::recognize(
-        auto parser = nom::sequence::separated_pair(
-            nom::character::alpha1,
-            nom::character::char_(','),
-            nom::character::alpha1
-        );
-    // );
+        auto parser = nom::bytes::tag("Hello");
 
-    auto result = parser(cpp::config::context("abcd,efgh"));
+    Context input("Hello, World!");
+    auto result = parser(input);
 
-    if (result)
-    {
-        auto [rest_input, value] = std::move(result).value();
-        std::println("Parsing succeeded. {}", cpp::meta::name_of<decltype(result.value())>);
-        std::println("Rest input: '{}'", rest_input.to_string_view());
-        std::println("Parsed value: ('{}', '{}')", value.first, value.second);
-    }
-    else
-    {
-        std::cout << "Parsing failed with error code: " << static_cast<int>(result.error().code) << std::endl;
-    }
+    std::println("Input: [{}|{}]", result->first.to_string_view(), result->second.to_string_view());
 
     return 0;
 }

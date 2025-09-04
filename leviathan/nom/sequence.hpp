@@ -1,6 +1,11 @@
 /*
     We only implement a very small subset of nom with nom::complete part.
     The streaming part is not implemented.
+
+    TODO:
+
+    - all sequence components in have been implemented.
+    
 */
 #pragma once
 

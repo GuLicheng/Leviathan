@@ -1,7 +1,11 @@
 #include <catch2/catch_all.hpp>
+#include <leviathan/meta/type.hpp>
 #include <leviathan/type_caster.hpp>
 #include <leviathan/extc++/ranges.hpp>
 #include <leviathan/config_parser/context.hpp>
+#include <print>
+#include <iostream>
+#include <format>
 #include "sequence.hpp"
 #include "combinator.hpp"
 #include "bytes.hpp"
@@ -10,8 +14,58 @@
 #include "character.hpp"
 
 using Context = cpp::config::context;
+using ContextPair = std::pair<Context, Context>;
+using ContextVec = std::vector<Context>;
 
 struct Void { explicit constexpr Void() = default; };
+
+struct AutoCompare
+{
+    template <typename T, typename U>
+        requires std::equality_comparable_with<T, U>
+    static bool operator()(const T& x, const U& y) 
+    {
+        return x == y;
+    }
+
+    static bool operator()(const std::optional<Context>& x, const char* y) 
+    {
+        if (x.has_value())
+            return x->to_string_view() == y;
+        return false;
+    }
+
+    static bool operator()(const std::vector<Context>& x, const std::vector<std::string_view>& y) 
+    {
+        if (x.size() != y.size()) return false;
+        for (size_t i = 0; i < x.size(); i++)
+        {
+            if (x[i].to_string_view() != y[i]) return false;
+        }
+        return true;
+    }
+
+    static bool operator()(const Context& x, const char* y) 
+    {
+        return x.to_string_view() == y;
+    }
+
+    static bool operator()(const std::optional<Context>& x, std::nullopt_t y) 
+    {
+        return !x.has_value();
+    }
+
+    static bool operator()(const std::pair<Context, Context>& x, std::pair<const char*, const char*> y) 
+    {
+        return x.first.to_string_view() == y.first && x.second.to_string_view() == y.second;
+    }
+};
+
+template <typename T, typename U>
+concept AutoComparable = requires(T t, U u)
+{
+    { AutoCompare()(t, u) } -> std::same_as<bool>;
+};
 
 template <typename Parser, typename ExpectedValue = Void>
 void CheckResult(Parser&& parser, 
@@ -38,7 +92,14 @@ void CheckResult(Parser&& parser,
 
     if constexpr (!std::is_same_v<ExpectedValue, Void>)
     {
-        REQUIRE(value == expected_value);
+        if constexpr (AutoComparable<decltype(value), ExpectedValue>)
+        {
+            REQUIRE(AutoCompare()(value, expected_value));
+        }
+        else
+        {
+            std::cout << std::format("{}-{}\n", cpp::meta::name_of<decltype(value)>, cpp::meta::name_of<ExpectedValue>);
+        }
     }
 }
 
@@ -46,9 +107,9 @@ TEST_CASE("tag", "[bytes]")
 {
     auto parser = nom::bytes::tag(std::string_view("abc"));
     
-    CheckResult(parser, "abcdef", "def", nom::error_kind::ok, "abc");
-    CheckResult(parser, "", "", nom::error_kind::tag, "abc");
-    CheckResult(parser, "bcd", "bcd", nom::error_kind::tag, "abc");
+    CheckResult(parser, "abcdef", "def", nom::error_kind::ok, ("abc"));
+    CheckResult(parser, "", "", nom::error_kind::tag, ("abc"));
+    CheckResult(parser, "bcd", "bcd", nom::error_kind::tag, ("abc"));
 }
 
 TEST_CASE("take_while01", "[bytes]")
@@ -409,7 +470,7 @@ TEST_CASE("eof", "[combinator]")
 
 TEST_CASE("fail", "[combinator]")
 {
-    auto parser = nom::combinator::fail;
+    auto parser = nom::combinator::fail<int>;
 
     CheckResult(parser, "", "", nom::error_kind::fail);
     CheckResult(parser, "123", "123", nom::error_kind::fail);
@@ -419,10 +480,10 @@ TEST_CASE("map", "[combinator]")
 {
     auto parser = nom::combinator::map(
         nom::character::digit1,
-        [](std::string_view sv) { return sv.size(); }
+        std::ranges::size
     );
 
-    CheckResult(parser, "123abc", "abc", nom::error_kind::ok, 3);
+    CheckResult(parser, "123abc", "abc", nom::error_kind::ok, 3uz);
     CheckResult(parser, "abc", "abc", nom::error_kind::digit);
 }
 
@@ -514,7 +575,7 @@ TEST_CASE("verify", "[combinator]")
 {
     auto parser = nom::combinator::verify(
         nom::character::alpha1,
-        [](std::string_view sv) { return sv.size() == 4; }
+        [](auto sv) { return sv.size() == 4; }
     );
 
     CheckResult(parser, "abcd", "", nom::error_kind::ok, "abcd");
@@ -572,6 +633,113 @@ TEST_CASE("many01", "[multi]")
 
     CheckResult(parser2, "abcabcabc", "", nom::error_kind::ok, Vec{"abc", "abc", "abc"});
     CheckResult(parser2, "abc123", "123", nom::error_kind::ok, Vec{"abc"});
-    CheckResult(parser2, "123123", "123123", nom::error_kind::tag);
-    CheckResult(parser2, "", "", nom::error_kind::tag);
+    CheckResult(parser2, "123123", "123123", nom::error_kind::many1);
+    CheckResult(parser2, "", "", nom::error_kind::many1);
+}
+
+TEST_CASE("count", "[multi]")
+{
+    auto parser = nom::multi::count(nom::bytes::tag("abc"), 2);
+
+    CheckResult(parser, "abcabc", "", nom::error_kind::ok, std::vector<std::string_view>{"abc", "abc"});
+    CheckResult(parser, "abc123", "123", nom::error_kind::tag);
+    CheckResult(parser, "123123", "123123", nom::error_kind::tag);
+    CheckResult(parser, "", "", nom::error_kind::tag);
+    CheckResult(parser, "abcabcabc", "abc", nom::error_kind::ok, std::vector<std::string_view>{"abc", "abc"});
+}
+
+TEST_CASE("fill", "[multi]")
+{
+    std::vector<Context> results;
+
+    auto parser1 = nom::multi::fill(
+        nom::bytes::tag("123"), 
+        std::back_inserter(results), 
+        std::unreachable_sentinel
+    );
+
+    results.clear();
+    CheckResult(parser1, "123123123", "", nom::error_kind::tag);
+    REQUIRE(results.size() == 3);
+    REQUIRE(results[0].to_string_view() == "123");
+    REQUIRE(results[1].to_string_view() == "123");
+    REQUIRE(results[2].to_string_view() == "123");
+    
+    results.clear();
+    CheckResult(parser1, "abcabcabc", "abcabcabc", nom::error_kind::tag);
+    
+    results.clear();
+    results.resize(2);
+    auto parser2 = nom::multi::fill(nom::bytes::tag("123"), results.begin(), results.end());
+    CheckResult(parser2, "123123123abc", "123abc", nom::error_kind::ok);
+    REQUIRE(results.size() == 2);
+    REQUIRE(results[0].to_string_view() == "123");
+    REQUIRE(results[1].to_string_view() == "123");
+}
+
+TEST_CASE("fold_many", "[multi]")
+{
+    SECTION("0")
+    {
+        auto parser = nom::multi::fold_many0(
+            nom::bytes::tag("abc"), 
+            [] static { return std::vector<Context>(); },
+            [](std::vector<Context> init, Context value) { init.emplace_back(value); return std::move(init); }
+        );
+        
+        auto result1 = parser(Context("abcabc"));
+        REQUIRE(result1.has_value());
+        REQUIRE(result1->first.to_string_view() == "");
+        REQUIRE(result1->second.size() == 2);
+        REQUIRE(result1->second[0].to_string_view() == "abc");
+        REQUIRE(result1->second[1].to_string_view() == "abc");
+
+        auto result2 = parser(Context("abc123"));
+        REQUIRE(result2.has_value());
+        REQUIRE(result2->first.to_string_view() == "123");
+        REQUIRE(result2->second.size() == 1);
+        REQUIRE(result2->second[0].to_string_view() == "abc");
+
+        auto result3 = parser(Context("123123"));
+        REQUIRE(result3.has_value());
+        REQUIRE(result3->first.to_string_view() == "123123");
+        REQUIRE(result3->second.size() == 0);
+
+        auto result4 = parser(Context(""));
+        REQUIRE(result4.has_value());
+        REQUIRE(result4->first.to_string_view() == "");
+        REQUIRE(result4->second.size() == 0);
+    }
+
+    SECTION("1")
+    {
+        auto parser = nom::multi::fold_many1(
+            nom::bytes::tag("abc"), 
+            [] static { return std::vector<Context>(); },
+            [](std::vector<Context> init, Context value) { init.emplace_back(value); return std::move(init); }
+        );
+        
+        auto result1 = parser(Context("abcabc"));
+        REQUIRE(result1.has_value());
+        REQUIRE(result1->first.to_string_view() == "");
+        REQUIRE(result1->second.size() == 2);
+        REQUIRE(result1->second[0].to_string_view() == "abc");
+        REQUIRE(result1->second[1].to_string_view() == "abc");
+
+        auto result2 = parser(Context("abc123"));
+        REQUIRE(result2.has_value());
+        REQUIRE(result2->first.to_string_view() == "123");
+        REQUIRE(result2->second.size() == 1);
+        REQUIRE(result2->second[0].to_string_view() == "abc");
+
+        auto result3 = parser(Context("123123"));
+        REQUIRE(!result3.has_value());
+        REQUIRE(result3.error().code == nom::error_kind::many1);
+        REQUIRE(result3.error().input.to_string_view() == "123123");
+
+        auto result4 = parser(Context(""));
+        REQUIRE(!result4.has_value());
+        REQUIRE(result4.error().code == nom::error_kind::many1);
+        REQUIRE(result4.error().input.to_string_view() == "");
+    }
 }

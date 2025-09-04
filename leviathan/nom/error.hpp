@@ -34,15 +34,36 @@ enum class error_kind
     fail,
     not_,
     verify,
+    many1,
 };
 
-// Difference from nom::ErrorKind, we make ErrorCode a template parameter.
+/**
+ * @brief The error structure for nom parsers.
+ * 
+ * The error in Rust::nom has three states: Incomplete, Error, Failure.
+ * 
+ * @param Incomplete Indicating how many characters we still need in input.
+ * @param Error A recoverable error tag, we can try other parsers.
+ * @param Failure An unrecoverable error, we should stop parsing.
+ * 
+ * Here is the definition of nom::Err in Rust:
+ * 
+ *  pub enum Err<Failure, Error = Failure> {
+ *    Incomplete(Needed),
+ *    Error(Error),
+ *    Failure(Failure),
+ *  }
+ *  
+ *  We have found that in most cases, the Error and Failure are the same.
+ *  So we merge them into one, and use a boolean flag to indicate 
+ *  whether it is recoverable.
+ */
 template <typename Input, typename ErrorCode>
 struct error
 {
     Input input;
     ErrorCode code;
-    bool recoverable = true;  // Failure for rust::nom is unrecoverable by default.
+    bool recoverable = true;  
 };
 
 template <typename Input, typename Output, typename Error = error<Input, error_kind>>

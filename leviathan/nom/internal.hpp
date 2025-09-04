@@ -34,7 +34,7 @@ struct tag_parser
     using error_type = error<Context, error_kind>;
     using char_type = typename Context::value_type;
     using tag_type = std::basic_string_view<char_type>;
-    using output_type = std::basic_string_view<char_type>;
+    using output_type = Context;
     using result_type = iresult<Context, output_type, error_type>;
 
     tag_type tag_value;
@@ -43,9 +43,10 @@ struct tag_parser
 
     constexpr result_type operator()(Context ctx) const
     {
-        if (ctx.match(tag_value, true))
+        if (ctx.match(tag_value, false))
         {
-            return result_type(rust::in_place, std::move(ctx), tag_value);
+            auto [left, right] = ctx.split_at(tag_value.size());
+            return result_type(rust::in_place, std::move(right), std::move(left));
         }
         else
         {
@@ -58,7 +59,7 @@ template <typename Context, typename Prediction, typename ErrorCode = error_kind
 struct conditional_loop0
 {
     using char_type = typename Context::value_type;
-    using output_type = std::basic_string_view<char_type>;
+    using output_type = Context;
     using error_type = error<Context, ErrorCode>;
     using result_type = iresult<Context, output_type, error_type>;
 
@@ -72,9 +73,8 @@ struct conditional_loop0
 
         for (; first != last && std::invoke(pred, *first); ++first);
 
-        output_type result = { ctx.begin(), first };
-        ctx.advance(result.size());
-        return result_type(rust::in_place, std::move(ctx), result);
+        auto [left, right] = ctx.split_at(std::distance(ctx.begin(), first));
+        return result_type(rust::in_place, std::move(right), std::move(left));
     }
 };
 
@@ -105,7 +105,7 @@ template <typename Context>
 struct take_parser
 {
     using char_type = typename Context::value_type;
-    using output_type = std::basic_string_view<char_type>;
+    using output_type = Context;
     using error_type = error<Context, error_kind>;
     using result_type = iresult<Context, output_type, error_type>;
     using tag_type = std::basic_string_view<char_type>;
@@ -121,9 +121,8 @@ struct take_parser
             return result_type(rust::unexpect, std::move(ctx), error_kind::eof);
         }
 
-        output_type result = { ctx.begin(), ctx.begin() + count };
-        ctx.advance(count);
-        return result_type(rust::in_place, std::move(ctx), result);
+        auto [left, right] = ctx.split_at(count);
+        return result_type(rust::in_place, std::move(right), std::move(left));
     }
 };
 
@@ -131,7 +130,7 @@ template <typename Context, typename Normal, typename ControlChar, typename Esca
 struct escaped_parser
 {
     using char_type = typename Context::value_type;
-    using output_type = std::basic_string_view<char_type>;
+    using output_type = Context;
     using error_type = error<Context, error_kind>;
     using result_type = iresult<Context, output_type, error_type>;
 
@@ -145,7 +144,7 @@ struct escaped_parser
 
     constexpr result_type operator()(Context ctx) 
     {
-        auto start = ctx.begin();
+        auto clone = ctx;
 
         while (1)
         {
@@ -153,16 +152,18 @@ struct escaped_parser
 
             if (!result)
             {
-                output_type slice = { start, ctx.begin() };
-                return result_type(rust::in_place, std::move(ctx), slice);
+                // output_type slice = { start, ctx.begin() };
+                // return result_type(rust::in_place, std::move(ctx), slice);
+                auto [left, _] = clone.split_at(std::distance(clone.begin(), ctx.begin()));
+                return result_type(rust::in_place, std::move(ctx), std::move(left));
             }
 
             ctx = std::move(result->first);
 
             if (ctx.empty() || ctx[0] != control_char)
             {
-                output_type slice = { start, ctx.begin() };
-                return result_type(rust::in_place, std::move(ctx), slice);
+                auto [left, _] = clone.split_at(std::distance(clone.begin(), ctx.begin()));
+                return result_type(rust::in_place, std::move(ctx), std::move(left));
             }
 
             // Skip the control character
@@ -172,8 +173,8 @@ struct escaped_parser
 
             if (!esc_result)
             {
-                std::string_view slice = { start, ctx.begin() };
-                return result_type(rust::in_place, std::move(ctx), slice);
+                auto [left, _] = clone.split_at(std::distance(clone.begin(), ctx.begin()));
+                return result_type(rust::in_place, std::move(ctx), std::move(left));
             }
 
             ctx = std::move(esc_result->first);
@@ -185,7 +186,7 @@ template <typename Context, typename Prediction, typename ErrorCode = error_kind
 struct check_first_character
 {
     using char_type = typename Context::value_type;
-    using output_type = std::basic_string_view<char_type>;
+    using output_type = Context;
     using error_type = error<Context, ErrorCode>;
     using result_type = iresult<Context, output_type, error_type>;
 
@@ -206,9 +207,8 @@ struct check_first_character
             return result_type(std::unexpect, std::move(ctx), code);
         }
 
-        output_type retval = { ctx.begin(), ctx.begin() + 1 };
-        ctx.advance(1);
-        return result_type(std::in_place, std::move(ctx), retval);
+        auto [left, right] = ctx.split_at(1);
+        return result_type(rust::in_place, std::move(right), std::move(left));
     }
 };
 
@@ -317,7 +317,7 @@ template <typename Context>
 struct crlf_fn
 {
     using char_type = typename Context::value_type;
-    using output_type = std::basic_string_view<char_type>;
+    using output_type = Context;
     using error_type = error<Context, error_kind>;
     using result_type = iresult<Context, output_type, error_type>;
 
@@ -325,9 +325,8 @@ struct crlf_fn
     {
         if (ctx.match("\r\n", false))
         {
-            output_type result = { ctx.begin(), ctx.begin() + 2 };
-            ctx.advance(2);
-            return result_type(rust::in_place, std::move(ctx), result);
+            auto [left, right] = ctx.split_at(2);
+            return result_type(rust::in_place, std::move(right), std::move(left));
         }
         else
         {
@@ -340,7 +339,7 @@ template <typename Context>
 struct line_ending_fn
 {
     using char_type = typename Context::value_type;
-    using output_type = std::basic_string_view<char_type>;
+    using output_type = Context;
     using error_type = error<Context, error_kind>;
     using result_type = iresult<Context, output_type, error_type>;
 
@@ -348,15 +347,13 @@ struct line_ending_fn
     {
         if (ctx.match('\n', false))
         {
-            output_type result = { ctx.begin(), ctx.begin() + 1 };
-            ctx.advance(1);
-            return result_type(rust::in_place, std::move(ctx), result);
+            auto [left, right] = ctx.split_at(1);
+            return result_type(rust::in_place, std::move(right), std::move(left));
         }
         else if (ctx.match("\r\n", false))
         {
-            output_type result = { ctx.begin(), ctx.begin() + 2 };
-            ctx.advance(2);
-            return result_type(rust::in_place, std::move(ctx), result);
+            auto [left, right] = ctx.split_at(2);
+            return result_type(rust::in_place, std::move(right), std::move(left));
         }
         else
         {
@@ -369,7 +366,7 @@ template <typename Context>
 struct not_line_ending_fn
 {
     using char_type = typename Context::value_type;
-    using output_type = std::basic_string_view<char_type>;
+    using output_type = Context;
     using error_type = error<Context, error_kind>;
     using result_type = iresult<Context, output_type, error_type>;
 
@@ -379,22 +376,19 @@ struct not_line_ending_fn
         
         if (idx == ctx.npos)
         {
-            output_type result = { ctx.begin(), ctx.end() };
-            ctx.advance(ctx.size());
-            return result_type(rust::in_place, std::move(ctx), result);
+            auto [left, right] = ctx.split_at(ctx.size());
+            return result_type(rust::in_place, std::move(right), std::move(left));
         }
 
         if (ctx[idx] == '\n')
         {
-            output_type result = { ctx.begin(), ctx.begin() + idx };
-            ctx.advance(idx);
-            return result_type(rust::in_place, std::move(ctx), result);
+            auto [left, right] = ctx.split_at(idx);
+            return result_type(rust::in_place, std::move(right), std::move(left));
         }
         else if (ctx.peek(idx + 1) == '\n')
         {
-            output_type result = { ctx.begin(), ctx.begin() + idx };
-            ctx.advance(idx);
-            return result_type(rust::in_place, std::move(ctx), result);
+            auto [left, right] = ctx.split_at(idx);
+            return result_type(rust::in_place, std::move(right), std::move(left));
         }
         else
         {
@@ -590,31 +584,45 @@ template <typename Context>
 struct eof_parser
 {
     using char_type = typename Context::value_type;
-    using output_type = std::basic_string_view<char_type>;
+    using output_type = Context;
     using error_type = error<Context, error_kind>;
     using result_type = iresult<Context, output_type, error_type>;
 
     static constexpr result_type operator()(Context ctx) 
     {
-        output_type result = { ctx.begin(), ctx.end() };
-
-        return ctx.empty() 
-            ? result_type(rust::in_place, std::move(ctx), result) 
-            : result_type(rust::unexpect, std::move(ctx), error_kind::eof);
+        if (ctx.empty())
+        {
+            auto clone = ctx;
+            return result_type(rust::in_place, std::move(ctx), std::move(clone));
+        }
+        else
+        {
+            return result_type(rust::unexpect, std::move(ctx), error_kind::eof);
+        }
     }
 };
 
-template <typename Context>
+template <typename Context, typename Output>
 struct fail_parser
 {
     using char_type = typename Context::value_type;
-    using output_type = std::basic_string_view<char_type>;
+    using output_type = Output;
     using error_type = error<Context, error_kind>;
     using result_type = iresult<Context, output_type, error_type>;
 
     static constexpr result_type operator()(Context ctx) 
     {
         return result_type(rust::unexpect, std::move(ctx), error_kind::fail);
+    }
+};
+
+template <typename T>
+struct fail_fn
+{
+    template <typename Context>
+    constexpr auto operator()(Context ctx)
+    {
+        return fail_parser<Context, T>()(std::move(ctx));
     }
 };
 
@@ -954,7 +962,7 @@ struct many_parser
     using result_type1 = std::invoke_result_t<Parser, Context>;  // iresult<Context, T1, E>
 
     using output_type = std::vector<typename result_type1::output_type>;
-    using error_type = typename result_type1::error_type;
+    using error_type = std::conditional_t<AtLeastOne, error<Context, error_kind>, typename result_type1::error_type>;
     using result_type = iresult<Context, output_type, error_type>;
 
     static_assert(std::is_same_v<typename result_type1::input_type, Context>);
@@ -973,7 +981,7 @@ struct many_parser
         {
             if constexpr (AtLeastOne)
             {
-                return result_type(rust::unexpect, std::move(ctx), first_item.error().code);
+                return result_type(rust::unexpect, std::move(ctx), error_kind::many1);
             }
             else
             {
@@ -998,6 +1006,121 @@ struct many_parser
         }
 
         return result_type(rust::in_place, std::move(ctx), std::move(items));
+    }
+};
+
+template <typename Context, typename Parser>
+struct count_parser
+{
+    size_t count;
+    Parser parser;
+
+    using result_type1 = std::invoke_result_t<Parser, Context>;  // iresult<Context, T1, E>
+    using output_type = std::vector<typename result_type1::output_type>;
+    using error_type = typename result_type1::error_type;
+    using result_type = iresult<Context, output_type, error_type>;
+
+    static_assert(std::is_same_v<typename result_type1::input_type, Context>);
+
+    constexpr count_parser(size_t c, Parser p) : count(c), parser(std::move(p)) { }
+
+    constexpr result_type operator()(Context ctx)
+    {
+        output_type items;
+        items.reserve(count);
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            auto item_result = parser(ctx);
+
+            if (!item_result)
+            {
+                return result_type(rust::unexpect, std::move(ctx), item_result.error().code);
+            }
+
+            items.emplace_back(std::move(item_result->second));
+            ctx = std::move(item_result->first);
+        }
+
+        return result_type(rust::in_place, std::move(ctx), std::move(items));
+    }
+};
+
+// Runs the embedded parser repeatedly, filling the given slice with results.
+// This parser fails if the input runs out before the given slice is full.
+// Since we use an output iterator, the output container must be pre-sized.
+// So we cannot check whether the given slice is full or not, we add
+// another argument `sentinel`, which used for indicate whether the
+// parse should be stopped.
+template <typename Context, typename Parser, typename Iterator, typename Sentinel>
+struct fill_parser
+{
+    using result1_type = std::invoke_result_t<Parser, Context>;  // iresult<Context, T1, E>
+    using error_type = typename result1_type::error_type;
+    using output_type = Iterator;
+    using result_type = iresult<Context, output_type, error_type>;
+
+    static_assert(std::is_same_v<typename result1_type::input_type, Context>);
+
+    Parser parser;
+    Iterator iter;
+    Sentinel sent;
+
+    constexpr fill_parser(Parser p, Iterator i, Sentinel s) 
+        : parser(std::move(p)), iter(std::move(i)), sent(std::move(s)) { }
+
+    constexpr result_type operator()(Context ctx)
+    {
+        for (; iter != sent; )
+        {
+            auto item_result = parser(ctx);
+
+            if (!item_result)
+            {
+                return result_type(rust::unexpect, std::move(ctx), item_result.error().code);
+            }
+
+            *iter++ = std::move(item_result->second);
+            ctx = std::move(item_result->first);
+        }
+
+        return result_type(rust::in_place, std::move(ctx), std::move(iter));
+    }
+};
+
+// Different form most design in C++, The init is a function that returns the initial value.
+template <typename Context, typename Parser, typename Init, typename F, bool AtLeastOne>
+struct many_fold_parser
+{
+    using result_type1 = std::invoke_result_t<Parser, Context>;  // iresult<Context, T1, E>
+    using output_type = std::invoke_result_t<Init>;
+    using error_type = typename result_type1::error_type;
+    using result_type = iresult<Context, output_type, error_type>;
+
+    static_assert(std::is_same_v<typename result_type1::input_type, Context>);
+
+    Parser parser;
+    F folder;
+    Init init;
+
+    constexpr many_fold_parser(Parser p, F f, Init i) 
+        : parser(std::move(p)), folder(std::move(f)), init(std::move(i)) { }
+
+    constexpr result_type operator()(Context ctx)
+    {
+        using DelegateParser = many_parser<Context, std::reference_wrapper<Parser>, AtLeastOne>;
+        auto result = DelegateParser(std::ref(parser))(ctx);
+
+        if (!result)
+        {
+            return result_type(rust::unexpect, std::move(ctx), result.error().code);
+        }
+
+        return result_type(
+            rust::in_place, 
+            std::move(result->first), 
+            std::ranges::fold_left(std::move(result->second), init(), std::ref(folder))
+        );
     }
 };
 
