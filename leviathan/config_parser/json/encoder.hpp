@@ -59,11 +59,6 @@ struct encoder
         return std::format("{{{}}}", context);
     }
 
-    [[noreturn]] static std::string operator()(const error_code& ec)
-    {
-        std::unreachable();
-    }
-
     static std::string operator()(const value& v) 
     {
         return std::visit([]<typename T>(const T& x) {
@@ -178,96 +173,102 @@ struct caster<Container>
     }
 } 
 */
-struct indented_encoder
+class indented_encoder
 {
-
-    indented_encoder(int count) : m_count(count) {}
-
-    std::string m_result;
-    int m_level = 0;
-    int m_count;
-
-    std::string indent() const
+    struct impl
     {
-        return std::string(m_count * m_level, ' ');
-    }
+        std::string m_result;
+        int m_level = 0;
+        int m_count;
 
-    void operator()(const number& number)
-    {
-        m_result += std::visit(cpp::to_string, number.data());
-    }
+        impl(int count) : m_count(count) {}
 
-    void operator()(const string& str) 
-    {
-        m_result += std::format("\"{}\"", str);
-    }
-
-    void operator()(const array& arr) 
-    {
-        m_result += "[\n";
-        m_level++;
-
-        for (std::size_t i = 0; i < arr.size(); ++i)
+        std::string indent() const
         {
-            m_result += indent();
-            this->operator()(arr[i]);
-
-            if (i != arr.size() - 1) 
-            {
-                m_result.append(",\n");
-            }
+            return std::string(m_count * m_level, ' ');
         }
 
-        m_result += "\n";
-        m_level--;
-        m_result += indent() + "]";
-    }
-
-    void operator()(const boolean& boolean) 
-    {
-        m_result.append((boolean ? "true" : "false"));
-    }
-
-    void operator()(const null&) 
-    {
-        m_result.append("null"); 
-    }
-
-    void operator()(const object& object) 
-    {
-        m_result += "{\n";
-
-        auto size = object.size();
-        size_t idx = 0;
-        m_level++;
-
-        for (auto it = object.begin(); it != object.end(); ++it, idx++)
+        void operator()(const number& number)
         {
-            m_result += indent() + std::format(R"("{}" : )", it->first);
-
-            this->operator()(it->second);
-
-            if (idx != size - 1) 
-            {
-                m_result += ",\n";
-            }
+            m_result += std::visit(cpp::to_string, number.data());
         }
-        
-        m_result += "\n";
-        m_level--;
-        m_result += indent() + "}";
-    }
 
-    void operator()(const error_code& ec)
-    {
-        std::unreachable();
-    }
+        void operator()(const string& str) 
+        {
+            m_result += std::format("\"{}\"", str);
+        }
 
-    void operator()(const value& value) 
+        void operator()(const array& arr) 
+        {
+            m_result += "[\n";
+            m_level++;
+
+            for (std::size_t i = 0; i < arr.size(); ++i)
+            {
+                m_result += indent();
+                this->operator()(arr[i]);
+
+                if (i != arr.size() - 1) 
+                {
+                    m_result.append(",\n");
+                }
+            }
+
+            m_result += "\n";
+            m_level--;
+            m_result += indent() + "]";
+        }
+
+        void operator()(const boolean& boolean) 
+        {
+            m_result.append((boolean ? "true" : "false"));
+        }
+
+        void operator()(const null&) 
+        {
+            m_result.append("null"); 
+        }
+
+        void operator()(const object& object) 
+        {
+            m_result += "{\n";
+
+            auto size = object.size();
+            size_t idx = 0;
+            m_level++;
+
+            for (auto it = object.begin(); it != object.end(); ++it, idx++)
+            {
+                m_result += indent() + std::format(R"("{}" : )", it->first);
+
+                this->operator()(it->second);
+
+                if (idx != size - 1) 
+                {
+                    m_result += ",\n";
+                }
+            }
+            
+            m_result += "\n";
+            m_level--;
+            m_result += indent() + "}";
+        }
+
+        void operator()(const value& value) 
+        {
+            std::visit([this]<typename T>(const T& x) {
+                this->operator()(value::accessor()(x));
+            }, value.data());
+        }
+    };
+
+public:
+
+    static auto operator()(const value& x, int indent)
     {
-        std::visit([this]<typename T>(const T& x) {
-            this->operator()(value::accessor()(x));
-        }, value.data());
+        impl encoder(indent);
+        encoder(x);
+        return std::move(encoder.m_result);
     }
 };
 
@@ -286,9 +287,7 @@ inline constexpr struct
         }
         else
         {
-            IndentedEncoder encoder(indent);
-            encoder(x);
-            return std::move(encoder.m_result);
+            return IndentedEncoder()(x, indent);
         }
     }
 } dumps;

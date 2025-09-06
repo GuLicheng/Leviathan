@@ -14,7 +14,7 @@ namespace json = cpp::json;
 // using json::object;
 // using json::value;
 // using json::string;
-using json::error_code;
+// using json::error_code;
 using json::make_json;
 
 TEST_CASE("json_make")
@@ -24,7 +24,7 @@ TEST_CASE("json_make")
     json::value value3 = make_json<json::string>("HelloWorld");
     json::value value4 = make_json<json::array>();
     json::value value5 = make_json<json::object>();
-    json::value value6 = make_json<error_code>(error_code::uninitialized);
+    // json::value value6 = make_json<error_code>(error_code::uninitialized);
     json::value value7 = make_json<json::null>(nullptr);
     json::value value8 = make_json<json::number>(3ull);
     json::value value9 = make_json<json::number>(3.14);
@@ -35,7 +35,7 @@ TEST_CASE("json_make")
     REQUIRE(value3.is_string());
     REQUIRE(value4.is_array());
     REQUIRE(value5.is_object());
-    REQUIRE(!value6);
+    // REQUIRE(!value6);
     REQUIRE(value7.is_null());
     REQUIRE(value8.is_number());
     REQUIRE(value9.is_number());
@@ -92,8 +92,9 @@ TEST_CASE("number")
 
     for (auto c : error_numbers)
     {
-        auto value = json::loads(std::move(c));
-        REQUIRE(value.ec() == json::error_code::illegal_number);
+        // auto value = json::loads(std::move(c));
+        // REQUIRE(value.ec() == json::error_code::illegal_number);
+        REQUIRE_THROWS(json::loads(std::move(c)));
     }
 }
 
@@ -104,7 +105,7 @@ TEST_CASE("string")
         auto check_value = [&](const char* key, const char* target) {
             std::string s = key;
             auto list = json::loads(std::format("[{}]", s));
-            REQUIRE(list);
+            // REQUIRE(list);
             auto& root = list.as<json::array>()[0];
             return root.is_string() && root.as<json::string>() == target;
         };
@@ -130,8 +131,9 @@ TEST_CASE("string")
 
         for (auto c : strs)
         {
-            auto value = json::loads(std::move(c));
-            REQUIRE(!value);
+            // auto value = json::loads(std::move(c));
+            // REQUIRE(!value);
+            REQUIRE_THROWS(json::loads(std::move(c)));
         }
     }
 }
@@ -156,7 +158,7 @@ TEST_CASE("annotation")
 
     auto root = json::load(file);
 
-    REQUIRE(root);
+    // REQUIRE(root);
 
     REQUIRE(root.is_object());
 
@@ -228,9 +230,15 @@ TEST_CASE("annotation")
 
     REQUIRE(annotags.size() == std::ranges::size(tags));
 
+    // For string with different allocators
+    auto StringCompareEqual = [](const auto& lhs, const auto& rhs) {
+        return std::ranges::equal(lhs, rhs);
+    };
+
     for (size_t i = 0; i < annotags.size(); ++i)
     {
-        REQUIRE(annotags[i].as<json::string>() == tags[i]);
+        // REQUIRE(annotags[i].as<json::string>() == tags[i]);
+        REQUIRE(StringCompareEqual(annotags[i].as<json::string>(), tags[i]));
     }
 
     REQUIRE(object["annotation"].is_array());
@@ -251,17 +259,18 @@ TEST_CASE("annotation")
 
 TEST_CASE("multi-dim operator[]")
 {
-    auto obj = json::make_json<json::object>();
+    // auto obj = json::make_json<json::object>();
 
-    obj["Hello", "World"];
+    // obj["Hello", "World"];
 
 }
 
 TEST_CASE("failed cases")
 {
     auto check = [](std::string s) {
-        auto root = json::loads(s);
-        REQUIRE(!root);
+        // auto root = json::loads(s);
+        // REQUIRE(!root);
+        REQUIRE_THROWS(json::loads(s));
     };
 
     // check(R"("A JSON payload should be an object or array, not a string.")");
@@ -307,7 +316,7 @@ TEST_CASE("files")
     for (const auto& path : paths)
     {
         auto root = json::load(path.c_str());
-        REQUIRE(root);
+        // REQUIRE(root);
     }
 }
 

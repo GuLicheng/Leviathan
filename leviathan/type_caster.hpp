@@ -34,11 +34,29 @@ class type_caster;
 template <cpp::meta::arithmetic Arithmetic, error_policy Policy>
 class type_caster<Arithmetic, std::string_view, Policy>
 {
+    static auto get_return()
+    {
+        if constexpr (Policy == error_policy::exception)
+        {
+            return Arithmetic{};
+        }
+        else if constexpr (Policy == error_policy::optional)
+        {
+            return std::optional<Arithmetic>{};
+        }
+        else // if constexpr (Policy == error_policy::expected)
+        {
+            return std::expected<Arithmetic, std::errc>{};
+        }
+    }
+
 public:
+
+    using result_type = decltype(get_return());
 
     template <typename... Args>
         requires (Policy == error_policy::optional)
-    static constexpr std::optional<Arithmetic> operator()(std::string_view ctx, Args... args)
+    static constexpr std::optional<Arithmetic> operator()(std::string_view ctx, Args... args) noexcept
     {
         Arithmetic result;
         auto [ptr, ec] = std::from_chars(ctx.data(), ctx.data() + ctx.size(), result, args...);
@@ -49,7 +67,7 @@ public:
 
     template <typename... Args>
         requires (Policy == error_policy::expected)
-    static constexpr std::expected<Arithmetic, std::errc> operator()(std::string_view ctx, Args... args)
+    static constexpr std::expected<Arithmetic, std::errc> operator()(std::string_view ctx, Args... args) noexcept
     {
         Arithmetic result;
         auto [ptr, ec] = std::from_chars(ctx.data(), ctx.data() + ctx.size(), result, args...);

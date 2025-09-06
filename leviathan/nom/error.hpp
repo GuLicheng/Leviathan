@@ -35,6 +35,7 @@ enum class error_kind
     not_,
     verify,
     many1,
+    unknown,
 };
 
 /**

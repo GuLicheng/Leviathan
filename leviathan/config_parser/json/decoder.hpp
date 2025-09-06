@@ -1,446 +1,823 @@
-#pragma once
+// #pragma once
 
-#include <leviathan/config_parser/common.hpp>
-#include <leviathan/config_parser/parse_context.hpp>
-#include <leviathan/config_parser/json/value.hpp>
+// #include <leviathan/config_parser/common.hpp>
+// #include <leviathan/config_parser/parse_context.hpp>
+// #include <leviathan/config_parser/context.hpp>
+// #include <leviathan/config_parser/json/value.hpp>
 
-namespace cpp::config::json
-{
+// namespace cpp::config::json::detail
+// {
 
-class decoder
-{
+// template <typename Context>
+// class string_decoder
+// {
+//     using char_type = typename Context::char_type;
 
-    static bool valid_number_character(char ch)
-    {
-        struct valid_character_config
-        {
-            int operator()(size_t x) const
-            {
-                [[assume(x < 256)]];  
-                constexpr std::string_view sv = "-+.eE";
-                return ::isdigit(x) || sv.contains(x); // x is less than 128 and it can convert to char.
-            }
-        };
+//     static void decode_unicode(Context& ctx, string& result)
+//     {
+//         // https://codebrowser.dev/llvm/llvm/lib/Support/JSON.cpp.html#_ZN4llvm4json12_GLOBAL__N_110encodeUtf8EjRNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+//         // https://llvm.org/doxygen/JSON_8cpp_source.html
+//         ctx.advance(2); // eat '\u'
 
-        static auto valid_characters = make_character_table(valid_character_config());
-        return valid_characters[ch];
-    }
+//         auto parse4hex = [&ctx](std::basic_string_view<char_type> sv) -> uint16_t 
+//         {
+//             if (ctx.size() < 4 || !is_unicode<4>(sv.data()))
+//             {
+//                 throw std::runtime_error("Invalid unicode sequence");
+//             }
 
-    static value make_error_code(error_code ec)
-    {
-        return ec;
-    }
+//             auto res = decode_unicode_from_char<4>(ctx.to_string_view().data());  
+//             ctx.advance(4);
+//             return res;
+//         };
 
-    value parse_array_or_object()
-    {
-        m_ctx.skip_whitespace();
+//         auto invalid = [&]()  {
+//             // Invalid UTF is not a JSON error (RFC 8529§8.2). It gets replaced by U+FFFD.
+//             result.append({'\xef', '\xbf', '\xbd'});
+//         };
 
-        switch (m_ctx.current())
-        {
-            case '{': return parse_object();
-            case '[': return parse_array();
-            default: return make_error_code(error_code::error_payload);
-        }
-    }
+//         uint16_t first = parse4hex(ctx.to_string_view().substr(0, 4));
 
-public:
+//         while (1)
+//         {
+//             if (first < 0xD800 || first >= 0xE000) [[likely]] 
+//             {
+//                 encode_unicode_to_utf8(std::back_inserter(result), first);
+//                 break;
+//             }
 
-    decoder(std::string_view context) : m_ctx(context) { }
+//             if (first >= 0xE000) [[unlikely]] 
+//             {
+//                 invalid();
+//                 break;
+//             }
+            
+//             if (!ctx.match("\\u", false)) [[unlikely]] 
+//             {
+//                 invalid();
+//                 break;
+//             }
 
-    value parse_null()
-    {
-        return m_ctx.match_literal_and_advance("null") 
-            ? null()
-            : make_error_code(error_code::illegal_literal); 
-    }
+//             ctx.advance(2); // skip "\u"
+//             uint16_t second = parse4hex(ctx.to_string_view().substr(0, 4));
 
-    value parse_false()
-    {
-        return m_ctx.match_literal_and_advance("false") 
-            ? boolean(false) 
-            : make_error_code(error_code::illegal_literal); 
-    }
+//             if (second < 0xDC00 || second >= 0xE000) [[unlikely]] 
+//             {
+//                 invalid();
+//                 first = second;
+//                 continue;
+//             }
 
-    value parse_true()
-    {
-        return m_ctx.match_literal_and_advance("true") 
-            ? boolean(true) 
-            : make_error_code(error_code::illegal_literal); 
-    }
+//             uint32_t codepoint = 0x10000 | ((first - 0xD800) << 10) | (second - 0xDC00);
+//             encode_unicode_to_utf8(std::back_inserter(result), codepoint);
+//             break;
+//         }
+//     }
 
-    value parse_value()
-    {
-        if (m_ctx.eof())
-        {
-            return make_error_code(error_code::eof_error);
-        }
+//     static bool illegal_character(char_type ch)
+//     {
+//         return ch != '\n' && ch != '\r';
+//     }
 
-        switch (m_ctx.current())
-        {
-            case 't': return parse_true();
-            case 'n': return parse_null();
-            case 'f': return parse_false();
-            case '[': return parse_array();
-            case '{': return parse_object();
-            case '"': return parse_string();
-            default: return parse_number();
-        }
-    }
+//     static string decode_json_string(Context& ctx)
+//     {
+//         string result;
 
-    value parse_array()
-    {
-        m_ctx.advance_unchecked(1); // eat '['
-        m_ctx.skip_whitespace();
+//         if (!ctx.match('"', true))
+//         {
+//             throw std::runtime_error("Expected '\"' at the beginning of string.");
+//         }
 
-        array arr;
+//         for (; !ctx.eof(); )
+//         {
+//             if (ctx.current() == '\\')
+//             {
+//                 switch (ctx.next())
+//                 {
+//                     case '"': result += '"'; ctx.advance(2); break;
+//                     case '\\': result += '\\'; ctx.advance(2); break;
+//                     case '/': result += '/'; ctx.advance(2); break;
+//                     case 'b': result += '\b'; ctx.advance(2); break;
+//                     case 'f': result += '\f'; ctx.advance(2); break;
+//                     case 'n': result += '\n'; ctx.advance(2); break;
+//                     case 'r': result += '\r'; ctx.advance(2); break;
+//                     case 't': result += '\t'; ctx.advance(2); break;
+//                     case 'u': decode_unicode(ctx, result); break;
+//                     default: throw std::runtime_error("Invalid escape sequence.");
+//                 }
+//             }
+//             else if (ctx.current() == '"')
+//             {
+//                 ctx.advance(1); // eat '"'
+//                 break;
+//             }
+//             else if (!illegal_character(ctx.current()))
+//             {
+//                 throw std::runtime_error("Illegal character in string.");
+//             }
+//             else
+//             {
+//                 result += ctx.current();
+//                 ctx.advance(1);
+//             }
+//         }
+//         return result;
+//     }
 
-        // FIXME: match -> current
-        if (m_ctx.current() == ']')
-        {
-            m_ctx.advance_unchecked(1); // eat ']'
-            return arr;
-        }   
-        else 
-        {
-            while (1)
-            {
-                auto value = parse_value();
+// public:
 
-                if (!value)
-                {
-                    return value; 
-                }
+//     static string operator()(Context& ctx)
+//     {
+//         return decode_json_string(ctx);
+//     }
+// };
 
-                arr.emplace_back(std::move(value));
-                m_ctx.skip_whitespace();
+// template <typename Context>
+// class number_decoder
+// {
+//     using char_type = typename Context::char_type;
 
-                if (m_ctx.current() == ']')
-                {
-                    m_ctx.advance_unchecked(1); // eat ']'
-                    return arr;
-                }
+//     static bool valid_number_character(char_type ch)
+//     {
+//         static std::basic_string_view<char_type> dictionary = "0123456789.eE-+";
+//         return dictionary.contains(ch);
+//     }
 
-                if (!m_ctx.match_and_advance(','))
-                {
-                    return make_error_code(error_code::illegal_array);
-                }
+//     static bool check_leading(std::basic_string_view<char_type> sv)
+//     {
+//         static std::basic_string_view<char_type> invalid_leading = ".eE+";
 
-                m_ctx.skip_whitespace();
-            }
-        }
-    }
+//         if (sv.size())
+//         {
+//             if (invalid_leading.contains(sv[0]))
+//             {
+//                 return false;
+//             }
 
-    value parse_object()
-    {
-        m_ctx.advance_unchecked(1); // eat '{'
-        m_ctx.skip_whitespace();
+//             if (sv.size() > 1 && sv[0] == '0')
+//             {
+//                 return sv[1] == '.' || sv[1] == 'e' || sv[1] == 'E';
+//             }
+//         }
 
-        if (m_ctx.current() == '}')
-        {
-            m_ctx.advance_unchecked(1); // eat '}'
-            return object();
-        }
-        else if (m_ctx.current() == '\"')
-        {
-            // parse key-value pair
-            object obj;
+//         return true;
+//     }
 
-            while (1) 
-            {
-                // The inner loop may not ensure the next key-value pair
-                // such as {"key" : 1, is illegal, so we must check the first character.
-                if (m_ctx.current() != '"')
-                {
-                    return make_error_code(error_code::illegal_object);
-                }
+//     static number decode_json_number(Context& ctx)
+//     {
+//         assert(!ctx.eof());
 
-                auto key = parse_string();
+//         size_t count = 0;
+//         for (; count < ctx.size() && valid_number_character(ctx.peek(count)); ++count);
 
-                if (!key)
-                {
-                    return key;
-                }
+//         auto sv = ctx.to_string_view().substr(0, count);
 
-                m_ctx.skip_whitespace();
+//         if (!check_leading(sv))
+//         {
+//             throw std::runtime_error("Invalid leading character is not allowed in number.");
+//         }
 
-                if (!m_ctx.match_and_advance(':'))
-                {
-                    return make_error_code(error_code::illegal_object);
-                }
+//         using SignedInteger = typename number::int_type;
+//         using UnsignedInteger = typename number::uint_type;
+//         using FloatingPoint = typename number::float_type;
+
+//         // Try to parse as integer first, then unsigned integer, finally floating point.
+//         if (auto result1 = from_chars_to_optional<SignedInteger>(sv); result1)
+//         {
+//             ctx.advance(count);
+//             return number(*result1);
+//         }
+//         else if (auto result2 = from_chars_to_optional<UnsignedInteger>(sv); result2)
+//         {
+//             ctx.advance(count);
+//             return number(*result2);
+//         }
+//         else if (auto result3 = from_chars_to_optional<FloatingPoint>(sv); result3)
+//         {
+//             ctx.advance(count);
+//             return number(*result3);
+//         }
+//         else
+//         {
+//             throw std::runtime_error("Invalid number format.");
+//         }
+//     }
+
+// public:
+
+//     static number operator()(Context& ctx)
+//     {
+//         return decode_json_number(ctx);
+//     }
+// };
+
+// template <typename Context>
+// class decode2
+// {
+//     Context m_ctx;
+
+//     value decode_null()
+//     {
+//         if (m_ctx.match("null", true))
+//         {
+//             return null();
+//         }
+//         throw std::runtime_error("Invalid literal, expected 'null'.");
+//     }
+
+//     value decode_boolean()
+//     {
+//         if (m_ctx.match("true", true))
+//         {
+//             return boolean(true);
+//         }
+//         else if (m_ctx.match("false", true))
+//         {
+//             return boolean(false);
+//         }
+//         throw std::runtime_error("Invalid literal, expected 'true' or 'false'.");
+//     }
+
+//     value decode_string()
+//     {
+//         return string_decoder<Context>()(m_ctx);
+//     }
+    
+//     value decode_number()
+//     {
+//         return number_decoder<Context>()(m_ctx);
+//     }
+
+//     value decode_array()
+//     {
+//         m_ctx.match('[', true); // eat '['
+//         m_ctx.skip_whitespace();
+
+//         array arr;
+
+//         if (m_ctx.match(']', true))
+//         {
+//             return arr;
+//         }   
+//         else 
+//         {
+//             while (1)
+//             {
+//                 auto val = decode_value();
+//                 arr.emplace_back(std::move(val));
+//                 m_ctx.skip_whitespace();
+
+//                 if (m_ctx.match(']', true))
+//                 {
+//                     return arr;
+//                 }
+
+//                 if (!m_ctx.match(',', true))
+//                 {
+//                     throw std::runtime_error("Invalid array, expected ',' or ']'.");
+//                 }
+
+//                 m_ctx.skip_whitespace();
+//             }
+//         }
+//     }
+
+//     value decode_object()
+//     {
+//         if (!m_ctx.match('{', true))
+//         {
+//             throw std::runtime_error("Expected '{' at the beginning of object.");
+//         }
+
+//         m_ctx.skip_whitespace();
+
+//         if (m_ctx.match('}', true))
+//         {
+//             return object();
+//         }
+//         else 
+//         {
+//             // parse key-value pair
+//             object obj;
+
+//             while (1) 
+//             {
+//                 // The inner loop may not ensure the next key-value pair
+//                 // such as {"key" : 1, is illegal, so we must check the first character.
+//                 if (!m_ctx.match('"', false))
+//                 {
+//                     throw std::runtime_error("Invalid object, expected string as key.");
+//                 }
+
+//                 auto key = decode_string();
+
+//                 m_ctx.skip_whitespace();
+
+//                 if (!m_ctx.match(':', true))
+//                 {
+//                     throw std::runtime_error("Invalid object, expected ':' after key.");
+//                 }
                 
-                m_ctx.skip_whitespace();
-                auto value = parse_value();
+//                 auto val = decode_value();
+//                 obj.emplace(std::move(key.template as<string>()), std::move(val));
+//                 m_ctx.skip_whitespace();
 
-                if (!value)
-                {
-                    return value;
-                }
+//                 if (m_ctx.match('}', true))
+//                 {
+//                     return obj;
+//                 }
 
-                obj.emplace(std::move(*key.as_ptr<string>()), std::move(value));
-                m_ctx.skip_whitespace();
+//                 if (!m_ctx.match(',', true))
+//                 {
+//                     throw std::runtime_error("Invalid object, expected ',' or '}'.");
+//                 }
 
-                if (m_ctx.current() == '}')
-                {
-                    m_ctx.advance_unchecked(1); // eat '}'
-                    return obj;
-                }
+//                 m_ctx.skip_whitespace();
+//             }
+//         }
+//     }
+    
+//     value decode_value()
+//     {
+//         m_ctx.skip_whitespace();
 
-                if (!m_ctx.match_and_advance(','))
-                {
-                    return make_error_code(error_code::illegal_object);
-                }
+//         if (m_ctx.eof())
+//         {
+//             throw std::runtime_error("Unexpected end of input.");
+//         }
 
-                m_ctx.skip_whitespace();
-            }
-        }
-        else
-        {
-            return make_error_code(error_code::illegal_object);
-        }
-    }
+//         switch (m_ctx.current())
+//         {
+//             case 'n': return decode_null();
+//             case 't':
+//             case 'f': return decode_boolean();
+//             case '"': return decode_string();
+//             case '[': return decode_array();
+//             case '{': return decode_object();
+//             default: return decode_number();
+//         }
+//     }
 
-    value parse_string()
-    {
-        m_ctx.advance_unchecked(1); // eat '"'
-        string s;
+// public:
 
-        while (1)
-        {
-            if (m_ctx.is_at_end())
-            {
-                return make_error_code(error_code::illegal_string);
-            }
+//     decode2(std::string_view sv) : m_ctx(sv) { }
 
-            char ch = m_ctx.current();
+//     value operator()()
+//     {
+//         m_ctx.skip_whitespace();
+//         auto result = decode_value();
+//         m_ctx.skip_whitespace();
 
-            if (ch == '"')
-            {
-                m_ctx.advance_unchecked(1); // eat '"'
-                return make_json<string>(std::move(s));
-            }
+//         if (!m_ctx.eof())
+//         {
+//             throw std::runtime_error("Trailing characters after JSON value.");
+//         }
+//         return result;
+//     }
 
-            if (ch == '\\')
-            {
-                m_ctx.advance_unchecked(1); // eat '\\'
+// };
 
-                if (m_ctx.is_at_end())
-                {
-                    return make_error_code(error_code::illegal_string);
-                }
+// } // namespace detail
 
-                switch (m_ctx.current())
-                {
-                    case '"': s += '"'; break;    // quotation
-                    case '\\': s += '\\'; break;  // reverse solidus
-                    case '/': s += '/'; break;    // solidus
-                    case 'b': s += '\b'; break;   // backspace
-                    case 'f': s += '\f'; break;   // formfeed
-                    case 'n': s += '\n'; break;   // linefeed
-                    case 'r': s += '\r'; break;   // carriage return
-                    case 't': s += '\t'; break;   // horizontal tab
-                    case 'u': 
-                    {
-                        // https://codebrowser.dev/llvm/llvm/lib/Support/JSON.cpp.html#_ZN4llvm4json12_GLOBAL__N_110encodeUtf8EjRNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
-                        auto parse_4_hex = [this](std::string_view sv) -> optional<uint16_t> {
-                            if (sv.size() < 4 || !is_unicode<4>(sv.data()))
-                            {
-                                return nullopt;
-                            }
-                            auto res = decode_unicode_from_char<4>(sv.data());  
-                            m_ctx.advance_unchecked(4);
-                            return res;
-                        };
+// namespace cpp::config::json
+// {
 
-                        // Invalid UTF is not a JSON error (RFC 8529§8.2). It gets replaced by U+FFFD.
-                        auto invalid = [&] { s.append({'\xef', '\xbf', '\xbd'}); };
-                        uint16_t first;
+// class decoder
+// {
 
-                        if (auto op = parse_4_hex(m_ctx.slice(1, 4)); !op)
-                        {
-                            return make_error_code(error_code::illegal_unicode);
-                        }
-                        else
-                        {
-                            first = *op;
-                        }
+//     static bool valid_number_character(char ch)
+//     {
+//         struct valid_character_config
+//         {
+//             static int operator()(size_t x)
+//             {
+//                 [[assume(x < 256)]];  
+//                 constexpr std::string_view sv = "-+.eE";
+//                 return ::isdigit(x) || sv.contains(x); // x is less than 128 and it can convert to char.
+//             }
+//         };
 
-                        while (1)
-                        {
-                            // basic multilingual plane, BMP(U+0000 - U+FFFF)
-                            if (first < 0xD800 || first >= 0xE000) [[likely]] 
-                            {
-                                encode_unicode_to_utf8(std::back_inserter(s), first);
-                                break;
-                            }
-                            if (first >= 0xDC00) [[unlikely]] 
-                            {
-                                invalid();
-                                break;
-                            }
-                            if (m_ctx.size() < 2 + 1 || m_ctx.peek(1) != '\\' || m_ctx.peek(2) != 'u') [[unlikely]] 
-                            {
-                                invalid();
-                                break;
-                            }
-                            m_ctx.advance_unchecked(2); // skip "\u"
+//         static auto valid_characters = make_character_table(valid_character_config());
+//         return valid_characters[ch];
+//     }
 
-                            uint16_t second;
+//     static value make_error_code(error_code ec)
+//     {
+//         return ec;
+//     }
 
-                            if (auto op = parse_4_hex(m_ctx.slice(1, 4)); !op)
-                            {
-                                return make_error_code(error_code::illegal_unicode);
-                            }
-                            else
-                            {
-                                second = *op;
-                            }
+//     value parse_array_or_object()
+//     {
+//         m_ctx.skip_whitespace();
 
-                            if (second < 0xDC || second >= 0xE000) [[unlikely]]
-                            {
-                                invalid();
-                                first = second;
-                                continue;
-                            }
-                            uint32_t codepoint = 0x10000 | ((first - 0xD800) << 10) | (second - 0xDC00);
-                            encode_unicode_to_utf8(std::back_inserter(s), codepoint);
-                            break;
-                        }
-                        break;
-                    }   // 4 hex digits
-                    default: return make_error_code(error_code::illegal_string);
-                }
+//         switch (m_ctx.current())
+//         {
+//             case '{': return parse_object();
+//             case '[': return parse_array();
+//             default: return make_error_code(error_code::error_payload);
+//         }
+//     }
 
-            }
-            else
-            {
-                s += ch;
-            }
+// public:
 
-            m_ctx.advance_unchecked(1);
-        }
-    }
+//     decoder(std::string_view context) : m_ctx(context) { }
 
-    value parse_number()
-    {
-        char ch = m_ctx.current();
+//     value parse_null()
+//     {
+//         return m_ctx.match_literal_and_advance("null") 
+//             ? null()
+//             : make_error_code(error_code::illegal_literal); 
+//     }
 
-        // We use std::from_chars to help us parse number.
-        // This if-else branch is not necessary, but we want use it 
-        // to distinct the tow error cases.
-        if (ch == '-' || ::isdigit(ch))
-        {
-            auto startptr = m_ctx.data();
+//     value parse_false()
+//     {
+//         return m_ctx.match_literal_and_advance("false") 
+//             ? boolean(false) 
+//             : make_error_code(error_code::illegal_literal); 
+//     }
 
-            while (m_ctx.size() && valid_number_character(m_ctx.current()))
-            {
-                m_ctx.advance_unchecked(1);
-            }
+//     value parse_true()
+//     {
+//         return m_ctx.match_literal_and_advance("true") 
+//             ? boolean(true) 
+//             : make_error_code(error_code::illegal_literal); 
+//     }
 
-            auto endptr = m_ctx.data();
+//     value parse_value()
+//     {
+//         if (m_ctx.eof())
+//         {
+//             return make_error_code(error_code::eof_error);
+//         }
 
-            // Since leading zeroes and 0x, 0b, 0o is not permitted, so if 
-            // a number started with 0, we assume it is a floating number.
-            if (startptr[0] != '0')
-            {
-                // Try parse as integral first.
-                if (auto value = from_chars_to_optional<number::int_type>(startptr, endptr); value)
-                {
-                    return number(*value);
-                }
+//         switch (m_ctx.current())
+//         {
+//             case 't': return parse_true();
+//             case 'n': return parse_null();
+//             case 'f': return parse_false();
+//             case '[': return parse_array();
+//             case '{': return parse_object();
+//             case '"': return parse_string();
+//             default: return parse_number();
+//         }
+//     }
 
-                // Try parse as unsigned integral second.
-                if (auto value = from_chars_to_optional<number::uint_type>(startptr, endptr); value)
-                {
-                    return number(*value);
-                }
-            }
-            else if (startptr + 1 == endptr) // "0"
-            {
-                return number(0);
-            } 
-            else if (startptr[1] != '.') // Only "0." is allowed
-            {
-                return make_error_code(error_code::illegal_number);
-            }
+//     value parse_array()
+//     {
+//         m_ctx.advance_unchecked(1); // eat '['
+//         m_ctx.skip_whitespace();
 
-            // Try parse as floating last.
-            if (auto value = from_chars_to_optional<number::float_type>(startptr, endptr); value)
-            {
-                return number(*value);
-            }    
+//         array arr;
 
-            return make_error_code(error_code::illegal_number);
-        }
-        else
-        {
-            return make_error_code(error_code::unknown_character);
-        }
-    }
+//         // FIXME: match -> current
+//         if (m_ctx.current() == ']')
+//         {
+//             m_ctx.advance_unchecked(1); // eat ']'
+//             return arr;
+//         }   
+//         else 
+//         {
+//             while (1)
+//             {
+//                 auto value = parse_value();
 
-    value parse()
-    {
-        return this->operator()();
-    }
+//                 if (!value)
+//                 {
+//                     return value; 
+//                 }
 
-    value operator()()
-    {
-        // "A JSON payload should be an object or array."
-        // For debugging, we just parse value.
-        // auto root parse_array_or_object();
-        m_ctx.skip_whitespace();
-        auto root = parse_value();
+//                 arr.emplace_back(std::move(value));
+//                 m_ctx.skip_whitespace();
+
+//                 if (m_ctx.current() == ']')
+//                 {
+//                     m_ctx.advance_unchecked(1); // eat ']'
+//                     return arr;
+//                 }
+
+//                 if (!m_ctx.match_and_advance(','))
+//                 {
+//                     return make_error_code(error_code::illegal_array);
+//                 }
+
+//                 m_ctx.skip_whitespace();
+//             }
+//         }
+//     }
+
+//     value parse_object()
+//     {
+//         m_ctx.advance_unchecked(1); // eat '{'
+//         m_ctx.skip_whitespace();
+
+//         if (m_ctx.current() == '}')
+//         {
+//             m_ctx.advance_unchecked(1); // eat '}'
+//             return object();
+//         }
+//         else if (m_ctx.current() == '\"')
+//         {
+//             // parse key-value pair
+//             object obj;
+
+//             while (1) 
+//             {
+//                 // The inner loop may not ensure the next key-value pair
+//                 // such as {"key" : 1, is illegal, so we must check the first character.
+//                 if (m_ctx.current() != '"')
+//                 {
+//                     return make_error_code(error_code::illegal_object);
+//                 }
+
+//                 auto key = parse_string();
+
+//                 if (!key)
+//                 {
+//                     return key;
+//                 }
+
+//                 m_ctx.skip_whitespace();
+
+//                 if (!m_ctx.match_and_advance(':'))
+//                 {
+//                     return make_error_code(error_code::illegal_object);
+//                 }
+                
+//                 m_ctx.skip_whitespace();
+//                 auto value = parse_value();
+
+//                 if (!value)
+//                 {
+//                     return value;
+//                 }
+
+//                 obj.emplace(std::move(*key.as_ptr<string>()), std::move(value));
+//                 m_ctx.skip_whitespace();
+
+//                 if (m_ctx.current() == '}')
+//                 {
+//                     m_ctx.advance_unchecked(1); // eat '}'
+//                     return obj;
+//                 }
+
+//                 if (!m_ctx.match_and_advance(','))
+//                 {
+//                     return make_error_code(error_code::illegal_object);
+//                 }
+
+//                 m_ctx.skip_whitespace();
+//             }
+//         }
+//         else
+//         {
+//             return make_error_code(error_code::illegal_object);
+//         }
+//     }
+
+//     value parse_string()
+//     {
+//         m_ctx.advance_unchecked(1); // eat '"'
+//         string s;
+
+//         while (1)
+//         {
+//             if (m_ctx.is_at_end())
+//             {
+//                 return make_error_code(error_code::illegal_string);
+//             }
+
+//             char ch = m_ctx.current();
+
+//             if (ch == '"')
+//             {
+//                 m_ctx.advance_unchecked(1); // eat '"'
+//                 return make_json<string>(std::move(s));
+//             }
+
+//             if (ch == '\\')
+//             {
+//                 m_ctx.advance_unchecked(1); // eat '\\'
+
+//                 if (m_ctx.is_at_end())
+//                 {
+//                     return make_error_code(error_code::illegal_string);
+//                 }
+
+//                 switch (m_ctx.current())
+//                 {
+//                     case '"': s += '"'; break;    // quotation
+//                     case '\\': s += '\\'; break;  // reverse solidus
+//                     case '/': s += '/'; break;    // solidus
+//                     case 'b': s += '\b'; break;   // backspace
+//                     case 'f': s += '\f'; break;   // formfeed
+//                     case 'n': s += '\n'; break;   // linefeed
+//                     case 'r': s += '\r'; break;   // carriage return
+//                     case 't': s += '\t'; break;   // horizontal tab
+//                     case 'u': 
+//                     {
+//                         // https://codebrowser.dev/llvm/llvm/lib/Support/JSON.cpp.html#_ZN4llvm4json12_GLOBAL__N_110encodeUtf8EjRNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+//                         auto parse_4_hex = [this](std::string_view sv) -> optional<uint16_t> {
+//                             if (sv.size() < 4 || !is_unicode<4>(sv.data()))
+//                             {
+//                                 return nullopt;
+//                             }
+//                             auto res = decode_unicode_from_char<4>(sv.data());  
+//                             m_ctx.advance_unchecked(4);
+//                             return res;
+//                         };
+
+//                         // Invalid UTF is not a JSON error (RFC 8529§8.2). It gets replaced by U+FFFD.
+//                         auto invalid = [&] { s.append({'\xef', '\xbf', '\xbd'}); };
+//                         uint16_t first;
+
+//                         if (auto op = parse_4_hex(m_ctx.slice(1, 4)); !op)
+//                         {
+//                             return make_error_code(error_code::illegal_unicode);
+//                         }
+//                         else
+//                         {
+//                             first = *op;
+//                         }
+
+//                         while (1)
+//                         {
+//                             // basic multilingual plane, BMP(U+0000 - U+FFFF)
+//                             if (first < 0xD800 || first >= 0xE000) [[likely]] 
+//                             {
+//                                 encode_unicode_to_utf8(std::back_inserter(s), first);
+//                                 break;
+//                             }
+//                             if (first >= 0xDC00) [[unlikely]] 
+//                             {
+//                                 invalid();
+//                                 break;
+//                             }
+//                             if (m_ctx.size() < 2 + 1 || m_ctx.peek(1) != '\\' || m_ctx.peek(2) != 'u') [[unlikely]] 
+//                             {
+//                                 invalid();
+//                                 break;
+//                             }
+//                             m_ctx.advance_unchecked(2); // skip "\u"
+
+//                             uint16_t second;
+
+//                             if (auto op = parse_4_hex(m_ctx.slice(1, 4)); !op)
+//                             {
+//                                 return make_error_code(error_code::illegal_unicode);
+//                             }
+//                             else
+//                             {
+//                                 second = *op;
+//                             }
+
+//                             if (second < 0xDC || second >= 0xE000) [[unlikely]]
+//                             {
+//                                 invalid();
+//                                 first = second;
+//                                 continue;
+//                             }
+//                             uint32_t codepoint = 0x10000 | ((first - 0xD800) << 10) | (second - 0xDC00);
+//                             encode_unicode_to_utf8(std::back_inserter(s), codepoint);
+//                             break;
+//                         }
+//                         break;
+//                     }   // 4 hex digits
+//                     default: return make_error_code(error_code::illegal_string);
+//                 }
+
+//             }
+//             else
+//             {
+//                 s += ch;
+//             }
+
+//             m_ctx.advance_unchecked(1);
+//         }
+//     }
+
+//     value parse_number()
+//     {
+//         char ch = m_ctx.current();
+
+//         // We use std::from_chars to help us parse number.
+//         // This if-else branch is not necessary, but we want use it 
+//         // to distinct the tow error cases.
+//         if (ch == '-' || ::isdigit(ch))
+//         {
+//             auto startptr = m_ctx.data();
+
+//             while (m_ctx.size() && valid_number_character(m_ctx.current()))
+//             {
+//                 m_ctx.advance_unchecked(1);
+//             }
+
+//             auto endptr = m_ctx.data();
+
+//             // Since leading zeroes and 0x, 0b, 0o is not permitted, so if 
+//             // a number started with 0, we assume it is a floating number.
+//             if (startptr[0] != '0')
+//             {
+//                 // Try parse as integral first.
+//                 if (auto value = from_chars_to_optional<number::int_type>(startptr, endptr); value)
+//                 {
+//                     return number(*value);
+//                 }
+
+//                 // Try parse as unsigned integral second.
+//                 if (auto value = from_chars_to_optional<number::uint_type>(startptr, endptr); value)
+//                 {
+//                     return number(*value);
+//                 }
+//             }
+//             else if (startptr + 1 == endptr) // "0"
+//             {
+//                 return number(0);
+//             } 
+//             else if (startptr[1] != '.') // Only "0." is allowed
+//             {
+//                 return make_error_code(error_code::illegal_number);
+//             }
+
+//             // Try parse as floating last.
+//             if (auto value = from_chars_to_optional<number::float_type>(startptr, endptr); value)
+//             {
+//                 return number(*value);
+//             }    
+
+//             return make_error_code(error_code::illegal_number);
+//         }
+//         else
+//         {
+//             return make_error_code(error_code::unknown_character);
+//         }
+//     }
+
+//     value parse()
+//     {
+//         return this->operator()();
+//     }
+
+//     value operator()()
+//     {
+//         // "A JSON payload should be an object or array."
+//         // For debugging, we just parse value.
+//         // auto root parse_array_or_object();
+//         m_ctx.skip_whitespace();
+//         auto root = parse_value();
         
-        if (!root)
-        {
-            return root;
-        }
+//         if (!root)
+//         {
+//             return root;
+//         }
 
-        m_ctx.skip_whitespace();
-        // return is_over() ? root : make_error_code(error_code::multi_value);
-        if (m_ctx.is_at_end())
-        {
-            return root;
-        }
-        else
-        {
-            return make_error_code(error_code::multi_value);
-        }
-    }
+//         m_ctx.skip_whitespace();
+//         // return is_over() ? root : make_error_code(error_code::multi_value);
+//         if (m_ctx.is_at_end())
+//         {
+//             return root;
+//         }
+//         else
+//         {
+//             return make_error_code(error_code::multi_value);
+//         }
+//     }
 
-    value operator()(std::string_view context)
-    {
-        m_ctx = context;
-        return this->operator()();
-    }
+//     value operator()(std::string_view context)
+//     {
+//         m_ctx = context;
+//         return this->operator()();
+//     }
 
-    parse_context context() const
-    {
-        return m_ctx;
-    }
+//     parse_context context() const
+//     {
+//         return m_ctx;
+//     }
 
-private:
+// private:
 
-    parse_context m_ctx;
-};
+//     parse_context m_ctx;
+// };
 
-inline value loads(std::string source)
-{
-    return decoder(source)();
-}
+// inline value loads(std::string source)
+// {
+//     return decoder(source)();
+// }
 
-inline value load(const char* filename)
-{
-    return loads(cpp::read_file_context(filename));
-}
+// inline value load(const char* filename)
+// {
+//     return loads(cpp::read_file_context(filename));
+// }
 
-} // namespace cpp::config::json
+// } // namespace cpp::config::json
 
-namespace cpp::config::json::literal
-{
+// namespace cpp::config::json::literal
+// {
 
-inline value operator""_json(const char* str, size_t len)
-{
-    return loads(std::string(str, len));
-}
+// inline value operator""_json(const char* str, size_t len)
+// {
+//     return loads(std::string(str, len));
+// }
 
-}
+// }
+
+#include "decoder2.hpp"

@@ -76,12 +76,22 @@ public:
             static const char* supplement[] = { "补发基本工资", "补发岗位工资" };
             static const char* allowance[] = { "补发网点一线岗位补贴", "网点一线岗位补贴" };
             static const char* tax[] = { "应扣个人所得税", "本机构年度累计预缴个税" };
+            static const char* housing_provident_fund[] = { "住房公积金个人缴费", "补缴住房公积金个人缴费" };
+            static const char* pension_insurance[] = { "基本养老保险个人缴费", "补缴基本养老保险个人缴费" };
+            static const char* medical_insurance[] = { "基本医疗保险个人缴费", "补缴基本医疗保险个人缴费" };
+            static const char* unemployment_insurance[] = { "失业保险个人缴费", "补缴失业保险个人缴费" };
+            static const char* enterprise_annuity[] = { "企业年金个人缴费", "补缴企业年金个人缴费" };
 
             return cpp::ranges::concat(
                 cpp::views::zip(performance, cpp::views::repeat("绩效工资")),
                 cpp::views::zip(supplement, cpp::views::repeat("基本工资")),
                 cpp::views::zip(allowance, cpp::views::repeat("网点一线岗位补贴")),
-                cpp::views::zip(tax, cpp::views::repeat("应扣个人所得税"))
+                cpp::views::zip(tax, cpp::views::repeat("应扣个人所得税")),
+                cpp::views::zip(housing_provident_fund, cpp::views::repeat("住房公积金个人缴费")),
+                cpp::views::zip(pension_insurance, cpp::views::repeat("基本养老保险个人缴费")),
+                cpp::views::zip(medical_insurance, cpp::views::repeat("基本医疗保险个人缴费")),
+                cpp::views::zip(unemployment_insurance, cpp::views::repeat("失业保险个人缴费")),
+                cpp::views::zip(enterprise_annuity, cpp::views::repeat("企业年金个人缴费"))
             ) | std::ranges::to<std::unordered_map<std::string, std::string>>();
 
         }();

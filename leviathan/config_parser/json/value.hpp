@@ -28,44 +28,6 @@ concept arithmetic = std::is_arithmetic_v<T>;
 using cpp::string::string_viewable;
 using cpp::string::string_hash_key_equal;
 
-enum class error_code
-{
-    ok,
-    eof_error,
-    uninitialized,
-    illegal_string,
-    illegal_array,
-    illegal_object,
-    illegal_number,
-    illegal_literal,
-    illegal_boolean,
-    illegal_unicode,
-    error_payload,
-    multi_value,
-    unknown_character,
-};
-
-inline constexpr const char* error_infos[] = {
-    "ok",
-    "end of file error",
-    "uninitialized",
-    "illegal_string",
-    "illegal_array",
-    "illegal_object",
-    "illegal_number",
-    "illegal_literal",
-    "illegal_boolean",
-    "illegal_unicode",
-    "error_payload",
-    "multi_value",
-    "unknown_character",
-};
-
-constexpr const char* report_error(error_code ec)
-{
-    return error_infos[static_cast<int>(ec)];
-}
-
 template <typename T>
 using global_allocator = std::allocator<T>;
 // using global_allocator = cpp::alloc::debug_allocator<T>;
@@ -129,7 +91,13 @@ using array = std::vector<value, global_allocator<value>>;
 // std::vector<std::pair<const string, value>>
 // a better choice since the object do not contain
 // many elements usually.
-using object = std::unordered_map<string, value, string_hash_key_equal, string_hash_key_equal, global_allocator<std::pair<const string, value>>>;
+using object = std::unordered_map<
+    string, 
+    value, 
+    string_hash_key_equal, 
+    string_hash_key_equal, 
+    global_allocator<std::pair<const string, value>>
+>;
 
 using value_base = variable<
     as_unique_ptr_if_large_than<16>,
@@ -138,8 +106,7 @@ using value_base = variable<
     number,
     string,
     array,
-    object,
-    error_code  // If some errors happen, return error_code.
+    object
 >;
 
 // Clang will complain incomplete type but GCC and MSVC are OK.
@@ -153,7 +120,6 @@ class value : public value_base
         "string",
         "array",
         "object",
-        "error_code"
     };
 
 public:
@@ -230,8 +196,8 @@ public:
     }
 
     // TODO: Add operator[] for array.
-    template <std::integral Index>
-    value& operator[](Index index);
+    // template <std::integral Index>
+    // value& operator[](Index index);
 
     bool is_integer() const
     {
@@ -246,14 +212,14 @@ public:
     bool is_object() const { return is<object>(); }
     bool is_string() const { return is<string>(); }
 
-    explicit operator bool() const
-    { return m_data.index() < std::variant_size_v<value_type> - 1; }
+    // explicit operator bool() const
+    // { return m_data.index() < std::variant_size_v<value_type> - 1; }
 
-    error_code ec() const
-    { 
-        auto code = std::get_if<error_code>(&m_data);
-        return code ? *code : error_code::ok;
-    }
+    // error_code ec() const
+    // { 
+    //     auto code = std::get_if<error_code>(&m_data);
+    //     return code ? *code : error_code::ok;
+    // }
 
     const char* type_name() const
     {

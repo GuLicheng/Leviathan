@@ -1163,6 +1163,12 @@ struct many_fold_parser
     }
 };
 
+// template <typename Context, typename Arithmetic, size_t BitCount, typename ErrorCode = error_kind>
+// class number_parser
+// {
+
+// };
+
 } // namespace detail
 
 }  // namespace nom

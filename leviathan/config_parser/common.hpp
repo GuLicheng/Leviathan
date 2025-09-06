@@ -6,9 +6,7 @@
 #include <leviathan/table.hpp>
 #include "optional.hpp"
 
-#include <iostream>
 #include <array>
-#include <fstream>
 #include <string>
 #include <cstdint>
 #include <concepts>
@@ -33,6 +31,28 @@ using cpp::string::whitespace_delimiters;
 
 namespace cpp::config
 {
+
+/**
+ * @brief Make a table for searching faster.
+ * 
+ * @param Initializer A callable object to generate the value of table.
+ * @param CharT The character type, usually char.
+ * @param MaxCount The capacity of table, less equal than 256.
+ */
+template <typename Initializer, typename CharT = char, size_t MaxCount = 256>
+constexpr std::array<CharT, MaxCount> make_character_table(Initializer init)
+{
+    static_assert(MaxCount <= 256, "The MaxCount should be less equal than 256.");
+
+    std::array<CharT, MaxCount> table{};
+
+    for (size_t i = 0; i < MaxCount; ++i)
+    {
+        table[i] = init(i);
+    }
+
+    return table;
+}
 
 template <std::integral I>
 constexpr optional<I> from_chars_to_optional(const char* startptr, const char* endptr, int base = 10)
@@ -67,18 +87,12 @@ constexpr optional<T> from_chars_to_optional(std::string_view sv, Args... args)
     return from_chars_to_optional<T>(
         sv.begin(), sv.end(), args...);
 }
-}
-
-namespace cpp::config
-{
-
-using cpp::make_character_table;
 
 namespace detail
 {
     struct digit_value_config
     {
-        constexpr int operator()(size_t x) const
+        static constexpr int operator()(size_t x) 
         {
             if ('0' <= x && x <= '9') return x - '0';       // [0-9]
             if ('a' <= x && x <= 'f') return x - 'a' + 10;  // [a-f]
@@ -93,8 +107,8 @@ namespace detail
 /**
  * @brief Decode unicode from C-style string. 
  * 
- * @param p The string to be decoded, please make sure that the p has at least N bytes.
  * @param N Length of p, 4 for '\u' and 8 for '\U'.
+ * @param p The string to be decoded, please make sure that the p has at least N bytes.
 */
 template <size_t N> 
 constexpr unsigned decode_unicode_from_char(const char* p)
@@ -138,13 +152,6 @@ constexpr unsigned decode_unicode_from_char(const char* p)
     return i;
 }
 
-template <typename Value>
-struct value_parser;
-
-// constexpr bool is_utf8_continuation_byte(unsigned char ch)
-// {
-//     return (ch & 0b11000000) == 0b10000000;
-// }
 }
 
 namespace cpp::config::xml { }

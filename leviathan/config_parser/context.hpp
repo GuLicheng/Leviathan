@@ -8,15 +8,12 @@ namespace cpp::config
 {
 
 template <typename CharT>
-class basic_context
+struct parse_interface
 {
-    std::basic_string_view<CharT> m_data;
-
-public:
-
     using iterator = typename std::basic_string_view<CharT>::iterator;
     using const_iterator = typename std::basic_string_view<CharT>::const_iterator;
     using value_type = CharT;
+    using char_type = CharT;
     using size_type = typename std::basic_string_view<CharT>::size_type;
     using difference_type = typename std::basic_string_view<CharT>::difference_type;
     using reference = typename std::basic_string_view<CharT>::reference;
@@ -25,6 +22,195 @@ public:
     using const_reversed_iterator = typename std::basic_string_view<CharT>::const_reverse_iterator;
     static constexpr size_type npos = std::basic_string_view<CharT>::npos;
 
+    template <typename Self>
+    constexpr std::basic_string_view<CharT> to_string_view(this Self& self)
+    {
+        return static_cast<std::basic_string_view<CharT>>(self);
+    }
+
+    template <typename Self>
+    constexpr auto begin(this Self& self) 
+    {   
+        return self.to_string_view().begin();
+    }
+
+    template <typename Self>
+    constexpr auto cbegin(this Self& self) 
+    {   
+        return self.to_string_view().cbegin();
+    }
+
+    template <typename Self>
+    constexpr auto rbegin(this Self& self) 
+    {   
+        return self.to_string_view().rbegin();
+    }
+
+    template <typename Self>
+    constexpr auto crbegin(this Self& self) 
+    {   
+        return self.to_string_view().crbegin();
+    }
+
+    template <typename Self>
+    constexpr auto end(this Self& self) 
+    {   
+        return self.to_string_view().end();
+    }
+
+    template <typename Self>
+    constexpr auto cend(this Self& self) 
+    {   
+        return self.to_string_view().cend();
+    }
+
+    template <typename Self>
+    constexpr auto rend(this Self& self) 
+    {   
+        return self.to_string_view().rend();
+    }
+
+    template <typename Self>
+    constexpr auto crend(this Self& self) 
+    {   
+        return self.to_string_view().crend();
+    }
+    
+    template <typename Self>
+    constexpr auto size(this const Self& self)
+    {   
+        return self.to_string_view().size();
+    }
+
+    template <typename Self>
+    constexpr bool empty(this const Self& self)
+    {   
+        return self.to_string_view().empty();
+    }
+
+    template <typename Self>
+    constexpr auto operator[](this const Self& self, size_type pos)
+    {   
+        return self.to_string_view()[pos];
+    }
+
+    template <typename Self>
+    constexpr operator bool(this const Self& self) 
+    {   
+        return !self.to_string_view().empty();
+    }
+
+    template <typename Self>
+    constexpr CharT peek(this const Self& self, size_type offset) 
+    {   
+        auto sv = self.to_string_view();
+        return offset < sv.size() ? sv[offset] : CharT(0);
+    }
+
+    template <typename Self>
+    constexpr CharT current(this const Self& self) 
+    {   
+        return self.peek(0);
+    }
+
+    template <typename Self>
+    constexpr CharT next(this const Self& self)
+    {   
+        return self.peek(1);
+    }
+
+    template <typename Self>
+    constexpr bool eof(this const Self& self) 
+    {   
+        return self.empty();
+    }
+
+    template <typename Self>
+    constexpr void advance(this Self& self, size_type n) 
+    {   
+        self += n;
+    }
+
+    template <typename Self>
+    constexpr bool try_advance(this Self& self, size_type n) 
+    {   
+        if (n > self.size())
+        {
+            return false;
+        }
+        self.advance(n); 
+        return true; 
+    }
+
+    template <typename Self>
+    constexpr bool match(this Self& self, std::basic_string_view<CharT> str, bool consume) 
+    {   
+        if (!self.to_string_view().starts_with(str))
+        {
+            return false;
+        }
+
+        if (consume)
+        {
+            self.advance(str.size());
+        }
+        return true;
+    }
+
+    template <typename Self>
+    constexpr bool match(this Self& self, CharT ch, bool consume) 
+    {   
+        auto sv = self.to_string_view();
+        if (sv.empty() || sv[0] != ch)
+        {
+            return false;
+        }
+
+        if (consume)
+        {
+            self.advance(1);
+        }
+        return true;
+    }
+
+    template <typename Self>
+    constexpr std::pair<Self, Self> split_at(this const Self& self, size_type n) 
+    {
+        assert(n <= self.size());
+        auto left = self, right = self;
+        left -= (self.size() - n);
+        right += n;
+        return { left, right };
+    }
+
+    template <typename Self>
+    constexpr auto find_first_of(this const Self& self, std::basic_string_view<CharT> sv, size_type pos = 0)
+    { 
+        return self.to_string_view().find_first_of(sv, pos); 
+    }
+
+    template <typename Self>
+    constexpr auto skip_whitespace(this Self& self)
+    {
+        static auto whitespace = make_character_table([](size_t i)
+        {
+            [[assume(i < 256)]];
+            constexpr std::string_view sv = " \r\n\t";
+            return sv.contains(i);
+        }); 
+
+        for (; self.size() && whitespace[self[0]]; self.advance(1));
+    }
+};
+
+template <typename CharT>
+class basic_context : public parse_interface<CharT>
+{
+    std::basic_string_view<CharT> m_data;
+
+public:
+
+    using typename parse_interface<CharT>::size_type;
 
     constexpr basic_context(std::basic_string_view<CharT> data) 
         : m_data(data)
@@ -41,98 +227,20 @@ public:
     constexpr basic_context(basic_context&& other) noexcept = default;
     constexpr basic_context& operator=(const basic_context& other) = default;
 
-    constexpr const_iterator begin() const { return m_data.begin(); }
-    constexpr iterator begin() { return m_data.begin(); }
-    constexpr const_iterator cbegin() const { return m_data.cbegin(); }
-    constexpr reversed_iterator rbegin() { return m_data.rbegin(); }
-    constexpr const_reversed_iterator rbegin() const { return m_data.rbegin(); }
-    constexpr const_reversed_iterator crbegin() const { return m_data.crbegin(); }
-
-    constexpr iterator end() { return m_data.end(); }
-    constexpr const_iterator end() const { return m_data.end(); }
-    constexpr const_iterator cend() const { return m_data.cend(); }
-    constexpr reversed_iterator rend() { return m_data.rend(); }
-    constexpr const_reversed_iterator rend() const { return m_data.rend(); }
-    constexpr const_reversed_iterator crend() const { return m_data.crend(); }
-
-    constexpr size_type size() const { return m_data.size(); }
-    constexpr bool empty() const { return m_data.empty(); }
-    constexpr const_reference operator[](size_type pos) const { return m_data[pos]; }
-
-    constexpr auto find_first_of(std::basic_string_view<CharT> sv, size_type pos = 0) const 
-    { 
-        return m_data.find_first_of(sv, pos); 
-    }
-
-
-    // Some other extended functionalities can be added if needed
-    constexpr CharT peek(size_type offset) const
-    {
-        return offset < m_data.size() ? m_data[offset] : CharT(0);
-    }
-
-    constexpr CharT current() const { return peek(0); }
-    constexpr CharT next() const { return peek(1); }
-
-    constexpr bool eof() const { return empty(); }
+    constexpr operator std::basic_string_view<CharT>() const { return m_data; }
     
-    // Unchecked advance
-    constexpr void advance(size_type n) { m_data.remove_prefix(n); }
-    
-    constexpr bool try_advance(size_type n) 
+    constexpr basic_context& operator+=(size_type n) 
     { 
-        if (n > m_data.size())
-        {
-            return false;
-        }
-        advance(n); 
-        return true; 
-    }
-
-    constexpr bool match(std::basic_string_view<CharT> str, bool consume) 
-    {
-        if (!m_data.starts_with(str))
-        {
-            return false;
-        }
-
-        if (consume)
-        {
-            advance(str.size());
-        }
-        return true;
-    }
-
-    constexpr bool match(CharT ch, bool consume) 
-    {
-        if (m_data.empty() || m_data[0] != ch)
-        {
-            return false;
-        }
-
-        if (consume)
-        {
-            advance(1);
-        }
-        return true;
-    }
-
-    constexpr std::basic_string_view<CharT> to_string_view() const { return m_data; }
-
-    constexpr std::pair<basic_context, basic_context> split_at(size_type n) const
-    {
         assert(n <= m_data.size());
-        return { basic_context(m_data.substr(0, n)), basic_context(m_data.substr(n)) };
+        m_data.remove_prefix(n); 
+        return *this; 
     }
 
-    // Operators
-    constexpr explicit operator bool() const { return !m_data.empty(); }
-
-
-    // constexpr void remove_prefix(size_type n) { m_data.remove_prefix(n); }
-    // constexpr void remove_suffix(size_type n) { m_data.remove_suffix(n); }
-
-
+    constexpr basic_context& operator-=(size_type n)
+    {
+        m_data.remove_suffix(n);
+        return *this;
+    }
 };
     
 using context = basic_context<char>;

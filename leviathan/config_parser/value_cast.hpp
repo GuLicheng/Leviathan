@@ -10,19 +10,6 @@
 namespace cpp::config
 {
 
-// template <typename Target, typename Source>
-// Target convert_string(const Source& source)
-// {
-//     if constexpr (std::is_same_v<Source, Target>)
-//     {
-//         return source;
-//     }
-//     else
-//     {
-//         return Target(source.begin(), source.end());
-//     }
-// }
-
 struct toml2json
 {
     static json::value operator()(const toml::value& tv) 
@@ -128,11 +115,6 @@ struct json2toml
         return std::visit([]<typename T>(const T& x) {
             return json2toml::operator()(json::value::accessor()(x));
         }, jv.data());
-    }
-
-    [[noreturn]] static toml::value operator()(const json::error_code& x)
-    {
-        std::unreachable();
     }
 };
 
