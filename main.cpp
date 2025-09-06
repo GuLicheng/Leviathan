@@ -4,17 +4,15 @@
 
 int main(int argc, char const *argv[])
 {
+    auto s = "ͽ"; 
 
-    auto parser = nom::combinator::map(
-        nom::combinator::replace_error_code(nom::character::digit1, 1),
-        std::ranges::size
-    );
+    // const char chars[] = { char('0x03'), char('0x7D'), 0 };
+    std::string chars;
 
-    auto r = parser(cpp::config::context("12345"));
+    chars.append({ char(0xCD), char(0xBD) });
 
-    using T = decltype(r);
-
-    std::println("Type: {}", cpp::meta::name_of<T>);
+    std::println("{}", chars);
+    std::println("{}|{}", (unsigned char)s[0], (unsigned char)s[1]);
 
     return 0;
 }
