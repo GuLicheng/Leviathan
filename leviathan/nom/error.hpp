@@ -87,7 +87,6 @@ public:
     constexpr iresult(rust::unexpect_t, Args&&... args)
         : base(rust::unexpect, (Args&&)args...)
     { }
-
 };
 
 } // namespace nom

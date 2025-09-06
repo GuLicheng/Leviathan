@@ -179,19 +179,20 @@ class number_decoder
         using SignedInteger = typename number::int_type;
         using UnsignedInteger = typename number::uint_type;
         using FloatingPoint = typename number::float_type;
+        constexpr auto ReturnPolicy = error_policy::optional;
 
         // Try to parse as integer first, then unsigned integer, finally floating point.
-        if (auto result1 = from_chars_to_optional<SignedInteger>(sv); result1)
+        if (auto result1 = caster<SignedInteger, ReturnPolicy>()(sv); result1)
         {
             ctx.advance(count);
             return number(*result1);
         }
-        else if (auto result2 = from_chars_to_optional<UnsignedInteger>(sv); result2)
+        else if (auto result2 = caster<UnsignedInteger, ReturnPolicy>()(sv); result2)
         {
             ctx.advance(count);
             return number(*result2);
         }
-        else if (auto result3 = from_chars_to_optional<FloatingPoint>(sv); result3)
+        else if (auto result3 = caster<FloatingPoint, ReturnPolicy>()(sv); result3)
         {
             ctx.advance(count);
             return number(*result3);

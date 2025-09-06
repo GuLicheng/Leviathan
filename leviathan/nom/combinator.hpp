@@ -9,7 +9,6 @@
     x - iterator
     x - map_opt
     x - map_res     // unnecessary, use map instead
-    x - map_parser  // unnecessary, use map instead
 */
 
 #pragma once
@@ -123,6 +122,14 @@ inline constexpr auto all_consuming = []<typename F>(F f) static
     return [f = std::move(f)]<typename Context>(Context ctx)
     {
         return detail::all_consuming_parser<Context, F>(std::move(f))(std::move(ctx));
+    };
+};
+
+inline constexpr auto replace_error_code = []<typename F, typename ErrorCode>(F f, ErrorCode c)
+{
+    return [f = std::move(f), c = c]<typename Context>(Context ctx) 
+    {
+        return detail::replace_error_code_parser<Context, F, ErrorCode>(std::move(f), c)(std::move(ctx));
     };
 };
 

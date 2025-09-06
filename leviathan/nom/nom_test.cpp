@@ -756,3 +756,26 @@ TEST_CASE("fold_many", "[multi]")
         REQUIRE(result4.error().input.to_string_view() == "");
     }
 }
+
+TEST_CASE("replace_error_code", "[combinator]")
+{
+    enum class MyErrorCode
+    {
+        Error1,
+        Error2,
+    };
+
+    auto parser = nom::combinator::replace_error_code(
+        nom::bytes::tag("abc"), MyErrorCode::Error1
+    );
+
+    auto result1 = parser(Context("abc123"));
+    REQUIRE(result1.has_value());
+    REQUIRE(result1->first.to_string_view() == "123");
+    REQUIRE(result1->second.to_string_view() == "abc");
+
+    auto result2 = parser(Context("123abc"));
+    REQUIRE(!result2.has_value());
+    REQUIRE(result2.error().code == MyErrorCode::Error1);
+    REQUIRE(result2.error().input.to_string_view() == "123abc");
+}

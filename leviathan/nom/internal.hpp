@@ -632,7 +632,7 @@ struct map_parser
     using result_type1 = std::invoke_result_t<F1, Context>;  // iresult<Context, T1, E>
     using output_type = std::invoke_result_t<M1, typename result_type1::output_type>;
     using error_type = typename result_type1::error_type;
-    using result_type = iresult<Context, output_type>;
+    using result_type = iresult<Context, output_type, error_type>;
 
     static_assert(std::is_same_v<typename result_type1::input_type, Context>);
 
@@ -1163,11 +1163,30 @@ struct many_fold_parser
     }
 };
 
-// template <typename Context, typename Arithmetic, size_t BitCount, typename ErrorCode = error_kind>
-// class number_parser
-// {
+template <typename Context, typename F, typename ErrorCode>
+struct replace_error_code_parser
+{
+    using result_type1 = std::invoke_result_t<F, Context>;  // iresult<Context, T1, E>
+    using output_type = typename result_type1::output_type;
+    using error_type = error<Context, ErrorCode>;
+    using result_type = iresult<Context, output_type, error_type>;
 
-// };
+    static_assert(std::is_same_v<typename result_type1::input_type, Context>);
+
+    F parser;
+    ErrorCode code;
+
+    constexpr replace_error_code_parser(F f, ErrorCode c) : parser(std::move(f)), code(c) { }
+
+    constexpr result_type operator()(Context ctx)
+    {
+        auto result = parser(ctx);
+
+        return result ? result_type(rust::in_place, std::move(result->first), std::move(result->second))
+                      : result_type(rust::unexpect, std::move(ctx), code);
+    }
+};
+
 
 } // namespace detail
 
