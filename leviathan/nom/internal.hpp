@@ -1187,6 +1187,70 @@ struct replace_error_code_parser
     }
 };
 
+template <typename Context, typename Parser>
+struct iterator_parser
+{
+    using input_type = Context;
+    using result_type1 = std::invoke_result_t<Parser, Context>;  // iresult<Context, T1, E>
+    using output_type = typename result_type1::output_type;
+    using error_type = typename result_type1::error_type;
+    using result_type = iresult<Context, output_type, error_type>;
+
+    struct iterator
+    {
+        using value_type = output_type;
+        using difference_type = std::ptrdiff_t;
+        using iterator_category = std::input_iterator_tag;
+        using reference = const output_type&;
+
+        iterator_parser* base;
+        result_type cached_value;
+
+        constexpr iterator(iterator_parser* b, result_type result) : base(b), cached_value(std::move(result)) {  }
+
+        constexpr bool operator==(std::default_sentinel_t) const 
+        { 
+            return !cached_value.has_value(); 
+        }
+
+        constexpr reference operator*() const 
+        { 
+            return cached_value->second; 
+        }
+        
+        constexpr iterator& operator++() 
+        { 
+            if (cached_value.has_value())
+            {
+                cached_value = base->parser(cached_value->first);
+            }
+            return *this; 
+        }
+
+        constexpr iterator operator++(int) 
+        { 
+            auto temp = *this; 
+            ++*this; 
+            return temp; 
+        }
+    };
+
+    using sentinel = std::default_sentinel_t;
+
+    constexpr iterator begin() 
+    {
+        auto result = parser(context);
+        return iterator(this, std::move(result));        
+    }
+
+    constexpr sentinel end() { return sentinel(); }
+
+    Context context;
+    Parser parser;
+
+    constexpr iterator_parser(Context c, Parser p) : context(std::move(c)), parser(std::move(p)) { }
+
+};
 
 } // namespace detail
 

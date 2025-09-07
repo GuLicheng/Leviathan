@@ -133,4 +133,9 @@ inline constexpr auto replace_error_code = []<typename F, typename ErrorCode>(F 
     };
 };
 
+inline constexpr auto iterator = []<typename Context, typename F>(Context ctx, F f) static
+{
+    return detail::iterator_parser<Context, F>(std::move(ctx), std::move(f));
+};
+
 }  // namespace nom::combinator

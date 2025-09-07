@@ -779,3 +779,25 @@ TEST_CASE("replace_error_code", "[combinator]")
     REQUIRE(result2.error().code == MyErrorCode::Error1);
     REQUIRE(result2.error().input.to_string_view() == "123abc");
 }
+
+TEST_CASE("iterator", "[combinator]")
+{
+    auto input = Context("abc|defg|hijkl|mnopqr|123");
+
+    auto parser = nom::combinator::iterator(
+        input,
+        nom::sequence::terminated(nom::character::alpha1, nom::bytes::tag("|"))
+    );
+
+    std::vector<Context> results;
+
+    REQUIRE(std::ranges::input_range<decltype(parser)>);
+
+    results.append_range(parser);
+
+    REQUIRE(results.size() == 4);
+    REQUIRE(results[0].to_string_view() == "abc");
+    REQUIRE(results[1].to_string_view() == "defg");
+    REQUIRE(results[2].to_string_view() == "hijkl");
+    REQUIRE(results[3].to_string_view() == "mnopqr");
+}

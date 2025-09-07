@@ -38,7 +38,8 @@ struct deleter
     static void constexpr operator()(T* p) 
     { 
         std::destroy_at(p);
-        global_allocator<T>().deallocate(p, 1);
+        global_allocator<T> alloc;
+        std::allocator_traits<global_allocator<T>>::deallocate(alloc, p, 1);
     };
 };
 
@@ -53,7 +54,8 @@ struct as_unique_ptr_if_large_than
     {
         if constexpr (sizeof(T) > N)
         {
-            auto ptr = global_allocator<T>().allocate(1);
+            global_allocator<T> alloc;
+            auto ptr = std::allocator_traits<global_allocator<T>>::allocate(alloc, 1);
             std::construct_at(ptr, std::move(t));            
             return std::unique_ptr<T, deleter<T>>(ptr, deleter<T>());
         }
