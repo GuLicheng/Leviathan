@@ -801,3 +801,17 @@ TEST_CASE("iterator", "[combinator]")
     REQUIRE(results[2].to_string_view() == "hijkl");
     REQUIRE(results[3].to_string_view() == "mnopqr");
 }
+
+TEST_CASE("cut", "[combinator]")
+{
+    auto parser1 = nom::combinator::cut(
+        nom::bytes::tag("Hello")
+    );
+
+    Context input1 = "Hello";
+    REQUIRE(parser1(input1).has_value());
+
+    Context input2 = "World";
+    REQUIRE_FALSE(parser1(input2).error().recoverable);
+}
+

@@ -16,6 +16,123 @@ Reference:
 namespace cpp::config::toml
 {
 
+namespace detail
+{
+
+template <typename Context>
+struct toml_string_decoder
+{
+    template <size_t N, typename InputIterator>
+    void decode_unicode(InputIterator dest, Context& ctx) 
+    {
+        assert(ctx[0] == 'u' || ctx[0] == 'U');
+        ctx.advance(1);
+
+        if (ctx.size() < N)
+        {
+            throw toml_parse_error("Too small characters for unicode");
+        }
+
+        auto codepoint = decode_unicode_from_char<N>(ctx.data());
+        encode_unicode_to_utf8(dest, codepoint);
+        ctx.advance(N);
+    }
+
+    static bool is_valid_char(char ch)
+    {
+        return (ch >= 'a' && ch <= 'z')
+            || (ch >= 'A' && ch <= 'Z')
+            || (ch >= '0' && ch <= '9')
+            || ch == '-'
+            || ch == '_';
+    }
+
+    static string decode_literal_string(Context& ctx)
+    {
+        if (!ctx.match('\'', true))
+        {
+            throw toml_parse_error("Literal string must start with '.");
+        }
+
+        auto sv = ctx.take_while(is_valid_char);
+
+        if (sv.empty())
+        {
+            throw toml_parse_error("Literal string must not be empty.");
+        }
+
+        ctx.advance(sv.size());
+        return string(sv.begin(), sv.end());
+    }
+
+    static string decode_basic_string(Context& ctx)
+    {
+        if (!ctx.match('"'))
+        {
+            throw toml_parse_error("Basic string must start with \".");
+        }
+
+        string result;
+
+        auto clone = ctx;
+
+        while (!ctx.eof())
+        {
+            if (ctx.match('"', true))
+            {
+                return result;
+            }
+            else if (ctx.current() == '\\')
+            {
+                ctx.advance(1); // eat '\'
+
+                if (ctx.eof())
+                {
+                    ctx = std::move(clone);
+                    throw toml_parse_error("Invalid escape sequence at end of basic string.");
+                }
+
+                switch (ctx.current())
+                {
+                    case 'b': result += '\b'; ctx.advance(1); break;
+                    case 't': result += '\t'; ctx.advance(1); break;
+                    case 'n': result += '\n'; ctx.advance(1); break;
+                    case 'f': result += '\f'; ctx.advance(1); break;
+                    case 'r': result += '\r'; ctx.advance(1); break;
+                    case '"': result += '"'; ctx.advance(1); break;
+                    case '\\': result += '\\'; ctx.advance(1); break;
+                    case 'u': decode_unicode<4>(std::back_inserter(result), ctx); break;
+                    case 'U': decode_unicode<8>(std::back_inserter(result), ctx); break;
+                    // TODO: \x -> two digits
+                    default: throw toml_parse_error("Illegal character {} after \\", *ctx);
+                }
+            }
+            else
+            {
+                result += ctx.current();
+                ctx.advance(1);
+            }
+        }
+    }
+
+    static string decode_multiline_literal_string(Context& ctx);
+
+    static string decode_multiline_basic_string(Context& ctx);
+
+    static string parse_simple_unquote_string(Context& ctx);
+};
+
+template <typename Context>
+struct toml_number_decoder;
+
+template <typename Context>
+struct toml_datatime_decoder;
+
+template <typename Context>
+struct toml_value_decoder;
+
+}   // namespace detail
+
 class decoder
 {
     // Context

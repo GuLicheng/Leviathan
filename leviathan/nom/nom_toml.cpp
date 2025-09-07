@@ -74,6 +74,32 @@ struct TomlStringParser
             )
         )(ctx);
     }
+
+    static auto parse_multiline_basic_string(Context ctx)
+    {
+        return nom::sequence::delimited(
+            nom::bytes::tag("\"\"\""),
+            nom::bytes::take_till0([](char ch) { return ch == '"'; }),
+            nom::bytes::tag("\"\"\"")
+        )(ctx);
+    }
+
+    static auto parse_multiline_literal_string(Context ctx)
+    {
+        return nom::sequence::delimited(
+            nom::sequence::delimited(
+                nom::character::space0,
+                nom::bytes::tag("'''"),
+                nom::character::space0
+            ),
+            nom::bytes::take_till0([](char ch) { return ch == '\''; }),
+            nom::sequence::delimited(
+                nom::character::space0,
+                nom::bytes::tag("'''"),
+                nom::character::space0
+            )
+        )(ctx);
+    }
 };
 
 enum class Kind

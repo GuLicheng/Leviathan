@@ -64,7 +64,11 @@ struct error
 {
     Input input;
     ErrorCode code;
-    bool recoverable = true;  
+    bool recoverable;
+
+    // FIXME: remove default recoverable
+    constexpr error(Input i, ErrorCode ec, bool r = true) 
+        : input(std::move(i)), code(ec), recoverable(r) { }
 };
 
 template <typename Input, typename Output, typename Error = error<Input, error_kind>>

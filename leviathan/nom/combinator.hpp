@@ -138,4 +138,12 @@ inline constexpr auto iterator = []<typename Context, typename F>(Context ctx, F
     return detail::iterator_parser<Context, F>(std::move(ctx), std::move(f));
 };
 
+inline constexpr auto cut = []<typename F>(F f) static
+{
+    return [f = std::move(f)]<typename Context>(Context ctx)
+    {
+        return detail::cut_parser<Context, F>(std::move(f))(std::move(ctx));
+    };
+};
+
 }  // namespace nom::combinator

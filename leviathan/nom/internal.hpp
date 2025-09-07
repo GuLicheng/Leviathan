@@ -1252,6 +1252,22 @@ struct iterator_parser
 
 };
 
+template <typename Context, typename Parser>
+struct cut_parser
+{
+    using result_type = std::invoke_result_t<Parser, Context>;
+
+    Parser parser;
+    
+    constexpr result_type operator()(Context ctx)
+    {
+        auto result = parser(ctx);
+
+        return result ? result_type(rust::in_place, std::move(result->first), std::move(result->second))
+                      : result_type(rust::unexpect, std::move(ctx), result.error().code, false);
+    }
+};
+
 } // namespace detail
 
 }  // namespace nom

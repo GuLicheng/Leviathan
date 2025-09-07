@@ -89,7 +89,7 @@ struct parse_interface
     }
 
     template <typename Self>
-    constexpr auto operator[](this const Self& self, size_type pos)
+    constexpr const CharT& operator[](this const Self& self, size_type pos)
     {   
         return self.to_string_view()[pos];
     }
@@ -184,13 +184,13 @@ struct parse_interface
     }
 
     template <typename Self>
-    constexpr auto find_first_of(this const Self& self, std::basic_string_view<CharT> sv, size_type pos = 0)
+    constexpr size_type find_first_of(this const Self& self, std::basic_string_view<CharT> sv, size_type pos = 0)
     { 
         return self.to_string_view().find_first_of(sv, pos); 
     }
 
     template <typename Self>
-    constexpr auto skip_whitespace(this Self& self)
+    constexpr void skip_whitespace(this Self& self)
     {
         static auto whitespace = make_character_table([](size_t i)
         {
@@ -200,6 +200,14 @@ struct parse_interface
         }); 
 
         for (; self.size() && whitespace[self[0]]; self.advance(1));
+    }
+
+    template <typename Self, typename Pred>
+    constexpr std::basic_string_view<CharT> take_while(this Self& self, Pred pred)
+    {
+        size_type idx = 0;
+        for (; idx < self.size() && pred(self[idx]); ++idx);
+        return self.to_string_view().substr(0, idx);
     }
 };
 
