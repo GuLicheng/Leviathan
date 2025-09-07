@@ -12,6 +12,7 @@ Reference:
 #include <leviathan/config_parser/toml/value.hpp>
 #include <leviathan/config_parser/toml/collector.hpp>
 #include <leviathan/config_parser/toml/parser_helper.hpp>
+#include <leviathan/type_caster.hpp>
 
 namespace cpp::config::toml
 {
@@ -123,7 +124,98 @@ struct toml_string_decoder
 };
 
 template <typename Context>
-struct toml_number_decoder;
+struct toml_number_decoder
+{
+    using char_type = typename Context::value_type;
+
+    static bool valid_number_character(char_type ch)
+    {
+        // +-.eE_ [0-9|0x|0o|0b|inf|nan]
+        static std::basic_string_view<char_type> valid_chars = "+-.eE_xobin";
+        return ::isxdigit(ch) || valid_chars.contains(ch);
+    }
+
+    static string extract_number_string_and_remove_underscore(const Context& ctx)
+    {
+        auto sv = ctx.take_while(valid_number_character);
+        // C++ allows ' in number literal since C++14, we convert '_' to '\'' 
+        // and use std::from_chars to help us.
+        auto underscore_to_quote = [](char_type ch) static { return ch == '_' ? '\'' : ch; };
+        return sv | std::views::transform(underscore_to_quote) | std::ranges::to<string>();
+    }
+
+    static std::optional<integer> parse_integer(Context& ctx)
+    {
+        auto sv = extract_number_string_and_remove_underscore(ctx);
+        using Caster = type_caster<floating, string, error_policy::optional>;
+
+        if (sv.empty())
+        {
+            return std::nullopt;
+        }
+
+        int base = 10;
+
+        if (sv.starts_with("0b") || sv.starts_with("0B"))
+        {
+            base = 2;
+        }
+    }
+
+    static std::optional<floating> parse_float(Context& ctx)
+    {
+        auto s = extract_number_string_and_remove_underscore(ctx);
+        std::basic_string_view<char> sv = s;
+        using Caster = type_caster<floating, string, error_policy::optional>;
+
+        if (sv.empty() || sv.front() == '.' || sv.back() == '.')
+        {
+            // Empty string, .7 or 7. is not permitted.
+            return std::nullopt;
+        }
+        else if (sv == "nan" || sv == "+nan")
+        {
+            ctx.advance(sv.size());
+            return std::numeric_limits<floating>::quiet_NaN();
+        }
+        else if (sv == "-nan")
+        {
+            ctx.advance(sv.size());
+            return -std::numeric_limits<floating>::quiet_NaN();
+        }
+        else if (sv == "inf" || sv == "+inf")
+        {
+            ctx.advance(sv.size());
+            return std::numeric_limits<floating>::infinity();
+        }
+        else if (sv == "-inf")
+        {
+            ctx.advance(sv.size());
+            return -std::numeric_limits<floating>::infinity();
+        }
+        else
+        {
+            if (sv[0] == '+') 
+            {
+                sv.remove_prefix(1); // from_chars cannot parse '+'
+
+                if (sv.size() == 1 || sv[1] == '-')
+                {
+                    // +-3.14
+                    return std::nullopt;
+                }
+            }
+
+            auto op = Caster()(sv);
+
+            if (op) 
+            {
+                ctx.advance(sv.size());
+            }
+            return op;
+        }
+    }
+};
 
 template <typename Context>
 struct toml_datatime_decoder;

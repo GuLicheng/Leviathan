@@ -71,6 +71,7 @@ struct error
         : input(std::move(i)), code(ec), recoverable(r) { }
 };
 
+// Why not use (I, Result<O, E>) -- std::pair<I, std::expected<O, E> ?
 template <typename Input, typename Output, typename Error = error<Input, error_kind>>
 class iresult : public rust::result<std::pair<Input, Output>, Error>
 {
