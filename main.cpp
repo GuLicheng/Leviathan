@@ -3,22 +3,40 @@
 #include <print>
 #include <leviathan/type_caster.hpp>
 #include <leviathan/extc++/ranges.hpp>
+#include <leviathan/config_parser/toml/toml.hpp>
+#include <leviathan/config_parser/json/json.hpp>
+#include <leviathan/config_parser/value_cast.hpp>
 #include <filesystem>
 #include <iostream>
 #include <string_view>
 
-struct Color
-{
-    int r, g, b;
-};
 
 int main(int argc, char const *argv[])
 {
-    Color color = std::make_from_tuple<Color>(std::tuple{255, 0, 255});
+    auto root = cpp::toml::value(cpp::toml::table());
 
-    std::string x; std::cin >> x;
+    cpp::toml::detail::std_table_insert_key_value_pair(
+        {}, 
+        {"married"}, 
+        cpp::toml::make(true),
+        root.as_ptr<cpp::toml::table>()
+    );
 
-    std::println("{}", cpp::cast<double>(x));
+    cpp::toml::detail::std_table_insert_key_value_pair(
+        {}, 
+        {"name"}, 
+        cpp::toml::make("Alice"),
+        root.as_ptr<cpp::toml::table>()
+    );
+
+    std::println("{:4}", cpp::cast<cpp::json::value>(cpp::toml::value(std::move(root))));
+
+    // cpp::config::context input = R"(name1.''."\u03BD".key_3."Hello.World")";
+    cpp::config::context input = "[1]";
+    
+    auto result = cpp::toml::detail::toml_decoder<cpp::config::context>::decode_std_section(input);
+
+    std::println("Keys: {}", result);
 
     return 0;
 }

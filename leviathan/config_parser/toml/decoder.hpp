@@ -24,7 +24,7 @@ template <typename Context>
 struct toml_string_decoder
 {
     template <size_t N, typename InputIterator>
-    void decode_unicode(InputIterator dest, Context& ctx) 
+    static void decode_unicode(InputIterator dest, Context& ctx) 
     {
         assert(ctx[0] == 'u' || ctx[0] == 'U');
         ctx.advance(1);
@@ -34,12 +34,12 @@ struct toml_string_decoder
             throw toml_parse_error("Too small characters for unicode");
         }
 
-        auto codepoint = decode_unicode_from_char<N>(ctx.data());
+        auto codepoint = decode_unicode_from_char<N>(ctx.begin());
         encode_unicode_to_utf8(dest, codepoint);
         ctx.advance(N);
     }
 
-    static bool is_valid_char(char ch)
+    static bool valid_simple_key_character(char ch)
     {
         return (ch >= 'a' && ch <= 'z')
             || (ch >= 'A' && ch <= 'Z')
@@ -55,20 +55,20 @@ struct toml_string_decoder
             throw toml_parse_error("Literal string must start with '.");
         }
 
-        auto sv = ctx.take_while(is_valid_char);
+        auto sv = ctx.take_while([](char ch) static { return ch != '\''; });
+        ctx.advance(sv.size()); 
 
-        if (sv.empty())
+        if (!ctx.match('\'', true))
         {
-            throw toml_parse_error("Literal string must not be empty.");
+            throw toml_parse_error("Literal string must end with '.");
         }
 
-        ctx.advance(sv.size());
         return string(sv.begin(), sv.end());
     }
 
     static string decode_basic_string(Context& ctx)
     {
-        if (!ctx.match('"'))
+        if (!ctx.match('"', true))
         {
             throw toml_parse_error("Basic string must start with \".");
         }
@@ -105,7 +105,7 @@ struct toml_string_decoder
                     case 'u': decode_unicode<4>(std::back_inserter(result), ctx); break;
                     case 'U': decode_unicode<8>(std::back_inserter(result), ctx); break;
                     // TODO: \x -> two digits
-                    default: throw toml_parse_error("Illegal character {} after \\", *ctx);
+                    default: throw toml_parse_error("Illegal character after \\");
                 }
             }
             else
@@ -120,7 +120,38 @@ struct toml_string_decoder
 
     static string decode_multiline_basic_string(Context& ctx);
 
-    static string parse_simple_unquote_string(Context& ctx);
+    static string decode_unquote_string(Context& ctx)
+    {
+        auto sv = ctx.take_while(valid_simple_key_character);
+
+        if (sv.empty())
+        {
+            throw toml_parse_error("Unquote string must not be empty.");
+        }
+
+        ctx.advance(sv.size());
+        return string(sv.begin(), sv.end());
+    }
+
+    static string decode_simple_key(Context& ctx)
+    {
+        if (ctx.current() == '\'')
+        {
+            return decode_literal_string(ctx);
+        }
+        else if (ctx.current() == '"')
+        {
+            return decode_basic_string(ctx);
+        }
+        else if (valid_simple_key_character(ctx.current()))
+        {
+            return decode_unquote_string(ctx);
+        }
+        else
+        {
+            throw toml_parse_error("Invalid simple key start character");
+        }
+    }
 };
 
 template <typename Context>
@@ -166,7 +197,7 @@ struct toml_number_decoder
     {
         auto s = extract_number_string_and_remove_underscore(ctx);
         std::basic_string_view<char> sv = s;
-        using Caster = type_caster<floating, string, error_policy::optional>;
+        using Caster = type_caster<floating, std::basic_string_view<char>, error_policy::optional>;
 
         if (sv.empty() || sv.front() == '.' || sv.back() == '.')
         {
@@ -222,6 +253,89 @@ struct toml_datatime_decoder;
 
 template <typename Context>
 struct toml_value_decoder;
+
+template <typename Context>
+struct toml_decoder
+{
+    using char_type = typename Context::value_type;
+
+    static std::vector<string> decode_simple_keys(Context& ctx)
+    {
+        using StringDecoder = toml_string_decoder<Context>;
+        
+        std::vector<string> result;
+        ctx.skip_whitespace();
+
+        result.emplace_back(StringDecoder::decode_simple_key(ctx));
+
+        while (1)
+        {
+            ctx.skip_whitespace();
+
+            if (ctx.match('.', true))
+            {
+                result.emplace_back(StringDecoder::decode_simple_key(ctx));
+                continue;
+            }
+            else
+            {
+                break;
+            }
+        }
+        return result;
+    }
+
+    static std::vector<string> decode_std_section(Context& ctx)
+    {
+        if (!ctx.match('[', true))
+        {
+            throw toml_parse_error("Standard section must start with [");
+        }
+
+        ctx.skip_whitespace();
+        auto result = decode_simple_keys(ctx);
+        ctx.skip_whitespace();
+
+        if (!ctx.match(']', true))
+        {
+            throw toml_parse_error("Standard section must end with ]");
+        }
+        return result;
+    }
+
+    static std::vector<string> decode_table_array_section(Context& ctx)
+    {
+        if (!ctx.match("[[", true))
+        {
+            throw toml_parse_error("Table array section must start with [[");
+        }
+
+        auto result = decode_simple_keys(ctx);
+        ctx.skip_whitespace();
+
+        if (!ctx.match("]]", true))
+        {
+            throw toml_parse_error("Table array section must end with ]]");
+        }
+        return result;
+    }
+
+    static std::vector<string> decode_section(Context& ctx)
+    {
+        if (ctx.match("[[", false))
+        {
+            return decode_table_array_section(ctx);
+        }
+        else if (ctx.match('[', false))
+        {
+            return decode_std_section(ctx);
+        }
+        else
+        {
+            throw toml_parse_error("Section must start with [ or [[");
+        }
+    }
+};
 
 }   // namespace detail
 
@@ -798,14 +912,14 @@ inline constexpr struct
 namespace cpp::config
 {
 
-template <>
-struct value_parser<toml::value>
-{
-    static toml::value operator()(std::string source)
-    {
-        return toml::decoder(source).parse_val();
-    }
-};
+// template <>
+// struct value_parser<toml::value>
+// {
+//     static toml::value operator()(std::string source)
+//     {
+//         return toml::decoder(source).parse_val();
+//     }
+// };
 
 }
 
