@@ -122,7 +122,7 @@ struct parse_interface
     template <typename Self>
     constexpr bool eof(this const Self& self) 
     {   
-        return self.empty();
+        return self.size() == 0;
     }
 
     template <typename Self>

@@ -32,11 +32,13 @@ int main(int argc, char const *argv[])
     std::println("{:4}", cpp::cast<cpp::json::value>(cpp::toml::value(std::move(root))));
 
     // cpp::config::context input = R"(name1.''."\u03BD".key_3."Hello.World")";
-    cpp::config::context input = "[1]";
+    cpp::config::context input = "name1 = true";
     
-    auto result = cpp::toml::detail::toml_decoder<cpp::config::context>::decode_std_section(input);
+    auto pair = cpp::toml::detail::toml_decoder<cpp::config::context>::decode_keyval(input);
 
-    std::println("Keys: {}", result);
+    std::println("Keys: {}-{}", pair.first, cpp::cast<cpp::json::value>(pair.second));
+
 
     return 0;
 }
+

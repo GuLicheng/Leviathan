@@ -23,6 +23,33 @@ namespace detail
 template <typename Context>
 struct toml_string_decoder
 {
+    static string decode_escape_sequence(Context& ctx)
+    {
+        if (!ctx.match('\\', true))
+        {
+            throw toml_parse_error("Escape sequence must start with \\.");
+        }
+
+        string result;
+
+        switch (ctx.current())
+        {
+            case 'b': result += '\b'; ctx.advance(1); break;
+            case 't': result += '\t'; ctx.advance(1); break;
+            case 'n': result += '\n'; ctx.advance(1); break;
+            case 'f': result += '\f'; ctx.advance(1); break;
+            case 'r': result += '\r'; ctx.advance(1); break;
+            case '"': result += '"'; ctx.advance(1); break;
+            case '\\': result += '\\'; ctx.advance(1); break;
+            case 'u': decode_unicode<4>(std::back_inserter(result), ctx); break;
+            case 'U': decode_unicode<8>(std::back_inserter(result), ctx); break;
+            // TODO: \x -> two digits
+            default: throw toml_parse_error("Illegal character after \\");
+        }
+
+        return result;
+    }
+
     template <size_t N, typename InputIterator>
     static void decode_unicode(InputIterator dest, Context& ctx) 
     {
@@ -85,28 +112,7 @@ struct toml_string_decoder
             }
             else if (ctx.current() == '\\')
             {
-                ctx.advance(1); // eat '\'
-
-                if (ctx.eof())
-                {
-                    ctx = std::move(clone);
-                    throw toml_parse_error("Invalid escape sequence at end of basic string.");
-                }
-
-                switch (ctx.current())
-                {
-                    case 'b': result += '\b'; ctx.advance(1); break;
-                    case 't': result += '\t'; ctx.advance(1); break;
-                    case 'n': result += '\n'; ctx.advance(1); break;
-                    case 'f': result += '\f'; ctx.advance(1); break;
-                    case 'r': result += '\r'; ctx.advance(1); break;
-                    case '"': result += '"'; ctx.advance(1); break;
-                    case '\\': result += '\\'; ctx.advance(1); break;
-                    case 'u': decode_unicode<4>(std::back_inserter(result), ctx); break;
-                    case 'U': decode_unicode<8>(std::back_inserter(result), ctx); break;
-                    // TODO: \x -> two digits
-                    default: throw toml_parse_error("Illegal character after \\");
-                }
+                result += decode_escape_sequence(ctx);
             }
             else
             {
@@ -116,9 +122,83 @@ struct toml_string_decoder
         }
     }
 
-    static string decode_multiline_literal_string(Context& ctx);
+    static string decode_multiline_literal_string(Context& ctx)
+    {
+        if (!ctx.match("'''", true))
+        {
+            throw toml_parse_error("Multiline literal string must start with '''.");
+        }
 
-    static string decode_multiline_basic_string(Context& ctx);
+        string retval;
+
+        // A newline immediately following the opening delimiter will be trimmed.
+        if (ctx.current() == '\n')
+        {
+            ctx.advance(1);
+        }
+
+        while (!ctx.eof())
+        {
+            const auto ch = ctx.current();
+            
+            if (ctx.match("'''", true))
+            {
+                return retval;
+            }
+            else
+            {
+                // Multi-line literal strings are surrounded by three single 
+                // quotes on each side and allow newlines. Like literal strings, 
+                // there is no escaping whatsoever. A newline immediately 
+                // following the opening delimiter will be trimmed. All other 
+                // content between the delimiters is interpreted as-is without modification.
+                retval += ctx.current();
+                ctx.advance(1);
+            }
+        }
+
+        throw toml_parse_error("Multiline literal string must end with '''.");
+    }
+
+    static string decode_multiline_basic_string(Context& ctx)
+    {
+        if (!ctx.match(R"(""")", true))
+        {
+            throw toml_parse_error("Multiline basic string must start with \"\"\".");
+        }
+
+        string retval;
+        
+        // A newline immediately following the opening delimiter will be trimmed.
+        if (ctx.current() == '\n')
+        {
+            ctx.advance_unchecked(1);   
+        }
+
+        while (!ctx.eof())
+        {
+            if (ctx.match(R"(""")", true))
+            {
+                return retval;
+            }
+            else if (ctx.match('\\', true))
+            {
+                // If a line end with '\\' after trim right, the linefeed will be ignored.
+                if (ctx.match('\n', true))
+                {
+                    continue;
+                }  
+                retval += decode_escape_sequence(ctx);
+            }
+            else
+            {
+                retval += ctx.current();
+                ctx.advance(1);
+            }
+        }
+        
+        throw toml_parse_error("Multiline basic string must end with \"\"\".");
+    }
 
     static string decode_unquote_string(Context& ctx)
     {
@@ -149,8 +229,22 @@ struct toml_string_decoder
         }
         else
         {
-            throw toml_parse_error("Invalid simple key start character");
+            throw toml_parse_error(std::format("Invalid simple key start character: {}", ctx.current()));
         }
+    }
+
+    static string decode_basic_or_multiline_basic_string(Context& ctx)
+    {
+        return ctx.match(R"(""")", false)
+             ? decode_multiline_basic_string(ctx)
+             : decode_basic_string(ctx);
+    }
+
+    static string decode_literal_or_multiline_literal_string(Context& ctx)
+    {
+        return ctx.match("'''", false)
+             ? decode_multiline_literal_string(ctx)
+             : decode_literal_string(ctx);
     }
 };
 
@@ -166,19 +260,43 @@ struct toml_number_decoder
         return ::isxdigit(ch) || valid_chars.contains(ch);
     }
 
+    static bool check_underscore(std::string_view sv)
+    {
+        if (sv.empty() || sv.front() == '_' || sv.back() == '_')
+        {
+            return false;
+        }
+
+        for (auto i = 1uz; i < sv.size() - 1; ++i)
+        {
+            if (sv[i] == '_' && (!::isxdigit(sv[i - 1]) || !::isxdigit(sv[i + 1])))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     static string extract_number_string_and_remove_underscore(const Context& ctx)
     {
         auto sv = ctx.take_while(valid_number_character);
-        // C++ allows ' in number literal since C++14, we convert '_' to '\'' 
-        // and use std::from_chars to help us.
-        auto underscore_to_quote = [](char_type ch) static { return ch == '_' ? '\'' : ch; };
-        return sv | std::views::transform(underscore_to_quote) | std::ranges::to<string>();
+
+        if (!check_underscore(sv))
+        {
+            return "";
+        }
+        
+        auto underscore_to_quote = [](char_type ch) static { return ch != '_'; };
+        auto result = sv | std::views::filter(underscore_to_quote) | std::ranges::to<string>();
+        return result;
     }
 
     static std::optional<integer> parse_integer(Context& ctx)
     {
-        auto sv = extract_number_string_and_remove_underscore(ctx);
-        using Caster = type_caster<floating, string, error_policy::optional>;
+        auto s = extract_number_string_and_remove_underscore(ctx);
+        std::basic_string_view<char> sv = s;
+        using Caster = type_caster<integer, std::basic_string_view<char>, error_policy::optional>;
 
         if (sv.empty())
         {
@@ -191,6 +309,27 @@ struct toml_number_decoder
         {
             base = 2;
         }
+        else if (sv.starts_with("0o") || sv.starts_with("0O"))
+        {
+            base = 8;
+        }
+        else if (sv.starts_with("0x") || sv.starts_with("0X"))
+        {
+            base = 16;
+        }
+
+        if (sv[0] == '+') 
+        {
+            sv.remove_prefix(1); // from_chars cannot parse '+'
+
+            if (sv.size() == 1 || sv[1] == '-')
+            {
+                // +-42
+                return std::nullopt;
+            }
+        }
+
+        return Caster()(sv, base);
     }
 
     static std::optional<floating> parse_float(Context& ctx)
@@ -252,7 +391,60 @@ template <typename Context>
 struct toml_datatime_decoder;
 
 template <typename Context>
-struct toml_value_decoder;
+struct toml_value_decoder
+{
+    static value decode_boolean(Context& ctx)
+    {
+        if (ctx.match("true", true))
+        {
+            return make_toml<boolean>(true);
+        }
+        else if (ctx.match("false", true))
+        {
+            return make_toml<boolean>(false);
+        }
+        else
+        {
+            throw toml_parse_error("Invalid boolean value.");
+        }
+    }
+
+    static value decode_value(Context& ctx)
+    {
+        switch (ctx.current())
+        {
+            case 't': 
+            case 'f': return decode_boolean(ctx);
+            case '"': return toml_string_decoder<Context>::decode_basic_string(ctx);
+            case '\'': return toml_string_decoder<Context>::decode_literal_string(ctx);
+            case '[': throw toml_parse_error("Not implemented.");
+            case '{': throw toml_parse_error("Not implemented.");
+            default: throw toml_parse_error("Not implemented.");
+        }
+    }
+
+    // Integer or floating.
+    static value decode_number(Context ctx)
+    {
+        if (auto op = toml_number_decoder<Context>::parse_integer(ctx); op)
+        {
+            return make_toml<integer>(*op);
+        }
+        else if (auto op = toml_number_decoder<Context>::parse_float(ctx); op)
+        {
+            return make_toml<floating>(*op);
+        }
+        else
+        {
+            throw toml_parse_error("Invalid number format.");
+        }
+    }
+
+    static value decode_table(Context ctx);
+    static value decode_array(Context ctx);
+    static value decode_datatime(Context ctx);
+    static value decode_string(Context ctx);
+};
 
 template <typename Context>
 struct toml_decoder
@@ -264,7 +456,6 @@ struct toml_decoder
         using StringDecoder = toml_string_decoder<Context>;
         
         std::vector<string> result;
-        ctx.skip_whitespace();
 
         result.emplace_back(StringDecoder::decode_simple_key(ctx));
 
@@ -274,6 +465,7 @@ struct toml_decoder
 
             if (ctx.match('.', true))
             {
+                ctx.skip_whitespace();
                 result.emplace_back(StringDecoder::decode_simple_key(ctx));
                 continue;
             }
@@ -335,6 +527,35 @@ struct toml_decoder
             throw toml_parse_error("Section must start with [ or [[");
         }
     }
+
+    static void decode_comment(Context& ctx)
+    {
+        ctx.skip_whitespace();
+        
+        if (ctx.match('#', true))
+        {
+            auto sv = ctx.take_while([](char_type ch) static { return ch != '\n' || ch != '\r'; });
+            ctx.advance(sv.size());
+        }
+    }
+
+    static std::pair<std::vector<string>, value> decode_keyval(Context& ctx)
+    {
+        using StringDecoder = toml_string_decoder<Context>;
+        using ValueDecoder = toml_value_decoder<Context>;
+
+        auto keys = decode_simple_keys(ctx);
+        ctx.skip_whitespace();
+
+        if (!ctx.match('=', true))
+        {
+            throw toml_parse_error("Expected '=' after key.");
+        }
+
+        ctx.skip_whitespace();
+        auto val = ValueDecoder::decode_value(ctx);
+        return std::make_pair(std::move(keys), std::move(val));
+    }
 };
 
 }   // namespace detail
@@ -347,11 +568,11 @@ class decoder
     // Used for merging sections and entries
     collector m_coll;    
 
-    static bool non_ascii(int ch)
-    {
-        return (0x80 <= ch && ch <= 0xD7FF)
-            || (0xE000 <= ch && ch <= 0x10FFFF);
-    }
+    // static bool non_ascii(int ch)
+    // {
+    //     return (0x80 <= ch && ch <= 0xD7FF)
+    //         || (0xE000 <= ch && ch <= 0x10FFFF);
+    // }
 
 public:
 
@@ -793,8 +1014,8 @@ public:
             // return true;
             return ch == 0x09
                 || (0x20 <= ch && ch <= 0x26)
-                || (0x28 <= ch && ch <= 0x7E)
-                || non_ascii(ch);
+                || (0x28 <= ch && ch <= 0x7E);
+                // || non_ascii(ch);
         };
 
         string retval;
@@ -815,8 +1036,8 @@ public:
                 || ch == ' '
                 || ch == '\t'
                 || (0x23 <= ch && ch <= 0x5B)
-                || (0x5D <= ch && ch <= 0x7E)
-                || non_ascii(ch);
+                || (0x5D <= ch && ch <= 0x7E);
+                // || non_ascii(ch);
         };
         string retval = detail::parse_basic_string_impl(m_ctx, basic_unescaped);
         check_and_throw(m_ctx.consume(detail::quotation_mark), "literal string must end with \".");
