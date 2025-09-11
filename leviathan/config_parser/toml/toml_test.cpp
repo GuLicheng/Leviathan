@@ -1333,7 +1333,6 @@
 using Context = cpp::config::basic_context<char>;
 using TomlStringDecoder = cpp::toml::detail::toml_string_decoder<Context>;
 using TomlDecoder = cpp::toml::detail::toml_decoder<Context>;
-using TomlValueDecoder = cpp::toml::detail::toml_value_decoder<Context>;
 
 template <typename Input, typename Fn>
 bool CheckTomlStringDecode(const Input& input, const char* expected, Fn fn)
@@ -1384,32 +1383,42 @@ bool CheckTomlMultilineStringDecode(const Input& input, std::vector<std::string>
 
 TEST_CASE("toml-simple-keys")
 {
-    REQUIRE(CheckTomlMultilineStringDecode(R"(simple)", { "simple" }, &TomlDecoder::decode_simple_keys));
-    REQUIRE(CheckTomlMultilineStringDecode(R"(1. "2" . '3')", { "1", "2", "3" }, &TomlDecoder::decode_simple_keys));
-    REQUIRE(CheckTomlMultilineStringDecode(R"(''."")", { "", "" }, &TomlDecoder::decode_simple_keys));
+    REQUIRE(CheckTomlMultilineStringDecode(R"(simple)", { "simple" }, &TomlStringDecoder::decode_simple_keys));
+    REQUIRE(CheckTomlMultilineStringDecode(R"(1. "2" . '3')", { "1", "2", "3" }, &TomlStringDecoder::decode_simple_keys));
+    REQUIRE(CheckTomlMultilineStringDecode(R"(''."")", { "", "" }, &TomlStringDecoder::decode_simple_keys));
 }
 
 TEST_CASE("toml-value-boolean")
 {
     Context True("true"), False("false");
-    REQUIRE(TomlValueDecoder::decode_boolean(True).as<cpp::toml::boolean>() == true);
-    REQUIRE(TomlValueDecoder::decode_boolean(False).as<cpp::toml::boolean>() == false);
+    REQUIRE(TomlDecoder::decode_boolean(True).as<cpp::toml::boolean>() == true);
+    REQUIRE(TomlDecoder::decode_boolean(False).as<cpp::toml::boolean>() == false);
 }
 
 TEST_CASE("toml-value-number")
 {
-    REQUIRE(SimpleDecode(&TomlValueDecoder::decode_number, "42").as<cpp::toml::integer>() == 42);
-    REQUIRE(SimpleDecode(&TomlValueDecoder::decode_number, "-17").as<cpp::toml::integer>() == -17);
-    REQUIRE(SimpleDecode(&TomlValueDecoder::decode_number, "+99").as<cpp::toml::integer>() == 99);
-    REQUIRE(SimpleDecode(&TomlValueDecoder::decode_number, "1_000").as<cpp::toml::integer>() == 1000);
-    REQUIRE(SimpleDecode(&TomlValueDecoder::decode_number, "5_349_221").as<cpp::toml::integer>() == 5349221);
+    REQUIRE(SimpleDecode(&TomlDecoder::decode_number_or_datetime, "42").as<cpp::toml::integer>() == 42);
+    REQUIRE(SimpleDecode(&TomlDecoder::decode_number_or_datetime, "-17").as<cpp::toml::integer>() == -17);
+    REQUIRE(SimpleDecode(&TomlDecoder::decode_number_or_datetime, "+99").as<cpp::toml::integer>() == 99);
+    REQUIRE(SimpleDecode(&TomlDecoder::decode_number_or_datetime, "1_000").as<cpp::toml::integer>() == 1000);
+    REQUIRE(SimpleDecode(&TomlDecoder::decode_number_or_datetime, "5_349_221").as<cpp::toml::integer>() == 5349221);
 
-    REQUIRE(SimpleDecode(&TomlValueDecoder::decode_number, "3.1415").as<cpp::toml::floating>() == 3.1415);
-    REQUIRE(SimpleDecode(&TomlValueDecoder::decode_number, "-0.01").as<cpp::toml::floating>() == -0.01);
-    REQUIRE(SimpleDecode(&TomlValueDecoder::decode_number, "+99.99").as<cpp::toml::floating>() == 99.99);
-    REQUIRE(SimpleDecode(&TomlValueDecoder::decode_number, "1e6").as<cpp::toml::floating>() == 1e6);
-    REQUIRE(SimpleDecode(&TomlValueDecoder::decode_number, "-2E-2").as<cpp::toml::floating>() == -2E-2);
-    REQUIRE(SimpleDecode(&TomlValueDecoder::decode_number, "+3e+3").as<cpp::toml::floating>() == +3e+3);
-    REQUIRE(SimpleDecode(&TomlValueDecoder::decode_number, "6.626e-34").as<cpp::toml::floating>() == 6.626e-34);
-    REQUIRE(SimpleDecode(&TomlValueDecoder::decode_number, "224_617.445_991_228").as<cpp::toml::floating>() == 224617.445991228);
+    REQUIRE(SimpleDecode(&TomlDecoder::decode_number_or_datetime, "3.1415").as<cpp::toml::floating>() == 3.1415);
+    REQUIRE(SimpleDecode(&TomlDecoder::decode_number_or_datetime, "-0.01").as<cpp::toml::floating>() == -0.01);
+    REQUIRE(SimpleDecode(&TomlDecoder::decode_number_or_datetime, "+99.99").as<cpp::toml::floating>() == 99.99);
+    REQUIRE(SimpleDecode(&TomlDecoder::decode_number_or_datetime, "1e6").as<cpp::toml::floating>() == 1e6);
+    REQUIRE(SimpleDecode(&TomlDecoder::decode_number_or_datetime, "-2E-2").as<cpp::toml::floating>() == -2E-2);
+    REQUIRE(SimpleDecode(&TomlDecoder::decode_number_or_datetime, "+3e+3").as<cpp::toml::floating>() == +3e+3);
+    REQUIRE(SimpleDecode(&TomlDecoder::decode_number_or_datetime, "6.626e-34").as<cpp::toml::floating>() == 6.626e-34);
+    REQUIRE(SimpleDecode(&TomlDecoder::decode_number_or_datetime, "224_617.445_991_228").as<cpp::toml::floating>() == 224617.445991228);
+}
+
+TEST_CASE("toml-value-array")
+{
+    auto array1 = SimpleDecode(&TomlDecoder::decode_array, R"([1, 3.14, true, []])");
+    REQUIRE(array1.as<cpp::toml::array>().size() == 4);
+    REQUIRE(array1.as<cpp::toml::array>()[0].as<cpp::toml::integer>() == 1);
+    REQUIRE(array1.as<cpp::toml::array>()[1].as<cpp::toml::floating>() == 3.14);
+    REQUIRE(array1.as<cpp::toml::array>()[2].as<cpp::toml::boolean>() == true);
+    REQUIRE(array1.as<cpp::toml::array>()[3].as<cpp::toml::array>().empty());
 }

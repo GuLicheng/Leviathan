@@ -246,6 +246,30 @@ struct toml_string_decoder
              ? decode_multiline_literal_string(ctx)
              : decode_literal_string(ctx);
     }
+
+    static std::vector<string> decode_simple_keys(Context& ctx)
+    {
+        std::vector<string> result;
+
+        result.emplace_back(decode_simple_key(ctx));
+
+        while (1)
+        {
+            ctx.skip_whitespace();
+
+            if (ctx.match('.', true))
+            {
+                ctx.skip_whitespace();
+                result.emplace_back(decode_simple_key(ctx));
+                continue;
+            }
+            else
+            {
+                break;
+            }
+        }
+        return result;
+    }
 };
 
 template <typename Context>
@@ -329,7 +353,13 @@ struct toml_number_decoder
             }
         }
 
-        return Caster()(sv, base);
+        auto op = Caster()(sv, base);
+        
+        if (op) 
+        {
+            ctx.advance(sv.size());
+        }
+        return op;
     }
 
     static std::optional<floating> parse_float(Context& ctx)
@@ -388,11 +418,126 @@ struct toml_number_decoder
 };
 
 template <typename Context>
-struct toml_datatime_decoder;
+struct toml_datatime_decoder
+{
+    static std::optional<datetime> decode_datetime(Context& ctx)
+    {
+        throw toml_parse_error("Not implemented.");
+    } 
+};
 
 template <typename Context>
-struct toml_value_decoder
+struct toml_decoder
 {
+    using char_type = typename Context::value_type;
+
+    // std::variant<
+    //     std::vector<string>, 
+    //     std::vector<string>,
+    //     std::pair<std::vector<string>, value>,
+    // >;
+
+    enum class section
+    {
+        table,
+        array_of_tables,
+    };
+
+    // Section | Key-Value | Comment |
+    static value decode(Context& ctx)
+    {
+        table root;
+
+        std::vector<std::string> current_section;
+
+        // Try parse
+        while (1)
+        {
+            ctx.skip_whitespace();
+
+            if (ctx.eof())
+            {
+                break;
+            }
+
+            if (ctx.match('#', false))
+            {
+                decode_comment(ctx);
+            }
+            else if (ctx.match('[', false))
+            {
+                decode_section(ctx);
+            }  
+            else
+            {
+                decode_keyval(ctx);
+            }
+        }
+
+        return make_toml<table>(std::move(root));
+    }
+
+    static std::vector<string> decode_section(Context& ctx, std::string_view prefix, std::string_view suffix)
+    {
+        if (!ctx.match(prefix, true))
+        {
+            throw toml_parse_error(std::format("Expected {}", prefix));
+        }
+
+        auto result = decode_simple_keys(ctx);
+        ctx.skip_whitespace();
+
+        if (!ctx.match(suffix, true))
+        {
+            throw toml_parse_error(std::format("Expected {}", suffix));
+        }
+        return result;
+    }
+
+    static std::pair<std::vector<string>, section> decode_section(Context& ctx)
+    {
+        if (ctx.match("[[", false))
+        {
+            return { decode_section(ctx, "[[", "]]"), section::array_of_tables };
+        }
+        else if (ctx.match('[', false))
+        {
+            return { decode_section(ctx, "[", "]"), section::table };
+        }
+        else
+        {
+            throw toml_parse_error("Section must start with [ or [[");
+        }
+    }
+
+    static void decode_comment(Context& ctx)
+    {
+        ctx.skip_whitespace();
+        
+        if (ctx.match('#', true))
+        {
+            auto sv = ctx.take_while([](char_type ch) static { return ch != '\n' || ch != '\r'; });
+            ctx.advance(sv.size());
+        }
+    }
+
+    static std::pair<std::vector<string>, value> decode_keyval(Context& ctx)
+    {
+        using StringDecoder = toml_string_decoder<Context>;
+
+        auto keys = decode_simple_keys(ctx);
+        ctx.skip_whitespace();
+
+        if (!ctx.match('=', true))
+        {
+            throw toml_parse_error("Expected '=' after key.");
+        }
+
+        ctx.skip_whitespace();
+        auto val = decode_value(ctx);
+        return std::make_pair(std::move(keys), std::move(val));
+    }
+
     static value decode_boolean(Context& ctx)
     {
         if (ctx.match("true", true))
@@ -417,14 +562,14 @@ struct toml_value_decoder
             case 'f': return decode_boolean(ctx);
             case '"': return toml_string_decoder<Context>::decode_basic_string(ctx);
             case '\'': return toml_string_decoder<Context>::decode_literal_string(ctx);
-            case '[': throw toml_parse_error("Not implemented.");
-            case '{': throw toml_parse_error("Not implemented.");
-            default: throw toml_parse_error("Not implemented.");
+            case '[': return decode_array(ctx);
+            case '{': throw decode_table(ctx);
+            default: return decode_number_or_datetime(ctx);
         }
     }
 
     // Integer or floating.
-    static value decode_number(Context ctx)
+    static value decode_number_or_datetime(Context& ctx)
     {
         if (auto op = toml_number_decoder<Context>::parse_integer(ctx); op)
         {
@@ -434,127 +579,103 @@ struct toml_value_decoder
         {
             return make_toml<floating>(*op);
         }
+        else if (auto op = toml_datatime_decoder<Context>::decode_datetime(ctx); op)
+        {
+            return make_toml<datetime>(*op);
+        }
         else
         {
             throw toml_parse_error("Invalid number format.");
         }
     }
 
-    static value decode_table(Context ctx);
-    static value decode_array(Context ctx);
-    static value decode_datatime(Context ctx);
-    static value decode_string(Context ctx);
-};
-
-template <typename Context>
-struct toml_decoder
-{
-    using char_type = typename Context::value_type;
-
-    static std::vector<string> decode_simple_keys(Context& ctx)
+    static value decode_table(Context& ctx)
     {
-        using StringDecoder = toml_string_decoder<Context>;
+        throw toml_parse_error("Not implemented.");
+        // if (!ctx.match('{', true))
+        // {
+        //     throw toml_parse_error("Table must start with {.");
+        // }
         
-        std::vector<string> result;
+        // table t;
 
-        result.emplace_back(StringDecoder::decode_simple_key(ctx));
+        // while (1)
+        // {
+        //     using TomlStringDecoder = toml_string_decoder<Context>;
+
+        //     ctx.skip_whitespace();
+
+        //     if (ctx.match('}', true))
+        //     {
+        //         break;
+        //     }
+
+        //     auto keys = decode_simple_keys(ctx);
+        //     ctx.skip_whitespace();
+
+        //     if (!ctx.match('=', true))
+        //     {
+        //         throw toml_parse_error("Expected '=' after key in table.");
+        //     }
+
+        //     ctx.skip_whitespace();
+        //     auto val = decode_value(ctx);
+        //     t.insert_or_assign(std::move(key), std::move(val));
+        //     ctx.skip_whitespace();
+
+        //     if (ctx.match(',', true))
+        //     {
+        //         continue;
+        //     }
+        //     else if (ctx.match('}', true))
+        //     {
+        //         break;
+        //     }
+        //     else
+        //     {
+        //         throw toml_parse_error("Expected , or } in table.");
+        //     }
+        // }
+        
+    }
+    
+    static value decode_array(Context& ctx)
+    {
+        if (!ctx.match('[', true))
+        {
+            throw toml_parse_error("Array must start with [.");
+        }
+
+        array arr(false);
+
+        ctx.skip_whitespace();
+        
+        if (ctx.match(']', true))
+        {
+            return make_toml<array>(std::move(arr)); // empty array
+        }
 
         while (1)
         {
             ctx.skip_whitespace();
+            arr.push_back(decode_value(ctx));
+            ctx.skip_whitespace();
 
-            if (ctx.match('.', true))
+            if (ctx.match(',', true))
             {
-                ctx.skip_whitespace();
-                result.emplace_back(StringDecoder::decode_simple_key(ctx));
                 continue;
             }
-            else
+            else if (ctx.match(']', true))
             {
                 break;
             }
-        }
-        return result;
-    }
-
-    static std::vector<string> decode_std_section(Context& ctx)
-    {
-        if (!ctx.match('[', true))
-        {
-            throw toml_parse_error("Standard section must start with [");
+            else
+            {
+                throw toml_parse_error("Expected , or ] in array.");
+            }
         }
 
-        ctx.skip_whitespace();
-        auto result = decode_simple_keys(ctx);
-        ctx.skip_whitespace();
-
-        if (!ctx.match(']', true))
-        {
-            throw toml_parse_error("Standard section must end with ]");
-        }
-        return result;
-    }
-
-    static std::vector<string> decode_table_array_section(Context& ctx)
-    {
-        if (!ctx.match("[[", true))
-        {
-            throw toml_parse_error("Table array section must start with [[");
-        }
-
-        auto result = decode_simple_keys(ctx);
-        ctx.skip_whitespace();
-
-        if (!ctx.match("]]", true))
-        {
-            throw toml_parse_error("Table array section must end with ]]");
-        }
-        return result;
-    }
-
-    static std::vector<string> decode_section(Context& ctx)
-    {
-        if (ctx.match("[[", false))
-        {
-            return decode_table_array_section(ctx);
-        }
-        else if (ctx.match('[', false))
-        {
-            return decode_std_section(ctx);
-        }
-        else
-        {
-            throw toml_parse_error("Section must start with [ or [[");
-        }
-    }
-
-    static void decode_comment(Context& ctx)
-    {
-        ctx.skip_whitespace();
-        
-        if (ctx.match('#', true))
-        {
-            auto sv = ctx.take_while([](char_type ch) static { return ch != '\n' || ch != '\r'; });
-            ctx.advance(sv.size());
-        }
-    }
-
-    static std::pair<std::vector<string>, value> decode_keyval(Context& ctx)
-    {
-        using StringDecoder = toml_string_decoder<Context>;
-        using ValueDecoder = toml_value_decoder<Context>;
-
-        auto keys = decode_simple_keys(ctx);
-        ctx.skip_whitespace();
-
-        if (!ctx.match('=', true))
-        {
-            throw toml_parse_error("Expected '=' after key.");
-        }
-
-        ctx.skip_whitespace();
-        auto val = ValueDecoder::decode_value(ctx);
-        return std::make_pair(std::move(keys), std::move(val));
+        return make_toml<array>(std::move(arr));
     }
 };
 
