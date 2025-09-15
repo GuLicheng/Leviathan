@@ -1,5 +1,6 @@
 #pragma once
 
+#include <span>
 #include "value.hpp"
 #include <leviathan/extc++/ranges.hpp>
 
@@ -30,15 +31,12 @@ struct array_maker
     }
 };
 
-inline void std_table_insert_key_value_pair(
-    const std::vector<string>& sections, 
-    const std::vector<string>& simple_keys,
-    value val,
-    table* super)
+template <typename SimpleKeys> 
+void std_table_insert_key_value_pair(SimpleKeys simple_keys, value val, table* super)
 {
-    auto keys = cpp::ranges::concat(sections, simple_keys | std::views::take(simple_keys.size() - 1)); 
+    // auto keys = cpp::ranges::concat(sections, simple_keys | std::views::take(simple_keys.size() - 1)); 
 
-    for (const auto& key : keys)
+    for (const auto& key : simple_keys | std::views::take(simple_keys.size() - 1))
     {
         // std::string_view key_view = key;
         // TODO: C++26 provides follow overloading: 
@@ -48,32 +46,25 @@ inline void std_table_insert_key_value_pair(
 
         if (!succeed)
         {
-            if (!it->second.is<table>())
+            if (!it->second.template is<table>())
             {
                 throw_toml_parse_error("Key conflict");
             }
-            if (it->second.as_ptr<table>()->is_locked())
+            if (it->second.template as_ptr<table>()->is_locked())
             {
                 throw_toml_parse_error("Inline table cannot be modified.");
             }
         }
-        super = it->second.as_ptr<table>();
+        super = it->second.template as_ptr<table>();
     }
 
-    auto [it, succeed] = super->try_emplace(std::move(simple_keys.back()), std::move(val));
+    auto [it, succeed] = super->try_emplace(simple_keys.back(), std::move(val));
 
     if (!succeed)
     {
         throw_toml_parse_error("Value already exits");
     }
 }  
-
-inline void inline_array_insert_key_value_pair(
-    const std::vector<std::string>& section,
-    const std::vector<std::string>& simple_keys,
-    value val,
-    table* super
-);
 
 inline value* try_put_value(std::vector<string> keys, value val, table* super)
 {

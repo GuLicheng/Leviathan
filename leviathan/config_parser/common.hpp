@@ -3,7 +3,6 @@
 #include <leviathan/encode.hpp>
 #include <leviathan/extc++/all.hpp>
 #include <leviathan/string/fixed_string.hpp>
-#include <leviathan/table.hpp>
 #include "optional.hpp"
 
 #include <array>

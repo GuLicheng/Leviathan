@@ -141,9 +141,27 @@ struct toml_string_decoder
         {
             const auto ch = ctx.current();
             
-            if (ctx.match("'''", true))
+            if (ch == '\'')
             {
-                return retval;
+                size_t count = 0;
+                for (; ctx.peek(count) == '\''; ++count);
+
+                if (count >= 6)
+                {
+                    throw toml_parse_error("Too much quote.");
+                }
+        
+                if (count >= 3)
+                {
+                    retval.append(count - 3, '\'');
+                    ctx.advance(count);
+                    return retval;
+                }
+                else
+                {
+                    retval.append(count, '\'');
+                    ctx.advance(count);
+                }
             }
             else
             {
@@ -170,24 +188,45 @@ struct toml_string_decoder
         string retval;
         
         // A newline immediately following the opening delimiter will be trimmed.
-        if (ctx.current() == '\n')
+        if (ctx.current() == '\n' || ctx.current() == '\r')
         {
-            ctx.advance_unchecked(1);   
+            ctx.skip_whitespace();
         }
 
         while (!ctx.eof())
         {
-            if (ctx.match(R"(""")", true))
+            if (ctx.current() == '"')
             {
-                return retval;
+                size_t count = 0;
+                for (; ctx.peek(count) == '"'; ++count);
+                
+                if (count >= 6)
+                {
+                    throw toml_parse_error("Too much quote.");
+                }
+
+                if (count >= 3)
+                {
+                    retval.append(count - 3, '"');
+                    ctx.advance(count);
+                    return retval;
+                }
+                else
+                {
+                    retval.append(count, '"');
+                    ctx.advance(count);
+                }
             }
-            else if (ctx.match('\\', true))
+            else if (ctx.current() == '\\')
             {
                 // If a line end with '\\' after trim right, the linefeed will be ignored.
-                if (ctx.match('\n', true))
+                if (ctx.peek(1) == '\n' || ctx.peek(1) == '\r')
                 {
+                    ctx.advance(1);
+                    ctx.skip_whitespace();
                     continue;
                 }  
+
                 retval += decode_escape_sequence(ctx);
             }
             else
@@ -284,7 +323,7 @@ struct toml_number_decoder
         return ::isxdigit(ch) || valid_chars.contains(ch);
     }
 
-    static bool check_underscore(std::string_view sv)
+    static bool check_underscore(std::basic_string_view<char_type> sv)
     {
         if (sv.empty() || sv.front() == '_' || sv.back() == '_')
         {
@@ -302,117 +341,38 @@ struct toml_number_decoder
         return true;
     }
 
-    static string extract_number_string_and_remove_underscore(const Context& ctx)
+    static string remove_underscore(std::basic_string_view<char_type> sv)
     {
-        auto sv = ctx.take_while(valid_number_character);
-
-        if (!check_underscore(sv))
-        {
-            return "";
-        }
-        
         auto underscore_to_quote = [](char_type ch) static { return ch != '_'; };
         auto result = sv | std::views::filter(underscore_to_quote) | std::ranges::to<string>();
         return result;
     }
 
-    static std::optional<integer> parse_integer(Context& ctx)
+    static std::optional<value> decode_number(Context& ctx)
     {
-        auto s = extract_number_string_and_remove_underscore(ctx);
-        std::basic_string_view<char> sv = s;
-        using Caster = type_caster<integer, std::basic_string_view<char>, error_policy::optional>;
+        // +-_.:eZTt [0-9|0x|0o|0b|inf|nan]
+        static std::string_view starts = "+-0123456789in";
 
-        if (sv.empty())
+        if (!starts.contains(ctx.current()))
         {
             return std::nullopt;
         }
 
-        int base = 10;
+        auto sv = ctx.take_while(valid_number_character);
 
-        if (sv.starts_with("0b") || sv.starts_with("0B"))
-        {
-            base = 2;
-        }
-        else if (sv.starts_with("0o") || sv.starts_with("0O"))
-        {
-            base = 8;
-        }
-        else if (sv.starts_with("0x") || sv.starts_with("0X"))
-        {
-            base = 16;
-        }
-
-        if (sv[0] == '+') 
-        {
-            sv.remove_prefix(1); // from_chars cannot parse '+'
-
-            if (sv.size() == 1 || sv[1] == '-')
-            {
-                // +-42
-                return std::nullopt;
-            }
-        }
-
-        auto op = Caster()(sv, base);
-        
-        if (op) 
+        if (auto op = parse_integer(sv); op)
         {
             ctx.advance(sv.size());
+            return make_toml<integer>(*op);
         }
-        return op;
-    }
-
-    static std::optional<floating> parse_float(Context& ctx)
-    {
-        auto s = extract_number_string_and_remove_underscore(ctx);
-        std::basic_string_view<char> sv = s;
-        using Caster = type_caster<floating, std::basic_string_view<char>, error_policy::optional>;
-
-        if (sv.empty() || sv.front() == '.' || sv.back() == '.')
-        {
-            // Empty string, .7 or 7. is not permitted.
-            return std::nullopt;
-        }
-        else if (sv == "nan" || sv == "+nan")
+        else if (auto op = parse_float(sv); op)
         {
             ctx.advance(sv.size());
-            return std::numeric_limits<floating>::quiet_NaN();
-        }
-        else if (sv == "-nan")
-        {
-            ctx.advance(sv.size());
-            return -std::numeric_limits<floating>::quiet_NaN();
-        }
-        else if (sv == "inf" || sv == "+inf")
-        {
-            ctx.advance(sv.size());
-            return std::numeric_limits<floating>::infinity();
-        }
-        else if (sv == "-inf")
-        {
-            ctx.advance(sv.size());
-            return -std::numeric_limits<floating>::infinity();
+            return make_toml<floating>(*op);
         }
         else
         {
-            if (sv[0] == '+') 
-            {
-                sv.remove_prefix(1); // from_chars cannot parse '+'
-
-                if (sv.size() == 1 || sv[1] == '-')
-                {
-                    // +-3.14
-                    return std::nullopt;
-                }
-            }
-
-            auto op = Caster()(sv);
-
-            if (op) 
-            {
-                ctx.advance(sv.size());
-            }
-            return op;
+            return std::nullopt;
         }
     }
 };
@@ -420,9 +380,181 @@ struct toml_number_decoder
 template <typename Context>
 struct toml_datatime_decoder
 {
+    using char_type = typename Context::value_type;
+
+    bool static valid_datetime_character(char_type ch)
+    {
+        static std::basic_string_view<char_type> valid_chars = ":TtZz.+- ";
+        return ::isdigit(ch) || valid_chars.contains(ch);
+    }
+
+    // 1979-05-27
+    static std::optional<datetime> decode_date(Context& ctx)
+    {
+        if (ctx.size() < 10 || ctx.peek(4) != '-' || ctx.peek(7) != '-')
+        {
+            return std::nullopt;
+        }
+
+        auto sv = ctx.to_string_view();
+
+        auto y = from_chars_to_optional<uint16_t>(sv.substr(0, 4));
+        auto m = from_chars_to_optional<uint8_t>(sv.substr(5, 2));
+        auto d = from_chars_to_optional<uint8_t>(sv.substr(8, 2));
+
+        if (y && m && d)
+        {
+            datetime retval;
+            retval.m_date.m_year = *y;
+            retval.m_date.m_month = *m;
+            retval.m_date.m_day = *d;
+            ctx.advance(10);
+            return retval;
+        }
+        else
+        {
+            return std::nullopt;
+        }
+    }
+
+    // 07:32:00.999999
+    static std::optional<datetime> decode_time(Context& ctx)
+    {
+        if (ctx.size() < 8 || ctx.peek(2) != ':' || ctx.peek(5) != ':')
+        {
+            return std::nullopt;
+        }
+
+        auto sv = ctx.to_string_view();
+        auto h = from_chars_to_optional<uint8_t>(sv.substr(0, 2));
+        auto m = from_chars_to_optional<uint8_t>(sv.substr(3, 2));
+        auto s = from_chars_to_optional<uint8_t>(sv.substr(6, 2));
+
+        if (h && m && s)
+        {
+            datetime retval;
+            retval.m_time.m_hour = *h;
+            retval.m_time.m_minute = *m;
+            retval.m_time.m_second = *s;
+            ctx.advance(8);
+
+            if (ctx.current() == '.')
+            {
+                auto sv1 = ctx.take_while([](char_type ch) static { return ::isdigit(ch); });
+                auto ns = from_chars_to_optional<uint32_t>(sv1);
+
+                if (ns)
+                {
+                    retval.m_time.m_nanosecond = *ns;
+                    ctx.advance(sv1.size());
+                    return retval;
+                }
+                else
+                {
+                    return std::nullopt;
+                }
+            }
+
+            return retval;
+        }
+        else
+        {
+            return std::nullopt;
+        }
+    }
+
+    // -07:00 | Z | z || +07:00
+    static std::optional<datetime> decode_offset(Context& ctx)
+    {
+        if (ctx.current() == 'Z' || ctx.current() == 'z')
+        {
+            ctx.advance(1);
+            datetime retval;
+            retval.m_offset.m_minute = 0;
+            return retval;
+        }
+        else if (ctx.current() == '+' || ctx.current() == '-')
+        {
+            int sign = ctx.current() == '+' ? 1 : -1;
+            auto sv = ctx.to_string_view();
+
+            // -07:00 -> HH:SS
+            auto hhh = from_chars_to_optional<int>(sv.substr(1, 2));
+            auto sss = from_chars_to_optional<int>(sv.substr(4, 2));
+
+            if (hhh && sss)
+            {
+                datetime retval;
+                retval.m_offset.m_minute = (hhh.value() * 60 + sss.value()) * sign;
+                ctx.advance(6);
+                return retval;
+            }
+            else
+            {
+                return std::nullopt;
+            }
+        }
+        else
+        {
+            return std::nullopt;
+        }
+    }
+
+    // 1979-05-27T07:32:00Z
+    // 1979-05-27T00:32:00-07:00
+    // 1979-05-27T00:32:00.999999-07:00
+    // 1979-05-27 07:32:00Z
+    // 1979-05-27T07:32:00
+    // 1979-05-27T00:32:00.999999
+    // 1979-05-27
+    // 07:32:00
+    // 00:32:00.999999
     static std::optional<datetime> decode_datetime(Context& ctx)
     {
-        throw toml_parse_error("Not implemented.");
+        datetime retval;
+
+        if (auto op = decode_date(ctx); op)
+        {
+            if (ctx.current() == ' ' || ctx.current() == 'T' || ctx.current() == 't')
+            {
+                ctx.advance(1);
+                
+                if (auto op2 = decode_time(ctx); op2)
+                {
+                    retval.m_time = op2->m_time;
+
+                    if (auto op3 = decode_offset(ctx); op3)
+                    {
+                        retval.m_offset = op3->m_offset;
+                    }
+                    
+                    return retval;
+                }
+                else
+                {
+                    return std::nullopt;
+                }
+            }
+
+            return op;
+        }
+        else
+        {
+            return decode_time(ctx);
+        }
+    }
+
+    static std::optional<datetime> decode_datetime1(Context& ctx)
+    {
+        auto sv = ctx.take_while(valid_datetime_character);
+        auto dtopt = parse_datetime(sv);
+
+        if (dtopt)
+        {
+            ctx.advance(sv.size());
+        }
+
+        return dtopt;
     } 
 };
 
@@ -430,12 +562,6 @@ template <typename Context>
 struct toml_decoder
 {
     using char_type = typename Context::value_type;
-
-    // std::variant<
-    //     std::vector<string>, 
-    //     std::vector<string>,
-    //     std::pair<std::vector<string>, value>,
-    // >;
 
     enum class section
     {
@@ -446,9 +572,7 @@ struct toml_decoder
     // Section | Key-Value | Comment |
     static value decode(Context& ctx)
     {
-        table root;
-
-        std::vector<std::string> current_section;
+        collector coll;
 
         // Try parse
         while (1)
@@ -466,15 +590,25 @@ struct toml_decoder
             }
             else if (ctx.match('[', false))
             {
-                decode_section(ctx);
+                auto [keys, sec] = decode_section(ctx);
+
+                if (sec == section::table)
+                {
+                    coll.switch_to_std_table(std::move(keys));
+                }
+                else
+                {
+                    coll.switch_to_array_table(std::move(keys));
+                }
             }  
             else
             {
-                decode_keyval(ctx);
+                auto [keys, val] = decode_keyval(ctx);
+                coll.add_entry(std::move(keys), std::move(val));
             }
         }
 
-        return make_toml<table>(std::move(root));
+        return coll.dispose();
     }
 
     static std::vector<string> decode_section(Context& ctx, std::string_view prefix, std::string_view suffix)
@@ -483,8 +617,10 @@ struct toml_decoder
         {
             throw toml_parse_error(std::format("Expected {}", prefix));
         }
-
-        auto result = decode_simple_keys(ctx);
+        
+        using StringDecoder = toml_string_decoder<Context>;
+        ctx.skip_whitespace();
+        auto result = StringDecoder::decode_simple_keys(ctx);
         ctx.skip_whitespace();
 
         if (!ctx.match(suffix, true))
@@ -512,12 +648,23 @@ struct toml_decoder
 
     static void decode_comment(Context& ctx)
     {
-        ctx.skip_whitespace();
-        
-        if (ctx.match('#', true))
+        if (!ctx.match('#', true))
         {
-            auto sv = ctx.take_while([](char_type ch) static { return ch != '\n' || ch != '\r'; });
-            ctx.advance(sv.size());
+            throw toml_parse_error("Comment must start with #.");
+        }
+        
+        auto sv = ctx.take_while([](char_type ch) static { return ch != '\n' && ch != '\r'; });
+        ctx.advance(sv.size());
+    }
+
+    static void decode_comment_and_newline(Context& ctx)
+    {
+        ctx.skip_whitespace();
+
+        while (ctx.match('#', false))
+        {
+            decode_comment(ctx);
+            ctx.skip_whitespace();
         }
     }
 
@@ -525,7 +672,9 @@ struct toml_decoder
     {
         using StringDecoder = toml_string_decoder<Context>;
 
-        auto keys = decode_simple_keys(ctx);
+        
+        ctx.skip_whitespace();
+        auto keys = StringDecoder::decode_simple_keys(ctx);
         ctx.skip_whitespace();
 
         if (!ctx.match('=', true))
@@ -554,16 +703,38 @@ struct toml_decoder
         }
     }
 
+    static value decode_string(Context& ctx)
+    {
+        using Decoder = toml_string_decoder<Context>;
+
+        if (ctx.match('"', false))
+        {
+            return ctx.match(R"(""")", false)
+                 ? make_toml<string>(Decoder::decode_multiline_basic_string(ctx))
+                 : make_toml<string>(Decoder::decode_basic_string(ctx));
+        }
+        else if (ctx.match('\'', false))
+        {
+            return ctx.match("'''", false)
+                 ? make_toml<string>(Decoder::decode_multiline_literal_string(ctx))
+                 : make_toml<string>(Decoder::decode_literal_string(ctx));
+        }
+        else
+        {
+            throw toml_parse_error("String must start with ' or \".");
+        }
+    }
+
     static value decode_value(Context& ctx)
     {
         switch (ctx.current())
         {
             case 't': 
             case 'f': return decode_boolean(ctx);
-            case '"': return toml_string_decoder<Context>::decode_basic_string(ctx);
-            case '\'': return toml_string_decoder<Context>::decode_literal_string(ctx);
+            case '"':  
+            case '\'': return decode_string(ctx);
             case '[': return decode_array(ctx);
-            case '{': throw decode_table(ctx);
+            case '{': return decode_table(ctx);
             default: return decode_number_or_datetime(ctx);
         }
     }
@@ -571,13 +742,9 @@ struct toml_decoder
     // Integer or floating.
     static value decode_number_or_datetime(Context& ctx)
     {
-        if (auto op = toml_number_decoder<Context>::parse_integer(ctx); op)
+        if (auto op = toml_number_decoder<Context>::decode_number(ctx); op)
         {
-            return make_toml<integer>(*op);
-        }
-        else if (auto op = toml_number_decoder<Context>::parse_float(ctx); op)
-        {
-            return make_toml<floating>(*op);
+            return std::move(*op);
         }
         else if (auto op = toml_datatime_decoder<Context>::decode_datetime(ctx); op)
         {
@@ -585,59 +752,50 @@ struct toml_decoder
         }
         else
         {
-            throw toml_parse_error("Invalid number format.");
+            throw toml_parse_error("Invalid number or datetime format.");
         }
     }
 
     static value decode_table(Context& ctx)
     {
-        throw toml_parse_error("Not implemented.");
-        // if (!ctx.match('{', true))
-        // {
-        //     throw toml_parse_error("Table must start with {.");
-        // }
+        if (!ctx.match('{', true))
+        {
+            throw toml_parse_error("Table must start with {.");
+        }
+
+        table t(true);
+
+        decode_comment_and_newline(ctx);
         
-        // table t;
-
-        // while (1)
-        // {
-        //     using TomlStringDecoder = toml_string_decoder<Context>;
-
-        //     ctx.skip_whitespace();
-
-        //     if (ctx.match('}', true))
-        //     {
-        //         break;
-        //     }
-
-        //     auto keys = decode_simple_keys(ctx);
-        //     ctx.skip_whitespace();
-
-        //     if (!ctx.match('=', true))
-        //     {
-        //         throw toml_parse_error("Expected '=' after key in table.");
-        //     }
-
-        //     ctx.skip_whitespace();
-        //     auto val = decode_value(ctx);
-        //     t.insert_or_assign(std::move(key), std::move(val));
-        //     ctx.skip_whitespace();
-
-        //     if (ctx.match(',', true))
-        //     {
-        //         continue;
-        //     }
-        //     else if (ctx.match('}', true))
-        //     {
-        //         break;
-        //     }
-        //     else
-        //     {
-        //         throw toml_parse_error("Expected , or } in table.");
-        //     }
-        // }
+        if (ctx.match('}', true))
+        {
+            return make_toml<table>(std::move(t)); // empty table
+        }
         
-    }
+        while (1)
+        {
+            decode_comment_and_newline(ctx);
+
+            auto [keys, v] = decode_keyval(ctx);
+            std_table_insert_key_value_pair(cpp::ranges::concat(keys), std::move(v), &t);
+            decode_comment_and_newline(ctx);
+
+            if (ctx.match(',', true))
+            {
+                continue;
+            }
+            else if (ctx.match('}', true))
+            {
+                break;
+            }
+            else
+            {
+                throw toml_parse_error("Expected , or } in table.");
+            }
+        }
+
+        return make_toml<table>(std::move(t));
+    }   
     
     static value decode_array(Context& ctx)
     {
@@ -646,20 +804,24 @@ struct toml_decoder
             throw toml_parse_error("Array must start with [.");
         }
 
-        array arr(false);
-
-        ctx.skip_whitespace();
-        
-        if (ctx.match(']', true))
-        {
-            return make_toml<array>(std::move(arr)); // empty array
-        }
+        array retval(true);
 
         while (1)
         {
-            ctx.skip_whitespace();
-            arr.push_back(decode_value(ctx));
-            ctx.skip_whitespace();
+            decode_comment_and_newline(ctx);
+
+            if (ctx.eof())
+            {
+                throw toml_parse_error("Expected ] after array.");
+            }
+
+            if (ctx.match(']', true))
+            {
+                break;
+            }
+
+            retval.emplace_back(decode_value(ctx));
+            decode_comment_and_newline(ctx);
 
             if (ctx.match(',', true))
             {
@@ -671,11 +833,11 @@ struct toml_decoder
             }
             else
             {
-                throw toml_parse_error("Expected , or ] in array.");
+                throw toml_parse_error(std::format("Expected , or ] in array, but got {}", ctx.current()));
             }
         }
 
-        return make_toml<array>(std::move(arr));
+        return make_toml<array>(std::move(retval));
     }
 };
 
@@ -920,7 +1082,6 @@ public:
         }
         if (auto op = detail::parse_datetime(sv); op)
         {
-            // throw std::runtime_error("Not implemented.");
             return make_toml<datetime>(op.value());
         }
         throw_toml_parse_error("Error toml value.");

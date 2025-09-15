@@ -377,9 +377,9 @@ inline std::optional<datetime> parse_datetime(std::string_view sv)
         
         if (year && month && day)
         {
-            dt.m_data.m_year = year.value();
-            dt.m_data.m_month = month.value();
-            dt.m_data.m_day = day.value();
+            dt.m_date.m_year = year.value();
+            dt.m_date.m_month = month.value();
+            dt.m_date.m_day = day.value();
         }
         else
         {

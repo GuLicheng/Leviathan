@@ -22,6 +22,16 @@ namespace cpp::config::toml
 // class date; // YMD year + month + day
 // class datetime; // above
 
+// 1979-05-27T07:32:00Z
+// 1979-05-27T00:32:00-07:00
+// 1979-05-27T00:32:00.999999-07:00
+// 1979-05-27 07:32:00Z
+// 1979-05-27T07:32:00
+// 1979-05-27T00:32:00.999999
+// 1979-05-27
+// 07:32:00
+// 00:32:00.999999
+
 struct date
 {
     uint16_t m_year = 0;
@@ -85,13 +95,13 @@ struct offset
 
 struct datetime
 {
-    date m_data;
+    date m_date;
     time m_time;
     offset m_offset;
 
     std::string to_string() const
     {
-        return std::format("{}T{}{}", m_data.to_string(), m_time.to_string(), m_offset.to_string());
+        return std::format("{}T{}{}", m_date.to_string(), m_time.to_string(), m_offset.to_string());
     }
 
     constexpr bool operator==(const datetime&) const = default;

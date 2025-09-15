@@ -192,14 +192,15 @@ struct parse_interface
     template <typename Self>
     constexpr void skip_whitespace(this Self& self)
     {
-        static auto whitespace = make_character_table([](size_t i)
-        {
-            [[assume(i < 256)]];
-            constexpr std::string_view sv = " \r\n\t";
-            return sv.contains(i);
-        }); 
+        static std::basic_string_view<CharT> whitespace = " \r\n\t";
+        for (; self.size() && whitespace.contains(self[0]); self.advance(1));
+    }
 
-        for (; self.size() && whitespace[self[0]]; self.advance(1));
+    template <typename Self>
+    constexpr void skip_spaces(this Self& self)
+    {
+        static std::basic_string_view<CharT> spaces = " \t";
+        for (; self.size() && spaces.contains(self[0]); self.advance(1));
     }
 
     template <typename Self, typename Pred>
@@ -209,6 +210,12 @@ struct parse_interface
         for (; idx < self.size() && pred(self[idx]); ++idx);
         return self.to_string_view().substr(0, idx);
     }
+
+    // template <typename Self>
+    // constexpr std::basic_string_view<CharT> take(this const Self& self, size_type n) 
+    // {   
+    //     return self.to_string_view().substr(0, n); 
+    // }
 };
 
 template <typename CharT>
