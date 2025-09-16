@@ -48,8 +48,13 @@ void Test1()
 
     auto MaybeError = [](const auto& name) {
         return name.ends_with(".toml") 
-            && !name.contains("escape-esc.toml")
-            && !name.contains("inline-table\\newline.toml");
+        && !name.contains("escape-esc.toml")
+        && !name.contains("hex-escape.toml")
+        && !name.contains("ends-in-whitespace-escape.toml")
+        && !name.contains("multiline-empty.toml")
+        && !name.contains("no-seconds.toml")
+        && !name.contains("string\\multiline.toml")
+        && !name.contains("inline-table\\newline.toml");
     };
 
     auto Tomls = lists

@@ -43,7 +43,7 @@ struct toml_string_decoder
             case '\\': result += '\\'; ctx.advance(1); break;
             case 'u': decode_unicode<4>(std::back_inserter(result), ctx); break;
             case 'U': decode_unicode<8>(std::back_inserter(result), ctx); break;
-            // TODO: \x -> two digits
+            case 'x': throw toml_parse_error("Hex escape is not supported in TOML 1.0.");
             default: throw toml_parse_error("Illegal character after \\");
         }
 
@@ -319,7 +319,10 @@ struct toml_number_decoder
     static bool valid_number_character(char_type ch)
     {
         // +-.eE_ [0-9|0x|0o|0b|inf|nan]
-        static std::basic_string_view<char_type> valid_chars = "+-.eE_xobin";
+        static std::basic_string_view<char_type> valid_chars = "+-.eE_xobin:";
+
+        // Add datetime characters
+        // static std::basic_string_view<char_type> valid_chars = "+-.eE_xobin :TtZz";
         return ::isxdigit(ch) || valid_chars.contains(ch);
     }
 
@@ -438,7 +441,7 @@ struct toml_datatime_decoder
             retval.m_time.m_second = *s;
             ctx.advance(8);
 
-            if (ctx.current() == '.')
+            if (ctx.match('.', true))
             {
                 auto sv1 = ctx.take_while([](char_type ch) static { return ::isdigit(ch); });
                 auto ns = from_chars_to_optional<uint32_t>(sv1);
@@ -515,7 +518,7 @@ struct toml_datatime_decoder
 
         if (auto op = decode_date(ctx); op)
         {
-            if (ctx.current() == ' ' || ctx.current() == 'T' || ctx.current() == 't')
+            if (ctx.current() == 'T' || ctx.current() == 't' || (ctx.current() == ' ' && ::isdigit(ctx.peek(1))))
             {
                 ctx.advance(1);
                 

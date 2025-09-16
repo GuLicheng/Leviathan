@@ -1,7 +1,28 @@
-first-offset = 0001-01-01 00:00:00Z
-first-local  = 0001-01-01 00:00:00
-first-date   = 0001-01-01
+# Top comment.
+  # Top comment.
+# Top comment.
 
-last-offset = 9999-12-31 23:59:59Z
-last-local  = 9999-12-31 23:59:59
-last-date   = 9999-12-31
+# [no-extraneous-groups-please]
+
+[group] # Comment
+answer = 42 # Comment
+# no-extraneous-keys-please = 999
+# Inbetween comment.
+more = [ # Comment
+  # What about multiple # comments?
+  # Can you handle it?
+  #
+          # Evil.
+# Evil.
+  42, 42, # Comments within arrays are fun.
+  # What about multiple # comments?
+  # Can you handle it?
+  #
+          # Evil.
+# Evil.
+# ] Did I fool you?
+] # Hopefully not.
+
+# Make sure the space between the datetime and "#" isn't lexed.
+dt = 1979-05-27T07:32:12-07:00  # c
+d = 1979-05-27 # Comment
