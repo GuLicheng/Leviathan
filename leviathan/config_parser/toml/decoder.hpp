@@ -8,7 +8,7 @@ Reference:
 
 #pragma once
 
-#include <leviathan/config_parser/parse_context.hpp>
+#include <leviathan/config_parser/context.hpp>
 #include <leviathan/config_parser/toml/value.hpp>
 #include <leviathan/config_parser/toml/collector.hpp>
 #include <leviathan/config_parser/toml/parser_helper.hpp>
@@ -23,7 +23,31 @@ namespace detail
 template <typename Context>
 struct toml_string_decoder
 {
-    static string decode_escape_sequence(Context& ctx)
+    using char_type = typename Context::value_type;
+
+    static void handle_escape_sequence(Context& ctx, bool in_multiline)
+    {
+        if (!in_multiline)
+        {
+            throw toml_parse_error("Illegal character after \\");
+        }
+
+        switch (ctx.current())
+        {
+            case ' ':
+            case '\t': 
+            {
+                ctx.skip_space();
+                if (ctx.current() == '\n' || ctx.current() == '\r')
+                {
+                    ctx.skip_whitespace();
+                }
+            } break;
+            default: throw toml_parse_error(std::format("Invalid escape sequence: \\'{}'", ctx.current()));
+        }
+    }
+
+    static string decode_escape_sequence(Context& ctx, bool in_multiline)
     {
         if (!ctx.match('\\', true))
         {
@@ -44,7 +68,7 @@ struct toml_string_decoder
             case 'u': decode_unicode<4>(std::back_inserter(result), ctx); break;
             case 'U': decode_unicode<8>(std::back_inserter(result), ctx); break;
             case 'x': throw toml_parse_error("Hex escape is not supported in TOML 1.0.");
-            default: throw toml_parse_error("Illegal character after \\");
+            default: handle_escape_sequence(ctx, in_multiline); break;
         }
 
         return result;
@@ -112,7 +136,7 @@ struct toml_string_decoder
             }
             else if (ctx.current() == '\\')
             {
-                result += decode_escape_sequence(ctx);
+                result += decode_escape_sequence(ctx, false);
             }
             else
             {
@@ -227,7 +251,7 @@ struct toml_string_decoder
                     continue;
                 }  
 
-                retval += decode_escape_sequence(ctx);
+                retval += decode_escape_sequence(ctx, true);
             }
             else
             {
@@ -547,18 +571,6 @@ struct toml_datatime_decoder
         }
     }
 
-    static std::optional<datetime> decode_datetime1(Context& ctx)
-    {
-        auto sv = ctx.take_while(valid_datetime_character);
-        auto dtopt = parse_datetime(sv);
-
-        if (dtopt)
-        {
-            ctx.advance(sv.size());
-        }
-
-        return dtopt;
-    } 
 };
 
 template <typename Context>
@@ -846,6 +858,7 @@ struct toml_decoder
 
 }   // namespace detail
 
+#if 0
 class decoder
 {
     // Context
@@ -1377,12 +1390,15 @@ public:
         m_ctx.advance(1);
     }
 };
+#endif
 
 inline constexpr struct
 {
     static value operator()(std::string source)
     {
-        return decoder(source)();
+        std::string_view sv = source;
+        cpp::config::context ctx(sv);
+        return detail::toml_decoder<config::context>::decode(ctx);
     }
 } loads;
 
@@ -1401,31 +1417,7 @@ inline constexpr struct
     }
 } load;
 
-// inline value loads(std::string source)
-// {
-//     return decoder(source)();
-// }
-
-// inline value load(const char* filename)
-// {
-//     // Windows
-//     constexpr const char* linefeed = "\r\n";
-//     return loads(cpp::read_file_context(filename, linefeed));
-// }
-
 } // namespace cpp::config::toml
 
-namespace cpp::config
-{
 
-// template <>
-// struct value_parser<toml::value>
-// {
-//     static toml::value operator()(std::string source)
-//     {
-//         return toml::decoder(source).parse_val();
-//     }
-// };
-
-}
 

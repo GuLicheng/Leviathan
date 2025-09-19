@@ -1,49 +1,22 @@
-from pyext.cpp2py import avl_tree
-from collections import Counter
-import json
-import xml.etree.ElementTree as ET
+import toml, os
+
+def read_toml_file(root):
+
+    dest = open('output.toml', 'w', encoding='utf-8')
+
+    for file in os.listdir(root):
+        if file.endswith('.toml'):
+            file_path = os.path.join(root, file)
+            with open(file_path, 'r', encoding='utf-8') as f:
+                toml_data = toml.load(f)
+                toml.dump(toml_data, dest)
+
+
+def main():
+    file_path = 'test.toml'
+    toml_data = read_toml_file(file_path)
+    print(toml_data)
 
 if __name__ == "__main__":
-
-    t = avl_tree()
-
-    t[1] = 2
-
-    print(1 in t)
-    print(2 in t)
-
-    print(t.get(1))
-    print(t.get(0))
-
-    obj = {
-        "name": "Alice",
-        "age": 30,
-        "is_student": False,
-        "grades": [85, 90, 78],
-        "address": {
-            "street": "123 Main St",    
-            "city": "Wonderland",
-            "zip": "12345"
-        }
-    }
-
-
-    json_str = json.dumps(obj, indent=4)
-    print(json_str)
-
-
-    json.loads(
-        """
-        {
-            "name": "Alice",
-            "age": 30,
-            "is_student": false,
-            "grades": [|85, 90, 78],
-            "address": {
-                "street": "123 Main St",    
-                "city": "Wonderland",
-                "zip": "12345"
-            }
-        }
-        """
-    )
+    
+    main()

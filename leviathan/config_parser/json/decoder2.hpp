@@ -8,7 +8,7 @@ namespace cpp::config::json::detail
 {
 
 template <typename Context>
-class string_decoder
+struct string_decoder
 {
     using char_type = typename Context::char_type;
 

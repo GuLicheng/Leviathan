@@ -197,7 +197,7 @@ struct parse_interface
     }
 
     template <typename Self>
-    constexpr void skip_spaces(this Self& self)
+    constexpr void skip_space(this Self& self)
     {
         static std::basic_string_view<CharT> spaces = " \t";
         for (; self.size() && spaces.contains(self[0]); self.advance(1));

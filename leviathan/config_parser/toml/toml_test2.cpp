@@ -1,4 +1,5 @@
 #include <variant>
+#include <print>
 #include <vector>
 #include <algorithm>
 #include <ranges>
@@ -14,8 +15,8 @@
 namespace toml = cpp::toml;
 namespace json = cpp::json;
 
-using JsonDecoder = json::decoder;
-using TomlDecoder = toml::decoder;
+using JsonDecoder = json::detail::decode2<cpp::config::context>;
+using TomlDecoder = toml::detail::toml_decoder<cpp::config::context>;
 using JsonFormatter = cpp::config::toml2json;
 
 template <typename ArrayIndex, typename MapIndex>
@@ -149,7 +150,9 @@ std::vector<Path> GatherJsonPath(const json::value& jv)
 
 toml::value ParseAsTomlValue(const char* context)
 {
-    return TomlDecoder(context).parse_val();
+    auto sv = std::string_view(context);
+    cpp::config::context ctx(sv);
+    return TomlDecoder::decode_value(ctx);
 }
 
 template <typename TomlValueType>
@@ -245,34 +248,53 @@ bool TestFile(std::string filename)
     return true;
 }
 
-void DebugFile(const char* file)
+auto AllFiles(const char* path, bool fullname = false)
 {
-    auto t = toml::load(file);
-    auto j = cpp::config::toml2json()(t);
-    Console::WriteLine(j);
+    auto nameof = [=](const auto& entry) {
+        return fullname ? entry.path().string() : entry.path().filename().string();
+    };
+
+    return std::filesystem::recursive_directory_iterator{path}
+         | cpp::views::transform(nameof)
+         | std::ranges::to<std::vector>();
+}
+
+void TestAllFiles()
+{
+    auto MaybeError = [](const auto& name) {
+        return name.ends_with(".toml") 
+        && !name.contains("escape-esc.toml")
+        && !name.contains("no-seconds.toml")
+        && !name.contains("inline-table\\newline.toml")
+        && !name.contains("hex-escape.toml");
+    };
+
+    auto files = AllFiles(R"(D:\code\toml-test\tests\valid)", true)
+               | std::views::filter(MaybeError)
+               | std::views::transform([](const auto& name) { return name.substr(0, name.size() - 5); })
+               | std::ranges::to<std::vector>();
+
+    int success = 0;
+
+    for (const auto& file : files)
+    {
+        try
+        {
+            std::println("Test file: {}", file);
+            success += TestFile(file);
+        }
+        catch (const std::exception& ex)
+        {
+            std::println("File {} error: {}", file, ex.what());
+        }
+    }
+
+    std::println("Test {} files, {} success, {} failed.", files.size(), success, files.size() - success);
 }
 
 int main(int argc, char const *argv[])
 {
-    system("chcp 65001");
-    DebugFile("../a.toml");
-    // auto jv = json::load("../a.json");
-
-    // auto Indices = GatherJsonPath(jv);
-
-    // for (auto&& outer : Indices)
-    // {
-    //     for (auto&& inner : outer.first)
-    //     {
-    //         Console::Write(inner.to_string());
-    //         Console::Write(", ");
-    //     }
-    //     Console::WriteLine(*outer.second);
-    // }
-
-    // Console::WriteLine("====================================");
-
-    // Console::WriteLine(TestFile("../a"));
+    TestAllFiles();
 
     return 0;
 }
