@@ -1,4 +1,5 @@
 import toml, os
+from PIL import Image
 
 def read_toml_file(root):
 
@@ -13,9 +14,7 @@ def read_toml_file(root):
 
 
 def main():
-    file_path = 'test.toml'
-    toml_data = read_toml_file(file_path)
-    print(toml_data)
+    Image.open("lena.bmp").save("lena.png")
 
 if __name__ == "__main__":
     

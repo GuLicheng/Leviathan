@@ -8,7 +8,7 @@ namespace cpp::config
 {
 
 template <typename CharT>
-struct parse_interface
+struct context_interface
 {
     using iterator = typename std::basic_string_view<CharT>::iterator;
     using const_iterator = typename std::basic_string_view<CharT>::const_iterator;
@@ -92,6 +92,12 @@ struct parse_interface
     constexpr const CharT& operator[](this const Self& self, size_type pos)
     {   
         return self.to_string_view()[pos];
+    }
+
+    template <typename Self>
+    constexpr const CharT& at(this const Self& self, size_type pos)
+    {   
+        return self.to_string_view().at(pos);
     }
 
     template <typename Self>
@@ -211,21 +217,16 @@ struct parse_interface
         return self.to_string_view().substr(0, idx);
     }
 
-    // template <typename Self>
-    // constexpr std::basic_string_view<CharT> take(this const Self& self, size_type n) 
-    // {   
-    //     return self.to_string_view().substr(0, n); 
-    // }
 };
 
 template <typename CharT>
-class basic_context : public parse_interface<CharT>
+class basic_context : public context_interface<CharT>
 {
     std::basic_string_view<CharT> m_data;
 
 public:
 
-    using typename parse_interface<CharT>::size_type;
+    using typename context_interface<CharT>::size_type;
 
     constexpr basic_context(std::basic_string_view<CharT> data) 
         : m_data(data)
@@ -238,9 +239,6 @@ public:
     }
     
     constexpr basic_context() = default;
-    constexpr basic_context(const basic_context& other) = default;
-    constexpr basic_context(basic_context&& other) noexcept = default;
-    constexpr basic_context& operator=(const basic_context& other) = default;
 
     constexpr operator std::basic_string_view<CharT>() const { return m_data; }
     
@@ -260,6 +258,76 @@ public:
     
 using context = basic_context<char>;
 using wcontext = basic_context<wchar_t>;
+
+template <typename CharT>
+class basic_cursor_context : public context_interface<CharT>
+{
+
+public:
+
+    using typename context_interface<CharT>::size_type;
+
+private:
+
+    struct
+    {
+        int line = 1;
+        int column = 1;
+        int offset = 0;
+    } m_cursor;
+
+    std::basic_string_view<CharT> m_data;
+
+public:
+
+    constexpr basic_cursor_context(std::basic_string_view<CharT> data) 
+        : m_data(data)
+    {
+    }
+
+    constexpr basic_cursor_context(const CharT* str)
+        : m_data(str)
+    {
+    }
+
+    constexpr basic_cursor_context() = default;
+
+    constexpr operator std::basic_string_view<CharT>() const { return m_data; }
+
+    constexpr int line() const { return m_cursor.line; }
+    constexpr int column() const { return m_cursor.column; }
+    constexpr int offset() const { return m_cursor.offset; }
+
+    constexpr basic_cursor_context& operator+=(size_type n) 
+    { 
+        assert(n <= m_data.size());
+        for (size_type i = 0; i < n; ++i)
+        {
+            if (m_data[i] == '\n')
+            {
+                ++m_cursor.line;
+                m_cursor.column = 1;
+            }
+            else
+            {
+                ++m_cursor.column;
+            }
+            ++m_cursor.offset;
+        }
+        m_data.remove_prefix(n); 
+        return *this; 
+    }
+
+    constexpr basic_cursor_context& operator-=(size_type n)
+    {
+        assert(n <= m_cursor.offset);
+        m_data.remove_suffix(n);
+        return *this;
+    }
+};
+
+using cursor_context = basic_cursor_context<char>;
+using wcursor_context = basic_cursor_context<wchar_t>;
 
 } // namespace cpp::config
 
