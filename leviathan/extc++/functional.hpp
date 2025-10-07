@@ -143,4 +143,26 @@ inline constexpr struct
 
 } // namespace cpp
 
+namespace cpp
+{
 
+struct iter_hash_key_equal
+{
+    using is_transparent = void;
+
+    template <typename I>
+    static constexpr auto operator()(I it)
+    {
+        using ValueType = std::iter_value_t<I>;
+        return std::hash<ValueType>()(*it);
+    }
+
+    template <typename I>
+    static constexpr auto operator()(I it1, I it2)
+    {
+        using ValueType = std::iter_value_t<I>;
+        return std::ranges::equal_to()(*it1, *it2);
+    }
+};
+
+}

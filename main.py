@@ -1,4 +1,4 @@
-import toml, os
+import toml, os, json
 from PIL import Image
 
 def read_toml_file(root):
@@ -15,6 +15,8 @@ def read_toml_file(root):
 
 def main():
     Image.open("lena.bmp").save("lena.png")
+
+    toml.dump(json.load(open("salary.json", 'r', encoding='utf-8')), open("salary.toml", 'w', encoding='utf-8'))
 
 if __name__ == "__main__":
     

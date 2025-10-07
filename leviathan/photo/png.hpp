@@ -10,6 +10,7 @@
 #include <utility>
 #include <fstream>
 #include <vector>
+#include <span>
 #include <algorithm>
 #include <string_view>
 
@@ -27,10 +28,81 @@ inline bool check_png_signature(const unsigned char* signature)
 consteval uint32_t chunk_type(std::string_view sv)
 {
     assert(sv.size() == 4);
+    // static_assert(sv.size() == 4, "String view must be exactly 4 characters long");
     return (static_cast<uint32_t>(sv[0]) << 24) |
            (static_cast<uint32_t>(sv[1]) << 16) |
            (static_cast<uint32_t>(sv[2]) << 8)  |
            (static_cast<uint32_t>(sv[3]));
+}
+
+template <typename T>
+struct lz77_token
+{
+    int offset;       // Distance to the start of the match in the search buffer
+    int length;       // Length of the match
+    T next_char;      // The next character after the match
+};
+
+/**
+ * @brief LZ77 compression algorithm implementation
+ * 
+ * @param bytes Input byte stream to be compressed
+ * @param window_size Size of the sliding window (search buffer)
+ * @param buffer_size Size of the look-ahead buffer
+ * 
+ * @return Compressed byte stream
+ */
+template <typename T>
+inline std::vector<lz77_token<T>> lz77_compress(const std::span<T> bytes, int window_size, int buffer_size)
+{
+    assert((size_t)window_size < 256 && (size_t)buffer_size < 256);
+    static_assert(sizeof(T) == 1, "Only support byte stream");
+
+    int left = 0;   // Left boundary of the sliding window
+    int right = 0;  // Right boundary of the look-ahead buffer
+    std::vector<lz77_token<T>> tokens;
+
+    while (right < bytes.size())
+    {
+        auto window = bytes.subspan(left, right - left);  // Search buffer
+        auto buffer = bytes.subspan(right, std::min(buffer_size, static_cast<int>(bytes.size() - right))); // Look-ahead buffer
+        int offset = 0;
+
+        // Find the longest match in the Look-ahead buffer
+        while (buffer.size())
+        {
+            auto result = std::ranges::search(window, buffer);
+
+            if (result != window.end())
+            {
+                offset = static_cast<int>(result - window.begin());
+                break;
+            }
+            else
+            {
+                buffer = buffer.subspan(0, buffer.size() - 1); // Reduce the look-ahead buffer size
+            }
+        }
+
+        // if (buffer.empty())
+        // {
+        //     // No match found
+        //     tokens.push_back({ 0, 0, bytes[right] });
+        //     right += 1;
+        // }
+        // else
+        // {
+        //     // Match found
+        //     int offset = static_cast<int>(window.end() - result);
+        //     int length = static_cast<int>(buffer.size());
+        //     T next_char = (right + length < bytes.size()) ? bytes[right + length] : 0; // Handle end of stream
+
+        //     tokens.push_back({ offset, length, next_char });
+        //     right += length + 1;
+        // }
+    }
+
+    return tokens;
 }
 
 // https://zhuanlan.zhihu.com/p/673817002
@@ -101,8 +173,8 @@ inline buffer read_png_file(const char* filename)
                 uint8_t ihdr_data[13];
                 ifs.read(reinterpret_cast<char*>(ihdr_data), 13);
 
-                const auto width = read_four_bytes(ihdr_data);
-                const auto height = read_four_bytes(ihdr_data + 4);
+                const auto width = read_four_bytes(ihdr_data, std::endian::big);
+                const auto height = read_four_bytes(ihdr_data + 4, std::endian::big);
                 const auto bit_depth = ihdr_data[8];
                 const auto color_type = ihdr_data[9];
                 const auto compression_method = ihdr_data[10];
@@ -143,6 +215,9 @@ inline buffer read_png_file(const char* filename)
                 ifs.seekg(4, std::ios::cur);
 
                 ihdr = { width, height, bit_depth, color_type, compression_method, filter_method, interlace_method };
+
+                std::println("Width: {}, Height: {}, Bit Depth: {}, Color Type: {}, Compression Method: {}, Filter Method: {}, Interlace Method: {}",
+                             width, height, bit_depth, color_type, compression_method, filter_method, interlace_method);
 
             } break;
 

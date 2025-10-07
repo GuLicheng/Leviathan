@@ -8,8 +8,10 @@
 #include <leviathan/print.hpp>
 #include <leviathan/extc++/all.hpp>
 #include <leviathan/config_parser/json/json.hpp>
+#include <leviathan/config_parser/toml/toml.hpp>
 
 namespace json = cpp::json;
+namespace toml = cpp::toml;
 
 constexpr const char* Filename = R"(D:\Library\Leviathan\salary.json)";
 
