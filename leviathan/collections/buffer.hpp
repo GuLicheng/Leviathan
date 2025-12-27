@@ -314,7 +314,8 @@ struct buffer
         if (dist == size())
         {
             // return emplace_back(alloc, (Args&&) args...);
-            return emplace_back_unchecked(alloc, (Args&&) args...);
+            // return emplace_back_unchecked(alloc, (Args&&) args...);
+            return emplace_back_unchecked(alloc, *handle);
         }
         else
         {

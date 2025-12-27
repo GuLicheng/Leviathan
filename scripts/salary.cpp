@@ -98,8 +98,14 @@ public:
 
         }();
 
+
         auto change_name = cpp::views::transform([](auto&& details) 
         {
+            bool brief = true;
+
+            if (!brief)
+                return std::make_pair(details.first, details.second);
+
             auto it = KeyMapper.find(details.first);
             return std::make_pair((it != KeyMapper.end() ? it->second : details.first), details.second);
         });
@@ -120,7 +126,7 @@ public:
 
     static void PrintTotal()
     {
-        auto result = ReadSalary(2023, 1, 2025, 12);
+        auto result = ReadSalary(2023, 1, 2026, 7);
         PrettyPrint(result);
     }
 

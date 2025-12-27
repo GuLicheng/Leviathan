@@ -43,7 +43,7 @@ def convert_music(source: str, target: str = ".", fmt: str = ".mp3"):
 
         >>> convert_music("QQMusicDownload/music_name.ogg", "target_directory", ".mp3")
     """
-    print(f"Converting {source}...")
+    # print(f"Converting {source}...")
     TYPE_DICTIONARY[fmt](dest=target)(source)
 
 def convert_musics(source_directory: str, target_directory: str, ext: str, fmt: str):

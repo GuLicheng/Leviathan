@@ -164,6 +164,7 @@ public:
 
     tree(const tree& other, const Allocator& alloc) : tree(other.m_cmp, alloc)
     {
+        // FIXME: Exception may be thrown here!
         copy_or_move_from_another_tree(other, [](const auto& x) static -> const auto& { return x; });
     }
 
