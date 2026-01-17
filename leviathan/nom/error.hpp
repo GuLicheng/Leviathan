@@ -41,7 +41,7 @@ enum class error_kind
 /**
  * @brief The error structure for nom parsers.
  * 
- * The error in Rust::nom has three states: Incomplete, Error, Failure.
+ * The error in Rust::nom has three states: Incomplete, Error and Failure.
  * 
  * @param Incomplete Indicating how many characters we still need in input.
  * @param Error A recoverable error tag, we can try other parsers.
