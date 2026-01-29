@@ -5,6 +5,8 @@
 #include <string>
 #include <fstream>
 
+#include <leviathan/config_parser/context.hpp>
+
 struct option
 {
     std::string longname;

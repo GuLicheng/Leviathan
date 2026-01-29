@@ -65,7 +65,6 @@ inline constexpr auto is_not = []<typename StringLike>(StringLike tv) static
     return detail::is_not_fn(tv);
 };
 
-
 inline constexpr auto take = [](size_t count) static
 {
     return [=]<typename Context>(Context ctx) 

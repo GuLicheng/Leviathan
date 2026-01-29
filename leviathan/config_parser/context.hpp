@@ -2,6 +2,7 @@
 
 #include <string_view>
 #include <utility>
+#include <bit>
 #include <assert.h>
 
 namespace cpp::config
@@ -217,6 +218,38 @@ struct context_interface
         return self.to_string_view().substr(0, idx);
     }
 
+    template <typename Self>
+    constexpr uint32_t read_four_bytes_as_u32(this Self& self, std::endian endian = std::endian::little)
+    {
+        auto sv = self.to_string_view();
+        assert(sv.size() >= 4);
+        uint32_t result = sv[0] | (sv[1] << 8) | (sv[2] << 16) | (sv[3] << 24);
+
+        if (endian == std::endian::big)
+        {
+            result = std::byteswap(result);
+        }
+
+        self.advance(4);
+        return result;
+    }
+
+    template <typename Self>
+    constexpr uint16_t read_two_bytes_as_u16(this Self& self, std::endian endian = std::endian::little)
+    {
+        auto sv = self.to_string_view();
+        assert(sv.size() >= 2);
+        uint16_t result = sv[0] | (sv[1] << 8);
+
+        if (endian == std::endian::big)
+        {
+            result = std::byteswap(result);
+        }
+
+        self.advance(2);
+        return result;
+    }
+
 };
 
 template <typename CharT>
@@ -330,4 +363,3 @@ using cursor_context = basic_cursor_context<char>;
 using wcursor_context = basic_cursor_context<wchar_t>;
 
 } // namespace cpp::config
-

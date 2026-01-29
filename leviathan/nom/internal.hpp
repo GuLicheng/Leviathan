@@ -1089,7 +1089,7 @@ struct count_parser
 // This parser fails if the input runs out before the given slice is full.
 // Since we use an output iterator, the output container must be pre-sized.
 // So we cannot check whether the given slice is full or not, we add
-// another argument `sentinel`, which used for indicate whether the
+// another param `sentinel`, which used for indicating whether the
 // parse should be stopped.
 template <typename Context, typename Parser, typename Iterator, typename Sentinel>
 struct fill_parser
