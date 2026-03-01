@@ -208,3 +208,24 @@ inline constexpr struct
 
 
 } // namespace cpp::math
+
+// template <typename T>
+// struct std::tuple_size<cpp::math::div_result<T>> : std::integral_constant<std::size_t, 2> { };
+
+// template <typename T>
+// struct std::tuple_element<0, cpp::math::div_result<T>> { using type = T; };
+
+// template <typename T>
+// struct std::tuple_element<1, cpp::math::div_result<T>> { using type = T; };
+
+// // 实现 get 函数
+// template<size_t I, typename T>
+// constexpr auto get(cpp::math::div_result<T> div_res) {
+//     static_assert(I < 2); // Ensure I is 0 or 1
+//     if constexpr (I == 0) {
+//         return div_res.quotient;
+//     } else {
+//         return div_res.remainder;
+//     }
+// }
+
