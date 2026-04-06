@@ -9,6 +9,7 @@
 
 namespace cpp::collections
 {
+    
 // Difference from std::vector, this class does not contain allocator.
 // Any container can split two parts: implementation and allocator. Some containers 
 // such as hashtable with chain(std::unordered_map) require dynamic array as 

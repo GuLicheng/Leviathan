@@ -40,10 +40,10 @@ using self_decay_t = std::remove_cvref_t<Self>;
  * 
  * This interface will generate iterator functions for container.
  * 
- * Requirements: begin/end
+ * @requirements: begin/end
  * 
- * Generate erase function:
- * upper_bound/find/count/contains/equal_range
+ * Generate follow functions:
+ * cbegin/cend/rbegin/rend/rcbegin/rcend
  */
 struct iterable_interface
 {
@@ -105,9 +105,9 @@ concept searchable = iterable<Container> && requires(Container c, const T& x)
  * 
  * This interface will generate lookup functions for container.
  * 
- * Requirements: lower_bound
+ * @requirements: lower_bound
  * 
- * Generate erase function:
+ * Generate follow functions:
  * upper_bound/find/count/contains/equal_range
  */
 struct lookup_interface
@@ -162,6 +162,11 @@ struct lookup_interface
 template <typename Self>
 using self_value_t = typename self_decay_t<Self>::value_type;
 
+/**
+ * @brief Generate insert interface for container.
+ * 
+ * @requirements: emplace
+ */
 struct insert_interface
 {
     template<typename Self, container_compatible_range<self_value_t<Self>> R>
@@ -251,7 +256,7 @@ struct unique_insert_interface : insert_interface
  * 
  * This interface will generate erase function for container.
  * 
- * Requirements:
+ * @requirements:
  *  iterator erase(const_iterator pos);
  *  void clear();
  * 

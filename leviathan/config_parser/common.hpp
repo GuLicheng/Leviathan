@@ -54,34 +54,34 @@ constexpr std::array<CharT, MaxCount> make_character_table(Initializer init)
 }
 
 template <std::integral I>
-constexpr optional<I> from_chars_to_optional(const char* startptr, const char* endptr, int base = 10)
+constexpr std::optional<I> from_chars_to_optional(const char* startptr, const char* endptr, int base = 10)
 {
     I value;
     auto result = std::from_chars(startptr, endptr, value, base);
     if (result.ec == std::errc() && result.ptr == endptr)
         return value;
-    return nullopt;
+    return std::nullopt;
 }
 
 template <std::floating_point F>
-constexpr optional<F> from_chars_to_optional(const char* startptr, const char* endptr, std::chars_format fmt = std::chars_format::general)
+constexpr std::optional<F> from_chars_to_optional(const char* startptr, const char* endptr, std::chars_format fmt = std::chars_format::general)
 {
     F value;
     auto result = std::from_chars(startptr, endptr, value, fmt);
     if (result.ec == std::errc() && result.ptr == endptr)
         return value;
-    return nullopt;
+    return std::nullopt;
 }
 
 template <typename T, typename... Args>
-constexpr optional<T> from_chars_to_optional(const std::string& s, Args... args)
+constexpr std::optional<T> from_chars_to_optional(const std::string& s, Args... args)
 {
     return from_chars_to_optional<T>(
         s.data(), s.data() + s.size(), args...);
 }
 
 template <typename T, typename... Args>
-constexpr optional<T> from_chars_to_optional(std::string_view sv, Args... args)
+constexpr std::optional<T> from_chars_to_optional(std::string_view sv, Args... args)
 {
     return from_chars_to_optional<T>(
         sv.begin(), sv.end(), args...);

@@ -6,7 +6,17 @@
 
 namespace cpp::config::cmd
 {
-  
+
+// Name generator
+template <typename T>
+concept name_generator = requires(T t, std::string_view name) {
+    { t(name) } -> std::convertible_to<std::string_view>;
+};
+
+
+
+
+
 // Command class is a placeholder for command line commands.
 class commandline
 {

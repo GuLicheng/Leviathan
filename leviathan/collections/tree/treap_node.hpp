@@ -133,7 +133,7 @@ using default_treap_node = treap_node<>;
 template <size_t N>
 struct always
 {
-    static size_t operator()()
+    static constexpr size_t operator()()
     {
         return N;
     }

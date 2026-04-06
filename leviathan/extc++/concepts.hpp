@@ -159,7 +159,7 @@ enum class kind : uint8_t
 }  // namespace cpp::meta
 
 template <>
-inline constexpr bool cpp::operators::enum_enable_pipe<cpp::meta::kind> = true;
+inline constexpr bool cpp::operators::enum_enable_bitop<cpp::meta::kind> = true;
 
 namespace cpp::meta
 {

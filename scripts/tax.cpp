@@ -7,7 +7,7 @@
 
 class TaxCalculator
 {
-    static constexpr double TaxRates[] = { 0.03, .1, .20, .25, .30, .35, .40 };
+    static constexpr double TaxRates[] = { 0.03, .1, .20, .25, .30, .35, .45 };
     static constexpr double Bases[] = { 36000, 144000, 300000, 420000, 660000, 960000 };
     static constexpr double Bonus[] = { 3000, 12000, 25000, 35000, 55000, 80000 };
     

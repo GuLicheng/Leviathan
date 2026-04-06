@@ -10,6 +10,7 @@
 #include <variant>
 #include <leviathan/extc++/concepts.hpp>
 #include <leviathan/extc++/functional.hpp>
+#include <leviathan/type_caster.hpp>
 // #include <leviathan/math/int128.hpp>
 
 // Some utils
@@ -342,7 +343,7 @@ concept concat_bidirectional = std::ranges::bidirectional_range<detail::last_ele
 namespace detail
 {
     template <bool Const, typename... Vs>
-    constexpr auto concat_iterator_category()
+    consteval auto concat_iterator_category()
     {
         using reference = std::common_reference_t<std::ranges::range_reference_t<detail::maybe_const_t<Const, Vs>>...>;
         if constexpr (!std::is_lvalue_reference_v<reference>) 
@@ -893,6 +894,12 @@ namespace cpp::ranges::views
 {
 
 using namespace std::views;
+
+template <typename T>
+inline constexpr closure as = []<typename R>(R&& r) static
+{
+    return (R&&)r | transform(cpp::cast<T>);
+};
 
 inline constexpr closure indirect = []<typename R>(R&& r) static
 {

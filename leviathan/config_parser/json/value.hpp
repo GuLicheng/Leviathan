@@ -81,7 +81,7 @@ struct as_unique_ptr_if_large_than
 
 class value;
 
-// A better choice is to use Empty class. The value of null is unique, 
+// A better choice is to use empty class. The value of null is unique, 
 // the index in std::variant is enough to indicate it.
 using null = std::nullptr_t;   
 
