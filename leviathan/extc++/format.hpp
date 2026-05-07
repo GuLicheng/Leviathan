@@ -65,4 +65,68 @@ struct universal_formatter
     }
 };
 
-}
+// template <> struct std::formatter<B> : universal_formatter { };
+
+} // namespace cpp
+
+namespace cpp
+{
+
+// https://isocpp.org/files/papers/P2996R13.html
+// What does Enumerable mean? 
+// template<typename E, bool Enumerable = is_enumerable_type(^^E)>
+//     requires std::is_enum_v<E>
+// constexpr std::string_view enum_to_string(E value)
+// {
+//     if constexpr (Enumerable)
+//         template for (constexpr auto e :define_static_array(enumerators_of(^^E)))
+//             if (value == [:e:])
+//                 return identifier_of(e);
+//     return "<unnamed>";
+// }
+
+template <typename Enum>
+struct default_enum_decoder
+{
+    static_assert(std::is_enum_v<Enum>, "universal_enum_parser can only be used with enum types");
+
+    static constexpr Enum operator()(std::string_view str)
+    {
+        template for (constexpr auto e : define_static_array(enumerators_of(^^Enum)))
+            if (str == identifier_of(e))
+                return [:e:];
+        throw std::runtime_error("Invalid enum string");
+    }
+};
+
+template <typename Enum>
+struct default_enum_encoder
+{
+    static_assert(std::is_enum_v<Enum>, "universal_enum_parser can only be used with enum types");
+
+    static constexpr std::string_view operator()(Enum value)
+    {
+        template for (constexpr auto e : define_static_array(enumerators_of(^^Enum)))
+            if (value == [:e:])
+                return identifier_of(e);
+        return "<unnamed>";
+    }
+};
+
+template <typename Enum>
+struct universal_enum_formatter
+{
+    static constexpr auto parse(auto& ctx) { return ctx.begin(); }
+
+    template <typename EnumType>
+    static auto format(EnumType value, auto& ctx) 
+    {
+        return std::format_to(ctx.out(), "{}", default_enum_encoder<EnumType>()(value));
+    }
+};
+
+
+// TODO: add annotation version
+
+
+}  // namespace cpp

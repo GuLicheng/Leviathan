@@ -28,8 +28,23 @@ enum class error_policy
 template <typename Target, typename Source, error_policy Policy = error_policy::exception>
 class type_caster;
 
+// Maybe we can add some customization points for type_caster, such as use_default_caster, 
+// to allow users to opt-in for default casting behavior for their custom types. 
+// For example, if a user wants to use the default caster for a struct, 
+// they can simply specialize use_default_caster for that struct and set it to true. 
+// Then, when cpp::cast is called for that struct, it will automatically use the universal_caster 
+// without needing to write a custom type_caster specialization.
 template <typename T>
 inline constexpr bool use_default_caster = false;
+
+
+
+
+
+
+
+
+
 
 // ------------------------------------ Specialized for some basic type ------------------------------------
 

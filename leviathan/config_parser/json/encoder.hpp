@@ -215,6 +215,10 @@ struct caster
         {
             return range_caster<T>::operator()(v);
         }
+        else if constexpr (std::is_enum_v<T>)
+        {
+            return default_enum_decoder<T>()(v.as<string>());
+        }
         else if constexpr (use_default_caster<T>)
         {
             return universal_caster<T>::operator()(v);
