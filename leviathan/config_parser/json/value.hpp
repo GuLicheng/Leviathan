@@ -7,6 +7,7 @@
 #include <leviathan/variable.hpp>
 #include <leviathan/extc++/all.hpp>
 #include <leviathan/type_caster.hpp>
+#include <leviathan/extc++/meta.hpp>
 
 #include <utility>
 #include <memory>
@@ -289,7 +290,7 @@ public:
         }
         else
         {
-            static_assert(false);
+            static_assert(false, "Unsupported type for json::value");
         }
     } 
 };

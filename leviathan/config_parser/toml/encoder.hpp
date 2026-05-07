@@ -108,6 +108,15 @@ struct caster<Arithmetic>
     }
 };
 
+template <>
+struct caster<bool>
+{
+    static bool operator()(const value& v)
+    {
+        return v.is<boolean>() ? v.as<boolean>() : throw std::runtime_error(std::format("Value is not a boolean, but {}", v.type_name()));
+    }
+};
+
 template <std::ranges::range Container>
 struct caster<Container>
 {

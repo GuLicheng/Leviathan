@@ -11,8 +11,8 @@ set(CMAKE_CXX_STANDARD 26)
 set(LIBRARY_OUTPUT_DIRECTORY ${PROJECT_ROOT_PATH}/lib)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_ROOT_PATH}/bin)
 
-set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
-set(CMAKE_CXX_FLAGS_RELEASE " -O3 ")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -freflection ")
+set(CMAKE_CXX_FLAGS_RELEASE " -O3 -freflection")
 
 include_directories(${PROJECT_ROOT_PATH})
 include_directories(thirdpart/Catch2/src)

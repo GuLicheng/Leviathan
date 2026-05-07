@@ -28,6 +28,9 @@ enum class error_policy
 template <typename Target, typename Source, error_policy Policy = error_policy::exception>
 class type_caster;
 
+template <typename T>
+inline constexpr bool use_default_caster = false;
+
 // ------------------------------------ Specialized for some basic type ------------------------------------
 
 // Type caster for arithmetic types from string_view using std::from_chars.

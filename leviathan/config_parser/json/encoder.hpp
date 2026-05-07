@@ -70,8 +70,50 @@ struct encoder
 template <typename T> 
 struct caster;
 
-template <cpp::meta::arithmetic Arithmetic>
-struct caster<Arithmetic>
+template <typename T>
+struct universal_caster
+{
+    static T operator()(const value& root)
+    {
+        alignas(T) char buffer[sizeof(T)];
+        T& obj = *reinterpret_cast<T*>(buffer);
+
+        constexpr auto ctx = std::meta::access_context::current();
+
+        template for (constexpr auto mem : define_static_array(nonstatic_data_members_of(^^T, ctx))) 
+        {
+            constexpr auto name = identifier_of(mem);
+            auto field = cpp::json::string(name);
+
+            auto it = root.as<cpp::json::object>().find(field);
+
+            if (it == root.as<cpp::json::object>().end()) 
+            {
+                std::construct_at(std::addressof(obj.[:mem:]), typename [:type_of(mem):]{}); // default construct
+            }
+            else
+            {
+                std::construct_at(  
+                    std::addressof(obj.[:mem:]), 
+                    cpp::cast<typename [:type_of(mem):]>(it->second)
+                );
+            }
+        }
+
+        return std::move(obj);
+    }
+};
+
+struct boolean_caster
+{
+    static bool operator()(const value& v)
+    {
+        return v.is<boolean>() ? v.as<boolean>() : throw std::runtime_error(std::format("Value is not a boolean, but {}", v.type_name()));
+    }
+};
+
+template <typename Arithmetic>
+struct arithmetic_caster
 {
     static Arithmetic operator()(const value& v)
     {
@@ -94,7 +136,7 @@ struct caster<Arithmetic>
             }
             else
             {
-                throw std::runtime_error("Failed to convert string to number");
+                throw std::runtime_error("Failed to convert string to number" + std::string(ctx));
             }
         }
         else
@@ -104,18 +146,18 @@ struct caster<Arithmetic>
     }
 };
 
-template <std::ranges::range Container>
-struct caster<Container>
+template <typename Range>
+struct range_caster
 {
-    static Container operator()(const value& v)
+    static Range operator()(const value& v)
     {
-        if constexpr (meta::string_like<Container>)
+        if constexpr (meta::string_like<Range>)
         {
             return encoder()(v);
         }
         else
         {
-            using ValueType = typename Container::value_type;
+            using ValueType = typename Range::value_type;
 
             if constexpr (cpp::meta::pair_like<ValueType>)
             {
@@ -131,7 +173,7 @@ struct caster<Container>
                 {
                     return v.as<object>()
                         | cpp::views::pair_transform(cpp::cast<KeyType>, cpp::cast<MappedType>)
-                        | std::ranges::to<Container>();
+                        | std::ranges::to<Range>();
                 }
                 else
                 {
@@ -145,7 +187,7 @@ struct caster<Container>
                 {
                     return v.as<array>() 
                         | std::views::transform(caster<ValueType>()) 
-                        | std::ranges::to<Container>();
+                        | std::ranges::to<Range>();
                 }
                 else
                 {
@@ -155,6 +197,32 @@ struct caster<Container>
         }
     }
 };
+
+template <typename T> 
+struct caster
+{
+    static T operator()(const value& v)
+    {
+        if constexpr (std::same_as<bool, T>)
+        {
+            return boolean_caster::operator()(v);
+        }
+        else if constexpr (cpp::meta::arithmetic<T>)
+        {
+            return arithmetic_caster<T>::operator()(v);
+        }
+        else if constexpr (std::ranges::range<T>)
+        {
+            return range_caster<T>::operator()(v);
+        }
+        else if constexpr (use_default_caster<T>)
+        {
+            return universal_caster<T>::operator()(v);
+        }
+    }
+};
+
+
 
 /*
 {
@@ -173,6 +241,7 @@ struct caster<Container>
     }
 } 
 */
+
 class indented_encoder
 {
     struct impl
