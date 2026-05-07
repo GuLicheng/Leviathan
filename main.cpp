@@ -9,7 +9,7 @@
 #include <ranges>
 #include <array>
 
-enum class [[=2]] Gender
+enum class Gender
 {
     Male, 
     
