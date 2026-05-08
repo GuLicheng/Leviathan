@@ -57,7 +57,7 @@ struct universal_formatter
             delim();
             std::string_view mem_label = has_identifier(mem) ? identifier_of(mem)
                 : "(unnamed-member)";
-            out = std::format_to(out, ".{}={}", mem_label, t.[:mem:]);
+            out = std::format_to(out, "{}: {}", mem_label, t.[:mem:]);
         }
 
         *out++ = '}';
@@ -65,7 +65,7 @@ struct universal_formatter
     }
 };
 
-// template <> struct std::formatter<B> : universal_formatter { };
+// template <> struct std::formatter<SomeType> : universal_formatter { };
 
 } // namespace cpp
 
@@ -124,6 +124,12 @@ struct universal_enum_formatter
         return std::format_to(ctx.out(), "{}", default_enum_encoder<EnumType>()(value));
     }
 };
+
+/*
+enum class Gender { Male, Female };
+template <> struct std::formatter<Gender> : cpp::universal_enum_formatter<Gender> { };
+*/
+
 
 
 // TODO: add annotation version

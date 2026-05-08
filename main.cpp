@@ -11,7 +11,7 @@
 
 enum class Gender
 {
-    Male, 
+    Male [[=cpp::refl::uppercase]], 
     
     Female
 };
@@ -71,6 +71,7 @@ void Test()
 int main() 
 {
     Test();
+    std::println("{}", has_identifier(std::meta::reflect_constant(5)));
 }
 
 
