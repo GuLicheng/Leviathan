@@ -26,6 +26,7 @@
 #include <ranges>
 #include <meta>
 #include <algorithm>
+#include <leviathan/string/fixed_string.hpp>
 
 namespace cpp::refl
 {
@@ -48,7 +49,7 @@ struct value_annotation : annotation
     constexpr explicit value_annotation(T value) : value(std::move(value)) {}
 };
     
-struct help_annotation : value_annotation<std::string> 
+struct help_annotation : value_annotation<const char*> 
 {
     using value_annotation::value_annotation;
 };
@@ -61,33 +62,20 @@ struct function_rename_annotation : rename_annotation
 
     constexpr explicit function_rename_annotation(F function) : function(std::move(function)) {}
 
-    template <typename Self>
-    constexpr std::string operator()(this Self&& self, std::string field_name) 
+    template <typename Self, typename... Args>
+    constexpr std::string operator()(this Self&& self, Args&&... args)
     {
-        return std::invoke(((Self&&)self).function, field_name);
+        return std::invoke(((Self&&)self).function, (Args&&)args...);
     }
 };
-
-struct rename : rename_annotation
-{
-    const char* name;
-
-    consteval explicit rename(const char* name) : name(name) {}
-
-    consteval std::string operator()(std::string field_name) const
-    {
-        return std::string(name);
-    }
-};
-
 
 // ------------------ predefined annotations ------------------
 
 inline constexpr auto ignore = ignore_annotation{};
 
-inline constexpr auto help = [](std::string message) static
+inline constexpr auto help = [](std::string_view message) static
 {
-    return help_annotation(message);
+    return help_annotation(define_static_string(message));
 };
 
 inline constexpr auto shortname = function_rename_annotation([](std::string field_name) static 
@@ -112,6 +100,12 @@ inline constexpr auto uppercase = function_rename_annotation([](std::string fiel
     return field_name | std::views::transform(::toupper) | std::ranges::to<std::string>();
 });
 
-
+inline constexpr auto rename = [](std::string_view new_name) static
+{
+    return function_rename_annotation([name=define_static_string(new_name)](...)  
+    {
+        return std::string(name);
+    });
+};
 
 }
