@@ -26,7 +26,6 @@
 #include <ranges>
 #include <meta>
 #include <algorithm>
-#include <leviathan/string/fixed_string.hpp>
 
 namespace cpp::refl
 {
@@ -108,4 +107,47 @@ inline constexpr auto rename = [](std::string_view new_name) static
     });
 };
 
+}  // namespace cpp::refl
+
+
+// We define some utilities functions
+namespace cpp::refl
+{
+
+template <std::meta::info Info>
+constexpr std::string extract_name_by_annotation()
+{
+    static_assert(has_identifier(Info), "Info must have an identifier");
+ 
+    auto name = std::string(identifier_of(Info));
+
+    template for (constexpr auto anno : define_static_array(annotations_of(Info)))
+    {
+        using AnnoType = typename [:type_of(anno):];
+
+        if constexpr (std::is_base_of_v<rename_annotation, AnnoType>)
+        {
+            name = std::invoke(extract<AnnoType>(anno), name);
+        }
+    }
+    return name;    
 }
+
+template <std::meta::info Info>
+consteval bool is_ignored()
+{
+    static_assert(has_identifier(Info), "Info must have an identifier");
+
+    template for (constexpr auto anno : define_static_array(annotations_of(Info)))
+    {
+        using AnnoType = typename [:type_of(anno):];
+
+        if constexpr (std::is_base_of_v<ignore_annotation, AnnoType>)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+    
+}  // namespace cpp::refl

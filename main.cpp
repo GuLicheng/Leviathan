@@ -1,8 +1,8 @@
 #include <leviathan/config_parser/json/json.hpp>
 #include <iostream>
-#include <meta>
+#include <leviathan/extc++/meta.hpp>
 #include <print>
-#include "annotations.hpp"
+#include "leviathan/annotations.hpp"
 #include <string>
 #include <algorithm>
 #include <leviathan/extc++/format.hpp>
@@ -85,8 +85,6 @@ inline constexpr bool cpp::use_default_caster<Student> = true;
 
 template <> struct std::formatter<Student> : cpp::universal_formatter { };
 
-
-
 void Test()
 {
     cpp::json::value root = {
@@ -110,6 +108,12 @@ int main()
     std::println("{}", EnumEncoder<Gender>::operator()(Gender::Male));
     std::println("{}", EnumEncoder<Gender>::operator()(Gender::Female));
     std::println("{}", EnumEncoder<Gender>::operator()(Gender::Unknown));
+
+    // std::println("Enum Mapping: {}", get_enum_mapping<Gender>());
+    std::println("Extracted Name: {}", cpp::refl::extract_name_by_annotation< (^^Gender::Female) >());
+
+    std::println("Is 'Female' Ignored? {}", cpp::refl::is_ignored< (^^Gender::Female) >());
+    std::println("Is 'Male' Ignored? {}", cpp::refl::is_ignored< (^^Gender::Male) >());
 }
 
 
