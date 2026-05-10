@@ -89,7 +89,28 @@ struct universal_caster
 
             if (it == root.as<cpp::json::object>().end()) 
             {
-                std::construct_at(std::addressof(obj.[:mem:]), typename [:type_of(mem):]{}); // default construct
+                // FIXME: add default
+                bool initialized = false;
+
+                template for (constexpr auto anno : define_static_array(annotations_of(mem)))
+                {
+                    using AnnoType = typename [:type_of(anno):];
+                        
+                    // FIXME
+                    if constexpr (std::is_base_of_v<cpp::refl::value_annotation<typename [:type_of(mem):]>, AnnoType>)
+                    {
+                        constexpr auto default_value = std::invoke(extract<AnnoType>(anno));
+                        std::construct_at(std::addressof(obj.[:mem:]), default_value); // construct with default value
+                        initialized = true;
+                        break;
+                    }
+                }
+
+                if (!initialized)
+                {
+                    // default construct
+                    std::construct_at(std::addressof(obj.[:mem:]), typename [:type_of(mem):]{}); 
+                }
             }
             else
             {
@@ -222,6 +243,10 @@ struct caster
         else if constexpr (use_default_caster<T>)
         {
             return universal_caster<T>::operator()(v);
+        }
+        else
+        {
+            static_assert(false, "No caster available for this type");
         }
     }
 };
@@ -413,7 +438,7 @@ struct cpp::optional_caster<cpp::json::value, Target>
 {
     static auto operator()(const cpp::json::value& v)
     {
-        // return cpp::json::detail::caster<Target>()(v);
-        return std::make_optional(cpp::json::detail::caster<Target>::operator()(v));
+        auto result = cpp::json::detail::caster<Target>::operator()(v);
+        return std::make_optional(std::move(result));
     }
 };

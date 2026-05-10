@@ -35,27 +35,41 @@ struct annotation { };
 
 struct debug_annotation : annotation { };
 
+// -------------------- ignore annotation ------------------
 struct ignore_annotation : annotation { };
 
+inline constexpr auto ignore = ignore_annotation{};
+
+// ------------------- default value annotations -------------------
 template <typename T>
 struct value_annotation : annotation 
 {
     T value;
 
     constexpr explicit value_annotation(T value) : value(std::move(value)) {}
+
+    constexpr T operator()() const 
+    {
+        return value;
+    }
 };
     
+inline constexpr auto default_value = [](auto value) static
+{
+    return value_annotation(std::move(value));
+};
+
 struct help_annotation : value_annotation<const char*> 
 {
     using value_annotation::value_annotation;
 };
 
-inline constexpr auto ignore = ignore_annotation{};
 
 inline constexpr auto help = [](std::string_view message) static
 {
     return help_annotation(define_static_string(message));
 };
+
 
 
 // ------------------ rename annotations ------------------
@@ -131,6 +145,10 @@ inline constexpr auto pascal_case = function_rename_annotation([](std::string fi
     }
     return result;
 });
+
+// ------------------ annotations for parsing ------------------
+struct accept_annotation : annotation { };
+
 
 }  // namespace cpp::refl
 
@@ -213,4 +231,14 @@ consteval bool is_ignored()
     return false;
 }
     
+// template <std::meta::info Anno>
+// consteval bool is_value()
+// {
+//     if constexpr (!has_template_arguments(Anno))
+//     {
+//         return false;
+//     }
+//     return template_of(Anno) == ^^value_annotation;
+// }
+
 }  // namespace cpp::refl

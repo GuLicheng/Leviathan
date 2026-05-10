@@ -2,6 +2,7 @@
 #include <iostream>
 #include <leviathan/extc++/meta.hpp>
 #include "leviathan/annotations.hpp"
+#include "leviathan/config_parser/json/json.hpp"
 #include <string>
 #include <algorithm>
 #include <leviathan/extc++/format.hpp>
@@ -10,39 +11,57 @@
 
 enum class Gender 
 {
-    Female [[=cpp::refl::lowercase]] ,
+    Female,
     Male,
     Unknown 
 };
 
-template <> struct std::formatter<Gender> : cpp::enum_formatter<Gender> { };
+template <> struct std::formatter<Gender> : cpp::enum_formatter { };
 
-struct [[=cpp::refl::pascal_case]] Student
+struct Student
 {
-    [[=cpp::refl::ignore]]
     std::string id;
     std::string name;
+    [[=cpp::refl::default_value(18)]]
     int age;
     Gender gender;
     std::vector<int> scores;
-
     bool is_special;
 };
 
 template <> struct std::formatter<Student> : cpp::universal_formatter { };
 
+template <>
+inline constexpr bool cpp::use_default_caster<Student> = true;
+
+constexpr const char* context = R"(
+    {
+        "id": "12345",
+        "name": "Alice",
+        "is_student": true,
+        "gender": "Female",
+        "scores": [85, 90, 92],
+        "is_special": false
+    }
+)";
+
+template <typename T>
+struct choice
+{
+    std::span<T> options;
+
+    consteval choice(std::span<T> ilist) : options(define_static_array(ilist)) {}
+};
+
 int main() 
 {
-    Student alice{
-        .id = "S001",
-        .name = "Alice",
-        .age = 20,
-        .gender = Gender::Female,
-        .scores = {90, 85, 92},
-        .is_special = false
-    };
+    auto root = cpp::json::loads(context);
 
-    std::println("Student info: \n{}", alice);
+    std::println("Parsed JSON: \n{:4}", root);
+
+    auto student = cpp::cast<Student>(root);
+
+    std::println("Student info: \n{}", student);
 }
 
 

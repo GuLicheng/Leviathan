@@ -13,10 +13,14 @@ namespace cpp
 
 struct universal_formatter 
 {
-    static constexpr auto parse(auto& ctx) { return ctx.begin(); }
+    template <typename ParseContext>
+    static constexpr typename ParseContext::iterator parse(ParseContext& ctx) 
+    { 
+        return ctx.begin(); 
+    }
 
-    template <typename T>
-    static auto format(T const& t, auto& ctx) 
+    template <typename T, typename FmtContext>
+    static typename FmtContext::iterator format(const T& t, FmtContext& ctx) 
     {
         auto out = std::format_to(ctx.out(), "{}{{", has_identifier(^^T) ? identifier_of(^^T) : "(unnamed-type)");
 
@@ -58,7 +62,6 @@ struct universal_formatter
 template <> struct std::formatter<SomeType> : universal_formatter { };
 */
 
-template <typename Enum>
 struct enum_formatter
 {
     static constexpr auto parse(auto& ctx) { return ctx.begin(); }
@@ -72,7 +75,7 @@ struct enum_formatter
 
 /*
 enum class Gender { Male, Female };
-template <> struct std::formatter<Gender> : cpp::enum_formatter<Gender> { };
+template <> struct std::formatter<Gender> : cpp::enum_formatter { };
 */
 
 } // namespace cpp
