@@ -38,9 +38,15 @@ struct universal_formatter
 
         template for (constexpr auto mem : define_static_array(nonstatic_data_members_of(^^T, unchecked))) 
         {
+            if constexpr (refl::is_ignored<mem>())
+            {
+                continue;
+            }
+
             delim();
-            std::string_view mem_label = has_identifier(mem) ? identifier_of(mem)
+            std::string mem_label = has_identifier(mem) ? refl::extract_name_by_annotation<mem, ^^T>()
                 : "(unnamed-member)";
+
             out = std::format_to(out, "{}: {}", mem_label, t.[:mem:]);
         }
 
@@ -48,8 +54,9 @@ struct universal_formatter
         return out;
     }
 };
-
-// template <> struct std::formatter<SomeType> : universal_formatter { };
+/*
+template <> struct std::formatter<SomeType> : universal_formatter { };
+*/
 
 template <typename Enum>
 struct enum_formatter

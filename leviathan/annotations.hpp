@@ -33,8 +33,6 @@ namespace cpp::refl
 
 struct annotation { }; 
 
-struct rename_annotation : annotation { };
-
 struct debug_annotation : annotation { };
 
 struct ignore_annotation : annotation { };
@@ -52,7 +50,17 @@ struct help_annotation : value_annotation<const char*>
     using value_annotation::value_annotation;
 };
 
+inline constexpr auto ignore = ignore_annotation{};
+
+inline constexpr auto help = [](std::string_view message) static
+{
+    return help_annotation(define_static_string(message));
+};
+
+
 // ------------------ rename annotations ------------------
+struct rename_annotation : annotation { };
+
 template <typename F>
 struct function_rename_annotation : rename_annotation
 {
@@ -65,15 +73,6 @@ struct function_rename_annotation : rename_annotation
     {
         return std::invoke(((Self&&)self).function, (Args&&)args...);
     }
-};
-
-// ------------------ predefined annotations ------------------
-
-inline constexpr auto ignore = ignore_annotation{};
-
-inline constexpr auto help = [](std::string_view message) static
-{
-    return help_annotation(define_static_string(message));
 };
 
 inline constexpr auto shortname = function_rename_annotation([](std::string field_name) static 
@@ -106,6 +105,32 @@ inline constexpr auto rename = [](std::string_view new_name) static
     });
 };
 
+// Follows functions in terms of implementation maybe incorrect
+// FIXME: Rust clap-
+inline constexpr auto camel_case = function_rename_annotation([](std::string field_name) static
+{
+    std::string out;
+    bool upper_next = false;
+    for (char c : field_name) {
+        if (c == '_') { upper_next = true; continue; }
+        if (upper_next && c >= 'a' && c <= 'z')
+            out += static_cast<char>(c - ('a' - 'A'));
+        else
+            out += c;
+        upper_next = false;
+    }
+    return out;
+});
+
+inline constexpr auto pascal_case = function_rename_annotation([](std::string field_name) static
+{
+    auto result = camel_case(field_name);
+    if (!result.empty() && result[0] >= 'a' && result[0] <= 'z') 
+    {
+        result[0] = static_cast<char>(result[0] - ('a' - 'A'));
+    }
+    return result;
+});
 
 }  // namespace cpp::refl
 
@@ -114,24 +139,61 @@ inline constexpr auto rename = [](std::string_view new_name) static
 namespace cpp::refl
 {
 
+namespace detail
+{
+
+template <std::meta::info... Infos>
+struct extract_name_by_annotation_impl;
 
 template <std::meta::info Info>
+struct extract_name_by_annotation_impl<Info>
+{
+    static constexpr std::string operator()(std::string name)
+    {
+        template for (constexpr auto anno : define_static_array(annotations_of(Info)))
+        {
+            using AnnoType = typename [:type_of(anno):];
+
+            if constexpr (std::is_base_of_v<rename_annotation, AnnoType>)
+            {
+                name = std::invoke(extract<AnnoType>(anno), name);
+            }
+        }
+        return name;   
+    }
+};
+
+template <std::meta::info Info1, std::meta::info Info2, std::meta::info... Infos>
+struct extract_name_by_annotation_impl<Info1, Info2, Infos...>
+{
+    static constexpr std::string operator()(std::string name)
+    {
+        bool has_rename_annotation = false;
+
+        template for (constexpr auto anno : define_static_array(annotations_of(Info1)))
+        {
+            using AnnoType = typename [:type_of(anno):];
+
+            if constexpr (std::is_base_of_v<rename_annotation, AnnoType>)
+            {
+                name = std::invoke(extract<AnnoType>(anno), name);
+                has_rename_annotation = true;
+            }
+        }
+        
+        return has_rename_annotation
+            ? name
+            : extract_name_by_annotation_impl<Info2, Infos...>::operator()(name);
+    }
+};
+
+}  // namespace detail
+
+template <std::meta::info Info1, std::meta::info... Infos>
 constexpr std::string extract_name_by_annotation()
 {
-    static_assert(has_identifier(Info), "Info must have an identifier");
- 
-    auto name = std::string(identifier_of(Info));
-
-    template for (constexpr auto anno : define_static_array(annotations_of(Info)))
-    {
-        using AnnoType = typename [:type_of(anno):];
-
-        if constexpr (std::is_base_of_v<rename_annotation, AnnoType>)
-        {
-            name = std::invoke(extract<AnnoType>(anno), name);
-        }
-    }
-    return name;    
+    constexpr auto name = identifier_of(Info1);
+    return detail::extract_name_by_annotation_impl<Info1, Infos...>::operator()(std::string(name));
 }
 
 template <std::meta::info Info>

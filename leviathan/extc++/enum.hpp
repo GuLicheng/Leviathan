@@ -13,7 +13,7 @@ struct enum_decoder
     static constexpr Enum operator()(std::string_view str)
     {
         template for (constexpr auto e : define_static_array(enumerators_of(^^Enum)))
-            if (str == refl::extract_name_by_annotation<e>())
+            if (str == refl::extract_name_by_annotation<e, ^^Enum>())
                 return [:e:];
         throw std::runtime_error(std::format("Invalid enum name: {}", str));
     }
@@ -28,7 +28,7 @@ struct enum_encoder
     {
         template for (constexpr auto e : define_static_array(enumerators_of(^^Enum)))
             if (value == [:e:])
-                return refl::extract_name_by_annotation<e>();
+                return refl::extract_name_by_annotation<e, ^^Enum>();
         throw std::runtime_error(std::format("Invalid enum value: {}", static_cast<std::underlying_type_t<Enum>>(value)));
     }
 };
