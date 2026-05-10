@@ -114,6 +114,7 @@ inline constexpr auto rename = [](std::string_view new_name) static
 namespace cpp::refl
 {
 
+
 template <std::meta::info Info>
 constexpr std::string extract_name_by_annotation()
 {

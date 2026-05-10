@@ -5,30 +5,11 @@
 #include <meta>
 #include <optional>
 #include <leviathan/annotations.hpp>
+#include <leviathan/extc++/enum.hpp>
 #include <leviathan/type_caster.hpp>
 
 namespace cpp
 {
-
-// template <typename... Ts, typename CharT>
-// struct default_variant_formatter
-// {
-//     template <typename ParseContext>
-//     constexpr typename ParseContext::iterator parse(ParseContext& ctx)
-//     {
-//         return ctx.begin();
-//     }
-
-//     template <typename FormatContext>
-//     typename FormatContext::iterator format(const std::variant<Ts...>& v, FormatContext& ctx) const
-//     {
-//         return std::visit(
-//             [&](const auto& value) { 
-//                 return std::format_to(ctx.out(), "{}", value);
-//             }, v
-//         );
-//     }
-// };
 
 struct universal_formatter 
 {
@@ -70,41 +51,8 @@ struct universal_formatter
 
 // template <> struct std::formatter<SomeType> : universal_formatter { };
 
-} // namespace cpp
-
-namespace cpp
-{
-
 template <typename Enum>
-struct enum_decoder
-{
-    static_assert(std::is_enum_v<Enum>, "universal_enum_parser can only be used with enum types");
-
-    static constexpr Enum operator()(std::string_view str)
-    {
-        template for (constexpr auto e : define_static_array(enumerators_of(^^Enum)))
-            if (str == refl::extract_name_by_annotation<e>())
-                return [:e:];
-        throw std::runtime_error(std::format("Invalid enum name: {}", str));
-    }
-};
-
-template <typename Enum>
-struct enum_encoder
-{
-    static_assert(std::is_enum_v<Enum>, "universal_enum_parser can only be used with enum types");
-
-    static constexpr std::string operator()(Enum value)
-    {
-        template for (constexpr auto e : define_static_array(enumerators_of(^^Enum)))
-            if (value == [:e:])
-                return refl::extract_name_by_annotation<e>();
-        throw std::runtime_error(std::format("Invalid enum value: {}", static_cast<std::underlying_type_t<Enum>>(value)));
-    }
-};
-
-template <typename Enum>
-struct universal_enum_formatter
+struct enum_formatter
 {
     static constexpr auto parse(auto& ctx) { return ctx.begin(); }
 
@@ -117,12 +65,7 @@ struct universal_enum_formatter
 
 /*
 enum class Gender { Male, Female };
-template <> struct std::formatter<Gender> : cpp::universal_enum_formatter<Gender> { };
+template <> struct std::formatter<Gender> : cpp::enum_formatter<Gender> { };
 */
 
-
-
-// TODO: add annotation version
-
-
-}  // namespace cpp
+} // namespace cpp

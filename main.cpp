@@ -18,7 +18,10 @@ enum class Gender
     Unknown [[=cpp::refl::rename("unknown_gender")]],
 };
 
-template <> struct std::formatter<Gender> : cpp::universal_enum_formatter<Gender> { };
+
+
+
+template <> struct std::formatter<Gender> : cpp::enum_formatter<Gender> { };
 
 struct Coordinate
 {
