@@ -18,39 +18,6 @@ enum class Gender
     Unknown [[=cpp::refl::rename("unknown_gender")]],
 };
 
-template <typename Enum>
-struct EnumEncoder
-{
-    static_assert(std::is_enum_v<Enum>, "universal_enum_parser can only be used with enum types");
-
-    static constexpr std::string operator()(Enum value)
-    {
-        template for (constexpr auto e : define_static_array(enumerators_of(^^Enum)))
-        {
-            if (value == [:e:])
-            {            
-                auto name = std::string(identifier_of(e));
-                
-                template for (constexpr auto anno : define_static_array(annotations_of(e)))
-                {
-                    using AnnoType = typename [:type_of(anno):];
-
-                    if constexpr (std::is_base_of_v<cpp::refl::rename_annotation, AnnoType>)
-                    {
-                        name = std::invoke(extract<AnnoType>(anno), name);
-                    }
-                    else if constexpr (std::is_base_of_v<cpp::refl::ignore_annotation, AnnoType>)
-                    {
-                        return "<ignored>";
-                    }
-                }
-                return name;
-            }
-        }
-        return "<unnamed>";
-    }
-};
-
 template <> struct std::formatter<Gender> : cpp::universal_enum_formatter<Gender> { };
 
 struct Coordinate
@@ -90,7 +57,7 @@ void Test()
     cpp::json::value root = {
         {"Age", 20},
         {"Name", "Alice"},
-        {"Gender", "Male"},
+        {"Gender", "MALE"},
         {"Scores", {90, 85, 78}},
         {"coord", {{"X", 10}, {"Y", 20}}}
     };
@@ -105,15 +72,17 @@ int main()
 {
     Test();
 
-    std::println("{}", EnumEncoder<Gender>::operator()(Gender::Male));
-    std::println("{}", EnumEncoder<Gender>::operator()(Gender::Female));
-    std::println("{}", EnumEncoder<Gender>::operator()(Gender::Unknown));
+    std::println("{}", cpp::enum_encoder<Gender>::operator()(Gender::Male));
+    std::println("{}", cpp::enum_encoder<Gender>::operator()(Gender::Female));
+    std::println("{}", cpp::enum_encoder<Gender>::operator()(Gender::Unknown));
 
-    // std::println("Enum Mapping: {}", get_enum_mapping<Gender>());
-    std::println("Extracted Name: {}", cpp::refl::extract_name_by_annotation< (^^Gender::Female) >());
+    // std::println("{}", cpp::enum_decoder<Gender>::operator()("female") == Gender::Female);
 
-    std::println("Is 'Female' Ignored? {}", cpp::refl::is_ignored< (^^Gender::Female) >());
-    std::println("Is 'Male' Ignored? {}", cpp::refl::is_ignored< (^^Gender::Male) >());
+    cpp::cast_optional<std::string>(std::string("hello"));
+
+    static_assert(cpp::meta::arithmetic<bool>);
+
+    std::println("{}", display_string_of(^^std::string));
 }
 
 

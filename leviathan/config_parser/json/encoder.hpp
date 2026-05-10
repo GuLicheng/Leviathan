@@ -128,7 +128,7 @@ struct arithmetic_caster
         else if (v.is<string>())
         {
             std::string_view ctx = v.as<string>();
-            auto result = type_caster<Arithmetic, std::string_view, cpp::error_policy::optional>()(ctx);
+            auto result = cast_optional<Arithmetic>(ctx);
 
             if (result)
             {
@@ -217,7 +217,7 @@ struct caster
         }
         else if constexpr (std::is_enum_v<T>)
         {
-            return default_enum_decoder<T>()(v.as<string>());
+            return enum_decoder<T>()(v.as<string>());
         }
         else if constexpr (use_default_caster<T>)
         {
@@ -409,10 +409,11 @@ private:
 
 // Cast json value to c++ type
 template <typename Target>
-struct cpp::type_caster<Target, cpp::json::value, cpp::error_policy::exception>
+struct cpp::optional_caster<cpp::json::value, Target>
 {
     static auto operator()(const cpp::json::value& v)
     {
-        return cpp::json::detail::caster<Target>()(v);
+        // return cpp::json::detail::caster<Target>()(v);
+        return std::make_optional(cpp::json::detail::caster<Target>::operator()(v));
     }
 };

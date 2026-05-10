@@ -14,7 +14,6 @@
     For example, we can have a shortname annotation, which specifies that the field should 
     be mapped to a short name, and a longname annotation, which specifies that the 
     field should be mapped to a long name, etc.
-
 */
 
 #pragma once
@@ -106,6 +105,7 @@ inline constexpr auto rename = [](std::string_view new_name) static
         return std::string(name);
     });
 };
+
 
 }  // namespace cpp::refl
 

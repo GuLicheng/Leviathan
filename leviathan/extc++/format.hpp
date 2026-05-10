@@ -3,29 +3,32 @@
 #include <format>
 #include <variant>
 #include <meta>
-
-template <typename... Ts, typename CharT>
-struct std::formatter<std::variant<Ts...>, CharT>
-{
-    template <typename ParseContext>
-    constexpr typename ParseContext::iterator parse(ParseContext& ctx)
-    {
-        return ctx.begin();
-    }
-
-    template <typename FormatContext>
-    typename FormatContext::iterator format(const std::variant<Ts...>& v, FormatContext& ctx) const
-    {
-        return std::visit(
-            [&](const auto& value) { 
-                return std::format_to(ctx.out(), "{}", value);
-            }, v
-        );
-    }
-};
+#include <optional>
+#include <leviathan/annotations.hpp>
+#include <leviathan/type_caster.hpp>
 
 namespace cpp
 {
+
+// template <typename... Ts, typename CharT>
+// struct default_variant_formatter
+// {
+//     template <typename ParseContext>
+//     constexpr typename ParseContext::iterator parse(ParseContext& ctx)
+//     {
+//         return ctx.begin();
+//     }
+
+//     template <typename FormatContext>
+//     typename FormatContext::iterator format(const std::variant<Ts...>& v, FormatContext& ctx) const
+//     {
+//         return std::visit(
+//             [&](const auto& value) { 
+//                 return std::format_to(ctx.out(), "{}", value);
+//             }, v
+//         );
+//     }
+// };
 
 struct universal_formatter 
 {
@@ -72,44 +75,31 @@ struct universal_formatter
 namespace cpp
 {
 
-// https://isocpp.org/files/papers/P2996R13.html
-// What does Enumerable mean? 
-// template<typename E, bool Enumerable = is_enumerable_type(^^E)>
-//     requires std::is_enum_v<E>
-// constexpr std::string_view enum_to_string(E value)
-// {
-//     if constexpr (Enumerable)
-//         template for (constexpr auto e :define_static_array(enumerators_of(^^E)))
-//             if (value == [:e:])
-//                 return identifier_of(e);
-//     return "<unnamed>";
-// }
-
 template <typename Enum>
-struct default_enum_decoder
+struct enum_decoder
 {
     static_assert(std::is_enum_v<Enum>, "universal_enum_parser can only be used with enum types");
 
     static constexpr Enum operator()(std::string_view str)
     {
         template for (constexpr auto e : define_static_array(enumerators_of(^^Enum)))
-            if (str == identifier_of(e))
+            if (str == refl::extract_name_by_annotation<e>())
                 return [:e:];
-        throw std::runtime_error("Invalid enum string");
+        throw std::runtime_error(std::format("Invalid enum name: {}", str));
     }
 };
 
 template <typename Enum>
-struct default_enum_encoder
+struct enum_encoder
 {
     static_assert(std::is_enum_v<Enum>, "universal_enum_parser can only be used with enum types");
 
-    static constexpr std::string_view operator()(Enum value)
+    static constexpr std::string operator()(Enum value)
     {
         template for (constexpr auto e : define_static_array(enumerators_of(^^Enum)))
             if (value == [:e:])
-                return identifier_of(e);
-        return "<unnamed>";
+                return refl::extract_name_by_annotation<e>();
+        throw std::runtime_error(std::format("Invalid enum value: {}", static_cast<std::underlying_type_t<Enum>>(value)));
     }
 };
 
@@ -121,7 +111,7 @@ struct universal_enum_formatter
     template <typename EnumType>
     static auto format(EnumType value, auto& ctx) 
     {
-        return std::format_to(ctx.out(), "{}", default_enum_encoder<EnumType>()(value));
+        return std::format_to(ctx.out(), "{}", enum_encoder<EnumType>()(value));
     }
 };
 
