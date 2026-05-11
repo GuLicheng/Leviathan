@@ -16,6 +16,24 @@
     For example, we can have a shortname annotation, which specifies that the field should 
     be mapped to a short name, and a longname annotation, which specifies that the 
     field should be mapped to a long name, etc.
+
+    Follows are our annotation:
+
+    - rename: specify the name of the field.
+    
+    - ignore: format or scan maybe ignored some fields, this annotation is used to mark those fields.
+    
+    - value: specify the default value of the field, this is useful when the field is missing.
+    
+    - parser: for given type T and input type I, call std::invoke(parser, instanceof I) and cast result to T. 
+
+    TODO:
+    
+    - required: mark a field as required, if the field is missing, throw an error.
+    
+    - choice: for given type T and a list of options, try to cast input to each option, 
+    if any option is successful, return the result, otherwise throw an error.
+
 */
 
 #pragma once
@@ -26,6 +44,7 @@
 
 namespace cpp::refl
 {
+
 
 template <typename F>
 struct simple_function

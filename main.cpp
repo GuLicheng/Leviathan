@@ -55,6 +55,8 @@ struct choice
 
 int main() 
 {
+    int required = 1;
+
     auto root = cpp::json::loads(context);
 
     std::println("Parsed JSON: \n{:4}", root);

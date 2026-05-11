@@ -89,7 +89,6 @@ struct universal_caster
 
             if (it == root.as<cpp::json::object>().end()) 
             {
-                // FIXME: add default
                 bool initialized = false;
 
                 template for (constexpr auto anno : define_static_array(annotations_of(mem)))
@@ -108,7 +107,6 @@ struct universal_caster
 
                 if (!initialized)
                 {
-                    // default construct
                     std::construct_at(std::addressof(obj.[:mem:]), typename [:type_of(mem):]{}); 
                 }
             }
