@@ -4,7 +4,7 @@
 #include <variant>
 #include <meta>
 #include <optional>
-#include <leviathan/annotations.hpp>
+#include <leviathan/annotations/all.hpp>
 #include <leviathan/extc++/enum.hpp>
 #include <leviathan/type_caster.hpp>
 

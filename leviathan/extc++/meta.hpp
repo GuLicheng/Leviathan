@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <leviathan/annotations.hpp>
+#include <leviathan/annotations/all.hpp>
 
 namespace cpp::refl
 {

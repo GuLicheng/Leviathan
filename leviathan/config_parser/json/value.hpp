@@ -4,7 +4,6 @@
 #include <leviathan/allocators/debug_allocator.hpp>
 #include <leviathan/extc++/string.hpp>
 #include <leviathan/variable.hpp>
-#include <leviathan/variable.hpp>
 #include <leviathan/extc++/all.hpp>
 #include <leviathan/type_caster.hpp>
 #include <leviathan/extc++/meta.hpp>

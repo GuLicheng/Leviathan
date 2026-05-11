@@ -5,11 +5,3 @@
 #include <leviathan/annotations/parser.hpp>
 
 
-namespace cpp::refl
-{
-
-
-
-
-    
-}

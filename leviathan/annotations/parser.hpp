@@ -6,6 +6,9 @@
 namespace cpp::refl
 {
 
+struct parser_annotation : annotation { };
+
+
 // ------------------- default value annotations -------------------
 template <typename T>
 struct value_annotation : annotation 
@@ -26,8 +29,6 @@ inline constexpr auto default_value = [](auto value) static
 };
 
 
-// ------------------ annotations for parsing ------------------
-struct parser_annotation : annotation { };
 
 template <typename F>
 struct function_parser_annotation : parser_annotation

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <leviathan/annotations/common.hpp>
+#include <ranges>
 
 namespace cpp::refl
 {

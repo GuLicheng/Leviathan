@@ -1,7 +1,7 @@
 #include <print>
 #include <iostream>
 #include <leviathan/extc++/meta.hpp>
-#include "leviathan/annotations.hpp"
+#include <leviathan/annotations/all.hpp>
 #include "leviathan/config_parser/json/json.hpp"
 #include <string>
 #include <algorithm>
