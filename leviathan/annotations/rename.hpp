@@ -1,78 +1,10 @@
-/*
-    How can we parse a json-string to some structure?
-
-    Firstly, we need to parse the json-string to some intermediate representation, 
-    which can be a map of string to string, or a vector of string, etc. 
-    Then we can use the intermediate representation to construct the final structure.
-
-    For constructing the final structure, we can use some annotations to specify how 
-    to map the intermediate representation to the final structure. In that case, we
-    must be able to get the annotation of a field, and then use the annotation to get the
-    mapping function, and then use the mapping function to get the final value of the field.
-
-    So we need some annotations to specify the mapping function for each field. 
-    For example, we can have a shortname annotation, which specifies that the field should 
-    be mapped to a short name, and a longname annotation, which specifies that the 
-    field should be mapped to a long name, etc.
-*/
-
 #pragma once
 
-#include <string>
-#include <string>
-#include <functional>
-#include <vector>
-#include <ranges>
-#include <meta>
-#include <algorithm>
+#include <leviathan/annotations/common.hpp>
 
 namespace cpp::refl
 {
 
-// ------------------ annotation ------------------
-
-struct annotation { }; 
-
-struct debug_annotation : annotation { };
-
-// -------------------- ignore annotation ------------------
-struct ignore_annotation : annotation { };
-
-inline constexpr auto ignore = ignore_annotation{};
-
-// ------------------- default value annotations -------------------
-template <typename T>
-struct value_annotation : annotation 
-{
-    T value;
-
-    constexpr explicit value_annotation(T value) : value(std::move(value)) {}
-
-    constexpr T operator()() const 
-    {
-        return value;
-    }
-};
-    
-inline constexpr auto default_value = [](auto value) static
-{
-    return value_annotation(std::move(value));
-};
-
-struct help_annotation : value_annotation<const char*> 
-{
-    using value_annotation::value_annotation;
-};
-
-
-inline constexpr auto help = [](std::string_view message) static
-{
-    return help_annotation(define_static_string(message));
-};
-
-
-
-// ------------------ rename annotations ------------------
 struct rename_annotation : annotation { };
 
 template <typename F>
@@ -146,17 +78,6 @@ inline constexpr auto pascal_case = function_rename_annotation([](std::string fi
     return result;
 });
 
-// ------------------ annotations for parsing ------------------
-struct accept_annotation : annotation { };
-
-
-}  // namespace cpp::refl
-
-
-// We define some utilities functions
-namespace cpp::refl
-{
-
 namespace detail
 {
 
@@ -213,32 +134,5 @@ constexpr std::string extract_name_by_annotation()
     constexpr auto name = identifier_of(Info1);
     return detail::extract_name_by_annotation_impl<Info1, Infos...>::operator()(std::string(name));
 }
-
-template <std::meta::info Info>
-consteval bool is_ignored()
-{
-    static_assert(has_identifier(Info), "Info must have an identifier");
-
-    template for (constexpr auto anno : define_static_array(annotations_of(Info)))
-    {
-        using AnnoType = typename [:type_of(anno):];
-
-        if constexpr (std::is_base_of_v<ignore_annotation, AnnoType>)
-        {
-            return true;
-        }
-    }
-    return false;
-}
-    
-// template <std::meta::info Anno>
-// consteval bool is_value()
-// {
-//     if constexpr (!has_template_arguments(Anno))
-//     {
-//         return false;
-//     }
-//     return template_of(Anno) == ^^value_annotation;
-// }
 
 }  // namespace cpp::refl
