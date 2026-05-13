@@ -29,8 +29,6 @@ struct [[=cpp::derive::debug, =cpp::refl::pascal_case, =cpp::derive::hash]] Stud
     bool is_special;
 };
 
-// template <> struct std::formatter<Student> : cpp::universal_formatter { };
-
 template <>
 inline constexpr bool cpp::use_default_caster<Student> = true;
 
@@ -44,6 +42,8 @@ constexpr const char* context = R"(
         "is_special": false
     }
 )";
+
+
 
 int main() 
 {

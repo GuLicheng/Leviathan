@@ -21,15 +21,15 @@
 
     - rename: specify the name of the field.
     
-    - ignore: format or scan maybe ignored some fields, this annotation is used to mark those fields.
+    - skip: format or scan maybe ignored some fields, this annotation is used to mark those fields.
     
     - value: specify the default value of the field, this is useful when the field is missing.
     
     - parser: for given type T and input type I, call std::invoke(parser, instanceof I) and cast result to T. 
 
-    TODO:
-    
     - required: mark a field as required, if the field is missing, throw an error.
+
+    TODO:
     
     - choice: for given type T and a list of options, try to cast input to each option, 
     if any option is successful, return the result, otherwise throw an error.
@@ -46,21 +46,6 @@
 
 namespace cpp::refl
 {
-
-
-template <typename F>
-struct simple_function
-{
-    F function;
-
-    constexpr explicit simple_function(F function) : function(std::move(function)) {}
-
-    template <typename Self, typename... Args>
-    constexpr std::string operator()(this Self&& self, Args&&... args)
-    {
-        return std::invoke(((Self&&)self).function, (Args&&)args...);
-    }
-};
 
 struct annotation { }; 
 
@@ -83,6 +68,19 @@ consteval bool has_annotation(std::meta::info r, const T& obj)
     );
 }
 
+template <typename F>
+struct callable
+{
+    F function;
+
+    explicit constexpr callable(F function) : function(std::move(function)) {}
+
+    template <typename Self, typename... Args>
+    constexpr auto operator()(Self&& self, Args&&... args) 
+    {
+        return std::invoke(function, ((Self&&)self).function, (Args&&)args...);
+    }
+};
 
 }  // namespace cpp::refl
 
