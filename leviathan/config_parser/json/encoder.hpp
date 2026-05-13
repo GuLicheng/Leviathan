@@ -117,6 +117,21 @@ struct universal_caster
                     cpp::cast<typename [:type_of(mem):]>(it->second)
                 );
             }
+
+            // Check field is valid
+            template for (constexpr auto anno : define_static_array(annotations_of(mem)))
+            {
+                using AnnoType = typename [:type_of(anno):];
+
+                if constexpr (std::is_base_of_v<cpp::refl::choice_annotation, AnnoType>)
+                {
+                    if (!std::invoke(extract<AnnoType>(anno), obj.[:mem:]))
+                    {
+                        throw std::runtime_error(std::format("Field {} has invalid value", name));
+                    }
+                }
+            }
+
         }
 
         return std::move(obj);

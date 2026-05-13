@@ -22,6 +22,8 @@ struct [[=cpp::derive::debug, =cpp::refl::pascal_case, =cpp::derive::hash]] Stud
     std::string name;
     [[=cpp::refl::default_value(18)]]
     int age;
+
+    [[=cpp::refl::choice(Gender::Female, Gender::Male)]]
     Gender gender;
     // std::vector<int> scores;
 
@@ -37,13 +39,19 @@ constexpr const char* context = R"(
         "id": "12345",
         "name": "Alice",
         "is_student": true,
-        "gender": "Female",
+        "gender": "Male",
         "scores": [85, 90, 92],
         "is_special": false
     }
 )";
 
+// template <std::meta::info Info, std::meta::info TemplateClass>
+// consteval bool is_template_instance()
+// {
+//     bool is_template = std::meta::is_template(TemplateClass);
 
+//     std::meta::has_template_arguments(Info, template_args);
+// }
 
 int main() 
 {
@@ -54,6 +62,9 @@ int main()
 
 
     std::println("Student hash: {}", std::hash<Student>()(student));
+
+    constexpr bool IsDerivedFromTemplate = std::is_base_of_v<std::meta::info, Student>;
+
 }
 
 

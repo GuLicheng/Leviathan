@@ -42,11 +42,6 @@ struct universal_formatter
 
         template for (constexpr auto mem : define_static_array(nonstatic_data_members_of(^^T, unchecked))) 
         {
-            if constexpr (refl::has_annotation(mem, cpp::derive::skip))
-            {
-                continue;
-            }
-
             delim();
             std::string mem_label = has_identifier(mem) ? refl::extract_name_by_annotation<mem, ^^T>()
                 : "(unnamed-member)";
@@ -58,9 +53,6 @@ struct universal_formatter
         return out;
     }
 };
-/*
-template <> struct std::formatter<SomeType> : universal_formatter { };
-*/
 
 struct enum_formatter
 {
@@ -72,11 +64,6 @@ struct enum_formatter
         return std::format_to(ctx.out(), "{}", enum_encoder<EnumType>()(value));
     }
 };
-
-/*
-enum class Gender { Male, Female };
-template <> struct std::formatter<Gender> : cpp::enum_formatter { };
-*/
 
 } // namespace cpp
 

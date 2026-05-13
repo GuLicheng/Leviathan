@@ -8,6 +8,7 @@
 
 #include <leviathan/annotations/rename.hpp>
 #include <leviathan/annotations/parser.hpp>
+#include <leviathan/annotations/choice.hpp>
 
 namespace cpp::derive
 {
