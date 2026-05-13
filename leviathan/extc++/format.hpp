@@ -22,7 +22,7 @@ struct universal_formatter
     template <typename T, typename FmtContext>
     static typename FmtContext::iterator format(const T& t, FmtContext& ctx) 
     {
-        auto out = std::format_to(ctx.out(), "{}{{", has_identifier(^^T) ? identifier_of(^^T) : "(unnamed-type)");
+        auto out = std::format_to(ctx.out(), "{}{{", display_string_of(^^T));
 
         auto delim = [first = true, &out]() mutable {
             if (!first) {
@@ -42,7 +42,7 @@ struct universal_formatter
 
         template for (constexpr auto mem : define_static_array(nonstatic_data_members_of(^^T, unchecked))) 
         {
-            if constexpr (refl::is_ignored<mem>())
+            if constexpr (refl::has_annotation(mem, refl::ignore))
             {
                 continue;
             }
@@ -79,3 +79,11 @@ template <> struct std::formatter<Gender> : cpp::enum_formatter { };
 */
 
 } // namespace cpp
+
+template <typename T, typename CharT>
+    requires (cpp::refl::has_annotation(^^T, cpp::derive::debug) && std::is_class_v<T>)
+struct std::formatter<T, CharT> : cpp::universal_formatter { };
+
+template <typename T, typename CharT>
+    requires (cpp::refl::has_annotation(^^T, cpp::derive::debug) && std::is_enum_v<T>)
+struct std::formatter<T, CharT> : cpp::enum_formatter { };

@@ -41,6 +41,8 @@
 #include <string>
 #include <functional>
 #include <meta>
+#include <ranges>
+#include <algorithm>
 
 namespace cpp::refl
 {
@@ -62,28 +64,25 @@ struct simple_function
 
 struct annotation { }; 
 
-struct debug_annotation : annotation { };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * @brief Check if the given annotation is present on the given info.
+ * @param r Anything that can be reflected, such as class, field, base class, etc.
+ * @param obj The annotation to check.
+ * @return true if the annotation is present, false otherwise.
+ * @example 
+ * struct SomeThing { [[=some_annotation]] int x; }
+ * static_assert(has_annotation(^^SomeThing::x, some_annotation));
+ */
+template <typename T>
+consteval bool has_annotation(std::meta::info r, const T& obj) 
+{
+    return std::ranges::contains(
+        annotations_of_with_type(r, ^^T),
+        std::meta::reflect_constant(obj),
+        std::meta::constant_of
+    );
 }
 
+
+}  // namespace cpp::refl
 
