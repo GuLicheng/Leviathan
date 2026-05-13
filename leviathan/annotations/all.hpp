@@ -9,8 +9,8 @@ namespace cpp::derive
 
 inline constexpr struct { } debug;
 
-inline constexpr struct { } skip;
+inline constexpr struct { } hash;
 
-// inline constexpr struct { } hash;
+inline constexpr struct { } skip;
 
 }

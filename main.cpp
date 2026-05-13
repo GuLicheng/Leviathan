@@ -9,25 +9,23 @@
 #include <ranges>
 #include <array>
 
-enum class [[=cpp::derive::debug]] Gender 
+enum class [[=cpp::derive::debug, =cpp::derive::hash]] Gender 
 {
     Female,
     Male,
     Unknown 
 };
 
-// template <> struct std::formatter<Gender> : cpp::enum_formatter { };
-
-struct [[=cpp::derive::debug]] Student
+struct [[=cpp::derive::debug, =cpp::refl::pascal_case, =cpp::derive::hash]] Student 
 {
     std::string id;
     std::string name;
     [[=cpp::refl::default_value(18)]]
     int age;
     Gender gender;
-    std::vector<int> scores;
+    // std::vector<int> scores;
 
-    [[=cpp::refl::ignore]]
+    [[=cpp::derive::skip]]
     bool is_special;
 };
 
@@ -47,8 +45,6 @@ constexpr const char* context = R"(
     }
 )";
 
-struct [[=cpp::refl::ignore, =cpp::refl::ignore]] Foo { };
-
 int main() 
 {
     auto root = cpp::json::loads(context);
@@ -57,8 +53,7 @@ int main()
     std::println("Student info: \n{}", student);
 
 
-    // constexpr auto N = cpp::refl::select_annotation(^^Foo, ^^cpp::refl::ignore_annotation).size();
-
+    std::println("Student hash: {}", std::hash<Student>()(student));
 }
 
 

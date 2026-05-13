@@ -42,7 +42,7 @@ struct universal_formatter
 
         template for (constexpr auto mem : define_static_array(nonstatic_data_members_of(^^T, unchecked))) 
         {
-            if constexpr (refl::has_annotation(mem, refl::ignore))
+            if constexpr (refl::has_annotation(mem, cpp::derive::skip))
             {
                 continue;
             }
