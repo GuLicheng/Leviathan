@@ -23,10 +23,8 @@ consteval auto member_named(const char* name)
 {
     auto ctx = std::meta::access_context::current();
     for (std::meta::info field : nonstatic_data_members_of(^^T, ctx))
-    {
         if (has_identifier(field) && identifier_of(field) == name)
             return field;
-    }
     throw std::runtime_error(std::format("No member named {} in type {}", name, identifier_of(^^T)));
 }
 

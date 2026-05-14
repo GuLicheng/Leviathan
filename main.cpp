@@ -11,8 +11,10 @@
 #include <array>
 
 enum class
-    [[=cpp::derive::debug]]
-[[=cpp::derive::hash, =cpp::derive::deserialize<cpp::json::value>]]
+[[=cpp::derive::debug]]
+[[=cpp::derive::hash]]
+[[=cpp::derive::serialize<cpp::json::value>]]
+[[=cpp::derive::deserialize<cpp::json::value>]]
 Gender
 {
     Female,
@@ -20,7 +22,13 @@ Gender
     Unknown
 };
 
-struct [[=cpp::derive::debug, =cpp::refl::pascal_case, =cpp::derive::hash]] Student
+struct 
+[[=cpp::derive::debug]] 
+[[=cpp::refl::pascal_case]]
+[[=cpp::derive::hash]]
+[[=cpp::derive::deserialize<cpp::json::value>]] 
+[[=cpp::derive::serialize<cpp::json::value>]]
+Student
 {
     [[=cpp::refl::rename("userID")]]
     std::string id;
@@ -39,9 +47,6 @@ struct [[=cpp::derive::debug, =cpp::refl::pascal_case, =cpp::derive::hash]] Stud
 
 };
 
-template <>
-inline constexpr bool cpp::use_default_caster<Student> = true;
-
 constexpr const char* context = R"(
     {
         "userID": "12345",
@@ -53,6 +58,52 @@ constexpr const char* context = R"(
     }
 )";
 
+template <std::meta::info ClassInfo, std::meta::info FieldInfo>
+struct field_initializer
+{
+    static_assert(std::meta::is_class_type(ClassInfo) && std::meta::is_class_member(FieldInfo));
+
+    using FieldType = typename [:type_of(FieldInfo):];
+
+    template <typename Initializer>
+    static constexpr FieldType operator()(Initializer initializer)
+    {
+        // Get field name
+        auto name = cpp::refl::extract_name_by_annotation<FieldInfo, ClassInfo>();
+
+        std::optional<FieldType> value = std::nullopt;
+        initializer(value, name);
+
+        if (!value)
+        {
+            template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
+            {
+                using AnnoType = typename [:type_of(anno):];
+
+                if constexpr (std::is_base_of_v<cpp::refl::value_annotation<FieldType>, AnnoType>)
+                {
+                    value.emplace(std::invoke(extract<AnnoType>(anno)));
+                    break;  // Only the first value annotation is effective
+                }
+            }
+
+            if (!value)
+            {
+                value.emplace(); // default initialize
+            }
+        }
+
+        // Check the value is legal
+
+        template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
+        {
+
+        }
+
+        return value ? std::move(*value) : throw std::runtime_error(std::format("Field {} is missing or invalid", name));
+    }
+
+};
 
 
 int main()

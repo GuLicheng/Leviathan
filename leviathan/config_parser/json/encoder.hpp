@@ -250,11 +250,11 @@ struct caster
         {
             return range_caster<T>::operator()(v);
         }
-        else if constexpr (std::is_enum_v<T>)
+        else if constexpr (std::is_enum_v<T> && refl::has_annotation(^^T, cpp::derive::deserialize<value>))
         {
             return enum_decoder<T>()(v.as<string>());
         }
-        else if constexpr (use_default_caster<T>)
+        else if constexpr (std::is_class_v<T> && refl::has_annotation(^^T, cpp::derive::deserialize<value>))
         {
             return universal_caster<T>::operator()(v);
         }
