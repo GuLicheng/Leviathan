@@ -6,7 +6,6 @@
 namespace cpp::refl
 {
 
-// struct rename_annotation : annotation { };
 inline constexpr struct { } rename_annotation;
 
 template <typename F>
@@ -88,7 +87,6 @@ struct extract_name_by_annotation_impl<Info>
         {
             using AnnoType = typename [:type_of(anno):];
 
-            // if constexpr (std::is_base_of_v<rename_annotation, AnnoType>)
             if constexpr (has_annotation(type_of(anno), rename_annotation))
             {
                 name = std::invoke(extract<AnnoType>(anno), name);
@@ -109,7 +107,6 @@ struct extract_name_by_annotation_impl<Info1, Info2, Infos...>
         {
             using AnnoType = typename [:type_of(anno):];
 
-            // if constexpr (std::is_base_of_v<rename_annotation, AnnoType>)
             if constexpr (has_annotation(type_of(anno), rename_annotation))
             {
                 name = std::invoke(extract<AnnoType>(anno), name);

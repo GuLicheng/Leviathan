@@ -28,6 +28,71 @@ consteval auto member_named(const char* name)
     throw std::runtime_error(std::format("No member named {} in type {}", name, identifier_of(^^T)));
 }
 
+template <std::meta::info ClassInfo, std::meta::info FieldInfo>
+struct field_initializer
+{
+    static_assert(std::meta::is_class_type(ClassInfo) && std::meta::is_class_member(FieldInfo));
+
+    using FieldType = typename [:type_of(FieldInfo):];
+
+    static constexpr bool IsDefaultConstructible = std::is_default_constructible_v<FieldType>;
+
+    template <typename Initializer>
+    static constexpr std::optional<FieldType> init_value(Initializer initializer)
+    {
+        // Get field name
+        auto name = extract_name_by_annotation<FieldInfo, ClassInfo>();
+        std::optional<FieldType> value = std::nullopt;
+
+        // Try init current field with initializer
+        // TODO: add user defined parser supports
+        initializer(value, name);
+
+        // Try init current field with annotations
+        if (!value)
+        {
+            template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
+            {
+                if constexpr (has_annotation(type_of(anno), cpp::refl::value_annotation))
+                {
+                    value.emplace(std::invoke(extract<typename [:type_of(anno):]>(anno)));
+                    break;  // Only the first value annotation is effective
+                }
+            }  
+
+            if (!value)
+            {
+                if constexpr (!IsDefaultConstructible)
+                {
+                    throw std::runtime_error(std::format("Field {} is missing and has no default value", name));
+                }
+                else
+                {
+                    value.emplace(); // default initialize
+                }
+            }
+        }
+        return value;
+    }
+
+    template <typename T>
+    static constexpr bool is_valid(const T& value)
+    {
+        // TODO:
+        return true;
+    }
+
+    template <typename Initializer>
+    static constexpr FieldType operator()(Initializer initializer)
+    {
+        auto value = init_value(std::move(initializer));
+        return value.has_value() && is_valid(*value) 
+             ? std::move(*value) 
+             : throw std::runtime_error(std::format("Field {} is missing or invalid", std::meta::display_string_of(FieldInfo)));
+    }
+};
+
+
 // template <typename T>
 // constexpr auto struct_to_tuple(T const& t) 
 // {

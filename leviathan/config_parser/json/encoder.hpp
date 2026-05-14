@@ -71,6 +71,50 @@ template <typename T>
 struct caster;
 
 template <typename T>
+struct universal_caster2
+{
+    struct init_with_root
+    {
+        const cpp::json::value& root;    
+
+        init_with_root(const cpp::json::value& root) : root(root) {}
+
+        template <typename U>
+        void operator()(std::optional<U>& opt, const std::string& name) const
+        {
+            assert(opt.has_value() == false);
+        
+            auto it = root.as<cpp::json::object>().find(cpp::json::string(name));
+
+            if (it != root.as<cpp::json::object>().end())
+            {
+                opt.emplace(cpp::cast<U>(it->second));
+            }
+        }
+    };
+
+    static T operator()(const value& root)
+    {
+        auto initializer = init_with_root(root);
+        constexpr auto ctx = std::meta::access_context::current();
+
+        // FIXME: virtual pointer here will cause error.
+        alignas(T) char buffer[sizeof(T)];
+        T& obj = *reinterpret_cast<T*>(buffer);
+
+        template for (constexpr auto mem : define_static_array(nonstatic_data_members_of(^^T, ctx))) 
+        {
+            std::construct_at(  
+                std::addressof(obj.[:mem:]), 
+                refl::field_initializer<^^T, mem>()(initializer)
+            );
+        }
+        return std::move(obj);
+    }
+};
+
+#if 0
+template <typename T>
 struct universal_caster
 {
     static T operator()(const value& root)
@@ -96,6 +140,7 @@ struct universal_caster
                     using AnnoType = typename [:type_of(anno):];
                         
                     // FIXME
+                    if constexpr (has_annotation(mem, cpp::refl::value_annotation))
                     if constexpr (std::is_base_of_v<cpp::refl::value_annotation<typename [:type_of(mem):]>, AnnoType>)
                     {
                         constexpr auto default_value = std::invoke(extract<AnnoType>(anno));
@@ -138,6 +183,7 @@ struct universal_caster
         return std::move(obj);
     }
 };
+#endif
 
 struct boolean_caster
 {
@@ -256,7 +302,7 @@ struct caster
         }
         else if constexpr (std::is_class_v<T> && refl::has_annotation(^^T, cpp::derive::deserialize<value>))
         {
-            return universal_caster<T>::operator()(v);
+            return universal_caster2<T>::operator()(v);
         }
         else
         {
