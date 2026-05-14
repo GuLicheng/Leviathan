@@ -17,9 +17,13 @@ inline constexpr struct { } debug;
 
 inline constexpr struct { } hash;
 
-inline constexpr struct { } serialize;
+template <typename T> struct deserialize_t { };
 
-inline constexpr struct { } deserialize;
+template <typename T> inline constexpr auto deserialize = deserialize_t<T>{};
+
+template <typename T> struct serialize_t { };
+
+template <typename T> inline constexpr auto serialize = serialize_t<T>{};
 
 inline constexpr struct { } skip;
 

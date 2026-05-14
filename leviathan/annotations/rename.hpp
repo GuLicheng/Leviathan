@@ -6,20 +6,14 @@
 namespace cpp::refl
 {
 
-struct rename_annotation : annotation { };
+// struct rename_annotation : annotation { };
+inline constexpr struct { } rename_annotation;
 
 template <typename F>
-struct function_rename_annotation : rename_annotation
+struct [[=rename_annotation]] function_rename_annotation : callable<F>
 {
-    F function;
-
-    constexpr explicit function_rename_annotation(F function) : function(std::move(function)) {}
-
-    template <typename Self, typename... Args>
-    constexpr std::string operator()(this Self&& self, Args&&... args)
-    {
-        return std::invoke(((Self&&)self).function, (Args&&)args...);
-    }
+    using callable<F>::callable;
+    using callable<F>::operator();
 };
 
 inline constexpr auto shortname = function_rename_annotation([](std::string field_name) static 
@@ -94,7 +88,8 @@ struct extract_name_by_annotation_impl<Info>
         {
             using AnnoType = typename [:type_of(anno):];
 
-            if constexpr (std::is_base_of_v<rename_annotation, AnnoType>)
+            // if constexpr (std::is_base_of_v<rename_annotation, AnnoType>)
+            if constexpr (has_annotation(type_of(anno), rename_annotation))
             {
                 name = std::invoke(extract<AnnoType>(anno), name);
             }
@@ -114,7 +109,8 @@ struct extract_name_by_annotation_impl<Info1, Info2, Infos...>
         {
             using AnnoType = typename [:type_of(anno):];
 
-            if constexpr (std::is_base_of_v<rename_annotation, AnnoType>)
+            // if constexpr (std::is_base_of_v<rename_annotation, AnnoType>)
+            if constexpr (has_annotation(type_of(anno), rename_annotation))
             {
                 name = std::invoke(extract<AnnoType>(anno), name);
                 has_rename_annotation = true;

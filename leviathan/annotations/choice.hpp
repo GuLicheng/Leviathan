@@ -5,20 +5,13 @@
 namespace cpp::refl
 {
 
-struct choice_annotation : annotation { };
+inline constexpr struct { } choice_annotation;
 
-template <typename F>
-struct function_choice_annotation : choice_annotation
+template <typename Prediction>
+struct [[=choice_annotation]] function_choice_annotation : callable<Prediction>
 {
-    F function;
-
-    constexpr explicit function_choice_annotation(F function) : function(std::move(function)) {}
-
-    template <typename Self, typename... Args>
-    constexpr bool operator()(this Self&& self, Args&&... args) 
-    {
-        return std::invoke(((Self&&)self).function, (Args&&)args...);
-    }
+    using callable<Prediction>::callable;
+    using callable<Prediction>::operator();
 };
 
 inline constexpr auto choice = []<typename... Ts>(Ts&&... ts) 

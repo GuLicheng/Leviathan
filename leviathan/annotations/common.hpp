@@ -1,6 +1,8 @@
 #pragma once
 
 /*
+    https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p3394r4.html
+
     How can we parse a json-string to some structure?
 
     Firstly, we need to parse the json-string to some intermediate representation, 
@@ -76,9 +78,9 @@ struct callable
     explicit constexpr callable(F function) : function(std::move(function)) {}
 
     template <typename Self, typename... Args>
-    constexpr auto operator()(Self&& self, Args&&... args) 
+    constexpr auto operator()(this Self&& self, Args&&... args) 
     {
-        return std::invoke(function, ((Self&&)self).function, (Args&&)args...);
+        return std::invoke(((Self&&)self).function, (Args&&)args...);
     }
 };
 

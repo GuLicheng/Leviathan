@@ -82,7 +82,7 @@ struct universal_caster
 
         template for (constexpr auto mem : define_static_array(nonstatic_data_members_of(^^T, ctx))) 
         {
-            constexpr auto name = identifier_of(mem);
+            auto name = cpp::refl::extract_name_by_annotation<mem, ^^T>();
             auto field = cpp::json::string(name);
 
             auto it = root.as<cpp::json::object>().find(field);
@@ -123,7 +123,8 @@ struct universal_caster
             {
                 using AnnoType = typename [:type_of(anno):];
 
-                if constexpr (std::is_base_of_v<cpp::refl::choice_annotation, AnnoType>)
+                // if constexpr (std::is_base_of_v<cpp::refl::choice_annotation, AnnoType>)
+                if constexpr (refl::has_annotation(type_of(anno), cpp::refl::choice_annotation))
                 {
                     if (!std::invoke(extract<AnnoType>(anno), obj.[:mem:]))
                     {
