@@ -13,8 +13,8 @@
 enum class
 [[=cpp::derive::debug]]
 [[=cpp::derive::hash]]
-[[=cpp::derive::serialize<cpp::json::value>]]
-[[=cpp::derive::deserialize<cpp::json::value>]]
+[[=cpp::derive::encode<cpp::json::value>]]
+[[=cpp::derive::decode<cpp::json::value>]]
 Gender
 {
     Female,
@@ -22,22 +22,34 @@ Gender
     Unknown
 };
 
+struct [[=cpp::refl::choice_annotation]] GreatThan
+{
+    int x;
+
+    consteval GreatThan(int x) : x(x) { }
+
+    constexpr bool operator()(const auto& input) const
+    {
+        return input > x;
+    }
+};
+
 struct 
 [[=cpp::derive::debug]] 
 [[=cpp::refl::pascal_case]]
 [[=cpp::derive::hash]]
-[[=cpp::derive::deserialize<cpp::json::value>]] 
-[[=cpp::derive::serialize<cpp::json::value>]]
+[[=cpp::derive::decode<cpp::json::value>]] 
+[[=cpp::derive::encode<cpp::json::value>]]
 Student
 {
     [[=cpp::refl::rename("userID")]]
     std::string id;
     std::string name;
 
-    [[=cpp::refl::default_value(18.5)]]
+    [[=cpp::refl::default_value(18.5), =cpp::refl::range(15, 150), =GreatThan(0)]]
     int age;
 
-    [[=cpp::refl::choice(Gender::Female, Gender::Male)]]
+    [[=cpp::refl::choice(Gender::Female, Gender::Male, Gender::Unknown)]]
     Gender gender;
 
     // std::vector<int> scores;
@@ -46,6 +58,7 @@ Student
     bool is_special;
 
 };
+
 
 constexpr const char* context = R"(
     {

@@ -71,7 +71,7 @@ template <typename T>
 struct caster;
 
 template <typename T>
-struct universal_caster2
+struct universal_caster
 {
     struct init_with_root
     {
@@ -112,78 +112,6 @@ struct universal_caster2
         return std::move(obj);
     }
 };
-
-#if 0
-template <typename T>
-struct universal_caster
-{
-    static T operator()(const value& root)
-    {
-        alignas(T) char buffer[sizeof(T)];
-        T& obj = *reinterpret_cast<T*>(buffer);
-
-        constexpr auto ctx = std::meta::access_context::current();
-
-        template for (constexpr auto mem : define_static_array(nonstatic_data_members_of(^^T, ctx))) 
-        {
-            auto name = cpp::refl::extract_name_by_annotation<mem, ^^T>();
-            auto field = cpp::json::string(name);
-
-            auto it = root.as<cpp::json::object>().find(field);
-
-            if (it == root.as<cpp::json::object>().end()) 
-            {
-                bool initialized = false;
-
-                template for (constexpr auto anno : define_static_array(annotations_of(mem)))
-                {
-                    using AnnoType = typename [:type_of(anno):];
-                        
-                    // FIXME
-                    if constexpr (has_annotation(mem, cpp::refl::value_annotation))
-                    if constexpr (std::is_base_of_v<cpp::refl::value_annotation<typename [:type_of(mem):]>, AnnoType>)
-                    {
-                        constexpr auto default_value = std::invoke(extract<AnnoType>(anno));
-                        std::construct_at(std::addressof(obj.[:mem:]), default_value); // construct with default value
-                        initialized = true;
-                        break;
-                    }
-                }
-
-                if (!initialized)
-                {
-                    std::construct_at(std::addressof(obj.[:mem:]), typename [:type_of(mem):]{}); 
-                }
-            }
-            else
-            {
-                std::construct_at(  
-                    std::addressof(obj.[:mem:]), 
-                    cpp::cast<typename [:type_of(mem):]>(it->second)
-                );
-            }
-
-            // Check field is valid
-            template for (constexpr auto anno : define_static_array(annotations_of(mem)))
-            {
-                using AnnoType = typename [:type_of(anno):];
-
-                // if constexpr (std::is_base_of_v<cpp::refl::choice_annotation, AnnoType>)
-                if constexpr (refl::has_annotation(type_of(anno), cpp::refl::choice_annotation))
-                {
-                    if (!std::invoke(extract<AnnoType>(anno), obj.[:mem:]))
-                    {
-                        throw std::runtime_error(std::format("Field {} has invalid value", name));
-                    }
-                }
-            }
-
-        }
-
-        return std::move(obj);
-    }
-};
-#endif
 
 struct boolean_caster
 {
@@ -296,13 +224,13 @@ struct caster
         {
             return range_caster<T>::operator()(v);
         }
-        else if constexpr (std::is_enum_v<T> && refl::has_annotation(^^T, cpp::derive::deserialize<value>))
+        else if constexpr (std::is_enum_v<T> && refl::has_annotation(^^T, cpp::derive::decode<value>))
         {
             return enum_decoder<T>()(v.as<string>());
         }
-        else if constexpr (std::is_class_v<T> && refl::has_annotation(^^T, cpp::derive::deserialize<value>))
+        else if constexpr (std::is_class_v<T> && refl::has_annotation(^^T, cpp::derive::decode<value>))
         {
-            return universal_caster2<T>::operator()(v);
+            return universal_caster<T>::operator()(v);
         }
         else
         {

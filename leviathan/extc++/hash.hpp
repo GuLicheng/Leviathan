@@ -25,7 +25,7 @@ static constexpr size_t tuple_hash(const TupleLike& t)
     return seed;
 }
 
-struct universal_hasher 
+struct struct_hasher 
 {
     template <typename T>
     static constexpr size_t operator()(const T& t) 
@@ -62,7 +62,7 @@ struct enum_hasher
 
 template <typename T>
     requires (cpp::refl::has_annotation(^^T, cpp::derive::hash) && std::is_class_v<T>)
-struct std::hash<T> : cpp::universal_hasher { };
+struct std::hash<T> : cpp::struct_hasher { };
 
 template <typename Enum>
     requires (cpp::refl::has_annotation(^^Enum, cpp::derive::hash) && std::is_enum_v<Enum>)

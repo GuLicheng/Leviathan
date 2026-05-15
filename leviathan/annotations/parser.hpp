@@ -20,6 +20,8 @@ inline constexpr auto default_value = [](auto value) static
     return function_value_annotation([value = std::move(value)]() { return value; });
 };
 
+inline constexpr struct { } parse_annotation;
+
 
 }  // namespace cpp::refl
 

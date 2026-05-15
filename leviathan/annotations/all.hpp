@@ -13,17 +13,20 @@
 namespace cpp::derive
 {
 
+// Extend std::formatter for class or enum type
 inline constexpr struct { } debug;
 
+// Extend std::hash for class or enum type
 inline constexpr struct { } hash;
 
-template <typename T> struct deserialize_t { };
+// Allow a class to be serialized to a specific type, for example, json::value.
+template <typename T> struct encode_t { };
+template <typename T> inline constexpr auto encode = encode_t<T>{};
 
-template <typename T> inline constexpr auto deserialize = deserialize_t<T>{};
+// Allow a class to be deserialized from a specific type, for example, json::value.
+template <typename T> struct decode_t { };
+template <typename T> inline constexpr auto decode = decode_t<T>{};
 
-template <typename T> struct serialize_t { };
-
-template <typename T> inline constexpr auto serialize = serialize_t<T>{};
 
 inline constexpr struct { } skip;
 

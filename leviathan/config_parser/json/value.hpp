@@ -287,6 +287,15 @@ public:
                 );
             }
         }
+        else if constexpr (std::is_enum_v<Source> && refl::has_annotation(^^Source, cpp::derive::decode<cpp::json::value>))
+        {
+            auto enum_name = cpp::enum_encoder<Source>()(source);
+            return json::make_json<json::string>(std::move(enum_name));
+        }
+        else if constexpr (std::is_class_v<Source> && refl::has_annotation(^^Source, cpp::derive::decode<cpp::json::value>))
+        {
+            static_assert(false, "Class type is not supported for json::value yet");
+        }
         else
         {
             static_assert(false, "Unsupported type for json::value");

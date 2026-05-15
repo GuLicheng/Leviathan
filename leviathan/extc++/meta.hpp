@@ -78,7 +78,19 @@ struct field_initializer
     template <typename T>
     static constexpr bool is_valid(const T& value)
     {
-        // TODO:
+        template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
+        {
+            using AnnoType = typename [:type_of(anno):];
+
+            if constexpr (refl::has_annotation(type_of(anno), cpp::refl::choice_annotation))
+            {
+                if (!std::invoke(extract<AnnoType>(anno), value))
+                {
+                    return false;
+                }
+            }
+        }
+
         return true;
     }
 
