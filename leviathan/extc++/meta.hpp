@@ -10,7 +10,7 @@
 
 namespace cpp::refl
 {
-    
+
 template <typename T>
 consteval auto member_number(size_t N)
 {
@@ -45,8 +45,7 @@ struct field_initializer
         std::optional<FieldType> value = std::nullopt;
 
         // Try init current field with initializer
-        // TODO: add user defined parser supports
-        initializer(value, name);
+        std::invoke(initializer, value, name);
 
         // Try init current field with annotations
         if (!value)

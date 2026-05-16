@@ -14,13 +14,16 @@ namespace cpp
 struct universal_formatter 
 {
     template <typename ParseContext>
-    static constexpr typename ParseContext::iterator parse(ParseContext& ctx) 
+    constexpr typename ParseContext::iterator parse(ParseContext& ctx) 
     { 
-        return ctx.begin(); 
+        // auto symbol = std::ranges::find(ctx.begin(), ctx.end(), '}');
+        // std::string_view fmt = std::string_view(ctx.begin(), symbol);
+        // return symbol; // return the end iterator
+        return ctx.begin();
     }
 
     template <typename T, typename FmtContext>
-    static typename FmtContext::iterator format(const T& t, FmtContext& ctx) 
+    typename FmtContext::iterator format(const T& t, FmtContext& ctx) const
     {
         auto out = std::format_to(ctx.out(), "{}{{", display_string_of(^^T));
 
@@ -52,6 +55,7 @@ struct universal_formatter
         *out++ = '}';
         return out;
     }
+
 };
 
 struct enum_formatter

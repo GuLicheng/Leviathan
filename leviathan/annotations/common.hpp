@@ -42,14 +42,12 @@
 
 #include <string>
 #include <functional>
-#include <meta>
 #include <ranges>
 #include <algorithm>
+#include <meta>
 
 namespace cpp::refl
 {
-
-struct annotation { }; 
 
 /**
  * @brief Check if the given annotation is present on the given info.
@@ -69,6 +67,8 @@ consteval bool has_annotation(std::meta::info r, const T& obj)
         std::meta::constant_of
     );
 }
+
+struct annotation { }; 
 
 template <typename F>
 struct callable

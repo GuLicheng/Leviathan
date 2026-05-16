@@ -34,6 +34,17 @@ struct [[=cpp::refl::choice_annotation]] GreatThan
     }
 };
 
+struct [[=cpp::refl::parse_annotation]] BooleanParser
+{
+    static constexpr auto operator()(std::optional<bool>& out, std::string name)
+    {
+        auto lowercase = name | std::views::transform(::tolower) | std::ranges::to<std::string>();
+        
+        if (lowercase == "true") out.emplace(true);
+        else if (lowercase == "false") out.emplace(false);
+    }
+};
+
 struct 
 [[=cpp::derive::debug]] 
 [[=cpp::refl::pascal_case]]
@@ -54,7 +65,7 @@ Student
 
     // std::vector<int> scores;
 
-    [[=cpp::derive::skip]]
+    [[=BooleanParser()]]
     bool is_special;
 
 };
@@ -67,7 +78,7 @@ constexpr const char* context = R"(
         "is_student": true,
         "Gender": "Unknown",
         "scores": [85, 90, 92],
-        "is_special": false
+        "is_special": true
     }
 )";
 
@@ -80,7 +91,6 @@ int main()
     auto student = cpp::cast<Student>(root);
     std::println("Student info: \n{}", student);
     std::println("Student hash: {}", std::hash<Student>()(student));
-
 
 }
 

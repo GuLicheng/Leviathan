@@ -2,11 +2,14 @@
 
 #include <leviathan/annotations/common.hpp>
 #include <ranges>
+#include <meta>
 
 namespace cpp::refl
 {
 
 inline constexpr struct { } rename_annotation;
+
+inline constexpr struct { } rename_all_annotation;
 
 template <typename F>
 struct [[=rename_annotation]] function_rename_annotation : callable<F>

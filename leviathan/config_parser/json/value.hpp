@@ -294,7 +294,22 @@ public:
         }
         else if constexpr (std::is_class_v<Source> && refl::has_annotation(^^Source, cpp::derive::decode<cpp::json::value>))
         {
-            static_assert(false, "Class type is not supported for json::value yet");
+            constexpr auto ctx = std::meta::access_context::current();
+            
+            cpp::json::object obj;
+
+            template for (constexpr auto mem : define_static_array(nonstatic_data_members_of(^^Source, ctx)))
+            {
+                std::string_view mem_name = has_identifier(mem) ? refl::extract_name_by_annotation<mem, ^^Source>()
+                    : std::meta::display_string_of(mem);
+
+                obj.try_emplace(
+                    cpp::json::string(mem_name), 
+                    cpp::cast<cpp::json::value>(source.[:mem:])
+                );
+            }
+
+            return result_type(std::in_place, std::move(obj));
         }
         else
         {
