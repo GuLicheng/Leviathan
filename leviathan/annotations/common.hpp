@@ -68,7 +68,7 @@ consteval bool has_annotation(std::meta::info r, const T& obj)
     );
 }
 
-struct annotation { }; 
+// struct annotation { }; 
 
 template <typename F>
 struct callable
@@ -83,6 +83,8 @@ struct callable
         return std::invoke(((Self&&)self).function, (Args&&)args...);
     }
 };
+
+inline constexpr struct { } skip;
 
 }  // namespace cpp::refl
 

@@ -27,9 +27,8 @@ template <typename T> inline constexpr auto encode = encode_t<T>{};
 template <typename T> struct decode_t { };
 template <typename T> inline constexpr auto decode = decode_t<T>{};
 
-
-// inline constexpr struct { } skip;
-
 // inline constexpr struct { } required;
+
+inline constexpr struct { } op_pipe;
 
 }

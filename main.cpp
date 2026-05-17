@@ -15,6 +15,7 @@ enum class
 [[=cpp::derive::hash]]
 [[=cpp::derive::encode<cpp::json::value>]]
 [[=cpp::derive::decode<cpp::json::value>]]
+[[=cpp::derive::op_pipe]]
 Gender
 {
     Female,
@@ -45,16 +46,25 @@ struct [[=cpp::refl::parse_annotation]] BooleanParser
     }
 };
 
+struct [[=cpp::refl::value_annotation]] ReturnDefaultRange
+{
+    static constexpr std::initializer_list<int> operator()()
+    {
+        static auto ilist = std::initializer_list<int>{0, 1, 2};
+        return ilist;
+    }
+};
+
 struct 
 [[=cpp::derive::debug]] 
 [[=cpp::refl::pascal_case]]
-[[=cpp::derive::hash]]
 [[=cpp::derive::decode<cpp::json::value>]] 
 [[=cpp::derive::encode<cpp::json::value>]]
 Student
 {
     [[=cpp::refl::rename("userID")]]
     std::string id;
+
     std::string name;
 
     [[=cpp::refl::default_value(18.5), =cpp::refl::range(15, 150), =GreatThan(0)]]
@@ -63,13 +73,46 @@ Student
     [[=cpp::refl::choice(Gender::Female, Gender::Male, Gender::Unknown)]]
     Gender gender;
 
-    // std::vector<int> scores;
+    [[=ReturnDefaultRange()]]
+    std::vector<int> scores;
 
-    [[=BooleanParser()]]
     bool is_special;
 
 };
 
+template <std::meta::info Info>
+constexpr auto DefaultConstruct()
+{
+    using T = typename [:type_of(Info):];
+    return T();
+}
+
+struct [[=cpp::derive::debug]] Foo
+{
+    int X;
+    int Y;
+    std::string Name;
+};
+
+struct JsonInitializer
+{
+    const cpp::json::value& root;    
+
+    JsonInitializer(const cpp::json::value& root) : root(root) {}
+
+    template <typename U>
+    void operator()(std::optional<U>& opt, const std::string& name) const
+    {
+        assert(opt.has_value() == false);
+    
+        auto it = root.as<cpp::json::object>().find(cpp::json::string(name));
+
+        if (it != root.as<cpp::json::object>().end())
+        {
+            opt.emplace(cpp::cast<U>(it->second));
+        }
+    }
+};
 
 constexpr const char* context = R"(
     {
@@ -77,12 +120,9 @@ constexpr const char* context = R"(
         "Name": "Alice",
         "is_student": true,
         "Gender": "Unknown",
-        "scores": [85, 90, 92],
         "is_special": true
     }
 )";
-
-
 
 int main()
 {
@@ -90,7 +130,6 @@ int main()
     std::println("Parsed JSON: \n{:4}", root);
     auto student = cpp::cast<Student>(root);
     std::println("Student info: \n{}", student);
-    std::println("Student hash: {}", std::hash<Student>()(student));
 
 }
 

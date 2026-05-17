@@ -52,7 +52,7 @@ struct field_initializer
         {
             template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
             {
-                if constexpr (has_annotation(type_of(anno), cpp::refl::value_annotation))
+                if constexpr (has_annotation(type_of(anno), value_annotation))
                 {
                     value.emplace(std::invoke(extract<typename [:type_of(anno):]>(anno)));
                     break;  // Only the first value annotation is effective
@@ -81,7 +81,7 @@ struct field_initializer
         {
             using AnnoType = typename [:type_of(anno):];
 
-            if constexpr (refl::has_annotation(type_of(anno), cpp::refl::choice_annotation))
+            if constexpr (has_annotation(type_of(anno), choice_annotation))
             {
                 if (!std::invoke(extract<AnnoType>(anno), value))
                 {
@@ -96,30 +96,33 @@ struct field_initializer
     template <typename Initializer>
     static constexpr FieldType operator()(Initializer initializer)
     {
-        auto value = init_value(std::move(initializer));
+        auto value = init_value(initializer);
         return value.has_value() && is_valid(*value) 
              ? std::move(*value) 
-             : throw std::runtime_error(std::format("Field {} is missing or invalid", std::meta::display_string_of(FieldInfo)));
+             : throw std::runtime_error(std::format("Field {} is missing or invalid", display_string_of(FieldInfo)));
     }
 };
 
+template <typename T, typename Initializer>
+constexpr T construct_struct(Initializer initializer)
+{
+    constexpr auto ctx = std::meta::access_context::current();
+    constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
+    constexpr auto N = members.size();
+    constexpr auto [...Idx] = std::make_index_sequence<N>{};
+    return T(cpp::refl::field_initializer<^^T, members[Idx]>()(std::ref(initializer))...);
+}
 
-// template <typename T>
-// constexpr auto struct_to_tuple(T const& t) 
-// {
-//     constexpr auto ctx = std::meta::access_context::current();
+template <typename T>
+constexpr auto struct_to_tuple(const T& t) 
+{
+    constexpr auto ctx = std::meta::access_context::current();
+    constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
+    constexpr auto N = members.size();
+    constexpr auto [...Is] = std::make_index_sequence<N>{};
+    return std::make_tuple(t.[:members[Is]:]...);
+}
 
-//     constexpr std::size_t N = nonstatic_data_members_of(^^T, ctx).size();
-//     constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
-//     constexpr auto indices = [] {
-//         std::array<int, N> indices;
-//         std::ranges::iota(indices, 0);
-//         return indices;
-//         }();
-
-//     constexpr auto [...Is] = indices;
-//     return std::make_tuple(t.[:members[Is]:]...);
-// }
 
 } // namespace cpp::refl
 

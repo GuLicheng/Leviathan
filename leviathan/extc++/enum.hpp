@@ -1,6 +1,7 @@
 #pragma once
 
 #include <leviathan/annotations/all.hpp>
+#include <meta>
 
 namespace cpp
 {
@@ -33,8 +34,20 @@ struct enum_encoder
     }
 };
 
-
-
+}
+ 
+template <typename Enum>
+    requires (std::is_enum_v<Enum> && cpp::refl::has_annotation(^^Enum, cpp::derive::op_pipe))
+constexpr Enum operator|(Enum x, Enum y)
+{
+    return Enum(std::to_underlying(x) | std::to_underlying(y));
 }
 
- 
+template <typename Enum>
+    requires (std::is_enum_v<Enum> && cpp::refl::has_annotation(^^Enum, cpp::derive::op_pipe))
+constexpr Enum& operator|=(Enum& x, Enum y)
+{
+    x = Enum(std::to_underlying(x) | std::to_underlying(y));
+    return x;
+}
+

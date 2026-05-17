@@ -22,14 +22,6 @@ inline constexpr auto default_value = [](auto value) static
 
 inline constexpr struct { } parse_annotation;
 
-template <typename F>
-struct [[=parse_annotation]] function_parse_annotation : callable<F>
-{
-    using callable<F>::callable;
-    using callable<F>::operator();
-};
-
-
 
 }  // namespace cpp::refl
 

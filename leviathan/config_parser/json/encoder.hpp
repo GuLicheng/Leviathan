@@ -73,11 +73,11 @@ struct caster;
 template <typename T>
 struct universal_caster
 {
-    struct init_with_root
+    struct initializer
     {
         const cpp::json::value& root;    
 
-        init_with_root(const cpp::json::value& root) : root(root) {}
+        initializer(const cpp::json::value& root) : root(root) {}
 
         template <typename U>
         void operator()(std::optional<U>& opt, const std::string& name) const
@@ -95,22 +95,9 @@ struct universal_caster
 
     static T operator()(const value& root)
     {
-        auto initializer = init_with_root(root);
-        constexpr auto ctx = std::meta::access_context::current();
-
-        // FIXME: virtual pointer here will cause error.
-        alignas(T) char buffer[sizeof(T)];
-        T& obj = *reinterpret_cast<T*>(buffer);
-
-        template for (constexpr auto mem : define_static_array(nonstatic_data_members_of(^^T, ctx))) 
-        {
-            std::construct_at(  
-                std::addressof(obj.[:mem:]), 
-                refl::field_initializer<^^T, mem>()(initializer)
-            );
-        }
-        return std::move(obj);
+        return cpp::refl::construct_struct<T>(initializer(root));
     }
+
 };
 
 struct boolean_caster
