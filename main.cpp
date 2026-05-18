@@ -50,6 +50,7 @@ Student
     [[=cpp::refl::rename("userID")]]
     std::string id;
 
+    [[=cpp::refl::skip]]
     std::string name;
 
     [[=cpp::refl::default_value(18.5), =cpp::refl::range(15, 150), =GreatThan(0)]]
@@ -62,6 +63,7 @@ Student
 
     bool is_special;
 
+    std::vector<std::unordered_map<std::string, int>> colors;
 };
 
 constexpr const char* context = R"(
@@ -70,7 +72,8 @@ constexpr const char* context = R"(
         "Name": "Alice",
         "Gender": "Unknown",
         "is_special": true,
-        "scores": [85, 90, 78]
+        "Scores": [85, 90, 78],
+        "Colors": [ { "Red": 255, "Green": 0, "Blue": 0 }, { "Red": 0, "Green": 255, "Blue": 0 }, { "Red": 0, "Green": 0, "Blue": 255 } ]
     }
 )";
 
@@ -85,16 +88,10 @@ void TestJson()
 template <typename T>
 struct NlohmannJsonCaster;
 
-template <typename T>
-concept NlohmannJsonGetable = requires(const nlohmann::json& json) 
-{
-    { json.at("").get<T>() };
-};
-
 struct NlohmannJsonInitializer
 {
     const nlohmann::json& json;
-
+    
     NlohmannJsonInitializer(const nlohmann::json& json) : json(json) { }
 
     template <typename T>
@@ -111,9 +108,15 @@ struct NlohmannJsonInitializer
 template <typename T>
 struct NlohmannJsonCaster
 {
+    static constexpr bool IsNlohmannJsonSupportedType = []() {
+        return std::same_as<bool, T> 
+            || std::is_arithmetic_v<T> 
+            || (std::ranges::range<T>);
+    }();
+
     static constexpr T operator()(const nlohmann::json& json)
     {
-        if constexpr (std::same_as<bool, T> || std::is_arithmetic_v<T> || std::same_as<std::string, T> || std::ranges::range<T>)
+        if constexpr (IsNlohmannJsonSupportedType)
         {
             return json.get<T>();
         }
@@ -133,14 +136,17 @@ struct NlohmannJsonCaster
     } 
 };
 
-
 int main()
 {
-    auto root = nlohmann::json::parse(context);
-    std::cout << "Parsed JSON: \n" << root.dump(4) << std::endl;
+    // auto root = nlohmann::json::parse(context);
+    // std::cout << "Parsed JSON: \n" << root.dump(4) << std::endl;
 
-    Student student = NlohmannJsonCaster<Student>::operator()(root);
-    std::println("Student info: \n{}", student);
+    // Student student = NlohmannJsonCaster<Student>::operator()(root);
+    // std::println("Student info: \n{}", student);
+
+    TestJson();
+
+    return 0;
 }
 
 

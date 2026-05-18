@@ -64,18 +64,27 @@ struct field_handler
 
     static constexpr bool IsDefaultConstructible = std::is_default_constructible_v<FieldType>;
 
+    static constexpr bool IsSkippable = cpp::refl::has_annotation(FieldInfo, cpp::refl::skip, cpp::refl::skip_deserialization);
+
     template <typename Initializer>
     static constexpr std::optional<FieldType> init_value(Initializer initializer)
     {
-        // Get field name
-        auto name = extract_name_by_annotation<FieldInfo, ClassInfo>();
-        std::optional<FieldType> value = std::nullopt;
+        if constexpr (IsSkippable)
+        {
+            return default_value();
+        }
+        else
+        {
+            // Get field name
+            auto name = extract_name_by_annotation<FieldInfo, ClassInfo>();
+            std::optional<FieldType> value = std::nullopt;
 
-        // Try init current field with initializer
-        std::invoke(initializer, value, name);
+            // Try init current field with initializer
+            std::invoke(initializer, value, name);
 
-        // Try init current field with annotations
-        return value ? value : default_value();
+            // Try init current field with annotations
+            return value ? value : default_value();
+        }
     }
 
     static constexpr std::optional<FieldType> default_value() 
@@ -83,7 +92,10 @@ struct field_handler
         template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
             if constexpr (has_annotation(type_of(anno), value_annotation))
                 return std::make_optional(std::invoke(extract<typename [:type_of(anno):]>(anno)));
-        return std::nullopt;
+        if constexpr (IsDefaultConstructible)
+            return std::make_optional(FieldType());
+        else
+            return std::nullopt;
     }
 
     template <typename T>
