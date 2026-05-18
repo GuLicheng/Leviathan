@@ -6,9 +6,11 @@
 #include <string>
 #include <algorithm>
 #include <leviathan/extc++/format.hpp>
+#include "nlohmann.hpp"
 #include <ranges>
 #include <numeric>
 #include <array>
+#include <variant>
 
 enum class
 [[=cpp::derive::debug]]
@@ -35,26 +37,6 @@ struct [[=cpp::refl::choice_annotation]] GreatThan
     }
 };
 
-struct [[=cpp::refl::parse_annotation]] BooleanParser
-{
-    static constexpr auto operator()(std::optional<bool>& out, std::string name)
-    {
-        auto lowercase = name | std::views::transform(::tolower) | std::ranges::to<std::string>();
-        
-        if (lowercase == "true") out.emplace(true);
-        else if (lowercase == "false") out.emplace(false);
-    }
-};
-
-struct [[=cpp::refl::value_annotation]] ReturnDefaultRange
-{
-    static constexpr std::initializer_list<int> operator()()
-    {
-        static auto ilist = std::initializer_list<int>{0, 1, 2};
-        return ilist;
-    }
-};
-
 struct 
 [[=cpp::derive::debug]] 
 [[=cpp::refl::pascal_case]]
@@ -73,45 +55,10 @@ Student
     [[=cpp::refl::choice(Gender::Female, Gender::Male, Gender::Unknown)]]
     Gender gender;
 
-    [[=ReturnDefaultRange()]]
     std::vector<int> scores;
 
     bool is_special;
 
-};
-
-template <std::meta::info Info>
-constexpr auto DefaultConstruct()
-{
-    using T = typename [:type_of(Info):];
-    return T();
-}
-
-struct [[=cpp::derive::debug]] Foo
-{
-    int X;
-    int Y;
-    std::string Name;
-};
-
-struct JsonInitializer
-{
-    const cpp::json::value& root;    
-
-    JsonInitializer(const cpp::json::value& root) : root(root) {}
-
-    template <typename U>
-    void operator()(std::optional<U>& opt, const std::string& name) const
-    {
-        assert(opt.has_value() == false);
-    
-        auto it = root.as<cpp::json::object>().find(cpp::json::string(name));
-
-        if (it != root.as<cpp::json::object>().end())
-        {
-            opt.emplace(cpp::cast<U>(it->second));
-        }
-    }
 };
 
 constexpr const char* context = R"(
@@ -120,17 +67,44 @@ constexpr const char* context = R"(
         "Name": "Alice",
         "is_student": true,
         "Gender": "Unknown",
-        "is_special": true
+        "is_special": true,
+        "scores": [85, 90, 78]
     }
 )";
 
-int main()
+void TestJson()
 {
     auto root = cpp::json::loads(context);
     std::println("Parsed JSON: \n{:4}", root);
     auto student = cpp::cast<Student>(root);
     std::println("Student info: \n{}", student);
+}
 
+struct NlohmannJsonInitializer
+{
+    nlohmann::json json;
+
+    NlohmannJsonInitializer(nlohmann::json json) : json(std::move(json)) { }
+
+    template <typename T>
+    void operator()(std::optional<T>& value, std::string name) const
+    {
+        value.emplace(SimpleFromJson<T>(json));
+    }
+
+    template <typename T>
+    T SimpleToStruct(std::optional<T>& value, std::string name);
+
+    template <typename E>
+    E SimpleToEnum(std::optional<E>& value, std::string name);
+
+    
+};
+
+int main()
+{
+    auto root = nlohmann::json::parse(context);
+    std::cout << "Parsed JSON: \n" << root.dump(4) << std::endl;
 }
 
 

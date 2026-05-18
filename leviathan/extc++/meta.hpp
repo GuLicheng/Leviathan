@@ -11,15 +11,42 @@
 namespace cpp::refl
 {
 
+/**
+ * @brief Get the N-th member of a class by its declaration order.
+ * @tparam T The class type.
+ * @param N The index of the member, starting from 0.
+ * @return The meta-information of the N-th member.
+ * 
+ * For example, given a class:
+ * 
+ *  struct MyStruct { int X; double Y; };
+ *  MyStruct s;
+ *  s.[:member_number<MyStruct>(0):] = 1;
+ *  s.[:member_number<MyStruct>(1):] = 3.14;
+ *  assert(s.X == 1 && s.Y == 3.14);
+ */
 template <typename T>
-consteval auto member_number(size_t N)
+consteval std::meta::info member_number(size_t N)
 {
     auto ctx = std::meta::access_context::current();
     return std::meta::nonstatic_data_members_of(^^T, ctx)[N];
 }
 
+/**
+ * @brief Get the member of a class by its name.
+ * @tparam T The class type.
+ * @param name The name of the member.
+ * @return The meta-information of the member with the given name.
+ * 
+ *  For example, given a class:
+ *  struct MyStruct { int X; double Y; };
+ *  MyStruct s;
+ *  s.[:member_named<MyStruct>("X"):] = 1;
+ *  s.[:member_named<MyStruct>("Y"):] = 3.14;
+ *  assert(s.X == 1 && s.Y == 3.14);
+ */
 template <typename T>
-consteval auto member_named(const char* name)
+consteval std::meta::info member_named(const char* name)
 {
     auto ctx = std::meta::access_context::current();
     for (std::meta::info field : nonstatic_data_members_of(^^T, ctx))
@@ -103,6 +130,11 @@ struct field_initializer
     }
 };
 
+/**
+ * @brief Construct an object of type T by initializing its fields with the provided initializer.
+ * @param T The type of the object to construct. Must be a class type.
+ * @param Initializer A callable that takes a reference to an optional field value and the field name, and initializes the field value if possible.
+ */
 template <typename T, typename Initializer>
 constexpr T construct_struct(Initializer initializer)
 {
