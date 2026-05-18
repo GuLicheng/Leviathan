@@ -56,7 +56,7 @@ consteval std::meta::info member_named(const char* name)
 }
 
 template <std::meta::info ClassInfo, std::meta::info FieldInfo>
-struct field_initializer
+struct field_handler
 {
     static_assert(std::meta::is_class_type(ClassInfo) && std::meta::is_class_member(FieldInfo));
 
@@ -75,48 +75,24 @@ struct field_initializer
         std::invoke(initializer, value, name);
 
         // Try init current field with annotations
-        if (!value)
-        {
-            template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
-            {
-                if constexpr (has_annotation(type_of(anno), value_annotation))
-                {
-                    value.emplace(std::invoke(extract<typename [:type_of(anno):]>(anno)));
-                    break;  // Only the first value annotation is effective
-                }
-            }  
+        return value ? value : default_value();
+    }
 
-            if (!value)
-            {
-                if constexpr (!IsDefaultConstructible)
-                {
-                    throw std::runtime_error(std::format("Field {} is missing and has no default value", name));
-                }
-                else
-                {
-                    value.emplace(); // default initialize
-                }
-            }
-        }
-        return value;
+    static constexpr std::optional<FieldType> default_value() 
+    {
+        template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
+            if constexpr (has_annotation(type_of(anno), value_annotation))
+                return std::make_optional(std::invoke(extract<typename [:type_of(anno):]>(anno)));
+        return std::nullopt;
     }
 
     template <typename T>
     static constexpr bool is_valid(const T& value)
     {
         template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
-        {
-            using AnnoType = typename [:type_of(anno):];
-
             if constexpr (has_annotation(type_of(anno), choice_annotation))
-            {
-                if (!std::invoke(extract<AnnoType>(anno), value))
-                {
+                if (!std::invoke(extract<typename [:type_of(anno):]>(anno), value))
                     return false;
-                }
-            }
-        }
-
         return true;
     }
 
@@ -142,7 +118,7 @@ constexpr T construct_struct(Initializer initializer)
     constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
     constexpr auto N = members.size();
     constexpr auto [...Idx] = std::make_index_sequence<N>{};
-    return T(cpp::refl::field_initializer<^^T, members[Idx]>()(std::ref(initializer))...);
+    return T(cpp::refl::field_handler<^^T, members[Idx]>()(std::ref(initializer))...);
 }
 
 template <typename T>

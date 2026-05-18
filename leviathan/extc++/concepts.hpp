@@ -5,7 +5,6 @@
 #include <tuple> 
 #include <complex>
 #include <array>
-#include <leviathan/operators.hpp>
 
 namespace cpp::meta
 {
@@ -145,7 +144,7 @@ concept string_like = (std::ranges::range<T> && std::same_as<std::ranges::range_
                    || std::same_as<std::decay_t<T>, const char*>;
 
 // See std::format_kind
-enum class kind : uint8_t
+enum class [[=cpp::derive::op_pipe]] kind : uint8_t
 {
     disabled   = 0b0000'0000,
     arithmetic = 0b0000'0001,
@@ -157,9 +156,6 @@ enum class kind : uint8_t
 };
 
 }  // namespace cpp::meta
-
-template <>
-inline constexpr bool cpp::operators::enum_enable_bitop<cpp::meta::kind> = true;
 
 namespace cpp::meta
 {

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <leviathan/extc++/meta.hpp>
 #include <leviathan/annotations/all.hpp>
+#include <leviathan/extc++/enum.hpp>
 #include "leviathan/config_parser/json/json.hpp"
 #include <string>
 #include <algorithm>
@@ -18,6 +19,7 @@ enum class
 [[=cpp::derive::encode<cpp::json::value>]]
 [[=cpp::derive::decode<cpp::json::value>]]
 [[=cpp::derive::op_pipe]]
+[[=cpp::derive::decode<nlohmann::json>]]
 Gender
 {
     Female,
@@ -42,6 +44,7 @@ struct
 [[=cpp::refl::pascal_case]]
 [[=cpp::derive::decode<cpp::json::value>]] 
 [[=cpp::derive::encode<cpp::json::value>]]
+[[=cpp::derive::decode<nlohmann::json>]]
 Student
 {
     [[=cpp::refl::rename("userID")]]
@@ -65,7 +68,6 @@ constexpr const char* context = R"(
     {
         "userID": "12345",
         "Name": "Alice",
-        "is_student": true,
         "Gender": "Unknown",
         "is_special": true,
         "scores": [85, 90, 78]
@@ -80,31 +82,65 @@ void TestJson()
     std::println("Student info: \n{}", student);
 }
 
+template <typename T>
+struct NlohmannJsonCaster;
+
+template <typename T>
+concept NlohmannJsonGetable = requires(const nlohmann::json& json) 
+{
+    { json.at("").get<T>() };
+};
+
 struct NlohmannJsonInitializer
 {
-    nlohmann::json json;
+    const nlohmann::json& json;
 
-    NlohmannJsonInitializer(nlohmann::json json) : json(std::move(json)) { }
+    NlohmannJsonInitializer(const nlohmann::json& json) : json(json) { }
 
     template <typename T>
     void operator()(std::optional<T>& value, std::string name) const
     {
-        value.emplace(SimpleFromJson<T>(json));
+        if (json.contains(name))
+        {
+            auto subobj = json.at(name);
+            value.emplace(NlohmannJsonCaster<T>::operator()(subobj));
+        }
     }
-
-    template <typename T>
-    T SimpleToStruct(std::optional<T>& value, std::string name);
-
-    template <typename E>
-    E SimpleToEnum(std::optional<E>& value, std::string name);
-
-    
 };
+
+template <typename T>
+struct NlohmannJsonCaster
+{
+    static constexpr T operator()(const nlohmann::json& json)
+    {
+        if constexpr (std::same_as<bool, T> || std::is_arithmetic_v<T> || std::same_as<std::string, T> || std::ranges::range<T>)
+        {
+            return json.get<T>();
+        }
+        else if constexpr (std::is_enum_v<T>)
+        {
+            auto str = json.get<std::string>();
+            return cpp::enum_decoder<T>()(str);
+        }
+        else if constexpr (std::is_class_v<T>)
+        {
+            return cpp::refl::construct_struct<T>(NlohmannJsonInitializer(json));
+        }
+        else
+        {
+            static_assert(false, "No caster available for this type");
+        }
+    } 
+};
+
 
 int main()
 {
     auto root = nlohmann::json::parse(context);
     std::cout << "Parsed JSON: \n" << root.dump(4) << std::endl;
+
+    Student student = NlohmannJsonCaster<Student>::operator()(root);
+    std::println("Student info: \n{}", student);
 }
 
 

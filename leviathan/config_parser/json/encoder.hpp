@@ -381,8 +381,6 @@ inline constexpr struct
 template <>
 struct std::formatter<cpp::json::value, char> 
 {
-    // enum format_kind { indented, none };
-
     template <typename ParseContext>
     constexpr typename ParseContext::iterator parse(ParseContext& ctx)
     {
@@ -407,13 +405,20 @@ private:
     int m_indent = 0;
 };
 
-// Cast json value to c++ type
+// Cast json value to c++ type, may not perfect
 template <typename Target>
 struct cpp::optional_caster<cpp::json::value, Target>
 {
-    static auto operator()(const cpp::json::value& v)
+    static std::optional<Target> operator()(const cpp::json::value& v)
     {
-        auto result = cpp::json::detail::caster<Target>::operator()(v);
-        return std::make_optional(std::move(result));
+        try
+        {
+            auto result = cpp::json::detail::caster<Target>::operator()(v);
+            return std::make_optional(std::move(result));
+        }
+        catch (...)
+        {
+            return std::nullopt;
+        }
     }
 };
