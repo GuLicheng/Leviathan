@@ -1,6 +1,7 @@
 #pragma once
 
 #include <meta>
+#include <format>
 #include <type_traits>
 #include <string_view>
 #include <stdexcept>
@@ -121,7 +122,8 @@ struct field_handler
 /**
  * @brief Construct an object of type T by initializing its fields with the provided initializer.
  * @param T The type of the object to construct. Must be a class type.
- * @param Initializer A callable that takes a reference to an optional field value and the field name, and initializes the field value if possible.
+ * @param Initializer A callable that takes a reference to an optional field value 
+ *  and the field name, and initializes the field value if possible.
  */
 template <typename T, typename Initializer>
 constexpr T construct_struct(Initializer initializer)

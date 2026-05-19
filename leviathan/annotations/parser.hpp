@@ -5,9 +5,7 @@
 
 namespace cpp::refl
 {
-
-inline constexpr struct { } value_annotation;
-
+    
 template <typename F>
 struct [[=value_annotation]] function_value_annotation : callable<F>
 {

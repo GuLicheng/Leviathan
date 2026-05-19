@@ -7,10 +7,6 @@
 namespace cpp::refl
 {
 
-inline constexpr struct { } rename_annotation;
-
-inline constexpr struct { } rename_all_annotation;
-
 template <typename F>
 struct [[=rename_annotation]] function_rename_annotation : callable<F>
 {
@@ -67,13 +63,24 @@ inline constexpr auto camel_case = function_rename_annotation([](std::string fie
 
 inline constexpr auto pascal_case = function_rename_annotation([](std::string field_name) static
 {
-    auto result = camel_case(field_name);
-    if (!result.empty() && result[0] >= 'a' && result[0] <= 'z') 
-    {
-        result[0] = static_cast<char>(result[0] - ('a' - 'A'));
-    }
-    return result;
+    auto upper_first_character = [](auto&& part) static {
+        if (!part.empty()) part.front() = ::toupper(part.front());
+        return part;
+    };
+
+    return field_name 
+         | std::views::split('_') 
+         | std::views::transform(upper_first_character)
+         | std::views::join
+         | std::ranges::to<std::string>();
 });
+
+inline constexpr auto kebab_case = function_rename_annotation([](std::string field_name) static
+{
+    return field_name | std::views::transform([](char c) { return c == '_' ? '-' : c; }) | std::ranges::to<std::string>();
+});
+
+
 
 namespace detail
 {
@@ -131,5 +138,6 @@ constexpr std::string extract_name_by_annotation()
     constexpr auto name = identifier_of(Info1);
     return detail::extract_name_by_annotation_impl<Info1, Infos...>::operator()(std::string(name));
 }
+
 
 }  // namespace cpp::refl

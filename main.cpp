@@ -1,152 +1,18 @@
-#include <print>
-#include <iostream>
-#include <leviathan/extc++/meta.hpp>
 #include <leviathan/annotations/all.hpp>
-#include <leviathan/extc++/enum.hpp>
-#include "leviathan/config_parser/json/json.hpp"
-#include <string>
-#include <algorithm>
-#include <leviathan/extc++/format.hpp>
-#include "nlohmann.hpp"
-#include <ranges>
-#include <numeric>
-#include <array>
-#include <variant>
+#include <print>
 
-enum class
-[[=cpp::derive::debug]]
-[[=cpp::derive::hash]]
-[[=cpp::derive::encode<cpp::json::value>]]
-[[=cpp::derive::decode<cpp::json::value>]]
-[[=cpp::derive::op_pipe]]
-[[=cpp::derive::decode<nlohmann::json>]]
-Gender
+int main(int argc, char const *argv[])
 {
-    Female,
-    Male,
-    Unknown
-};
+    std::println("{}", cpp::refl::pascal_case("hello_world"));
+    std::println("{}", cpp::refl::pascal_case("_hello_world"));
+    std::println("{}", cpp::refl::pascal_case("hello_world_"));
+    std::println("{}", cpp::refl::pascal_case("hello__world"));
 
-struct [[=cpp::refl::choice_annotation]] GreatThan
-{
-    int x;
-
-    consteval GreatThan(int x) : x(x) { }
-
-    constexpr bool operator()(const auto& input) const
-    {
-        return input > x;
-    }
-};
-
-struct 
-[[=cpp::derive::debug]] 
-[[=cpp::refl::pascal_case]]
-[[=cpp::derive::decode<cpp::json::value>]] 
-[[=cpp::derive::encode<cpp::json::value>]]
-[[=cpp::derive::decode<nlohmann::json>]]
-Student
-{
-    [[=cpp::refl::rename("userID")]]
-    std::string id;
-
-    [[=cpp::refl::skip]]
-    std::string name;
-
-    [[=cpp::refl::default_value(18.5), =cpp::refl::range(15, 150), =GreatThan(0)]]
-    int age;
-
-    [[=cpp::refl::choice(Gender::Female, Gender::Male, Gender::Unknown)]]
-    Gender gender;
-
-    std::vector<int> scores;
-
-    bool is_special;
-
-    std::vector<std::unordered_map<std::string, int>> colors;
-};
-
-constexpr const char* context = R"(
-    {
-        "userID": "12345",
-        "Name": "Alice",
-        "Gender": "Unknown",
-        "is_special": true,
-        "Scores": [85, 90, 78],
-        "Colors": [ { "Red": 255, "Green": 0, "Blue": 0 }, { "Red": 0, "Green": 255, "Blue": 0 }, { "Red": 0, "Green": 0, "Blue": 255 } ]
-    }
-)";
-
-void TestJson()
-{
-    auto root = cpp::json::loads(context);
-    std::println("Parsed JSON: \n{:4}", root);
-    auto student = cpp::cast<Student>(root);
-    std::println("Student info: \n{}", student);
-}
-
-template <typename T>
-struct NlohmannJsonCaster;
-
-struct NlohmannJsonInitializer
-{
-    const nlohmann::json& json;
+    std::println("{}", cpp::refl::kebab_case("hello_world"));
+    std::println("{}", cpp::refl::kebab_case("_hello_world"));
+    std::println("{}", cpp::refl::kebab_case("hello_world_"));
+    std::println("{}", cpp::refl::kebab_case("hello__world"));
     
-    NlohmannJsonInitializer(const nlohmann::json& json) : json(json) { }
-
-    template <typename T>
-    void operator()(std::optional<T>& value, std::string name) const
-    {
-        if (json.contains(name))
-        {
-            auto subobj = json.at(name);
-            value.emplace(NlohmannJsonCaster<T>::operator()(subobj));
-        }
-    }
-};
-
-template <typename T>
-struct NlohmannJsonCaster
-{
-    static constexpr bool IsNlohmannJsonSupportedType = []() {
-        return std::same_as<bool, T> 
-            || std::is_arithmetic_v<T> 
-            || (std::ranges::range<T>);
-    }();
-
-    static constexpr T operator()(const nlohmann::json& json)
-    {
-        if constexpr (IsNlohmannJsonSupportedType)
-        {
-            return json.get<T>();
-        }
-        else if constexpr (std::is_enum_v<T>)
-        {
-            auto str = json.get<std::string>();
-            return cpp::enum_decoder<T>()(str);
-        }
-        else if constexpr (std::is_class_v<T>)
-        {
-            return cpp::refl::construct_struct<T>(NlohmannJsonInitializer(json));
-        }
-        else
-        {
-            static_assert(false, "No caster available for this type");
-        }
-    } 
-};
-
-int main()
-{
-    // auto root = nlohmann::json::parse(context);
-    // std::cout << "Parsed JSON: \n" << root.dump(4) << std::endl;
-
-    // Student student = NlohmannJsonCaster<Student>::operator()(root);
-    // std::println("Student info: \n{}", student);
-
-    TestJson();
 
     return 0;
 }
-
-

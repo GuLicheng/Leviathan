@@ -2,6 +2,7 @@
 
 #include <concepts>
 #include <type_traits>
+#include <meta>
 #include <tuple> 
 #include <complex>
 #include <array>
@@ -137,7 +138,7 @@ template <typename... Ts>
 using tuple_or_pair = typename tuple_or_pair_impl<Ts...>::type;
 
 template <typename T>
-concept arithmetic = std::integral<T> || std::floating_point<T>;
+concept arithmetic = std::meta::is_arithmetic_type(^^T); 
 
 template <typename T>
 concept string_like = (std::ranges::range<T> && std::same_as<std::ranges::range_value_t<T>, char>)

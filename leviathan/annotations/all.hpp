@@ -27,8 +27,7 @@ template <typename T> inline constexpr auto encode = encode_t<T>{};
 template <typename T> struct decode_t { };
 template <typename T> inline constexpr auto decode = decode_t<T>{};
 
-// inline constexpr struct { } required;
-
+// Extend operator| and operator|= for enum type, for example, to support bitmask operations.
 inline constexpr struct { } op_pipe;
 
 }
