@@ -57,68 +57,8 @@ consteval std::meta::info member_named(const char* name)
 }
 
 template <std::meta::info ClassInfo, std::meta::info FieldInfo>
-struct field_handler
-{
-    static_assert(std::meta::is_class_type(ClassInfo) && std::meta::is_class_member(FieldInfo));
+struct field_handler;
 
-    using FieldType = typename [:type_of(FieldInfo):];
-
-    static constexpr bool IsDefaultConstructible = std::is_default_constructible_v<FieldType>;
-
-    static constexpr bool IsSkippable = cpp::refl::has_annotation(FieldInfo, cpp::refl::skip, cpp::refl::skip_deserialization);
-
-    template <typename Initializer>
-    static constexpr std::optional<FieldType> init_value(Initializer initializer)
-    {
-        if constexpr (IsSkippable)
-        {
-            // Each member should be initialized in C++.
-            return default_value();
-        }
-        else
-        {
-            // Get field name
-            auto name = extract_name_by_annotation<FieldInfo, ClassInfo>();
-            std::optional<FieldType> value = std::nullopt;
-
-            // Try init current field with initializer
-            std::invoke(initializer, value, name);
-
-            // Try init current field with annotations
-            return value ? value : default_value();
-        }
-    }
-
-    static constexpr std::optional<FieldType> default_value() 
-    {
-        template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
-            if constexpr (has_annotation(type_of(anno), value_annotation))
-                return std::make_optional(std::invoke(extract<typename [:type_of(anno):]>(anno)));
-        if constexpr (IsDefaultConstructible)
-            return std::make_optional(FieldType());
-        else
-            return std::nullopt;
-    }
-
-    template <typename T>
-    static constexpr bool is_valid(const T& value)
-    {
-        template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
-            if constexpr (has_annotation(type_of(anno), choice_annotation))
-                if (!std::invoke(extract<typename [:type_of(anno):]>(anno), value))
-                    return false;
-        return true;
-    }
-
-    template <typename Initializer>
-    static constexpr FieldType operator()(Initializer initializer)
-    {
-        auto value = init_value(initializer);
-        return value.has_value() && is_valid(*value) 
-             ? std::move(*value) 
-             : throw std::runtime_error(std::format("Field {} is missing or invalid", display_string_of(FieldInfo)));
-    }
-};
 
 /**
  * @brief Get the valid member indices of a class, excluding the members with [[=cpp::refl::skip]] annotation.
@@ -211,6 +151,86 @@ constexpr TupleLike range_to_tuple(Range&& range)
     constexpr auto [...idx] = std::make_index_sequence<N>{};
     return TupleLike(std::forward_like<Range>(range[idx])...);
 }
+
+template <std::meta::info ClassInfo, std::meta::info FieldInfo>
+struct field_handler
+{
+    static_assert(std::meta::is_class_type(ClassInfo) && std::meta::is_class_member(FieldInfo));
+
+    using FieldType = typename [:type_of(FieldInfo):];
+
+    static constexpr bool IsDefaultConstructible = std::is_default_constructible_v<FieldType>;
+
+    static constexpr bool IsSkippable = cpp::refl::has_annotation(FieldInfo, cpp::refl::skip, cpp::refl::skip_deserialization);
+
+    static constexpr bool IsUnnamedType = display_string_of(^^FieldType).contains("unnamed");
+
+    static constexpr bool IsUnnamedField = has_identifier(FieldInfo) == false;
+
+    static_assert(!IsUnnamedType || !IsUnnamedField, "Unnamed type can't be used as a field with a name, since we have no way to refer to it in initializer");
+
+    // template <typename Initializer>
+    //     requires (IsUnnamedType || IsUnnamedField)
+    // static constexpr std::optional<FieldType> init_value(Initializer initializer)
+    // {
+    //     // auto object = construct_struct<FieldType>(initializer);
+    //     // return std::make_optional(std::move(object));
+    //     return std::nullopt;
+    // }
+
+    template <typename Initializer>
+    static constexpr std::optional<FieldType> init_value(Initializer initializer)
+    {
+        if constexpr (IsSkippable)
+        {
+            // Each member should be initialized in C++.
+            return default_value();
+        }
+        else
+        {
+            // Get field name
+            auto name = extract_name_by_annotation<FieldInfo, ClassInfo>();
+            std::optional<FieldType> value = std::nullopt;
+
+            // Try init current field with initializer
+            std::invoke(initializer, value, name);
+
+            // Try init current field with annotations
+            return value ? value : default_value();
+        }
+    }
+
+    static constexpr std::optional<FieldType> default_value() 
+    {
+        template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
+            if constexpr (has_annotation(type_of(anno), value_annotation))
+                return std::make_optional(std::invoke(extract<typename [:type_of(anno):]>(anno)));
+        if constexpr (IsDefaultConstructible)
+            return std::make_optional(FieldType());
+        else
+            return std::nullopt;
+    }
+
+    template <typename T>
+    static constexpr bool is_valid(const T& value)
+    {
+        template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
+            if constexpr (has_annotation(type_of(anno), choice_annotation))
+                if (!std::invoke(extract<typename [:type_of(anno):]>(anno), value))
+                    return false;
+        return true;
+    }
+
+    template <typename Initializer>
+    static constexpr FieldType operator()(Initializer initializer)
+    {
+        auto value = init_value(initializer);
+        return value.has_value() && is_valid(*value) 
+             ? std::move(*value) 
+             : throw std::runtime_error(std::format("Field {} is missing or invalid", display_string_of(FieldInfo)));
+    }
+};
+
 
 } // namespace cpp::refl
 

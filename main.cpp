@@ -24,37 +24,58 @@ struct [[=cpp::derive::debug]] Derived : Base { double Y; };
 static_assert(std::is_trivially_default_constructible_v<Base>);
 static_assert(std::is_trivially_default_constructible_v<Derived>);
 
+
+
 template <typename T>
 void PrintMemberInfo()
 {
     template for (constexpr auto member : define_static_array(nonstatic_data_members_of(^^T, std::meta::access_context::current())))
     {
-        std::print("Member: {}\n", identifier_of(member));
+        constexpr std::string_view name = has_identifier(member) ? identifier_of(member) : "<unnamed>";
+        constexpr bool has_name = display_string_of(type_of(member)).contains("unnamed");
+        std::print("class has name? {}, Type: {}, Member: {}\n", 
+            has_name, display_string_of(type_of(member)), name);
     }
 }
 
-struct Init
+struct DebugInitializer
 {
-    static void operator()(std::optional<int>& opt, std::string name)
-    {
-        if (name == "X")
-            opt = 42;
-    }
+    int value = 0;
 
-    static void operator()(std::optional<double>& opt, std::string name)
+    void operator()(std::optional<int>& opt, std::string name)
     {
-        if (name == "Y")
-            opt = 3.14;
+        // opt = value++;
     }
+};
+
+struct C
+{
+    struct [[=cpp::derive::debug]] { 
+        int X; 
+        int Y;
+    };
+
+    int Z;
+
+    struct {
+        int I1;
+        int I2;
+    } Inner;
+
+    struct Bar {
+        int B1;
+        int B2;
+    };
 };
 
 int main(int argc, char const* argv[])
 {
-    PrintMemberInfo<Base>();
-    PrintMemberInfo<Derived>();
+    using Unnamed = decltype(C::Inner);
 
-    auto d = cpp::refl::construct_struct<Derived>(Init{});
-    std::print("{}\n", d);
-    
+    std::optional<Unnamed> u;
+
+    auto c = C(1, 2, 3, 4, 5);
+
+    std::print("{}\n", c);
     return 0;
 }
