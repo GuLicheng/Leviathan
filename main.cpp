@@ -17,21 +17,44 @@ Foo
     std::vector<double> z = { 1.0, 2.0, 3.0 };
 };
 
-template<typename T>
-consteval std::meta::info make_integer_seq_refl(T N) {
-    std::vector args{ ^^T };
-    for (T k = 0; k < N; ++k) {
-        args.push_back(std::meta::reflect_constant(k));
+struct [[=cpp::derive::debug]] Base { int X; };
+
+struct [[=cpp::derive::debug]] Derived : Base { double Y; };
+
+static_assert(std::is_trivially_default_constructible_v<Base>);
+static_assert(std::is_trivially_default_constructible_v<Derived>);
+
+template <typename T>
+void PrintMemberInfo()
+{
+    template for (constexpr auto member : define_static_array(nonstatic_data_members_of(^^T, std::meta::access_context::current())))
+    {
+        std::print("Member: {}\n", identifier_of(member));
     }
-    return substitute(^^std::integer_sequence, args);
 }
 
+struct Init
+{
+    static void operator()(std::optional<int>& opt, std::string name)
+    {
+        if (name == "X")
+            opt = 42;
+    }
 
-
+    static void operator()(std::optional<double>& opt, std::string name)
+    {
+        if (name == "Y")
+            opt = 3.14;
+    }
+};
 
 int main(int argc, char const* argv[])
 {
-    auto t = cpp::refl::struct_to_tuple<Foo>({ .x = 42, .y = "world", .z = { 4.0, 5.0 } });
-    std::print("{}", t);
+    PrintMemberInfo<Base>();
+    PrintMemberInfo<Derived>();
+
+    auto d = cpp::refl::construct_struct<Derived>(Init{});
+    std::print("{}\n", d);
+    
     return 0;
 }

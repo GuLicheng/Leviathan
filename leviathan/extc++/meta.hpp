@@ -158,11 +158,25 @@ using indices_without_removed_member = typename [:remove_skiped_member<T, Annota
 template <typename T, typename Initializer>
 constexpr T construct_struct(Initializer initializer)
 {
+    static_assert(std::is_trivially_default_constructible_v<T>, "construct_struct only works for trivially default constructible types");
     constexpr auto ctx = std::meta::access_context::current();
+
+    // base class
+    constexpr auto bases = define_static_array(bases_of(^^T, ctx));
+    constexpr auto M = bases.size();
+    constexpr auto [...base_indices] = std::make_index_sequence<M>();
+
+    // current
     constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
     constexpr auto N = members.size();
-    constexpr auto [...Idx] = std::make_index_sequence<N>{};
-    return T(cpp::refl::field_handler<^^T, members[Idx]>()(std::ref(initializer))...);
+    constexpr auto [...indices] = std::make_index_sequence<N>();
+
+    // Init base class first and then init current class, since base class is usually
+    // used as part of current class's field initialization.
+    return T(
+        cpp::refl::construct_struct<typename [:type_of(bases[base_indices]):]>(std::ref(initializer))...,
+        cpp::refl::field_handler<^^T, members[indices]>()(std::ref(initializer))...
+    );
 }
 
 /**
@@ -172,6 +186,12 @@ constexpr T construct_struct(Initializer initializer)
  *  Note: We don't need tuple_to_struct since STL provide
  *  std::make_from_tuple which can construct an object from a tuple, and we can use it 
  *  together with struct_to_tuple to achieve the same effect as tuple_to_struct.
+ * 
+ *  For example, given a struct:
+ *  struct MyStruct { int X; double Y; [[=cpp::refl::skip]] std::string Z; };
+ *  MyStruct s{1, 3.14, "hello"};
+ *  auto t = cpp::refl::struct_to_tuple(s);
+ *  assert(t == std::make_tuple(1, 3.14));
  */
 template <typename T>
 constexpr auto struct_to_tuple(const T& t) 
@@ -183,6 +203,7 @@ constexpr auto struct_to_tuple(const T& t)
     return std::make_tuple(t.[:members[Is]:]...);
 }
 
+// TODO: input range support
 template <typename TupleLike, std::ranges::random_access_range Range>
 constexpr TupleLike range_to_tuple(Range&& range)
 {
