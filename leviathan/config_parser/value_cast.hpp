@@ -121,9 +121,9 @@ struct json2toml
 } // namespace cpp::config
 
 template <>
-struct cpp::type_caster<cpp::json::value, cpp::toml::value, cpp::error_policy::exception>
+struct cpp::optional_caster<cpp::json::value, cpp::toml::value>
 {
-    using result_type = cpp::json::value;
+    using result_type = std::optional<cpp::json::value>;
 
     static auto operator()(const cpp::toml::value& v)
     {
@@ -132,9 +132,9 @@ struct cpp::type_caster<cpp::json::value, cpp::toml::value, cpp::error_policy::e
 };
 
 template <>
-struct cpp::type_caster<cpp::toml::value, cpp::json::value, cpp::error_policy::exception>
+struct cpp::optional_caster<cpp::toml::value, cpp::json::value>
 {
-    using result_type = cpp::toml::value;
+    using result_type = std::optional<cpp::toml::value>;
 
     static auto operator()(const cpp::json::value& v)
     {

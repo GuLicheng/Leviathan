@@ -151,10 +151,10 @@ namespace cpp
 {
 
 template <typename Source>
-class type_caster<toml::value, Source, error_policy::exception>
+class optional_caster<Source, toml::value>
 {
 public:
-    using result_type = toml::value;
+    using result_type = std::optional<toml::value>;
 
     static result_type operator()(const Source& source)
     {
@@ -201,7 +201,7 @@ public:
             else
             {
                 return toml::make_toml<toml::array>(
-                    source | std::views::transform(type_caster<toml::value, ValueType, error_policy::exception>()) | std::ranges::to<toml::array>()
+                    source | std::views::transform(cpp::cast<toml::value>) | std::ranges::to<toml::array>()
                 );
             }
         }

@@ -312,7 +312,7 @@ class indented_encoder
 
             for (auto it = object.begin(); it != object.end(); ++it, idx++)
             {
-                m_result += indent() + std::format(R"("{}" : )", it->first);
+                m_result += indent() + std::format(R"("{}":)", it->first);
 
                 this->operator()(it->second);
 

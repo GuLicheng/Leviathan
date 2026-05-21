@@ -91,8 +91,15 @@ if (LEVIATHAN_BUILD_COLLECTIONS STREQUAL "ON")
     add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/collections)
 endif()
 
+set(LEVIATHAN_BUILD_ANNOTATIONS ON)
+if (LEVIATHAN_BUILD_ANNOTATIONS STREQUAL "ON")
+    message(STATUS "Build annotations")
+    add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/annotations)
+endif()
+
 set(LEVIATHAN_BUILD_ROOT ON)
 if (LEVIATHAN_BUILD_ROOT STREQUAL "ON")
     message(STATUS "Build root")
     add_subdirectory(${PROJECT_ROOT_PATH}/leviathan)
 endif()
+

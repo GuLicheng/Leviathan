@@ -161,24 +161,24 @@ enum class [[=cpp::derive::op_pipe]] kind : uint8_t
 namespace cpp::meta
 {
 
-template <typename T>
-inline constexpr kind type_kind = []()
-{
-    auto result = kind::disabled;
+// template <typename T>
+// inline constexpr kind type_kind = []()
+// {
+//     auto result = kind::disabled;
 
-    if (arithmetic<T>) result |= kind::arithmetic;
-    if (string_like<T>) result |= kind::string;
-    if (tuple_like<T>) result |= kind::tuple_like;
+//     if (arithmetic<T>) result |= kind::arithmetic;
+//     if (string_like<T>) result |= kind::string;
+//     if (tuple_like<T>) result |= kind::tuple_like;
 
-    if (std::ranges::range<T>)
-    {
-        if (requires { typename T::mapped_type;}) result |= kind::map;
-        else if (requires { typename T::key_type; }) result |= kind::set;
-        else result |= kind::sequence;
-    }
+//     if (std::ranges::range<T>)
+//     {
+//         if (requires { typename T::mapped_type;}) result |= kind::map;
+//         else if (requires { typename T::key_type; }) result |= kind::set;
+//         else result |= kind::sequence;
+//     }
 
-    return result;
-}();
+//     return result;
+// }();
 
 }  // namespace cpp::meta
 

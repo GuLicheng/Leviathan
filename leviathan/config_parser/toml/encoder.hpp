@@ -2,6 +2,8 @@
 
 #include <leviathan/config_parser/toml/value.hpp>
 #include <leviathan/config_parser/formatter.hpp>
+#include <leviathan/extc++/enum.hpp>
+#include <leviathan/extc++/meta.hpp>
 #include <leviathan/type_caster.hpp>
 #include <leviathan/extc++/concepts.hpp>
 #include <ranges>
@@ -61,8 +63,7 @@ namespace detail
 template <typename T>
 struct caster;
 
-template <>
-struct caster<std::string>
+struct string_caster
 {
     static std::string operator()(const value& v)
     {
@@ -70,8 +71,8 @@ struct caster<std::string>
     }
 };
 
-template <cpp::meta::arithmetic Arithmetic>
-struct caster<Arithmetic>
+template <typename Arithmetic>
+struct number_caster
 {
     static Arithmetic operator()(const value& v)
     {
@@ -90,7 +91,7 @@ struct caster<Arithmetic>
         else if (v.is<string>())
         {
             std::string_view ctx = v.as<string>();
-            auto result = type_caster<Arithmetic, std::string_view, cpp::error_policy::optional>()(ctx);
+            auto result = optional_caster<std::string_view, Arithmetic>()(ctx);
 
             if (result)
             {
@@ -108,8 +109,7 @@ struct caster<Arithmetic>
     }
 };
 
-template <>
-struct caster<bool>
+struct boolean_caster
 {
     static bool operator()(const value& v)
     {
@@ -117,8 +117,8 @@ struct caster<bool>
     }
 };
 
-template <std::ranges::range Container>
-struct caster<Container>
+template <typename Container>
+struct range_caster
 {
     static Container operator()(const value& v)
     {
@@ -156,6 +156,67 @@ struct caster<Container>
     }
 };
 
+template <typename T>
+struct universal_caster
+{
+    struct initializer
+    {
+        const cpp::toml::value& root;    
+
+        initializer(const cpp::toml::value& root) : root(root) {}
+
+        template <typename U>
+        void operator()(std::optional<U>& opt, const std::string& name) const
+        {
+            assert(opt.has_value() == false);
+        
+            auto it = root.as<cpp::toml::table>().find(cpp::toml::string(name));
+
+            if (it != root.as<cpp::toml::table>().end())
+            {
+                opt.emplace(cpp::cast<U>(it->second));
+            }
+        }
+    };
+
+    static T operator()(const value& root)
+    {
+        return cpp::refl::construct_struct<T>(initializer(root));
+    }
+};
+
+template <typename T> 
+struct caster
+{
+    // FIXME: add toml_date, toml_time, toml_datetime support for string caster
+    static T operator()(const value& v)
+    {
+        if constexpr (std::same_as<bool, T>)
+        {
+            return boolean_caster::operator()(v);
+        }
+        else if constexpr (cpp::meta::arithmetic<T>)
+        {
+            return number_caster<T>::operator()(v);
+        }
+        else if constexpr (std::ranges::range<T>)
+        {
+            return range_caster<T>::operator()(v);
+        }
+        else if constexpr (std::is_enum_v<T> && refl::has_annotation(^^T, cpp::derive::decode<value>))
+        {
+            return enum_decoder<T>()(v.as<string>());
+        }
+        else if constexpr (std::is_class_v<T> && refl::has_annotation(^^T, cpp::derive::decode<value>))
+        {
+            return universal_caster<T>::operator()(v);
+        }
+        else
+        {
+            static_assert(false, "No caster available for this type");
+        }
+    }
+};
 
 }  // namespace detail
 
@@ -362,13 +423,21 @@ inline std::string dump(const value& tv)
 
 }  // namespace cpp::config::toml
 
-// Extend type_caster for cpp::config::toml::value
+// Cast value to c++ type, may not perfect
 template <typename Target>
-struct cpp::type_caster<Target, cpp::toml::value, cpp::error_policy::exception>
+struct cpp::optional_caster<cpp::toml::value, Target>
 {
-    static auto operator()(const cpp::toml::value& v)
+    static std::optional<Target> operator()(const cpp::toml::value& v)
     {
-        return cpp::toml::detail::caster<Target>()(v);
+        try
+        {
+            auto result = cpp::toml::detail::caster<Target>::operator()(v);
+            return std::make_optional(std::move(result));
+        }
+        catch (...)
+        {
+            return std::nullopt;
+        }
     }
 };
 

@@ -72,6 +72,7 @@ struct field_handler
     {
         if constexpr (IsSkippable)
         {
+            // Each member should be initialized in C++.
             return default_value();
         }
         else
@@ -120,6 +121,35 @@ struct field_handler
 };
 
 /**
+ * @brief Get the valid member indices of a class, excluding the members with [[=cpp::refl::skip]] annotation.
+ * @tparam T The class type.
+ * 
+ * For example, given a class:
+ *  struct MyStruct { int X; [[=cpp::refl::skip]] double Y; char Z; };
+ *  The valid member indices of MyStruct are 0 and 2, while index 1 is skipped due to the annotation.
+ */
+template <typename T, auto... Annotations>
+consteval std::meta::info remove_skiped_member()
+{
+    std::vector args { ^^size_t };
+    constexpr auto ctx = std::meta::access_context::current();
+    constexpr auto member = define_static_array(nonstatic_data_members_of(^^T, ctx));
+    constexpr auto size = member.size();
+    constexpr auto [...indices] = std::make_index_sequence<size>{};
+
+    auto pusher = [=, &args]<size_t idx>() {
+        if constexpr (!cpp::refl::has_annotation(member[idx], Annotations...))
+            args.push_back(std::meta::reflect_constant(idx));
+    };
+
+    (pusher.template operator()<indices>(), ...);
+    return substitute(^^std::integer_sequence, args);
+}
+
+template <typename T, auto... Annotations>
+using indices_without_removed_member = typename [:remove_skiped_member<T, Annotations...>():];
+
+/**
  * @brief Construct an object of type T by initializing its fields with the provided initializer.
  * @param T The type of the object to construct. Must be a class type.
  * @param Initializer A callable that takes a reference to an optional field value 
@@ -135,16 +165,31 @@ constexpr T construct_struct(Initializer initializer)
     return T(cpp::refl::field_handler<^^T, members[Idx]>()(std::ref(initializer))...);
 }
 
+/**
+ * @brief Convert a struct to a tuple by its members.
+ * @tparam T The struct type.
+ * 
+ *  Note: We don't need tuple_to_struct since STL provide
+ *  std::make_from_tuple which can construct an object from a tuple, and we can use it 
+ *  together with struct_to_tuple to achieve the same effect as tuple_to_struct.
+ */
 template <typename T>
 constexpr auto struct_to_tuple(const T& t) 
 {
     constexpr auto ctx = std::meta::access_context::current();
     constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
     constexpr auto N = members.size();
-    constexpr auto [...Is] = std::make_index_sequence<N>{};
+    constexpr auto [...Is] = indices_without_removed_member<T, cpp::refl::skip>();
     return std::make_tuple(t.[:members[Is]:]...);
 }
 
+template <typename TupleLike, std::ranges::random_access_range Range>
+constexpr TupleLike range_to_tuple(Range&& range)
+{
+    constexpr auto N = std::meta::tuple_size(^^TupleLike);
+    constexpr auto [...idx] = std::make_index_sequence<N>{};
+    return TupleLike(std::forward_like<Range>(range[idx])...);
+}
 
 } // namespace cpp::refl
 

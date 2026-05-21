@@ -17,17 +17,6 @@ namespace cpp
 template <typename Source, typename Target> 
 struct optional_caster;
 
-// string version can be implemented in terms of string_view version
-// template <typename Target>
-// struct optional_caster<std::string, Target> 
-// {
-//     template <typename... Args>
-//     static constexpr std::optional<Target> operator()(const std::string& ctx, Args&&... args)
-//     {
-//         return optional_caster<std::string_view, Target>::operator()(std::string_view(ctx), (Args&&)args...);
-//     }
-// };
-
 // string -> arithmetic
 template <cpp::meta::arithmetic Arithmetic>
 struct optional_caster<std::string_view, Arithmetic>
@@ -73,15 +62,23 @@ struct optional_caster<Arithmetic, std::string>
 };
 
 // bool -> string
-// specialization for bool, which can accept "true"/"false" (case-insensitive) as input string
 template <>
 struct optional_caster<std::string_view, bool>
 {
+    static constexpr bool is_true(std::string_view ctx)
+    {
+        return ctx == "true" || ctx == "True" || ctx == "TRUE";
+    }
+
+    static constexpr bool is_false(std::string_view ctx)
+    {
+        return ctx == "false" || ctx == "False" || ctx == "FALSE";
+    }
+
     static constexpr std::optional<bool> operator()(std::string_view ctx)
     {
-        auto ctx_lower = ctx | std::views::transform(::tolower) | std::ranges::to<std::string>();
-        return ctx_lower == "true" ? std::make_optional(true) :
-               ctx_lower == "false" ? std::make_optional(false) :
+        return is_true(ctx) ? std::make_optional(true) : 
+               is_false(ctx) ? std::make_optional(false) : 
                std::nullopt;
     }
 };
@@ -124,15 +121,6 @@ constexpr std::optional<Target> cast_optional(const Source& source, Args&&... ar
         return std::make_optional(static_cast<Target>(source));
     }
 }
-
-// Maybe we can add some customization points for type_caster, such as use_default_caster, 
-// to allow users to opt-in for default casting behavior for their custom types. 
-// For example, if a user wants to use the default caster for a struct, 
-// they can simply specialize use_default_caster for that struct and set it to true. 
-// Then, when cpp::cast is called for that struct, it will automatically use the universal_caster 
-// without needing to write a custom type_caster specialization.
-template <typename T>
-inline constexpr bool use_default_caster = false;
 
 template <typename Target>
 struct caster

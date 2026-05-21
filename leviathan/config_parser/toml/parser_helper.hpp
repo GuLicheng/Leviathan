@@ -95,7 +95,7 @@ inline std::optional<string> remove_underscore(std::string_view sv)
 {
     if (sv.front() == '_' || sv.back() == '_' || sv.contains("__"))
     {
-        return nullopt;
+        return std::nullopt;
     }
     return sv 
             | std::views::filter([](char ch) { return ch != '_'; }) 
@@ -108,7 +108,7 @@ inline std::optional<integer> parse_integer(std::string_view sv)
 
     if (!s)
     {
-        return nullopt;
+        return std::nullopt;
     }
 
     sv = s.value();  // Replace sv with s which is removed underscore.
@@ -130,7 +130,7 @@ inline std::optional<integer> parse_integer(std::string_view sv)
             case 'O': base = 8; break;
             case 'b':
             case 'B': base = 2; break;
-            default: return nullopt;  
+            default: return std::nullopt;  
         }
         sv.remove_prefix(2);
     }
@@ -139,7 +139,7 @@ inline std::optional<integer> parse_integer(std::string_view sv)
     {
         return *op;
     }
-    return nullopt;
+    return std::nullopt;
 }
 
 inline std::optional<floating> parse_float(std::string_view sv)
@@ -148,7 +148,7 @@ inline std::optional<floating> parse_float(std::string_view sv)
 
     if (!s)
     {
-        return nullopt;
+        return std::nullopt;
     }
 
     sv = s.value();  // Replace sv with s which is removed underscore.
@@ -156,7 +156,7 @@ inline std::optional<floating> parse_float(std::string_view sv)
     // .7 or 7. is not permitted.
     if (sv.front() == '.' || sv.back() == '.')
     {
-        return nullopt;
+        return std::nullopt;
     }
 
     floating sign = [ch = sv.front()]() {
@@ -175,7 +175,7 @@ inline std::optional<floating> parse_float(std::string_view sv)
         {
             return *op;
         }
-        return nullopt;
+        return std::nullopt;
     }
 
     sv.remove_prefix(1); // eat '+' or '-'
@@ -183,7 +183,7 @@ inline std::optional<floating> parse_float(std::string_view sv)
     if (sv.front() == '.')
     {
         // +.7 is also not permitted.
-        return nullopt;
+        return std::nullopt;
     }
 
     if (auto op = from_chars_to_optional<floating>(sv); op) 
@@ -191,7 +191,7 @@ inline std::optional<floating> parse_float(std::string_view sv)
         // std::copysign is valid for nan/inf
         return std::copysign(*op, sign);
     }
-    return nullopt;
+    return std::nullopt;
 }
 
 inline std::optional<datetime> as_option_if(bool ok, const datetime& dt)
