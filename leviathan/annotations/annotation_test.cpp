@@ -72,7 +72,7 @@ TEST_CASE("Enum to string conversion with debug annotation", "[annotations]")
     REQUIRE(d.NAME == "Test");
     REQUIRE(d.values == std::vector{1.0, 2.0, 3.0});
     REQUIRE(d.color == Color::Red);
-    REQUIRE(d.bValue == true);
+    REQUIRE(d.BooleanValue == true);
     REQUIRE(d.unnamed_struct.i32 == 100);
     REQUIRE(d.unnamed_struct.f64 == 3.14);
 }
