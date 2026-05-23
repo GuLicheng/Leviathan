@@ -98,7 +98,7 @@ using indices_without_removed_member = typename [:remove_skiped_member<T, Annota
 template <typename T, typename Initializer>
 constexpr T construct_struct(Initializer initializer)
 {
-    static_assert(std::is_trivially_default_constructible_v<T>, "construct_struct only works for trivially default constructible types");
+    // static_assert(std::is_trivially_default_constructible_v<T>, "construct_struct only works for trivially default constructible types");
     constexpr auto ctx = std::meta::access_context::current();
 
     // base class

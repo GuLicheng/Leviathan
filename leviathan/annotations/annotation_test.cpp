@@ -2,24 +2,78 @@
 #include <leviathan/extc++/enum.hpp>
 #include <leviathan/extc++/format.hpp>
 #include <leviathan/annotations/all.hpp>
+#include <leviathan/config_parser/json/json.hpp>
+#include <leviathan/extc++/format.hpp>
+#include <leviathan/extc++/enum.hpp>
+#include <print>
 
-enum class 
+constexpr const char* JsonString = R"(
+
+{
+    "X": 42,
+    "name": "Test",
+    "values": [1.0, 2.0, 3.0],
+    "color": "_RED_",
+    "bValue": true,
+    "UnnamedStruct": {
+        "i32": 100,
+        "f64": 3.14
+    }
+}
+
+)";
+
+enum struct 
+[[=cpp::derive::decode<cpp::json::value>]] 
 [[=cpp::derive::debug]]
 Color
 {
-    Red,
-    Green [[=cpp::refl::rename("green")]],
-    Blue
+    Red [[=cpp::refl::rename("_RED_")]],
+    Blue,
+    Green
 };
 
-bool CheckEnumToString()
+struct 
+[[=cpp::derive::debug]]
+[[=cpp::derive::decode<cpp::json::value>]] 
+Base
 {
-    return std::format("{}", Color::Red) == "Red" &&
-           std::format("{}", Color::Green) == "green" &&
-           std::format("{}", Color::Blue) == "Blue";
-}
+    [[=cpp::refl::uppercase]]
+    int x;
+
+    [[=cpp::refl::lowercase]]
+    std::string NAME;
+
+    std::vector<double> values;
+
+    Color color;
+};
+
+struct 
+[[=cpp::derive::decode<cpp::json::value>]]
+[[=cpp::refl::pascal_case]] 
+[[=cpp::derive::debug]]
+Derived : Base
+{
+    bool bValue;
+
+    struct [[=cpp::derive::debug, =cpp::derive::decode<cpp::json::value>]] {
+        int i32;
+        double f64;
+    } unnamed_struct; 
+};
 
 TEST_CASE("Enum to string conversion with debug annotation", "[annotations]")
 {
-    REQUIRE(CheckEnumToString());
+    auto j = cpp::json::loads(JsonString);
+    auto d = cpp::cast<Derived>(j);
+
+    REQUIRE(d.x == 42);
+    REQUIRE(d.NAME == "Test");
+    REQUIRE(d.values == std::vector{1.0, 2.0, 3.0});
+    REQUIRE(d.color == Color::Red);
+    REQUIRE(d.bValue == false);
+    REQUIRE(d.unnamed_struct.i32 == 100);
+    REQUIRE(d.unnamed_struct.f64 == 3.14);
 }
+

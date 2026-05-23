@@ -1,81 +1,101 @@
-#include <leviathan/annotations/all.hpp>
+// #include <catch2/catch_all.hpp>
+#include <leviathan/extc++/enum.hpp>
 #include <leviathan/extc++/format.hpp>
-#include <leviathan/extc++/meta.hpp>
-#include <print>
-#include <variant>
+#include <leviathan/annotations/all.hpp>
 #include <leviathan/config_parser/json/json.hpp>
+#include <leviathan/extc++/format.hpp>
+#include <leviathan/extc++/enum.hpp>
+#include <print>
 
-struct
-[[=cpp::derive::debug]]
-[[=cpp::derive::decode<cpp::json::value>]]
-[[=cpp::derive::encode<cpp::json::value>]]
-Foo
+constexpr const char* JsonString = R"(
+
 {
-    [[=cpp::refl::skip]]
-    int x = 1;
-    std::string y = "hello";
-    std::vector<double> z = { 1.0, 2.0, 3.0 };
-};
-
-struct [[=cpp::derive::debug]] Base { int X; };
-
-struct [[=cpp::derive::debug]] Derived : Base { double Y; };
-
-static_assert(std::is_trivially_default_constructible_v<Base>);
-static_assert(std::is_trivially_default_constructible_v<Derived>);
-
-
-
-template <typename T>
-void PrintMemberInfo()
-{
-    template for (constexpr auto member : define_static_array(nonstatic_data_members_of(^^T, std::meta::access_context::current())))
-    {
-        constexpr std::string_view name = has_identifier(member) ? identifier_of(member) : "<unnamed>";
-        constexpr bool has_name = display_string_of(type_of(member)).contains("unnamed");
-        std::print("class has name? {}, Type: {}, Member: {}\n", 
-            has_name, display_string_of(type_of(member)), name);
+    "X": 42,
+    "name": "Test",
+    "values": [1.0, 2.0, 3.0],
+    "color": "_RED_",
+    "bValue": true,
+    "UnnamedStruct": {
+        "i32": 100,
+        "f64": 3.14
     }
 }
 
-struct DebugInitializer
-{
-    int value = 0;
+)";
 
-    void operator()(std::optional<int>& opt, std::string name)
-    {
-        // opt = value++;
-    }
+enum struct 
+[[=cpp::derive::decode<cpp::json::value>]] 
+[[=cpp::derive::debug]]
+Color
+{
+    Red [[=cpp::refl::rename("_RED_")]],
+    Blue,
+    Green
 };
 
-struct C
+struct 
+[[=cpp::derive::debug]]
+[[=cpp::derive::decode<cpp::json::value>]] 
+Base
 {
-    struct [[=cpp::derive::debug]] { 
-        int X; 
-        int Y;
-    };
+    [[=cpp::refl::uppercase]]
+    int x;
 
-    int Z;
+    [[=cpp::refl::lowercase]]
+    std::string NAME;
 
-    struct {
-        int I1;
-        int I2;
-    } Inner;
+    std::vector<double> values;
 
-    struct Bar {
-        int B1;
-        int B2;
-    };
+    Color color;
 };
 
-int main(int argc, char const* argv[])
+struct 
+[[=cpp::derive::decode<cpp::json::value>]]
+[[=cpp::refl::pascal_case]] 
+[[=cpp::derive::debug]]
+Derived : Base
 {
-    using Unnamed = decltype(C::Inner);
+    bool bValue;
 
-    std::optional<Unnamed> u;
+    struct [[=cpp::derive::debug, =cpp::derive::decode<cpp::json::value>]] {
+        int i32;
+        double f64;
+    } unnamed_struct; 
+};
 
-    auto c = C(1, 2, 3, 4, 5);
+void TestAnnotation()
+{
+    auto j = cpp::json::loads(JsonString);
+    auto d = cpp::cast<Derived>(j);
 
-    std::print("{}\n", c);
-    return 0;
+    std::println("{}", d.x);
+    std::println("{}", d.NAME);
+    std::println("{}", d.values);
+    std::println("{}", d.color);
+    std::println("{}", d.bValue);
+    std::println("{}", d.unnamed_struct.i32);
+    std::println("{}", d.unnamed_struct.f64);
+
+    auto p = cpp::json::load(R"(D:\Library\Leviathan\test.json)");
+    auto s = p["Name"].as<std::string>();
+    std::println("{} - {}", s, s.size());
+}
+
+// TEST_CASE("Enum to string conversion with debug annotation", "[annotations]")
+// {
+//     auto j = cpp::json::loads(JsonString);
+//     auto d = cpp::cast<Derived>(j);
+
+//     REQUIRE(d.x == 42);
+//     REQUIRE(d.NAME == "Test");
+//     REQUIRE(d.values == std::vector{1.0, 2.0, 3.0});
+//     REQUIRE(d.color == Color::Red);
+//     REQUIRE(d.bValue == false);
+//     // REQUIRE(d.unnamed_struct.i32 == 100);
+//     // REQUIRE(d.unnamed_struct.f64 == 3.14);
+// }
+
+int main()
+{
+    TestAnnotation();
 }

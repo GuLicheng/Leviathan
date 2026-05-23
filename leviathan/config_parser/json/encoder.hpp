@@ -22,7 +22,8 @@ struct encoder
 
     static std::string operator()(const string& str) 
     {
-        return std::format("\"{}\"", str);
+        // return std::format("\"{}\"", str);
+        return str;
     }
 
     static std::string operator()(const array& arr) 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <leviathan/annotations/all.hpp>
+#include <format>
 #include <meta>
 
 namespace cpp
