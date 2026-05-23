@@ -14,7 +14,7 @@ constexpr const char* JsonString = R"(
     "name": "Test",
     "values": [1.0, 2.0, 3.0],
     "color": "_RED_",
-    "bValue": true,
+    "BooleanValue": true,
     "UnnamedStruct": {
         "i32": 100,
         "f64": 3.14
@@ -24,7 +24,7 @@ constexpr const char* JsonString = R"(
 )";
 
 enum struct 
-[[=cpp::derive::decode<cpp::json::value>]] 
+[[=cpp::derive::from<cpp::json::value>]] 
 [[=cpp::derive::debug]]
 Color
 {
@@ -35,7 +35,7 @@ Color
 
 struct 
 [[=cpp::derive::debug]]
-[[=cpp::derive::decode<cpp::json::value>]] 
+[[=cpp::derive::from<cpp::json::value>]] 
 Base
 {
     [[=cpp::refl::uppercase]]
@@ -50,14 +50,14 @@ Base
 };
 
 struct 
-[[=cpp::derive::decode<cpp::json::value>]]
+[[=cpp::derive::from<cpp::json::value>]]
 [[=cpp::refl::pascal_case]] 
 [[=cpp::derive::debug]]
 Derived : Base
 {
-    bool bValue;
+    bool BooleanValue;  
 
-    struct [[=cpp::derive::debug, =cpp::derive::decode<cpp::json::value>]] {
+    struct [[=cpp::derive::debug, =cpp::derive::from<cpp::json::value>]] {
         int i32;
         double f64;
     } unnamed_struct; 
@@ -72,7 +72,7 @@ TEST_CASE("Enum to string conversion with debug annotation", "[annotations]")
     REQUIRE(d.NAME == "Test");
     REQUIRE(d.values == std::vector{1.0, 2.0, 3.0});
     REQUIRE(d.color == Color::Red);
-    REQUIRE(d.bValue == false);
+    REQUIRE(d.bValue == true);
     REQUIRE(d.unnamed_struct.i32 == 100);
     REQUIRE(d.unnamed_struct.f64 == 3.14);
 }

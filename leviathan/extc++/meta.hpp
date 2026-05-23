@@ -59,7 +59,6 @@ consteval std::meta::info member_named(const char* name)
 template <std::meta::info ClassInfo, std::meta::info FieldInfo>
 struct field_handler;
 
-
 /**
  * @brief Get the valid member indices of a class, excluding the members with [[=cpp::refl::skip]] annotation.
  * @tparam T The class type.
@@ -98,7 +97,6 @@ using indices_without_removed_member = typename [:remove_skiped_member<T, Annota
 template <typename T, typename Initializer>
 constexpr T construct_struct(Initializer initializer)
 {
-    // static_assert(std::is_trivially_default_constructible_v<T>, "construct_struct only works for trivially default constructible types");
     constexpr auto ctx = std::meta::access_context::current();
 
     // base class
@@ -138,7 +136,6 @@ constexpr auto struct_to_tuple(const T& t)
 {
     constexpr auto ctx = std::meta::access_context::current();
     constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
-    constexpr auto N = members.size();
     constexpr auto [...Is] = indices_without_removed_member<T, cpp::refl::skip>();
     return std::make_tuple(t.[:members[Is]:]...);
 }
@@ -163,20 +160,9 @@ struct field_handler
 
     static constexpr bool IsSkippable = cpp::refl::has_annotation(FieldInfo, cpp::refl::skip, cpp::refl::skip_deserialization);
 
-    static constexpr bool IsUnnamedType = display_string_of(^^FieldType).contains("unnamed");
-
     static constexpr bool IsUnnamedField = has_identifier(FieldInfo) == false;
 
-    static_assert(!IsUnnamedType || !IsUnnamedField, "Unnamed type can't be used as a field with a name, since we have no way to refer to it in initializer");
-
-    // template <typename Initializer>
-    //     requires (IsUnnamedType || IsUnnamedField)
-    // static constexpr std::optional<FieldType> init_value(Initializer initializer)
-    // {
-    //     // auto object = construct_struct<FieldType>(initializer);
-    //     // return std::make_optional(std::move(object));
-    //     return std::nullopt;
-    // }
+    static_assert(!IsUnnamedField, "Unnamed field must be skippable since we have no way to initialize it.");
 
     template <typename Initializer>
     static constexpr std::optional<FieldType> init_value(Initializer initializer)

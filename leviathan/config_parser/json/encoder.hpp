@@ -22,8 +22,7 @@ struct encoder
 
     static std::string operator()(const string& str) 
     {
-        // return std::format("\"{}\"", str);
-        return str;
+        return std::format("\"{}\"", str);
     }
 
     static std::string operator()(const array& arr) 
@@ -150,7 +149,8 @@ struct range_caster
     {
         if constexpr (meta::string_like<Range>)
         {
-            return encoder()(v);
+            // return encoder()(v);
+            return Range(v.as<string>().begin(), v.as<string>().end());
         }
         else
         {
@@ -212,11 +212,11 @@ struct caster
         {
             return range_caster<T>::operator()(v);
         }
-        else if constexpr (std::is_enum_v<T> && refl::has_annotation(^^T, cpp::derive::decode<value>))
+        else if constexpr (std::is_enum_v<T> && refl::has_annotation(^^T, cpp::derive::from<value>))
         {
             return enum_decoder<T>()(v.as<string>());
         }
-        else if constexpr (std::is_class_v<T> && refl::has_annotation(^^T, cpp::derive::decode<value>))
+        else if constexpr (std::is_class_v<T> && refl::has_annotation(^^T, cpp::derive::from<value>))
         {
             return universal_caster<T>::operator()(v);
         }
@@ -226,7 +226,6 @@ struct caster
         }
     }
 };
-
 
 
 /*

@@ -20,12 +20,14 @@ inline constexpr struct { } debug;
 inline constexpr struct { } hash;
 
 // Allow a class to be serialized to a specific type, for example, json::value.
-template <typename T> struct encode_t { };
-template <typename T> inline constexpr auto encode = encode_t<T>{};
+// Extend optional_cast<StructOrEnum, T> 
+template <typename T> struct from_t { };
+template <typename T> inline constexpr auto from = from_t<T>{};
 
 // Allow a class to be deserialized from a specific type, for example, json::value.
-template <typename T> struct decode_t { };
-template <typename T> inline constexpr auto decode = decode_t<T>{};
+// Extend optional_cast<T, StructOrEnum> 
+template <typename T> struct into_t { };
+template <typename T> inline constexpr auto into = into_t<T>{};
 
 // Extend operator| and operator|= for enum type, for example, to support bitmask operations.
 inline constexpr struct { } op_pipe;

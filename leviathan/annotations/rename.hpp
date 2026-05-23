@@ -1,3 +1,13 @@
+/*
+    - lowercase
+    - UPPERCASE
+    - PascalCase
+    - camelCase
+    - snake_case (default)
+    - SCREAMING_SNAKE_CASE
+    - kebab-case
+    - SCREAMING-KEBAB-CASE
+*/
 #pragma once
 
 #include <leviathan/annotations/common.hpp>

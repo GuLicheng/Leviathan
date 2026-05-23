@@ -48,6 +48,7 @@
 
 namespace cpp::refl
 {
+inline constexpr struct { } choice_annotation;
 
 inline constexpr struct { } skip;
 

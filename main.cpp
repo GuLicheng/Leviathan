@@ -1,4 +1,4 @@
-// #include <catch2/catch_all.hpp>
+#include <memory>
 #include <leviathan/extc++/enum.hpp>
 #include <leviathan/extc++/format.hpp>
 #include <leviathan/annotations/all.hpp>
@@ -61,6 +61,7 @@ Derived : Base
         int i32;
         double f64;
     } unnamed_struct; 
+
 };
 
 void TestAnnotation()
@@ -79,23 +80,14 @@ void TestAnnotation()
     auto p = cpp::json::load(R"(D:\Library\Leviathan\test.json)");
     auto s = p["Name"].as<std::string>();
     std::println("{} - {}", s, s.size());
+
+    // cast_from
+    // cast_to
 }
 
-// TEST_CASE("Enum to string conversion with debug annotation", "[annotations]")
-// {
-//     auto j = cpp::json::loads(JsonString);
-//     auto d = cpp::cast<Derived>(j);
 
-//     REQUIRE(d.x == 42);
-//     REQUIRE(d.NAME == "Test");
-//     REQUIRE(d.values == std::vector{1.0, 2.0, 3.0});
-//     REQUIRE(d.color == Color::Red);
-//     REQUIRE(d.bValue == false);
-//     // REQUIRE(d.unnamed_struct.i32 == 100);
-//     // REQUIRE(d.unnamed_struct.f64 == 3.14);
-// }
 
 int main()
 {
-    TestAnnotation();
+    return 0;
 }

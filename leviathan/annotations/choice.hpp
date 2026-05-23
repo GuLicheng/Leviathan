@@ -5,8 +5,6 @@
 namespace cpp::refl
 {
 
-inline constexpr struct { } choice_annotation;
-
 template <typename Prediction>
 struct [[=choice_annotation]] function_choice_annotation : callable<Prediction>
 {

@@ -287,12 +287,12 @@ public:
                 );
             }
         }
-        else if constexpr (std::is_enum_v<Source> && refl::has_annotation(^^Source, cpp::derive::decode<cpp::json::value>))
+        else if constexpr (std::is_enum_v<Source> && refl::has_annotation(^^Source, cpp::derive::into<cpp::json::value>))
         {
             auto enum_name = cpp::enum_encoder<Source>()(source);
             return json::make_json<json::string>(std::move(enum_name));
         }
-        else if constexpr (std::is_class_v<Source> && refl::has_annotation(^^Source, cpp::derive::decode<cpp::json::value>))
+        else if constexpr (std::is_class_v<Source> && refl::has_annotation(^^Source, cpp::derive::into<cpp::json::value>))
         {
             constexpr auto ctx = std::meta::access_context::current();
             
