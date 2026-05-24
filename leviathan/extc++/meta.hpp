@@ -145,7 +145,7 @@ template <typename TupleLike, std::ranges::random_access_range Range>
 constexpr TupleLike range_to_tuple(Range&& range)
 {
     constexpr auto N = std::meta::tuple_size(^^TupleLike);
-    constexpr auto [...idx] = std::make_index_sequence<N>{};
+    constexpr auto [...idx] = std::make_index_sequence<N>();
     return TupleLike(std::forward_like<Range>(range[idx])...);
 }
 

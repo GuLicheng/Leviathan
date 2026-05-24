@@ -27,3 +27,6 @@ struct tag_union_formatter
 
 template <typename... Types>
 struct std::formatter<std::variant<Types...>> : cpp::tag_union_formatter { };
+
+
+

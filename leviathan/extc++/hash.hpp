@@ -54,7 +54,7 @@ struct enum_hasher
         requires (std::is_enum_v<EnumType>)
     static constexpr size_t operator()(EnumType e)
     {
-        return std::hash<std::underlying_type_t<EnumType>>() (std::to_underlying(e));
+        return std::hash<std::underlying_type_t<EnumType>>()(std::to_underlying(e));
     }
 };
 
@@ -62,7 +62,7 @@ struct enum_hasher
 
 template <typename T>
     requires (cpp::refl::has_annotation(^^T, cpp::derive::hash) && std::is_class_v<T>)
-struct std::hash<T> : cpp::struct_hasher { };
+struct std::hash<T> : cpp::struct_hasher { }; 
 
 template <typename Enum>
     requires (cpp::refl::has_annotation(^^Enum, cpp::derive::hash) && std::is_enum_v<Enum>)

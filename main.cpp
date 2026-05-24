@@ -8,6 +8,12 @@
 #include <leviathan/extc++/variant.hpp>
 #include <print>
 
+template <size_t N>
+void Show()
+{
+    constexpr auto [...indices] = std::make_index_sequence<N>();
+    ((std::print("{}", N - indices)), ...);
+}
 
 int main()
 {
