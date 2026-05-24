@@ -24,7 +24,7 @@ constexpr const char* JsonString = R"(
 )";
 
 enum struct 
-[[=cpp::derive::decode<cpp::json::value>]] 
+[[=cpp::derive::from<cpp::json::value>]] 
 [[=cpp::derive::debug]]
 Color
 {
@@ -35,7 +35,7 @@ Color
 
 struct 
 [[=cpp::derive::debug]]
-[[=cpp::derive::decode<cpp::json::value>]] 
+[[=cpp::derive::from<cpp::json::value>]] 
 Base
 {
     [[=cpp::refl::uppercase]]
@@ -50,14 +50,14 @@ Base
 };
 
 struct 
-[[=cpp::derive::decode<cpp::json::value>]]
+[[=cpp::derive::from<cpp::json::value>]]
 [[=cpp::refl::pascal_case]] 
 [[=cpp::derive::debug]]
 Derived : Base
 {
     bool bValue;
 
-    struct [[=cpp::derive::debug, =cpp::derive::decode<cpp::json::value>]] {
+    struct [[=cpp::derive::debug, =cpp::derive::from<cpp::json::value>]] {
         int i32;
         double f64;
     } unnamed_struct; 
@@ -80,9 +80,6 @@ void TestAnnotation()
     auto p = cpp::json::load(R"(D:\Library\Leviathan\test.json)");
     auto s = p["Name"].as<std::string>();
     std::println("{} - {}", s, s.size());
-
-    // cast_from
-    // cast_to
 }
 
 

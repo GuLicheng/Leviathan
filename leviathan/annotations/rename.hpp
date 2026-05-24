@@ -90,8 +90,6 @@ inline constexpr auto kebab_case = function_rename_annotation([](std::string fie
     return field_name | std::views::transform([](char c) { return c == '_' ? '-' : c; }) | std::ranges::to<std::string>();
 });
 
-
-
 namespace detail
 {
 

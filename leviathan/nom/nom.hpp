@@ -1,3 +1,5 @@
+// https://docs.rs/nom/latest/nom/
+// https://github.com/rust-bakery/nom
 #pragma once
 
 #include "error.hpp"

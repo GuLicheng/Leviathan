@@ -79,8 +79,6 @@ consteval bool has_annotation(std::meta::info r, const Ts&... objs)
     ));
 }
 
-// struct annotation { }; 
-
 template <typename F>
 struct callable
 {
