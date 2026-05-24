@@ -25,10 +25,8 @@ struct red_black_node : binary_node_operation
         {
             case color::red: return "R";
             case color::black: return "B";
-            // default: return "S";
             case color::sentinel: return "S"; // Header
         }
-
         std::unreachable();
     }
 

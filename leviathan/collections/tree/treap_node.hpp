@@ -38,12 +38,7 @@ struct treap_node : binary_node_operation
     static priority_type get_random_number()
     {
         priority_type pro = random();
-
-        if (pro == RandomEngine::max())
-        {
-            pro--;
-        }
-
+        for (; pro == RandomEngine::max(); pro = random());
         return pro;
     }
 
