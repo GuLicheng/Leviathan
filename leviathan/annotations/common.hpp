@@ -60,6 +60,8 @@ inline constexpr struct { } rename_annotation;
 
 inline constexpr struct { } value_annotation;
 
+inline constexpr struct { } parse_annotation;
+
 /**
  * @brief Check if the given annotation is present on the given info.
  * @param r Anything that can be reflected, such as class, field, base class, etc.

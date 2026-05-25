@@ -1,24 +1,20 @@
-#include <memory>
-#include <leviathan/extc++/enum.hpp>
-#include <leviathan/extc++/format.hpp>
-#include <leviathan/annotations/all.hpp>
-#include <leviathan/config_parser/json/json.hpp>
-#include <leviathan/extc++/format.hpp>
-#include <leviathan/extc++/enum.hpp>
-#include <leviathan/extc++/variant.hpp>
+#include <meta>
+#include <initializer_list> 
+#include <span>
 #include <print>
+#include <leviathan/annotations/all.hpp>
+#include <leviathan/extc++/meta.hpp>
+#include <list>
 
-template <size_t N>
-void Show()
+struct F
 {
-    constexpr auto [...indices] = std::make_index_sequence<N>();
-    ((std::print("{}", N - indices)), ...);
-}
+    [[=cpp::refl::default_array({1, 2, 3})]]
+    std::list<int> ints;
+};
 
-int main()
+int main(int argc, char const *argv[])
 {
-    std::variant<int, std::string> v = "Hello, World!";
-    println("Variant holds: {}", v);
-
+    auto f = cpp::refl::construct_struct<F>([](auto&&...) { });
+    std::println("ints: {}", f.ints);
     return 0;
 }

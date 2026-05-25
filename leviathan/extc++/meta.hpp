@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <leviathan/annotations/all.hpp>
+#include <leviathan//type_caster.hpp>
 
 namespace cpp::refl
 {
