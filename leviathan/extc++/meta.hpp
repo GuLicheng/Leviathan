@@ -93,7 +93,14 @@ using indices_without_removed_member = typename [:remove_skiped_member<T, Annota
  * @brief Construct an object of type T by initializing its fields with the provided initializer.
  * @param T The type of the object to construct. Must be a class type.
  * @param Initializer A callable that takes a reference to an optional field value 
- *  and the field name, and initializes the field value if possible.
+ *  and the field name, then initializes the field value if possible.
+ *  
+ *  struct SomeInitializer {
+ *      template <typename T> 
+ *      void operator()(std::optional<T>& value, std::string name) {
+ *          // Implementation here...
+ *      }    
+ *  };
  */
 template <typename T, typename Initializer>
 constexpr T construct_struct(Initializer initializer)

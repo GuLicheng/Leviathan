@@ -23,6 +23,7 @@ template <typename T>
 struct [[=value_annotation]] function_array_annotation
 {
     const T* data;
+
     size_t size;
 
     consteval function_array_annotation(std::initializer_list<T> init) : data(define_static_array(init).data()), size(init.size()) { }
@@ -33,6 +34,8 @@ struct [[=value_annotation]] function_array_annotation
     template <std::ranges::range R>
     constexpr operator R() const { return R(data, data + size); }
 
+    // We assume the value_annotation can get the value by invoke itself, so we return itself here
+    // and try cast it to the target type in value_annotation.
     constexpr auto& operator()() const { return *this; }
 };
 
