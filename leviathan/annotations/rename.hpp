@@ -48,7 +48,7 @@ inline constexpr auto uppercase = function_rename_annotation([](std::string fiel
 
 inline constexpr auto rename = [](std::string_view new_name) static
 {
-    return function_rename_annotation([name=define_static_string(new_name)](...)  
+    return function_rename_annotation([name=define_static_string(new_name)](auto&&...)  
     {
         return std::string(name);
     });
@@ -93,48 +93,30 @@ inline constexpr auto kebab_case = function_rename_annotation([](std::string fie
 namespace detail
 {
 
-template <std::meta::info... Infos>
-struct extract_name_by_annotation_impl;
-
-template <std::meta::info Info>
-struct extract_name_by_annotation_impl<Info>
+template <std::meta::info Info1, std::meta::info... Infos>
+struct extract_name_by_annotation_impl
 {
-    static constexpr std::string operator()(std::string name)
+    static constexpr std::string operator()(std::string name) requires (sizeof...(Infos) == 0)
     {
-        template for (constexpr auto anno : define_static_array(annotations_of(Info)))
-        {
-            using AnnoType = typename [:type_of(anno):];
-
+        template for (constexpr auto anno : define_static_array(annotations_of(Info1)))
             if constexpr (has_annotation(type_of(anno), rename_annotation))
-            {
-                name = std::invoke(extract<AnnoType>(anno), name);
-            }
-        }
+                name = std::invoke(extract<typename [:type_of(anno):]>(anno), name);
         return name;   
     }
-};
 
-template <std::meta::info Info1, std::meta::info Info2, std::meta::info... Infos>
-struct extract_name_by_annotation_impl<Info1, Info2, Infos...>
-{
     static constexpr std::string operator()(std::string name)
     {
-        bool has_rename_annotation = false;
+        bool found = false;
 
         template for (constexpr auto anno : define_static_array(annotations_of(Info1)))
         {
-            using AnnoType = typename [:type_of(anno):];
-
             if constexpr (has_annotation(type_of(anno), rename_annotation))
             {
-                name = std::invoke(extract<AnnoType>(anno), name);
-                has_rename_annotation = true;
+                name = std::invoke(extract<typename [:type_of(anno):]>(anno), name);
+                found = true;
             }
         }
-        
-        return has_rename_annotation
-            ? name
-            : extract_name_by_annotation_impl<Info2, Infos...>::operator()(name);
+        return found ? name : extract_name_by_annotation_impl<Infos...>()(name);
     }
 };
 

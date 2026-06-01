@@ -48,26 +48,6 @@ struct enum_encoder
     }
 };
 
-// template <typename Enum>
-//     requires (std::is_enum_v<Enum> && cpp::refl::has_annotation(^^Enum, cpp::derive::encode<std::string>))
-// struct optional_caster<Enum, std::string>
-// {
-//     static std::optional<std::string> operator()(Enum value)
-//     {
-//         return enum_encoder<Enum, false>()(value);
-//     }
-// };
-
-// template <typename Enum>
-//     requires (std::is_enum_v<Enum> && cpp::refl::has_annotation(^^Enum, cpp::derive::decode<std::string_view>))
-// struct optional_caster<std::string_view, Enum>
-// {
-//     static std::optional<Enum> operator()(std::string_view str)
-//     {
-//         return enum_decoder<Enum, false>()(str);
-//     }
-// };
-
 }
  
 template <typename Enum>
