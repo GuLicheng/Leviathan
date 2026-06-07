@@ -15,10 +15,10 @@ consteval auto define_basic_tuple()
 {
     struct storage;
 
-    struct int2string
+    consteval
     {
-        static constexpr std::string operator()(std::size_t index) 
-        {
+        auto int2string = [](auto index_info) {
+            auto [index, info] = index_info;
             std::string result;
 
             do 
@@ -26,20 +26,18 @@ consteval auto define_basic_tuple()
                 result.push_back('0' + (index % 10));
                 index /= 10;
             } while (index > 0);
+            
             result += '_';
+            
+            // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p3391r2.html
+            // P3391 - constexpr std::format
+            // return data_member_spec(info, { .name = std::format("_{}", index), .no_unique_address = true }); 
+            return data_member_spec(info, { .name = std::string(result.rbegin(), result.rend()), .no_unique_address = true }); 
+        };
 
-            return std::string(result.rbegin(), result.rend());
-        }
-    };
-
-    consteval
-    {
         auto member_specs = std::vector<std::meta::info>{ ^^Ts... } 
                           | std::views::enumerate 
-                          | std::views::transform([](auto indexed_info) {
-                                auto [index, info] = indexed_info;
-                                return data_member_spec(info, { .name = int2string{}(index), .no_unique_address = true }); 
-                            });
+                          | std::views::transform(int2string);
 
         std::meta::define_aggregate(^^storage, member_specs);
     }

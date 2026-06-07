@@ -16,8 +16,8 @@
 int main(int argc, char const *argv[]) 
 {
 
-    cpp::tuple<int, double> t(42, 3.14);
-    std::println("Tuple: ({}, {})", t._0, t._1);
+    auto t = cpp::make_tuple(42, "Hello", true, 3.14, std::vector<int>{1, 2, 3});
+    std::println("Tuple: ({}, {}, {}, {}, {})", t._0, t._1, t._2, t._3, t._4);
 
     std::println("Hello, Leviathan Annotations!");
 
