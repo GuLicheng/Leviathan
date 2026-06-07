@@ -15,9 +15,9 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -freflection ")
 set(CMAKE_CXX_FLAGS_RELEASE " -O3 -freflection")
 
 include_directories(${PROJECT_ROOT_PATH})
-include_directories(thirdpart/Catch2/src)
+# include_directories(thirdpart/Catch2/src)
 
-add_subdirectory(thirdpart/Catch2)
+# add_subdirectory(thirdpart/Catch2)
 
 
 add_executable(main main.cpp)
@@ -30,12 +30,6 @@ if(LEVIATHAN_BUILD_BENCHMARK STREQUAL "ON")
     message(STATUS "Build benchmark")
     add_subdirectory(benchmark)
 endif()
-
-# if(LEVIATHAN_BUILD_TEST STREQUAL "ON")
-#     message(STATUS "Build test")
-#     add_subdirectory(test)
-#     include(CTest)
-# endif()
 
 set(LEVIATHAN_BUILD_NOM ON)
 if(LEVIATHAN_BUILD_NOM STREQUAL "ON")
