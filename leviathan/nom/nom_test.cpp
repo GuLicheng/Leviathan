@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include <leviathan/meta/type.hpp>
+// #include <leviathan/meta/type.hpp>
 #include <leviathan/type_caster.hpp>
 #include <leviathan/extc++/ranges.hpp>
 #include <leviathan/config_parser/context.hpp>

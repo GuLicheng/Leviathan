@@ -1,6 +1,6 @@
 #pragma once
 
-#include <format>
+#include <leviathan/extc++/format.hpp>
 #include <variant>
 
 namespace cpp
@@ -28,5 +28,6 @@ struct tag_union_formatter
 template <typename... Types>
 struct std::formatter<std::variant<Types...>> : cpp::tag_union_formatter { };
 
-
+template <>
+struct std::formatter<std::monostate> : cpp::universal_formatter { };
 

@@ -39,7 +39,7 @@ consteval auto define_basic_tuple()
                           | std::views::enumerate 
                           | std::views::transform(int2string);
 
-        std::meta::define_aggregate(^^storage, member_specs);
+        define_aggregate(^^storage, member_specs);
     }
 
     return ^^storage;
@@ -57,7 +57,6 @@ struct tuple : detail::basic_tuple<Ts...>
 
     template <typename... Args>
     constexpr tuple(Args&&... args) : base((Args&&)args...) {}
-
 };
 
 template <typename... Ts>
