@@ -7,13 +7,13 @@ namespace cpp
 {
 
 template <typename T>
-static constexpr void simple_hash(size_t& seed, const T& t) 
+constexpr void simple_hash(size_t& seed, const T& t) 
 {
     seed ^= std::hash<T>()(t) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
 template <typename TupleLike>
-static constexpr size_t tuple_hash(const TupleLike& t) 
+constexpr size_t tuple_hash(const TupleLike& t) 
 {
     size_t seed = 0;
 
