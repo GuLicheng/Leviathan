@@ -1,6 +1,7 @@
 #include <leviathan/extc++/meta.hpp>
 #include <leviathan/extc++/format.hpp>
 #include <leviathan/extc++/tuple.hpp>
+#include <leviathan/extc++/variant.hpp>
 #include <utility>
 #include <mdspan>
 #include <iostream>
@@ -8,20 +9,38 @@
 #include <print>
 #include <tuple>
 
-class [[=cpp::derive::debug]] MyStruct
+template <typename T>
+void ShowName()
 {
-    int X;
-    double Y;
-public:
+    std::cout << display_string_of(^^T) << std::endl;
+}
 
-    MyStruct(int x, double y) : X(x), Y(y) { }
+
+
+using Builder = cpp::variant_builder;
+
+consteval {
+    Builder::declare<double>();
+    Builder::declare<bool>();
+}
+
+struct Foo {
+    int a;
+    double b;
 };
+
+enum class Color { Red, Green, Blue };
+
+consteval {
+    Builder::declare<Foo>();
+    Builder::declare<Color>();
+    Builder::declare<std::tuple<int, double, std::string>>();
+}
 
 int main(int argc, char const *argv[])
 {
-    
-    std::println("Hello, {}", MyStruct{1, 3.14});
-
+    using T = Builder::get_t<>;
+    std::println("Variant type: {}", (display_string_of(^^T)));
     return 0;
 }
 

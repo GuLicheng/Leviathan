@@ -10,22 +10,22 @@ namespace cpp
 namespace detail
 {
 
-template <typename T>
-consteval size_t tuple_size() 
-{
-    static_assert(std::is_class_v<T>);
-    constexpr auto indices = cpp::refl::indices_without_removed_member<T, cpp::refl::skip>();
-    return indices.size();
-}
+// template <typename T>
+// consteval size_t tuple_size() 
+// {
+//     static_assert(std::is_class_v<T>);
+//     constexpr auto indices = cpp::refl::indices_without_removed_member<T, cpp::refl::skip>();
+//     return indices.size();
+// }
 
-template <typename T, size_t Index>
-consteval std::meta::info tuple_element()
-{
-    static_assert(std::is_class_v<T>);
-    constexpr auto indices = cpp::refl::indices_without_removed_member<T, cpp::refl::skip>();
-    constexpr auto ctx = std::meta::access_context::current();
-    return nonstatic_data_members_of(^^T, ctx)[std::get<Index>(indices)];
-}
+// template <typename T, size_t Index>
+// consteval std::meta::info tuple_element()
+// {
+//     static_assert(std::is_class_v<T>);
+//     constexpr auto indices = cpp::refl::indices_without_removed_member<T, cpp::refl::skip>();
+//     constexpr auto ctx = std::meta::access_context::current();
+//     return nonstatic_data_members_of(^^T, ctx)[std::get<Index>(indices)];
+// }
 
 template <typename... Ts>
 consteval auto define_basic_tuple()
