@@ -68,6 +68,10 @@ template <typename T> inline constexpr auto into = into_t<T>{};
 // Extend operator| and operator|= for enum type, for example, to support bitmask operations.
 inline constexpr struct { } op_pipe;
 
+// Extend std::tuple_size and std::tuple_element and std::get
+// for class type, to allow structured bindings and tuple-like interface.
+inline constexpr struct { } tuple_like;
+
 }
 
 namespace cpp::refl
