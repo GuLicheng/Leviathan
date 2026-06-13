@@ -77,6 +77,12 @@ using variant_builder = detail::variant_builder<^^detail::undefined>;
 
 consteval { variant_builder::put<std::variant<std::monostate>>(); }
 
+/*
+consteval {
+    Builder::declare<double>();
+    Builder::declare<bool>();
+}
+*/
 
 }  // namespace cpp
 

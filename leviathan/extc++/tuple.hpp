@@ -10,23 +10,6 @@ namespace cpp
 namespace detail
 {
 
-// template <typename T>
-// consteval size_t tuple_size() 
-// {
-//     static_assert(std::is_class_v<T>);
-//     constexpr auto indices = cpp::refl::indices_without_removed_member<T, cpp::refl::skip>();
-//     return indices.size();
-// }
-
-// template <typename T, size_t Index>
-// consteval std::meta::info tuple_element()
-// {
-//     static_assert(std::is_class_v<T>);
-//     constexpr auto indices = cpp::refl::indices_without_removed_member<T, cpp::refl::skip>();
-//     constexpr auto ctx = std::meta::access_context::current();
-//     return nonstatic_data_members_of(^^T, ctx)[std::get<Index>(indices)];
-// }
-
 template <typename... Ts>
 consteval auto define_basic_tuple()
 {
@@ -84,11 +67,6 @@ constexpr auto apply(Fn&& fn, TupleLike&& tl)
 {
     auto&& [...elements] = (TupleLike&&)tl;
     return std::invoke((Fn&&)fn, (decltype(elements)&&)elements...);
-    // constexpr auto ctx = std::meta::access_context::current();
-    // constexpr auto members = define_static_array(nonstatic_data_members_of(^^std::remove_cvref_t<TupleLike>, ctx));
-    // constexpr auto size = members.size();
-    // constexpr auto [...indices] = std::make_index_sequence<size>();
-    // return std::invoke((Fn&&)fn, ((typename [:type_of(members[indices]):]&&)(tl.[:members[indices]:]))...);
 }
 
 template <typename... Args>
@@ -100,28 +78,3 @@ constexpr auto make_tuple(Args&&... args)
 } // namespace cpp
 
 
-// Extend std::tuple_size and std::tuple_element and std::get
-namespace std
-{
-
-// template <typename T>
-//     requires (is_class_v<T> && cpp::refl::has_annotation(^^T, cpp::derive::tuple_like))
-// struct tuple_size<T> : integral_constant<size_t, cpp::detail::tuple_size<T>()> { };
-
-// template <size_t Index, typename T>
-//     requires (is_class_v<T> && cpp::refl::has_annotation(^^T, cpp::derive::tuple_like))
-// struct tuple_element<Index, T>
-// {
-//     using type = typename [:type_of(cpp::detail::tuple_element<T, Index>()):];
-// };
-
-// template <size_t Index, typename TupleLike>
-//     requires (is_class_v<remove_cvref_t<TupleLike>> && cpp::refl::has_annotation(^^TupleLike, cpp::derive::tuple_like))
-// constexpr auto&& get(TupleLike&& tl) noexcept
-// {
-//     using DTupleLike = remove_cvref_t<TupleLike>;
-//     constexpr auto indices = cpp::refl::indices_without_removed_member<DTupleLike, cpp::refl::skip>();
-//     return std::forward_like<TupleLike>(tl.[:cpp::refl::member_number<DTupleLike>(std::get<Index>(indices)):]);
-// }
-
-}  // namespace std
