@@ -50,7 +50,7 @@ consteval std::meta::info member_number(size_t N)
 template <typename T>
 consteval std::meta::info member_named(const char* name)
 {
-    auto ctx = std::meta::access_context::current();
+    auto ctx = std::meta::access_context::unchecked();
     for (std::meta::info field : nonstatic_data_members_of(^^T, ctx))
         if (has_identifier(field) && identifier_of(field) == name)
             return field;

@@ -10,6 +10,17 @@ namespace cpp
 namespace detail
 {
 
+template <typename T>
+consteval size_t count_tuple_elements()
+{
+    constexpr auto ctx = std::meta::access_context::unchecked();
+    size_t count = 0;
+    template for (constexpr std::meta::info member : define_static_array(nonstatic_data_members_of(^^T, ctx)))
+        if (has_annotation(member, cpp::refl::tuple_element))
+            count++;
+    return count;
+}
+    
 template <typename... Ts>
 consteval auto define_basic_tuple()
 {
