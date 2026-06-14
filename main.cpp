@@ -35,6 +35,14 @@ struct [[=cpp::derive::debug]] Cli {
     Commands cmd;
 };
 
+class [[=cpp::derive::tuple_like]] Point2D : public cpp::tuple_get_interface
+{
+    int X;
+    int Y;
+public:
+    Point2D(int x, int y) : X(x), Y(y) {}
+};
+
 int main(int argc, char const *argv[])
 {
     Cli cli;
@@ -43,6 +51,11 @@ int main(int argc, char const *argv[])
     cli.cmd = Cli::Create{ .path = "foo.txt", .force = true };
 
     std::print("cli: {}\n", cli);
+
+    std::println("Point2D is tuple-like: {}", std::tuple_size_v<Point2D>);
+
+    auto [x, y] = Point2D{1, 2};
+    std::println("Point2D: ({}, {})", x, y);
 
     return 0;
 }

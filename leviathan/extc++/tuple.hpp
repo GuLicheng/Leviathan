@@ -14,26 +14,32 @@ template <typename T>
 consteval size_t count_tuple_elements()
 {
     constexpr auto ctx = std::meta::access_context::unchecked();
+    constexpr static auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
     size_t count = 0;
-    template for (constexpr std::meta::info member : define_static_array(nonstatic_data_members_of(^^T, ctx)))
+    template for (constexpr std::meta::info member : members)
         if (has_annotation(member, cpp::refl::tuple_element))
             count++;
-    return count;
+    return count == 0 ? members.size() : count;
 }
     
 template <typename T, size_t N>
 consteval std::meta::info tuple_elemet_type()
 {
     constexpr auto ctx = std::meta::access_context::unchecked();
+    constexpr static auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
     size_t count = 0;
-    template for (constexpr std::meta::info member : define_static_array(nonstatic_data_members_of(^^T, ctx)))
+    template for (constexpr auto member : members)
+    {
         if (has_annotation(member, cpp::refl::tuple_element))
         {
             if (count == N)
+            {
                 return member;
+            }
             count++;
         }
-    throw std::runtime_error(std::format("No tuple element with index {} in type {}", N, identifier_of(^^T)));
+    }
+    return members[N];
 }
 
 template <typename... Ts>

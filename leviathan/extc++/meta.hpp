@@ -35,7 +35,10 @@ consteval std::meta::info member_number(size_t N)
 }
 
 /**
- * @brief Get the member of a class by its name.
+ * @brief Get the member of a class by its name. We use unchecked access context here 
+ *        since we want to allow access to private members, and we will 
+ *        check the access permission by ourselves.
+ * 
  * @tparam T The class type.
  * @param name The name of the member.
  * @return The meta-information of the member with the given name.
@@ -61,11 +64,11 @@ template <std::meta::info ClassInfo, std::meta::info FieldInfo>
 struct field_handler;
 
 /**
- * @brief Get the valid member indices of a class, excluding the members with [[=cpp::refl::skip]] annotation.
+ * @brief Get the valid member indices of a class, excluding the members with [[=Annotations]] annotation.
  * @tparam T The class type.
  * 
  * For example, given a class:
- *  struct MyStruct { int X; [[=cpp::refl::skip]] double Y; char Z; };
+ *  struct MyStruct { int X; [[=Annotations]] double Y; char Z; };
  *  The valid member indices of MyStruct are 0 and 2, while index 1 is skipped due to the annotation.
  */
 template <typename T, auto... Annotations>
