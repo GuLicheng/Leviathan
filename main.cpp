@@ -35,18 +35,31 @@ struct [[=cpp::derive::debug]] Cli {
     Commands cmd;
 };
 
-class Point
+namespace cxx
 {
+
+class [[=cpp::derive::tuple_like]] Point : public cpp::tuple_get_interface
+{
+    [[=cpp::refl::tuple_element]]
     int X;
-    int Y;
+
+    [[=cpp::refl::tuple_element]]
+    double Y;
+
+    [[=cpp::refl::tuple_element]]
+    std::string Z = "hello";  
 
 public:
 
     Point(int x, int y) : X(x), Y(y) { }
 };
 
+} // namespace cxx
+
 int main(int argc, char const *argv[])
 {
+    using namespace cxx;
+
     Cli cli;
 
     cli.debug = true;
@@ -56,6 +69,11 @@ int main(int argc, char const *argv[])
     Point p{1, 2};
 
     std::print("point: x: {}\n", p.[:cpp::refl::member_named<Point>("X"):]);
+
+    std::println("point as tuple: {}", std::tuple_size_v<Point>);
+
+    auto&& [x, y, z] = p;
+    std::print("point: x: {}, y: {}, z: {}\n", x, y, z);
 
     return 0;
 }
