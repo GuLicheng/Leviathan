@@ -37,7 +37,7 @@ consteval std::meta::info tuple_elemet_type()
 }
 
 template <typename... Ts>
-consteval auto define_basic_tuple()
+consteval std::meta::info define_basic_tuple()
 {
     struct storage;
 

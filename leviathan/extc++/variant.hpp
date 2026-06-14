@@ -9,13 +9,13 @@ namespace cpp
 struct tag_union_formatter
 {
     template <typename ParseContext>
-    constexpr typename ParseContext::iterator parse(ParseContext& ctx) 
+    static constexpr typename ParseContext::iterator parse(ParseContext& ctx) 
     { 
         return ctx.begin();
     }
 
     template <typename Union, typename FmtContext>
-    typename FmtContext::iterator format(const Union& u, FmtContext& ctx) const
+    static typename FmtContext::iterator format(const Union& u, FmtContext& ctx)
     {
         return std::visit([&ctx](const auto& value) {
             return std::format_to(ctx.out(), "{}", value);
