@@ -72,10 +72,10 @@ struct field_handler;
  *  The valid member indices of MyStruct are 0 and 2, while index 1 is skipped due to the annotation.
  */
 template <typename T, auto... Annotations>
-consteval std::meta::info remove_skiped_member()
+consteval std::meta::info remove_skipped_member()
 {
     std::vector args { ^^size_t };
-    constexpr auto ctx = std::meta::access_context::current();
+    constexpr auto ctx = std::meta::access_context::unchecked();
     constexpr auto member = define_static_array(nonstatic_data_members_of(^^T, ctx));
     constexpr auto size = member.size();
     constexpr auto [...indices] = std::make_index_sequence<size>{};
@@ -90,7 +90,7 @@ consteval std::meta::info remove_skiped_member()
 }
 
 template <typename T, auto... Annotations>
-using indices_without_removed_member = typename [:remove_skiped_member<T, Annotations...>():];
+using indices_without_removed_member = typename [:remove_skipped_member<T, Annotations...>():];
 
 /**
  * @brief Construct an object of type T by initializing its fields with the provided initializer.

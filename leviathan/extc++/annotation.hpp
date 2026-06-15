@@ -30,11 +30,8 @@ inline constexpr struct { } tuple_like;
 
 }  // namespace cpp::derive
 
-
 namespace cpp::refl
 {
-
-inline constexpr struct { } tuple_element;
 
 inline constexpr struct { } choice_annotation;
 

@@ -14,8 +14,8 @@ struct tag_union_formatter
         return ctx.begin();
     }
 
-    template <typename Union, typename FmtContext>
-    static typename FmtContext::iterator format(const Union& u, FmtContext& ctx)
+    template <typename Variant, typename FmtContext>
+    static typename FmtContext::iterator format(const Variant& u, FmtContext& ctx)
     {
         return std::visit([&ctx](const auto& value) {
             return std::format_to(ctx.out(), "{}", value);

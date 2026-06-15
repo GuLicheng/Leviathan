@@ -37,6 +37,8 @@ struct [[=cpp::derive::debug]] Cli {
 
 class [[=cpp::derive::tuple_like]] Point2D : public cpp::tuple_get_interface
 {
+    [[=cpp::refl::skip]]
+    int ID;
     int X;
     int Y;
 public:
