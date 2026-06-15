@@ -2,3 +2,7 @@
 ## Leviathan
 you can test as example
 
+# TODO:
+
+- Remove concepts.hpp, the functions in it should be moved into meta.hpp
+- Update json
