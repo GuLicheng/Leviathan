@@ -2,6 +2,7 @@
 #include <leviathan/extc++/format.hpp>
 #include <leviathan/extc++/tuple.hpp>
 #include <leviathan/extc++/variant.hpp>
+#include <leviathan/config_parser/json/json.hpp>
 #include <utility>
 #include <mdspan>
 #include <iostream>
@@ -10,7 +11,15 @@
 #include <format>
 #include <tuple>
 
+struct Base
+{
+    int X = 1;
+};
 
+struct [[=cpp::derive::into<cpp::json::value>]] Derive : Base
+{
+    double Y = 3.14;
+};
 
 template <typename T>
 constexpr void show_all_members()
@@ -30,6 +39,9 @@ int main(int argc, char const *argv[])
     show_all_members<Point>();
     show_all_members<std::tuple<int, int>>();
 
+    auto j = cpp::json::make(Derive{1, 3.14});
+
+    std::println("{}", j);
 
     return 0;
 }

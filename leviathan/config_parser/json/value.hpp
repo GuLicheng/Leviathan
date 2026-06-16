@@ -294,11 +294,10 @@ public:
         }
         else if constexpr (std::is_class_v<Source> && refl::has_annotation(^^Source, cpp::derive::into<cpp::json::value>))
         {
-            constexpr auto ctx = std::meta::access_context::current();
-            
-            cpp::json::object obj;
+            constexpr static auto members = define_static_array(cpp::refl::all_nsdm_unchecked<Source>());
+            json::object obj;
 
-            template for (constexpr auto mem : define_static_array(nonstatic_data_members_of(^^Source, ctx)))
+            template for (constexpr auto mem : members)
             {
                 std::string_view mem_name = has_identifier(mem) ? refl::extract_name_by_annotation<mem, ^^Source>()
                     : std::meta::display_string_of(mem);
