@@ -27,7 +27,7 @@ struct universal_formatter
     {
         auto out = std::format_to(ctx.out(), "{}{{", display_string_of(^^T));
 
-        [[maybe_unused]] auto delim = [first = true, &out]() mutable {
+        auto delim = [first = true, &out]() mutable {
             if (!first) {
                 *out++ = ',';
                 *out++ = ' ';
