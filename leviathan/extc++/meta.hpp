@@ -9,9 +9,54 @@
 #include <vector>
 #include <leviathan/annotations/all.hpp>
 #include <leviathan//type_caster.hpp>
+#include <leviathan/extc++/annotation.hpp>
 
 namespace cpp::refl
 {
+
+/**
+ * @brief Get the valid member indices of a class, excluding the members with [[=Annotations]] annotation.
+ * @tparam T The class type.
+ * 
+ * For example, given a class:
+ *  struct MyStruct { int X; [[=Annotations]] double Y; char Z; };
+ *  The valid member indices of MyStruct are 0 and 2, while index 1 is skipped due to the annotation.
+ */
+template <typename T, auto... Annotations>
+consteval std::meta::info remove_skipped_member()
+{
+    std::vector args { ^^size_t };
+    constexpr auto ctx = std::meta::access_context::unchecked();
+    constexpr auto member = define_static_array(nonstatic_data_members_of(^^T, ctx));
+    constexpr auto size = member.size();
+    constexpr auto [...indices] = std::make_index_sequence<size>{};
+
+    auto pusher = [=, &args]<size_t idx>() {
+        if constexpr (!cpp::refl::has_annotation(member[idx], Annotations...))
+            args.push_back(std::meta::reflect_constant(idx));
+    };
+
+    (pusher.template operator()<indices>(), ...);
+    return substitute(^^std::integer_sequence, args);
+}
+
+template <typename T, auto... Annotations>
+using indices_without_removed_member = typename [:remove_skipped_member<T, Annotations...>():];
+
+template <typename T>
+consteval std::vector<std::meta::info> all_nsdm_unchecked()
+{
+    constexpr auto ctx = std::meta::access_context::unchecked();
+    constexpr auto bases =  define_static_array(bases_of(^^T, ctx));
+    constexpr auto [...base_indices] = std::make_index_sequence<bases.size()>{};
+    constexpr auto [...indices] = cpp::refl::indices_without_removed_member<T, cpp::refl::skip>();
+    constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
+
+    return std::views::concat(
+        all_nsdm_unchecked<typename [:type_of(bases[base_indices]):]>()...,
+        std::vector<std::meta::info>{ members[indices]... }
+    ) | std::ranges::to<std::vector>();
+}
 
 /**
  * @brief Get the N-th member of a class by its declaration order.
@@ -30,8 +75,10 @@ namespace cpp::refl
 template <typename T>
 consteval std::meta::info member_number(size_t N)
 {
-    auto ctx = std::meta::access_context::current();
-    return std::meta::nonstatic_data_members_of(^^T, ctx)[N];
+    constexpr auto ctx = std::meta::access_context::unchecked();
+    constexpr auto [...indices] = indices_without_removed_member<T, skip>();
+    constexpr auto sarray[] = { indices... };
+    return std::meta::nonstatic_data_members_of(^^T, ctx)[sarray[N]];
 }
 
 /**
@@ -62,35 +109,6 @@ consteval std::meta::info member_named(const char* name)
 
 template <std::meta::info ClassInfo, std::meta::info FieldInfo>
 struct field_handler;
-
-/**
- * @brief Get the valid member indices of a class, excluding the members with [[=Annotations]] annotation.
- * @tparam T The class type.
- * 
- * For example, given a class:
- *  struct MyStruct { int X; [[=Annotations]] double Y; char Z; };
- *  The valid member indices of MyStruct are 0 and 2, while index 1 is skipped due to the annotation.
- */
-template <typename T, auto... Annotations>
-consteval std::meta::info remove_skipped_member()
-{
-    std::vector args { ^^size_t };
-    constexpr auto ctx = std::meta::access_context::unchecked();
-    constexpr auto member = define_static_array(nonstatic_data_members_of(^^T, ctx));
-    constexpr auto size = member.size();
-    constexpr auto [...indices] = std::make_index_sequence<size>{};
-
-    auto pusher = [=, &args]<size_t idx>() {
-        if constexpr (!cpp::refl::has_annotation(member[idx], Annotations...))
-            args.push_back(std::meta::reflect_constant(idx));
-    };
-
-    (pusher.template operator()<indices>(), ...);
-    return substitute(^^std::integer_sequence, args);
-}
-
-template <typename T, auto... Annotations>
-using indices_without_removed_member = typename [:remove_skipped_member<T, Annotations...>():];
 
 /**
  * @brief Construct an object of type T by initializing its fields with the provided initializer.

@@ -21,7 +21,7 @@ template <typename T, size_t N>
 consteval std::meta::info tuple_element_type()
 {
     constexpr auto ctx = std::meta::access_context::unchecked();
-    constexpr static auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
+    constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
     constexpr auto [...indices] = cpp::refl::indices_without_removed_member<T, cpp::refl::skip>(); 
     return members[indices...[N]];
 }
