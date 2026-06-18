@@ -73,10 +73,10 @@ using basic_tuple = typename [:define_basic_tuple<Ts...>():];
  *      we can put it in a base class, and let the tuple-like class inherit from it.
  * 
  * @example
- *   class [[=cpp::derive::tuple_like]] Point : cpp::tuple_get_interface
+ *   class [[=cpp::derive::tuple_like]] Point : public cpp::tuple_get_interface
  *   {
- *      [[=cpp::refl::tuple_element]] int X;
- *      [[=cpp::refl::tuple_element]] double Y;
+ *      int X;
+ *      double Y;
  *   };
  * 
  *  static_assert(std::tuple_size<Point>::value == 2);
@@ -86,11 +86,11 @@ using basic_tuple = typename [:define_basic_tuple<Ts...>():];
 struct tuple_get_interface
 {
     template <size_t N, typename Self>
-    constexpr auto&& get(this Self&& tl)
+    constexpr decltype(auto) get(this Self&& tl)
     {
         using DTuple = std::remove_cvref_t<Self>;
         constexpr auto member = cpp::detail::tuple_element_type<DTuple, N>();
-        return std::forward_like<Self>(tl).[:member:];
+        return std::forward_like<Self>(tl.[:member:]);
     }
 };
 

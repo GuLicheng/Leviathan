@@ -53,10 +53,10 @@ inline constexpr struct { } skip;
 
 inline constexpr struct { } test;
 
-// Any class annotated with [[=produces_range]] will be treated as a range producer, 
+// Any class annotated with [[=range_maker]] will be treated as a range producer, 
 // such as derive from followe class
 // class SomeInterface { std::ranges::range<R> operator()(); }
-inline constexpr struct { } produces_range;
+inline constexpr struct { } range_maker;
 
 // Any field annotated with [[=value_guard]] will be treated as a choice field, which means that
 // when initializing the field, we will try to find an annotation with [[=value_guard]] 

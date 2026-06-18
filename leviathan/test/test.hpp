@@ -90,9 +90,9 @@ void invoke_test_functions()
                         constexpr auto args = extract<typename [:type_of(anno):]>(anno);
                         cpp::apply([:info:], args);
                     } 
-                    else if constexpr (cpp::refl::has_annotation(type_of(anno), DataGenerator)) 
+                    else if constexpr (cpp::refl::has_annotation(type_of(anno), range_maker)) 
                     {
-                        for (auto data : std::invoke(extract<ComplexObjectGenerator>(anno))) 
+                        for (auto data : std::invoke(extract<typename [:type_of(anno):]>(anno))) 
                         {
                             cpp::apply([:info:], std::move(data));
                         }

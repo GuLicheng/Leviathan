@@ -24,10 +24,9 @@ struct array
     constexpr auto end() const { return data + size; }
 
     template <std::ranges::range R>
-    constexpr operator R() const
-    {
-        return R(data, data + size);
-    }
+    constexpr operator R() const { return R(data, data + size); }
+
+    constexpr auto& operator()() const { return *this; }
 };
 
 }  // namespace cpp
