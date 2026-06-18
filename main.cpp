@@ -35,9 +35,6 @@ constexpr void show_all_members()
 
 class [[=cpp::derive::tuple_like]] Point { int X; int Y; };
 
-static_assert(cpp::refl::instance_of_template<^^std::vector<int>, ^^std::vector>());
-static_assert(cpp::refl::instance_of_template<^^std::tuple<int, int>, ^^std::tuple>());
-
 int main(int argc, char const *argv[])
 {
     show_all_members<std::vector<int>>();

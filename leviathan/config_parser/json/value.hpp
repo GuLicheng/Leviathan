@@ -68,7 +68,6 @@ struct as_unique_ptr_if_large_than
     template <typename T>
     static constexpr auto to_address(T* t) 
     {
-        // if constexpr (!meta::specialization_of<std::remove_cv_t<T>, std::unique_ptr>)
         if constexpr (!cpp::refl::instance_of_template<^^T, ^^std::unique_ptr>())
         {
             return t;

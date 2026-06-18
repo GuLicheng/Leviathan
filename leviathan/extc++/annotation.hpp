@@ -33,9 +33,12 @@ inline constexpr struct { } tuple_like;
 namespace cpp::refl
 {
 
-inline constexpr struct { } choice_annotation;
-
+// Any field annotated with [[=skip]] will be ignored in code generation
+// When initializing a struct from a tuple, the skipped fields will be 
+// initialized with default value or default initializer.
 inline constexpr struct { } skip;
+
+inline constexpr struct { } choice_annotation;
 
 inline constexpr struct { } skip_serialization;
 
