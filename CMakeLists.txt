@@ -17,7 +17,7 @@ set(CMAKE_CXX_FLAGS_RELEASE " -O3 -freflection ")
 include_directories(${PROJECT_ROOT_PATH})
 include_directories(thirdpart/Catch2/src)
 
-add_subdirectory(thirdpart/Catch2)
+# add_subdirectory(thirdpart/Catch2)
 
 
 add_executable(main main.cpp)

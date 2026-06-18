@@ -19,6 +19,8 @@ struct Base
 struct [[=cpp::derive::into<cpp::json::value>]] Derive : Base
 {
     double Y = 3.14;
+    double Z = 2.17;
+    double W = 0.0;
 };
 
 template <typename T>
