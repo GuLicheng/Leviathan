@@ -153,18 +153,16 @@ namespace detail
 template <std::meta::info Info1, std::meta::info... Infos>
 struct extract_name_by_annotation_impl
 {
-    static consteval bool has_rename_annotation(std::meta::info anno)
+    static consteval bool has_modify_identifier(std::meta::info anno)
     {
         // The anno must be an instance.
-        // return has_annotation(anno, rename_annotation) ;
-            // || has_annotation(type_of(anno), rename_annotation);
-        return has_annotation(type_of(anno), rename_annotation);
+        return has_annotation(type_of(anno), modify_identifier);
     }
 
     static constexpr std::string operator()(std::string name) requires (sizeof...(Infos) == 0)
     {
         template for (constexpr auto anno : define_static_array(annotations_of(Info1)))
-            if constexpr (has_rename_annotation(anno))
+            if constexpr (has_modify_identifier(anno))
                 name = std::invoke(extract<typename [:type_of(anno):]>(anno), name);
         return name;   
     }
@@ -175,7 +173,7 @@ struct extract_name_by_annotation_impl
 
         template for (constexpr auto anno : define_static_array(annotations_of(Info1)))
         {
-            if constexpr (has_rename_annotation(anno))
+            if constexpr (has_modify_identifier(anno))
             {
                 name = std::invoke(extract<typename [:type_of(anno):]>(anno), name);
                 found = true;

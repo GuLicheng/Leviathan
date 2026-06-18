@@ -51,7 +51,8 @@ inline constexpr struct { } skip_serialization;
 
 inline constexpr struct { } skip_deserialization;
 
-inline constexpr struct { } rename_annotation;
+// Rename annotaion
+inline constexpr struct { } modify_identifier;
 
 inline constexpr struct { } value_annotation;
 

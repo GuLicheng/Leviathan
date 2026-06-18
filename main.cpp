@@ -29,16 +29,10 @@ struct Base
     int X = 1;
 };
 
-inline constexpr auto LowerCase [[=cpp::refl::rename_annotation]] = [](std::string name) {
-    return name | std::views::transform([](char c) { return std::tolower(c); }) | std::ranges::to<std::string>();
-} ;
-
 struct [[=cpp::derive::into<cpp::json::value>, =cpp::derive::debug]] Derive : public Base
 {
     [[=cpp::refl::rename("y_value")]]
     double Y = 3.14;
-
-    [[=LowerCase]]
     double Z = 2.17;
     double W = 0.0;
 };

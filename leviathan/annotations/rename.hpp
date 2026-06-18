@@ -18,37 +18,37 @@ namespace cpp::refl
 {
 
 template <typename F>
-struct [[=rename_annotation]] function_rename_annotation : callable<F>
+struct [[=modify_identifier]] rename_function : callable<F>
 {
     using callable<F>::callable;
     using callable<F>::operator();
 };
 
-inline constexpr auto shortname = function_rename_annotation([](std::string field_name) static 
+inline constexpr auto shortname = rename_function([](std::string field_name) static 
 {
     // assert(!name.empty(), "Name cannot be empty");
     return '-' + std::string(field_name.begin(), field_name.begin() + 1);
 });
 
-inline constexpr auto longname = function_rename_annotation([](std::string field_name) static 
+inline constexpr auto longname = rename_function([](std::string field_name) static 
 {
     // assert(!name.empty(), "Name cannot be empty");
     return "--" + std::string(field_name);
 });
 
-inline constexpr auto lowercase = function_rename_annotation([](std::string field_name) static 
+inline constexpr auto lowercase = rename_function([](std::string field_name) static 
 {
     return field_name | std::views::transform(::tolower) | std::ranges::to<std::string>();
 });
 
-inline constexpr auto uppercase = function_rename_annotation([](std::string field_name) static 
+inline constexpr auto uppercase = rename_function([](std::string field_name) static 
 {
     return field_name | std::views::transform(::toupper) | std::ranges::to<std::string>();
 });
 
 inline constexpr auto rename = [](std::string_view new_name) static
 {
-    return function_rename_annotation([name=define_static_string(new_name)](auto&&...)  
+    return rename_function([name=define_static_string(new_name)](auto&&...)  
     {
         return std::string(name);
     });
@@ -56,7 +56,7 @@ inline constexpr auto rename = [](std::string_view new_name) static
 
 // Follows functions in terms of implementation maybe incorrect
 // FIXME: Rust clap-
-inline constexpr auto camel_case = function_rename_annotation([](std::string field_name) static
+inline constexpr auto camel_case = rename_function([](std::string field_name) static
 {
     std::string out;
     bool upper_next = false;
@@ -71,7 +71,7 @@ inline constexpr auto camel_case = function_rename_annotation([](std::string fie
     return out;
 });
 
-inline constexpr auto pascal_case = function_rename_annotation([](std::string field_name) static
+inline constexpr auto pascal_case = rename_function([](std::string field_name) static
 {
     auto upper_first_character = [](auto&& part) static {
         if (!part.empty()) part.front() = ::toupper(part.front());
@@ -85,7 +85,7 @@ inline constexpr auto pascal_case = function_rename_annotation([](std::string fi
          | std::ranges::to<std::string>();
 });
 
-inline constexpr auto kebab_case = function_rename_annotation([](std::string field_name) static
+inline constexpr auto kebab_case = rename_function([](std::string field_name) static
 {
     return field_name | std::views::transform([](char c) { return c == '_' ? '-' : c; }) | std::ranges::to<std::string>();
 });
