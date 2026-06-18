@@ -15,6 +15,23 @@ namespace cpp::refl
 {
 
 /**
+ * @brief Check if a type is an instance of a template.
+ * @tparam Type The type to check.
+ * @tparam Templates The template to check against.
+ * 
+ * @example
+ *  static_assert(cpp::refl::instance_of_template<^^std::vector<int>, ^^std::vector>()); // true
+ *  static_assert(cpp::refl::instance_of_template<^^std::tuple<int, int>, ^^std::tuple>()); // true
+ */
+template <std::meta::info Type, std::meta::info... Templates>
+consteval bool instance_of_template()
+{
+    constexpr auto type = dealias(remove_cvref(Type));
+    return has_template_arguments(type) 
+        && ((template_of(type) == dealias(Templates)) || ...);
+}
+
+/**
  * @brief Get the valid member indices of a class, excluding the members with [[=Annotations]] annotation.
  * @tparam T The class type.
  * 

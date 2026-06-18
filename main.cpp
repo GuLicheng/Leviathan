@@ -16,7 +16,7 @@ struct Base
     int X = 1;
 };
 
-struct [[=cpp::derive::into<cpp::json::value>]] Derive : Base
+struct [[=cpp::derive::into<cpp::json::value>]] Derive : public Base
 {
     double Y = 3.14;
     double Z = 2.17;
@@ -34,6 +34,9 @@ constexpr void show_all_members()
 }
 
 class [[=cpp::derive::tuple_like]] Point { int X; int Y; };
+
+static_assert(cpp::refl::instance_of_template<^^std::vector<int>, ^^std::vector>());
+static_assert(cpp::refl::instance_of_template<^^std::tuple<int, int>, ^^std::tuple>());
 
 int main(int argc, char const *argv[])
 {
