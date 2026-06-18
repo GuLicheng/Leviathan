@@ -38,6 +38,13 @@ namespace cpp::refl
 // initialized with default value or default initializer.
 inline constexpr struct { } skip;
 
+inline constexpr struct { } test;
+
+// Any class annotated with [[=produces_range]] will be treated as a range producer, 
+// such as derive from followe class
+// class SomeInterface { std::ranges::range<R> operator()(); }
+inline constexpr struct { } produces_range;
+
 inline constexpr struct { } choice_annotation;
 
 inline constexpr struct { } skip_serialization;

@@ -38,12 +38,6 @@ struct [[=DataGenerator]] ComplexObjectGenerator
     }
 };
 
-template <typename... Ts>
-consteval auto InlineData(const Ts&... ts)
-{
-    return cpp::make_tuple(*std::define_static_object(ts)...);
-}
-
 namespace TestNamespace
 {
 

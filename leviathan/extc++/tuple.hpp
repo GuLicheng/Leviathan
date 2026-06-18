@@ -72,7 +72,7 @@ using basic_tuple = typename [:define_basic_tuple<Ts...>():];
  *      Since C++ use ADL to find the get function, the global or std namespace is not a good place to put the get function, 
  *      we can put it in a base class, and let the tuple-like class inherit from it.
  * 
- * For example:
+ * @example
  *   class [[=cpp::derive::tuple_like]] Point : cpp::tuple_get_interface
  *   {
  *      [[=cpp::refl::tuple_element]] int X;
