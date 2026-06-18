@@ -316,7 +316,7 @@ struct field_handler
     static constexpr std::optional<FieldType> default_value() 
     {
         template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
-            if constexpr (has_annotation(type_of(anno), value_annotation))
+            if constexpr (has_annotation(type_of(anno), value))
                 return std::make_optional(std::invoke(extract<typename [:type_of(anno):]>(anno)));
         if constexpr (IsDefaultConstructible)
             return std::make_optional(FieldType());
@@ -328,7 +328,7 @@ struct field_handler
     static constexpr bool is_valid(const T& value)
     {
         template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
-            if constexpr (has_annotation(type_of(anno), choice_annotation))
+            if constexpr (has_annotation(type_of(anno), value_guard))
                 if (!std::invoke(extract<typename [:type_of(anno):]>(anno), value))
                     return false;
         return true;

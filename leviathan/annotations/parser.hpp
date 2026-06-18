@@ -8,7 +8,7 @@ namespace cpp::refl
 {
     
 template <typename F>
-struct [[=value_annotation]] function_value_annotation : callable<F>
+struct [[=value]] function_value_annotation : callable<F>
 {
     using callable<F>::callable;
     using callable<F>::operator();
@@ -20,7 +20,7 @@ inline constexpr auto default_value = [](auto value) static
 };
 
 template <typename T>
-struct [[=value_annotation]] function_array_annotation
+struct [[=value]] function_array_annotation
 {
     const T* data;
 
@@ -34,8 +34,8 @@ struct [[=value_annotation]] function_array_annotation
     template <std::ranges::range R>
     constexpr operator R() const { return R(data, data + size); }
 
-    // We assume the value_annotation can get the value by invoke itself, so we return itself here
-    // and try cast it to the target type in value_annotation.
+    // We assume the value can get the value by invoke itself, so we return itself here
+    // and try cast it to the target type in value.
     constexpr auto& operator()() const { return *this; }
 };
 

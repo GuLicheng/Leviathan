@@ -5,27 +5,40 @@
 namespace cpp::derive
 {
 
-// Extend std::formatter for class or enum type
+/**
+ * @brief Allow a class or enum type to be formatted with std::format. 
+ */
 inline constexpr struct { } debug;
 
-// Extend std::hash for class or enum type
+/**
+ * @brief Allow a class or enum type to be hashed with std::hash.
+ */
 inline constexpr struct { } hash;
 
-// Allow a class to be serialized to a specific type, for example, json::value.
-// Extend optional_cast<StructOrEnum, T> 
+/**
+ * @brief Allow a class or enum to be converted into another 
+ * type, for example, json::value.
+ */
 template <typename T> struct from_t { explicit from_t() = default; };
 template <typename T> inline constexpr auto from = from_t<T>{};
 
-// Allow a class to be deserialized from a specific type, for example, json::value.
-// Extend optional_cast<T, StructOrEnum> 
+/**
+ * @brief Allow a class or enum to be converted from another 
+ * type, for example, json::value.
+ */
 template <typename T> struct into_t { explicit into_t() = default; };
 template <typename T> inline constexpr auto into = into_t<T>{};
 
-// Extend operator| and operator|= for enum type, for example, to support bitmask operations.
+/**
+ * @brief Allow an enum type to support operator| and operator|=, 
+ * which is useful for bitmask operations.
+ */
 inline constexpr struct { } op_pipe;
 
-// Extend std::tuple_size and std::tuple_element and std::get
-// for class type, to allow structured bindings and tuple-like interface.
+/**
+ * @brief Allow a class to be treated as a tuple-like type, 
+ * which means that we can use structured bindings on it.
+ */
 inline constexpr struct { } tuple_like;
 
 }  // namespace cpp::derive
@@ -45,7 +58,11 @@ inline constexpr struct { } test;
 // class SomeInterface { std::ranges::range<R> operator()(); }
 inline constexpr struct { } produces_range;
 
-inline constexpr struct { } choice_annotation;
+// Any field annotated with [[=value_guard]] will be treated as a choice field, which means that
+// when initializing the field, we will try to find an annotation with [[=value_guard]] 
+// and use it to check if the value is valid. Such as derive from followe class
+// class SomeInterface { bool operator(const auto&); }
+inline constexpr struct { } value_guard;
 
 inline constexpr struct { } skip_serialization;
 
@@ -54,7 +71,7 @@ inline constexpr struct { } skip_deserialization;
 // Rename annotaion
 inline constexpr struct { } modify_identifier;
 
-inline constexpr struct { } value_annotation;
+inline constexpr struct { } value;
 
 inline constexpr struct { } parse_annotation;
 

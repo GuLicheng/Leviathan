@@ -12,7 +12,7 @@
 #include <tuple>
 
 template <typename T>
-struct type_handle
+struct type
 {
     static constexpr void show_all_members()
     {
@@ -42,9 +42,9 @@ class [[=cpp::derive::tuple_like]] Point { int X; int Y; };
 
 int main(int argc, char const *argv[])
 {
-    type_handle<std::vector<int>>::show_all_members();
-    type_handle<Point>::show_all_members();
-    type_handle<std::tuple<int, int>>::show_all_members();
+    type<std::vector<int>>::show_all_members();
+    type<Point>::show_all_members();
+    type<std::tuple<int, int>>::show_all_members();
 
     auto j = cpp::json::make(Derive{1, 3.14});
 

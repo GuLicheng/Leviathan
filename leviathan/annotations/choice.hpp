@@ -6,7 +6,7 @@ namespace cpp::refl
 {
 
 template <typename Prediction>
-struct [[=choice_annotation]] function_choice_annotation : callable<Prediction>
+struct [[=value_guard]] function_choice_annotation : callable<Prediction>
 {
     using callable<Prediction>::callable;
     using callable<Prediction>::operator();
