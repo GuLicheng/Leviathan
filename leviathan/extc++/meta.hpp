@@ -7,7 +7,8 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <leviathan/annotations/all.hpp>
+#include <ranges>
+// #include <leviathan/annotations/all.hpp>
 #include <leviathan//type_caster.hpp>
 #include <leviathan/extc++/annotation.hpp>
 
@@ -32,10 +33,29 @@ consteval bool instance_of_template()
 }
 
 /**
+ * @brief Check if the given annotation is present on the given info.
+ * @param r Anything that can be reflected, such as class, field, base class, etc.
+ * @param obj The annotation to check.
+ * @return true if the annotation is present, false otherwise.
+ * @example 
+ * struct SomeThing { [[=some_annotation]] int x; }
+ * static_assert(has_annotation(^^SomeThing::x, some_annotation));
+ */
+template <typename... Ts>
+consteval bool has_annotation(std::meta::info r, const Ts&... objs) 
+{
+    return (... || std::ranges::contains(
+        annotations_of_with_type(r, ^^Ts),
+        std::meta::reflect_constant(objs),
+        std::meta::constant_of
+    ));
+}
+
+/**
  * @brief Get the valid member indices of a class, excluding the members with [[=Annotations]] annotation.
  * @tparam T The class type.
  * 
- * For example, given a class:
+ * @example
  *  struct MyStruct { int X; [[=Annotations]] double Y; char Z; };
  *  The valid member indices of MyStruct are 0 and 2, while index 1 is skipped due to the annotation.
  */
@@ -81,8 +101,7 @@ consteval std::vector<std::meta::info> all_nsdm_unchecked()
  * @param N The index of the member, starting from 0.
  * @return The meta-information of the N-th member.
  * 
- * For example, given a class:
- * 
+ * @example
  *  struct MyStruct { int X; double Y; };
  *  MyStruct s;
  *  s.[:member_number<MyStruct>(0):] = 1;
@@ -107,7 +126,7 @@ consteval std::meta::info member_number(size_t N)
  * @param name The name of the member.
  * @return The meta-information of the member with the given name.
  * 
- *  For example, given a class:
+ * @example
  *  struct MyStruct { int X; double Y; };
  *  MyStruct s;
  *  s.[:member_named<MyStruct>("X"):] = 1;
@@ -124,6 +143,57 @@ consteval std::meta::info member_named(const char* name)
     throw std::runtime_error(std::format("No member named {} in type {}", name, identifier_of(^^T)));
 }
 
+namespace detail
+{
+
+template <std::meta::info Info1, std::meta::info... Infos>
+struct extract_name_by_annotation_impl
+{
+    static constexpr std::string operator()(std::string name) requires (sizeof...(Infos) == 0)
+    {
+        template for (constexpr auto anno : define_static_array(annotations_of(Info1)))
+            if constexpr (has_annotation(type_of(anno), rename_annotation))
+                name = std::invoke(extract<typename [:type_of(anno):]>(anno), name);
+        return name;   
+    }
+
+    static constexpr std::string operator()(std::string name)
+    {
+        bool found = false;
+
+        template for (constexpr auto anno : define_static_array(annotations_of(Info1)))
+        {
+            if constexpr (has_annotation(type_of(anno), rename_annotation))
+            {
+                name = std::invoke(extract<typename [:type_of(anno):]>(anno), name);
+                found = true;
+            }
+        }
+        return found ? name : extract_name_by_annotation_impl<Infos...>()(name);
+    }
+};
+
+}  // namespace detail
+
+/**
+ * @brief Extract the name of a member by its annotation. If multiple annotations are provided, 
+ * the first annotation that can extract a name will be used.
+ * 
+ * @tparam Info1 The meta-information of the member to extract the name from.
+ * @tparam Infos The meta-information of the annotations to use for extracting the name.
+ * 
+ * @example
+ *  struct MyStruct { int X; double [[=rename("Z")]] Y; };
+ *  std::string name1 = extract_name_by_annotation<^^MyStruct::X>(); // "X"
+ *  std::string name2 = extract_name_by_annotation<^^MyStruct::Y>(); // "Z"
+ */
+template <std::meta::info Info1, std::meta::info... Infos>
+constexpr std::string extract_name_by_annotation()
+{
+    constexpr auto name = identifier_of(Info1);
+    return detail::extract_name_by_annotation_impl<Info1, Infos...>::operator()(std::string(name));
+}
+
 template <std::meta::info ClassInfo, std::meta::info FieldInfo>
 struct field_handler;
 
@@ -133,6 +203,7 @@ struct field_handler;
  * @param Initializer A callable that takes a reference to an optional field value 
  *  and the field name, then initializes the field value if possible.
  *  
+ * @example
  *  struct SomeInitializer {
  *      template <typename T> 
  *      void operator()(std::optional<T>& value, std::string name) {
@@ -171,7 +242,7 @@ constexpr T construct_struct(Initializer initializer)
  *  std::make_from_tuple which can construct an object from a tuple, and we can use it 
  *  together with struct_to_tuple to achieve the same effect as tuple_to_struct.
  * 
- *  For example, given a struct:
+ * @example
  *  struct MyStruct { int X; double Y; [[=cpp::refl::skip]] std::string Z; };
  *  MyStruct s{1, 3.14, "hello"};
  *  auto t = cpp::refl::struct_to_tuple(s);

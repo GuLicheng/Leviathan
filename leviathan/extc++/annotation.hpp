@@ -47,23 +47,6 @@ inline constexpr struct { } value_annotation;
 
 inline constexpr struct { } parse_annotation;
 
-/**
- * @brief Check if the given annotation is present on the given info.
- * @param r Anything that can be reflected, such as class, field, base class, etc.
- * @param obj The annotation to check.
- * @return true if the annotation is present, false otherwise.
- * @example 
- * struct SomeThing { [[=some_annotation]] int x; }
- * static_assert(has_annotation(^^SomeThing::x, some_annotation));
- */
-template <typename... Ts>
-consteval bool has_annotation(std::meta::info r, const Ts&... objs) 
-{
-    return (... || std::ranges::contains(
-        annotations_of_with_type(r, ^^Ts),
-        std::meta::reflect_constant(objs),
-        std::meta::constant_of
-    ));
-}
+
 
 }  // namespace cpp::refl

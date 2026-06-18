@@ -108,26 +108,6 @@ concept tuple_like = detail::tuple_like_impl<std::remove_cvref_t<T>>;
 template <typename T>
 concept pair_like = tuple_like<T> && std::tuple_size_v<std::remove_cvref_t<T>> == 2;
 
-template <typename Tuple>
-struct tuple_traits;
-
-// C++20 dose not support template auto... Args so std::array is not supported
-template <template <typename...> typename Tuple, typename... Args1>
-struct tuple_traits<Tuple<Args1...>>
-{
-    static_assert(tuple_like<Tuple<Args1...>>);
-    
-    using this_type = Tuple<Args1...>;
-    
-    template <typename... Args2>
-    using rebind_args = Tuple<Args2...>;
-
-    template <std::size_t N>
-    using tuple_element_t = std::tuple_element_t<N, this_type>;
-
-    static constexpr auto tuple_size_v = std::tuple_size_v<this_type>;
-};
-
 template <typename... Ts>
 struct tuple_or_pair_impl : std::type_identity<std::tuple<Ts...>> { };
 
@@ -143,18 +123,6 @@ concept arithmetic = std::meta::is_arithmetic_type(^^T);
 template <typename T>
 concept string_like = (std::ranges::range<T> && std::same_as<std::ranges::range_value_t<T>, char>)
                    || std::same_as<std::decay_t<T>, const char*>;
-
-// See std::format_kind
-enum class [[=cpp::derive::op_pipe]] kind : uint8_t
-{
-    disabled   = 0b0000'0000,
-    arithmetic = 0b0000'0001,
-    map        = 0b0000'0010, 
-    set        = 0b0000'0100,
-    sequence   = 0b0000'1000,
-    string     = 0b0001'0000,
-    tuple_like = 0b0010'0000,
-};
 
 }  // namespace cpp::meta
 
