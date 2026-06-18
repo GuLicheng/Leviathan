@@ -64,16 +64,16 @@ inline constexpr struct { } produces_range;
 // class SomeInterface { bool operator(const auto&); }
 inline constexpr struct { } value_guard;
 
-inline constexpr struct { } skip_serialization;
+// inline constexpr struct { } skip_serialization;
 
-inline constexpr struct { } skip_deserialization;
+// inline constexpr struct { } skip_deserialization;
 
 // Rename annotaion
 inline constexpr struct { } modify_identifier;
 
 inline constexpr struct { } value;
 
-inline constexpr struct { } parse_annotation;
+// inline constexpr struct { } parse_annotation;
 
 
 

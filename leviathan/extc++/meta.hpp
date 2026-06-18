@@ -285,7 +285,7 @@ struct field_handler
 
     static constexpr bool IsDefaultConstructible = std::is_default_constructible_v<FieldType>;
 
-    static constexpr bool IsSkippable = cpp::refl::has_annotation(FieldInfo, cpp::refl::skip, cpp::refl::skip_deserialization);
+    static constexpr bool IsSkippable = has_annotation(FieldInfo, skip);
 
     static constexpr bool IsUnnamedField = has_identifier(FieldInfo) == false;
 

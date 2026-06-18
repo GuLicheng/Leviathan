@@ -29,7 +29,7 @@ consteval std::meta::info tuple_element_type()
 template <typename... Ts>
 consteval std::meta::info define_basic_tuple()
 {
-    struct storage;
+    struct implementation;
 
     consteval
     {
@@ -55,10 +55,10 @@ consteval std::meta::info define_basic_tuple()
                           | std::views::enumerate 
                           | std::views::transform(int2string);
 
-        define_aggregate(^^storage, member_specs);
+        define_aggregate(^^implementation, member_specs);
     }
 
-    return ^^storage;
+    return ^^implementation;
 }
 
 template <typename... Ts>

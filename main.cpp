@@ -24,40 +24,9 @@ struct type
     }
 };
 
-struct Base
-{
-    int X = 1;
-};
-
-struct [[=cpp::derive::into<cpp::json::value>, =cpp::derive::debug]] Derive : public Base
-{
-    [[=cpp::refl::rename("y_value")]]
-    double Y = 3.14;
-    double Z = 2.17;
-    double W = 0.0;
-};
-
-class [[=cpp::derive::tuple_like]] Point { int X; int Y; };
-
 
 int main(int argc, char const *argv[])
 {
-    type<std::vector<int>>::show_all_members();
-    type<Point>::show_all_members();
-    type<std::tuple<int, int>>::show_all_members();
-
-    auto j = cpp::json::make(Derive{1, 3.14});
-
-    Derive d;
-
-    template for (constexpr auto anno : define_static_array(annotations_of(^^Derive::Z)))
-    {
-        constexpr auto instance = std::meta::extract<typename [:type_of(anno):]>(anno);
-        constexpr auto msg = std::meta::annotations_of(^^instance).size();
-        std::print("Annotation: {}\n", msg);
-    }
-
-    std::println("{}", j);
 
     return 0;
 }
