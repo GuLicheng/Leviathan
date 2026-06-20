@@ -27,7 +27,7 @@ namespace cpp::refl
 template <std::meta::info Type, std::meta::info... Templates>
 consteval bool instance_of_template()
 {
-    constexpr auto type = dealias(remove_cvref(Type));
+    constexpr auto type = dealias(Type);
     return has_template_arguments(type) 
         && ((template_of(type) == dealias(Templates)) || ...);
 }
