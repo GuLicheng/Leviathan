@@ -1,5 +1,7 @@
+#include <generator>
 #include "vector.hpp"
 #include <catch2/catch_all.hpp>
+#include <leviathan/test/test.hpp>
 
 template class cpp::math::vector<float, 3>;
 template class cpp::math::vector<double, 3>;
@@ -58,4 +60,25 @@ TEST_CASE("3D vector floating test binary operation")
     Vector3DTesting<double>();
 }
 
+template <typename Vector>
+struct [[=cpp::refl::range_maker]] VectorDataGenerator
+{
+    using R = cpp::tuple<Vector, Vector>;
 
+    inline constexpr static Vector v1 = Vector(1, 1, 1);
+    inline constexpr static Vector v2 = Vector(1, 2, 3);
+    inline constexpr static Vector v3 = Vector(0, 0, 0);
+    inline constexpr static Vector v4 = Vector(-1, -2, -3);
+
+    static std::generator<R> operator()() 
+    {
+        co_yield { v1 + v2, Vector(2, 3, 4) };
+    }
+};
+
+namespace VectorTest
+{
+
+
+
+}

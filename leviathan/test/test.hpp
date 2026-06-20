@@ -25,46 +25,6 @@ consteval auto inline_data(const Ts&... ts)
     return cpp::make_tuple(*std::define_static_object(ts)...);
 }
 
-class recorder
-{
-    std::vector<std::string> logs;
-
-public:
-
-    recorder() = default;
-
-    void log(std::string message) 
-    {
-        logs.emplace_back(std::move(message));
-    }
-};
-
-inline recorder& get_recorder()
-{
-    static recorder instance;
-    return instance;
-}
-
-template <typename Expected, typename Actual>
-void assert_equal(const Expected& expected, const Actual& actual, std::source_location location = std::source_location::current())
-{
-    if (expected != actual)
-    {
-        std::string message = std::format("Assertion failed at {}:{}: Expected '{}', but got '{}'", location.file_name(), location.line(), expected, actual);
-        get_recorder().log(message);
-    }
-}
-
-template <typename Expression>
-void assert_true(const Expression& expression, std::source_location location = std::source_location::current())
-{
-    if (!expression)
-    {
-        std::string message = std::format("Assertion failed at {}:{}: Expression is not true", location.file_name(), location.line());
-        get_recorder().log(message);
-    }
-}
-
 template <std::meta::info Namespace>
 void invoke_test_functions()
 {
@@ -90,7 +50,7 @@ void invoke_test_functions()
                         constexpr auto args = extract<typename [:type_of(anno):]>(anno);
                         cpp::apply([:info:], args);
                     } 
-                    else if constexpr (cpp::refl::has_annotation(type_of(anno), range_maker)) 
+                    else if constexpr (cpp::refl::has_annotation(type_of(anno), cpp::refl::range_maker)) 
                     {
                         for (auto data : std::invoke(extract<typename [:type_of(anno):]>(anno))) 
                         {
