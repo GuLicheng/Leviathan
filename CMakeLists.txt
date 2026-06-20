@@ -11,8 +11,8 @@ set(CMAKE_CXX_STANDARD 26)
 set(LIBRARY_OUTPUT_DIRECTORY ${PROJECT_ROOT_PATH}/lib)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_ROOT_PATH}/bin)
 
-set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -freflection -Wno-unused")
-set(CMAKE_CXX_FLAGS_RELEASE " -O3 -freflection -Wno-unused")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -freflection -Wno-unused -fcontracts")
+set(CMAKE_CXX_FLAGS_RELEASE " -O3 -freflection -Wno-unused -fcontracts")
 
 include_directories(${PROJECT_ROOT_PATH})
 

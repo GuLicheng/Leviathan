@@ -131,20 +131,27 @@ consteval std::meta::info member_number(size_t N)
  * @return The meta-information of the member with the given name.
  * 
  * @example
- *  struct MyStruct { int X; double Y; };
+ *  struct MyStruct { 
+ *      int X; 
+ *      double Y; 
+ *      int ReturnConstant() const { return 42; } 
+ *  };
+ * 
  *  MyStruct s;
  *  s.[:member_named<MyStruct>("X"):] = 1;
  *  s.[:member_named<MyStruct>("Y"):] = 3.14;
  *  assert(s.X == 1 && s.Y == 3.14);
+ *  assert(s.[:member_named<MyStruct>("ReturnConstant"):]() == 42);
  */
 template <typename T>
 consteval std::meta::info member_named(const char* name)
 {
     auto ctx = std::meta::access_context::unchecked();
-    for (std::meta::info field : nonstatic_data_members_of(^^T, ctx))
+    for (std::meta::info field : members_of(^^T, ctx))
         if (has_identifier(field) && identifier_of(field) == name)
             return field;
-    throw std::runtime_error(std::format("No member named {} in type {}", name, identifier_of(^^T)));
+    // throw std::runtime_error(std::format("No member named {} in type {}", name, identifier_of(^^T)));
+    throw std::runtime_error("No member named " + std::string(name) + " in type " + std::string(identifier_of(^^T)));
 }
 
 namespace detail

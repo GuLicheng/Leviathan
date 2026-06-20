@@ -5,6 +5,7 @@
 #include <leviathan/config_parser/json/json.hpp>
 #include <utility>
 #include <mdspan>
+#include <contracts>
 #include <vector>
 #include <string>
 #include <string_view>
@@ -12,8 +13,8 @@
 #include <variant>
 #include <print>
 #include <format>
-#include <leviathan/math/vector.hpp>
 #include <tuple>
+#include <leviathan/math/vector.hpp>
 
 template <typename T>
 struct type
@@ -28,44 +29,30 @@ struct type
     }
 };
 
-template <std::meta::info Info>
-struct metainfo
+struct SomeInterafce
 {
-    constexpr static bool is_template_function = std::meta::is_function_template(Info);
-    constexpr static bool is_function = std::meta::is_function(Info);
-
-    static_assert(is_template_function, "Info must be a function and function template");
-
-    static constexpr std::string_view display_name()
+    template <typename Self>
+    constexpr auto call_impl(this Self&& self)
     {
-        return display_string_of(Info);
+        auto f = self.[:member_named1<std::remove_cvref_t<Self>>("impl") :];
+        return std::invoke(f, self);
     }
-
-    static constexpr std::vector<std::string> template_parameter_names()
-    {
-        std::vector<std::string> names;
-
-        // template for (constexpr auto param : define_static_array(parameters_of(Info)))
-        // {
-        //     names.emplace_back(display_string_of(param));
-        // }
-        return names;
-    }
-
 };
 
-template <typename T>
-void test1() { }
+struct MyStruct {
+    int X;
+    double Y;
+    int ReturnConstant() const { return 42; }
+};
 
-template<typename T>
-constexpr T add(T a, T b) {
-    return a + b ;
-}
-
-int main() {
-    constexpr auto add_tmpl = ^^add;
-    // 不写 <...>，直接传调用参数，自动推导 T=int
-    constexpr auto res = template [:add_tmpl:]<double>;
+int main(int argc, char const argv[])
+{
+    MyStruct s;
+    s.[:cpp::refl::member_named<MyStruct>("X") :] = 1;
+    s.[:cpp::refl::member_named<MyStruct>("Y") :] = 3.14;
+    assert(s.X == 1 && s.Y == 3.14);
+    std::cout << (s.[:cpp::refl::member_named<MyStruct>("ReturnConstant") :]() == 42);
+    return 0;
 }
 
 
