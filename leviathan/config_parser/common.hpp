@@ -2,7 +2,7 @@
 
 #include <leviathan/encode.hpp>
 #include <leviathan/extc++/all.hpp>
-#include <leviathan/string/fixed_string.hpp>
+#include <leviathan/fixed_string.hpp>
 
 #include <array>
 #include <string>

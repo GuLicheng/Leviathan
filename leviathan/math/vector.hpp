@@ -13,7 +13,7 @@
 namespace cpp::math::algebra
 {
 
-template <std::floating_point T, size_t Dimension>
+template <typename T, size_t Dimension>
 struct vector
 {
     // static_assert(std::is_floating_point_v<T>);
@@ -71,19 +71,45 @@ private:
         return fn1(fn2(first[Idx] - second[Idx])...);
     }
 
+    template <typename BinaryOp>
+    static constexpr vector elementwise_operation(BinaryOp binop, const vector& v1, const vector& v2)
+    {
+        const auto [...x1] = v1.m_data;
+        const auto [...x2] = v2.m_data;
+        return { binop(x1, x2)... };
+    }
+
+    template <typename BinaryOp>
+    static constexpr vector elementwise_operation(BinaryOp binop, const vector& v1, T scale)
+    {
+        const auto [...x1] = v1.m_data;
+        return { binop(x1, scale)... };
+    }
+
+public:
+
     static constexpr T euclidean_distance(const vector& v1, const vector& v2)
     {
-        return math::sqrt(Lp_norm(math::sum, math::square, v1.data(), v2.data(), indices));
+        // return math::sqrt(Lp_norm(math::sum, math::square, v1.data(), v2.data(), indices));
+        const auto [...x1] = v1.m_data;
+        const auto [...x2] = v2.m_data;
+        return math::sqrt(((math::square(x1 - x2)) + ...));
     }
     
     static constexpr T manhattan_distance(const vector& v1, const vector& v2)
     {
-        return Lp_norm(math::sum, math::abs, v1.data(), v2.data(), indices);
+        // return Lp_norm(math::sum, math::abs, v1.data(), v2.data(), indices);
+        const auto [...x1] = v1.m_data;
+        const auto [...x2] = v2.m_data;
+        return ((math::abs(x1 - x2)) + ...);
     }
 
     static constexpr T chebyshev_distance(const vector& v1, const vector& v2)
     {
-        return Lp_norm(math::max, math::abs, v1.data(), v2.data(), indices);
+        // return Lp_norm(math::max, math::abs, v1.data(), v2.data(), indices);
+        const auto [...x1] = v1.m_data;
+        const auto [...x2] = v2.m_data;
+        return math::max((math::abs(x1 - x2))...);
     }
 
 public:
@@ -101,23 +127,15 @@ public:
         }
         else
         {
-            const auto d1 = this->data();
-            const auto d2 = rhs.data();
-            
-            for (size_t i = 0; i < Dimension; ++i)
-            {
-                if (math::abs(d1[i] - d2[i]) > eps)
-                {
-                    return false;
-                }
-            } 
-            return true;
+            const auto [...x1] = this->m_data;
+            const auto [...x2] = rhs.m_data;
+            return ((math::abs(x1 - x2) <= eps) && ...);
         }
     }
 
     constexpr vector operator+(const vector& rhs) const
     {
-        return binary_operation(std::plus<T>(), *this, rhs);
+        return elementwise_operation(std::plus<T>(), *this, rhs);
     }
 
     constexpr vector& operator+=(const vector& rhs) 
@@ -127,7 +145,7 @@ public:
 
     constexpr vector operator-(const vector& rhs) const
     {
-        return binary_operation(std::minus<T>(), *this, rhs);
+        return elementwise_operation(std::minus<T>(), *this, rhs);
     }
     
     constexpr vector& operator-=(const vector& rhs) 
@@ -137,7 +155,7 @@ public:
 
     constexpr vector operator*(const vector& rhs) const
     {
-        return binary_operation(std::multiplies<T>(), *this, rhs);
+        return elementwise_operation(std::multiplies<T>(), *this, rhs);
     }
 
     constexpr vector& operator*=(const vector& rhs) 
@@ -147,7 +165,7 @@ public:
 
     constexpr vector operator*(T scale) const
     {
-        return binary_operation(std::multiplies<T>(), *this, scale);
+        return elementwise_operation(std::multiplies<T>(), *this, scale);
     }
 
     constexpr vector& operator*=(T scale) 
@@ -162,7 +180,7 @@ public:
 
     constexpr vector operator/(const vector& rhs) const
     {
-        return binary_operation(std::divides<T>(), *this, rhs);
+        return elementwise_operation(std::divides<T>(), *this, rhs);
     }
 
     constexpr vector& operator/=(const vector& rhs) 
@@ -183,10 +201,9 @@ public:
     // Dot product
     constexpr T operator|(const vector& rhs) const
     {
-        return []<typename I, size_t... Indices>(I first, I second, std::index_sequence<Indices...>)
-        {
-            return math::sum(first[Indices] * second[Indices]...);
-        }(data(), rhs.data(), indices);
+        const auto [...x1] = this->m_data;
+        const auto [...x2] = rhs.m_data;
+        return ((x1 * x2) + ...);
     }
 
     // Cross product

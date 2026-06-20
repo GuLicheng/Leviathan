@@ -9,7 +9,7 @@
 #include <variant>
 #include <print>
 #include <format>
-#include <python3.14/Python.h>
+#include <leviathan/math/vector.hpp>
 #include <tuple>
 
 template <typename T>
@@ -25,9 +25,24 @@ struct type
     }
 };
 
+using Vector3f = cpp::math::vector<float, 3>;
 
 int main(int argc, char const *argv[])
 {
+
+    Vector3f v1 = {1.0f, 2.0f, 3.0f};
+    Vector3f v2 = {1.0f, 2.0f, 3.0f};
+    Vector3f v3 = Vector3f::zero_vector;
+
+    v1.equals(v2) ? std::print("v1 and v2 are approximately equal.\n") : std::print("v1 and v2 are not approximately equal.\n");
+
+    auto r = v1 | v2;
+    std::print("Dot product: {}\n", r);
+    std::print("Euclidean distance: {}\n", Vector3f::euclidean_distance(v1, v3));
+    std::print("Manhattan distance: {}\n", Vector3f::manhattan_distance(v1, v3));
+    std::print("Chebyshev distance: {}\n", Vector3f::chebyshev_distance(v1, v3));
+    std::print("v1 + v2: {}\n", v1 + v2);
+    std::print("v1 * 2: {}\n", v1 * 2);
 
     return 0;
 }
