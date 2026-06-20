@@ -7,7 +7,7 @@
 bin/*
 lib/*
 build/*
-thirdpart
+third_part
 out
 
 # Cache

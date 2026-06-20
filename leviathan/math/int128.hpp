@@ -387,7 +387,8 @@ public:
 
     constexpr uint64_t hash_code(this uint128 x)
     {
-        return cpp::hash::hash_combine(x.upper(), x.lower());
+        // return cpp::hash::hash_combine(x.upper(), x.lower());
+        return cpp::tuple_hash(x.m_data);
     }
 
     static consteval uint128 max() 
@@ -673,7 +674,7 @@ public:
 
     constexpr size_t hash_code(this int128 x)
     {
-        return cpp::hash::hash_combine(x.upper(), x.lower());
+        return cpp::tuple_hash(x.m_data);
     }
 
     static consteval int128 max() 

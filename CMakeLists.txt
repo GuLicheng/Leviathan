@@ -15,16 +15,17 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -freflection -Wno-unused")
 set(CMAKE_CXX_FLAGS_RELEASE " -O3 -freflection -Wno-unused")
 
 include_directories(${PROJECT_ROOT_PATH})
-include_directories(thirdpart/Catch2/src)
 
-# add_subdirectory(thirdpart/Catch2)
-
+# Some third party libraries which are head-only
+include_directories(${PROJECT_ROOT_PATH}/third_part/Catch2)
+add_subdirectory(third_part/Catch2)
 
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE "-lstdc++exp")
 
-# set(LEVIATHAN_BUILD_BENCHMARK ON)
-# set(LEVIATHAN_BUILD_TEST ON)
+
+# Root CMakeLists.txt over
+
 
 # if(LEVIATHAN_BUILD_BENCHMARK STREQUAL "ON")
 #     message(STATUS "Build benchmark")
@@ -49,11 +50,11 @@ target_link_libraries(main PRIVATE "-lstdc++exp")
 #     add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/config_parser)
 # endif()
 
-# set(LEVIATHAN_BUILD_MATH ON)
-# if (LEVIATHAN_BUILD_MATH STREQUAL "ON")
-#     message(STATUS "Build math")
-#     add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/math)
-# endif()
+set(LEVIATHAN_BUILD_MATH ON)
+if (LEVIATHAN_BUILD_MATH STREQUAL "ON")
+    message(STATUS "Build math")
+    add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/math)
+endif()
 
 # set(LEVIATHAN_BUILD_ALGORITHM ON)
 # if (LEVIATHAN_BUILD_ALGORITHM STREQUAL "ON")

@@ -1,5 +1,4 @@
 #include "vector.hpp"
-
 #include <catch2/catch_all.hpp>
 
 template class cpp::math::vector<float, 3>;

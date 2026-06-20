@@ -1,7 +1,7 @@
 #pragma once
 
-// #include "core.hpp"
 #include <leviathan/extc++/math.hpp>
+#include <leviathan/extc++/hash.hpp>
 
 #include <utility>
 #include <cstdint>
@@ -9,6 +9,7 @@
 #include <type_traits>
 #include <concepts>
 #include <span>
+#include <algorithm>
 
 namespace cpp::math::algebra
 {
@@ -93,15 +94,16 @@ public:
         // return math::sqrt(Lp_norm(math::sum, math::square, v1.data(), v2.data(), indices));
         const auto [...x1] = v1.m_data;
         const auto [...x2] = v2.m_data;
-        return math::sqrt(((math::square(x1 - x2)) + ...));
+        return std::sqrt((((x1 - x2) * (x1 - x2)) + ...));
     }
+
     
     static constexpr T manhattan_distance(const vector& v1, const vector& v2)
     {
         // return Lp_norm(math::sum, math::abs, v1.data(), v2.data(), indices);
         const auto [...x1] = v1.m_data;
         const auto [...x2] = v2.m_data;
-        return ((math::abs(x1 - x2)) + ...);
+        return ((std::abs(x1 - x2)) + ...);
     }
 
     static constexpr T chebyshev_distance(const vector& v1, const vector& v2)
@@ -109,7 +111,7 @@ public:
         // return Lp_norm(math::max, math::abs, v1.data(), v2.data(), indices);
         const auto [...x1] = v1.m_data;
         const auto [...x2] = v2.m_data;
-        return math::max((math::abs(x1 - x2))...);
+        return std::ranges::max({math::abs(x1 - x2)...});
     }
 
 public:
@@ -349,14 +351,7 @@ public:
 
     constexpr size_t hash_code() const
     {
-        size_t seed = 0;
-
-        for (size_t i = 0; i < Dimension; ++i)
-        {
-            seed ^= std::hash<T>()(m_data[i]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        }
-        
-        return seed;
+        return cpp::tuple_hash(m_data);
     }
 
     constexpr vector() = default;
