@@ -5,6 +5,9 @@
 #include <leviathan/config_parser/json/json.hpp>
 #include <utility>
 #include <mdspan>
+#include <vector>
+#include <string>
+#include <string_view>
 #include <iostream>
 #include <variant>
 #include <print>
@@ -25,25 +28,46 @@ struct type
     }
 };
 
-using Vector3f = cpp::math::vector<float, 3>;
-
-int main(int argc, char const *argv[])
+template <std::meta::info Info>
+struct metainfo
 {
+    constexpr static bool is_template_function = std::meta::is_function_template(Info);
+    constexpr static bool is_function = std::meta::is_function(Info);
 
-    Vector3f v1 = {1.0f, 2.0f, 3.0f};
-    Vector3f v2 = {1.0f, 2.0f, 3.0f};
-    Vector3f v3 = Vector3f::zero_vector;
+    static_assert(is_template_function, "Info must be a function and function template");
 
-    v1.equals(v2) ? std::print("v1 and v2 are approximately equal.\n") : std::print("v1 and v2 are not approximately equal.\n");
+    static constexpr std::string_view display_name()
+    {
+        return display_string_of(Info);
+    }
 
-    auto r = v1 | v2;
-    std::print("Dot product: {}\n", r);
-    std::print("Euclidean distance: {}\n", Vector3f::euclidean_distance(v1, v3));
-    std::print("Manhattan distance: {}\n", Vector3f::manhattan_distance(v1, v3));
-    std::print("Chebyshev distance: {}\n", Vector3f::chebyshev_distance(v1, v3));
-    std::print("v1 + v2: {}\n", v1 + v2);
-    std::print("v1 * 2: {}\n", v1 * 2);
+    static constexpr std::vector<std::string> template_parameter_names()
+    {
+        std::vector<std::string> names;
 
-    return 0;
+        // template for (constexpr auto param : define_static_array(parameters_of(Info)))
+        // {
+        //     names.emplace_back(display_string_of(param));
+        // }
+        return names;
+    }
+
+};
+
+template <typename T>
+void test1() { }
+
+template<typename T>
+constexpr T add(T a, T b) {
+    return a + b ;
 }
+
+int main() {
+    constexpr auto add_tmpl = ^^add;
+    // 不写 <...>，直接传调用参数，自动推导 T=int
+    constexpr auto res = template [:add_tmpl:]<double>;
+}
+
+
+
 
