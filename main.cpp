@@ -9,6 +9,7 @@
 #include <variant>
 #include <print>
 #include <format>
+#include <python3.14/Python.h>
 #include <tuple>
 
 template <typename T>
