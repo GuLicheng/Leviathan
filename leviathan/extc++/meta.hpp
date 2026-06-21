@@ -46,14 +46,14 @@ consteval std::vector<std::meta::info> all_bases_unique()
     return { result.begin(), std::ranges::unique(result, equal_to).begin() };
 }
 
-template <std::meta::info Type, std::meta::info Template>
+template <std::meta::info Type, std::meta::info ClassTemplate>
 consteval bool is_derived_from_template()
 {
     constexpr auto type = dealias(Type);
     constexpr auto bases = define_static_array(all_bases_unique<typename [:Type:]>());
     constexpr auto [...indices] = std::make_index_sequence<bases.size()>{};
     auto check = [&]<size_t Idx>() {
-        return has_template_arguments(bases[Idx]) && template_of(bases[Idx]) == dealias(Template);
+        return has_template_arguments(bases[Idx]) && template_of(bases[Idx]) == dealias(ClassTemplate);
     };
 
     return (check.template operator()<indices>() || ...);
@@ -62,18 +62,18 @@ consteval bool is_derived_from_template()
 /**
  * @brief Check if a type is an instance of a template.
  * @tparam Type The type to check.
- * @tparam Templates The template to check against.
+ * @tparam ClassTemplates The template to check against.
  * 
  * @example
  *  static_assert(cpp::refl::instance_of_template<^^std::vector<int>, ^^std::vector>()); // true
  *  static_assert(cpp::refl::instance_of_template<^^std::tuple<int, int>, ^^std::tuple>()); // true
  */
-template <std::meta::info Type, std::meta::info... Templates>
+template <std::meta::info Type, std::meta::info... ClassTemplates>
 consteval bool instance_of_template()
 {
     constexpr auto type = dealias(Type);
     return has_template_arguments(type) 
-        && ((template_of(type) == dealias(Templates)) || ...);
+        && ((template_of(type) == dealias(ClassTemplates)) || ...);
 }
 
 /**
@@ -398,3 +398,18 @@ struct field_handler
 
 } // namespace cpp::refl
 
+/*
+template <typename T>
+struct type
+{
+    static constexpr void show_all_members()
+    {
+        constexpr static auto members = define_static_array(cpp::refl::all_nsdm_unchecked<T>());
+        template for (constexpr auto member : members)
+        {
+            std::print("Member: {}\n", has_identifier(member) ? identifier_of(member) : "<unnamed>");
+        }
+    }
+};
+
+*/
