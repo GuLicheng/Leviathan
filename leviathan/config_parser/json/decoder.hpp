@@ -211,7 +211,7 @@ public:
 };
 
 template <typename Context>
-class decode2
+class decoder
 {
     Context m_ctx;
 
@@ -359,7 +359,7 @@ class decode2
 
 public:
 
-    decode2(std::string_view sv) : m_ctx(sv) { }
+    decoder(std::string_view sv) : m_ctx(sv) { }
 
     value operator()()
     {
@@ -383,7 +383,7 @@ namespace cpp::config::json
 
 inline constexpr auto loads = [](std::string source) static 
 {
-    return detail::decode2<basic_context<char>>(source)();
+    return detail::decoder<basic_context<char>>(source)();
 };
 
 inline constexpr auto load = [](const char* filename) static 

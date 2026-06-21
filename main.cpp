@@ -1,20 +1,18 @@
+#include <leviathan/extc++/tuple.hpp>
 #include <leviathan/extc++/meta.hpp>
 #include <leviathan/extc++/format.hpp>
-#include <leviathan/extc++/tuple.hpp>
-#include <leviathan/extc++/variant.hpp>
-#include <leviathan/config_parser/json/json.hpp>
 #include <utility>
 #include <mdspan>
 #include <contracts>
 #include <vector>
 #include <string>
 #include <string_view>
+#include <algorithm>
 #include <iostream>
 #include <variant>
 #include <print>
 #include <format>
 #include <tuple>
-#include <leviathan/math/vector.hpp>
 
 template <typename T>
 struct type
@@ -29,29 +27,69 @@ struct type
     }
 };
 
-struct SomeInterafce
+
+
+class A { };
+
+class B : public A { };
+
+class C : public B { };
+
+class D : A, B, C { };
+
+class TupleDerived1 : public cpp::tuple<double, int> { };
+class TupleDerived2 : public std::tuple<double, int> { };
+
+template <template <typename...> class Template, typename... Ts>
+constexpr std::true_type match_base(const Template<Ts...>&);
+
+template <template <typename...> class Template>
+constexpr std::false_type match_base(...);
+
+template <typename Derived, template <typename...> class Template>
+struct is_derived_from_template
 {
-    template <typename Self>
-    constexpr auto call_impl(this Self&& self)
-    {
-        auto f = self.[:member_named1<std::remove_cvref_t<Self>>("impl") :];
-        return std::invoke(f, self);
+private:
+    static constexpr decltype(auto) as_base(const Derived& d) noexcept {
+        return static_cast<const Derived&>(d);
     }
+public:
+    static constexpr bool value = decltype(match_base<Template>(as_base(std::declval<Derived>())))::value;
 };
 
-struct MyStruct {
-    int X;
-    double Y;
-    int ReturnConstant() const { return 42; }
-};
+template <typename Derived, template <typename...> class Template>
+constexpr bool is_derived_from_template_v = is_derived_from_template<Derived, Template>::value;
 
-int main(int argc, char const argv[])
+// 全部替换为 X1 X2 X3 X4 X5
+struct X1 : std::tuple<int> {};
+struct X2 : std::tuple<float, double> {};
+struct X3 : std::vector<int> {};
+struct X4 {};
+struct X5 : private std::tuple<int> {};
+
+static_assert(is_derived_from_template_v<X1, std::tuple>);
+static_assert(is_derived_from_template_v<X2, std::tuple>);
+static_assert(!is_derived_from_template_v<X3, std::tuple>);
+static_assert(!is_derived_from_template_v<X4, std::tuple>);
+// static_assert(!is_derived_from_template_v<X5, std::tuple>);
+static_assert(is_derived_from_template_v<X3, std::vector>);
+
+template <typename D, template <typename...> class Tpl>
+concept derived_from_template = is_derived_from_template_v<D, Tpl>;
+
+int main()
 {
-    MyStruct s;
-    s.[:cpp::refl::member_named<MyStruct>("X") :] = 1;
-    s.[:cpp::refl::member_named<MyStruct>("Y") :] = 3.14;
-    assert(s.X == 1 && s.Y == 3.14);
-    std::cout << (s.[:cpp::refl::member_named<MyStruct>("ReturnConstant") :]() == 42);
+    // template for (constexpr auto info : std::define_static_array(all_bases_unique<D>()))
+    // {
+    //     constexpr auto id = display_string_of(info);
+    //     // constexpr auto id = display_string_of(type_of(info));
+    //     std::print("Base: [{}]\n", id);
+    // }
+
+    // static_assert(is_derived_from_template<^^TupleDerived1, ^^cpp::tuple>());
+    // static_assert(is_derived_from_template<^^TupleDerived2, ^^std::tuple>());
+    // static_assert(!is_derived_from_template<^^D, ^^std::tuple>());
+
     return 0;
 }
 

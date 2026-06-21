@@ -15,6 +15,50 @@
 namespace cpp::refl
 {
 
+template <typename T>
+consteval std::vector<std::meta::info> all_bases()
+{
+    constexpr auto ctx = std::meta::access_context::unchecked();
+    constexpr auto bases = define_static_array(bases_of(^^T, ctx));
+    constexpr auto [...indices] = std::make_index_sequence<bases.size()>();
+
+    return std::views::concat(
+        all_bases<typename [:type_of(bases[indices]):]>()...,
+        std::vector<std::meta::info>{ ^^T }
+    ) | std::ranges::to<std::vector>();
+}
+
+template <typename T>
+consteval std::vector<std::meta::info> all_bases_unique()
+{
+    auto result = all_bases<T>();
+    // std::ranges::sort(result, {}, std::meta::display_string_of);
+    // return { result.begin(), std::ranges::unique(result, {}, std::meta::display_string_of).begin() };
+    auto less = [](std::meta::info a, std::meta::info b) {
+        return std::meta::type_order(dealias(a), dealias(b)) < 0;
+    };
+
+    auto equal_to = [](std::meta::info a, std::meta::info b) {
+        return std::meta::type_order(dealias(a), dealias(b)) == 0;
+    };
+
+    std::ranges::sort(result, less);
+    return { result.begin(), std::ranges::unique(result, equal_to).begin() };
+}
+
+template <std::meta::info Type, std::meta::info Template>
+consteval bool is_derived_from_template()
+{
+    constexpr auto type = dealias(Type);
+    constexpr auto bases = define_static_array(all_bases_unique<typename [:Type:]>());
+    constexpr auto [...indices] = std::make_index_sequence<bases.size()>{};
+    auto check = [&]<size_t Idx>() {
+        return has_template_arguments(bases[Idx]) && template_of(bases[Idx]) == dealias(Template);
+    };
+
+    return (check.template operator()<indices>() || ...);
+}
+
 /**
  * @brief Check if a type is an instance of a template.
  * @tparam Type The type to check.
