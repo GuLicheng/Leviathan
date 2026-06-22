@@ -15,25 +15,42 @@
 namespace cpp::refl
 {
 
+namespace detail
+{
+
 template <typename T>
-consteval std::vector<std::meta::info> all_bases()
+consteval std::vector<std::meta::info> all_bases_of_impl()
 {
     constexpr auto ctx = std::meta::access_context::unchecked();
     constexpr auto bases = define_static_array(bases_of(^^T, ctx));
     constexpr auto [...indices] = std::make_index_sequence<bases.size()>();
 
     return std::views::concat(
-        all_bases<typename [:type_of(bases[indices]):]>()...,
-        std::vector<std::meta::info>{ ^^T }
+        all_bases_of_impl<typename [:type_of(bases[indices]):]>()...,
+        std::vector<std::meta::info>{ dealias(^^T) }
     ) | std::ranges::to<std::vector>();
 }
 
+}  // namespace detail
+
+/**
+ * @brief Get all base classes of a class, including indirect base classes. 
+ * The result is sorted by the type order and contains no duplicate types.
+ * 
+ * @tparam T The class type to get the base classes of.
+ * @return A vector of meta-information of the base classes of T.
+ * 
+ * @example
+ *  struct Base1 {};
+ *  struct Base2 : Base1 {};
+ *  struct Derived : Base2 {};
+ *  static_assert(all_bases_of<Derived>().size() == 2); // Base1 and Base2
+ */
 template <typename T>
-consteval std::vector<std::meta::info> all_bases_unique()
+consteval std::vector<std::meta::info> all_bases_of()
 {
-    auto result = all_bases<T>();
-    // std::ranges::sort(result, {}, std::meta::display_string_of);
-    // return { result.begin(), std::ranges::unique(result, {}, std::meta::display_string_of).begin() };
+    auto result = detail::all_bases_of_impl<T>();
+
     auto less = [](std::meta::info a, std::meta::info b) {
         return std::meta::type_order(dealias(a), dealias(b)) < 0;
     };
@@ -46,17 +63,49 @@ consteval std::vector<std::meta::info> all_bases_unique()
     return { result.begin(), std::ranges::unique(result, equal_to).begin() };
 }
 
+/**
+ * @brief Check if a type is derived from a template.
+ * @tparam Type The type to check.
+ * @tparam ClassTemplate The template to check against.
+ * 
+ * @example
+ *  static_assert(cpp::refl::is_derived_from_template<^^std::vector<int>, ^^std::vector>()); // true
+ *  
+ */
 template <std::meta::info Type, std::meta::info ClassTemplate>
 consteval bool is_derived_from_template()
 {
     constexpr auto type = dealias(Type);
-    constexpr auto bases = define_static_array(all_bases_unique<typename [:Type:]>());
+    constexpr auto bases = define_static_array(all_bases_of<typename [:Type:]>());
     constexpr auto [...indices] = std::make_index_sequence<bases.size()>{};
     auto check = [&]<size_t Idx>() {
         return has_template_arguments(bases[Idx]) && template_of(bases[Idx]) == dealias(ClassTemplate);
     };
 
     return (check.template operator()<indices>() || ...);
+}
+
+/**
+ * @brief Get all parent levels of a type, including itself. The class
+ * itself is decleared and namespace it belongs to are all considered as its parent levels. 
+ * 
+ * @example
+ *  
+ *  namespace A { struct B { struct C {}; }; }
+ *  all_parents<^^A::B::C>() -> [^^A::B::C, ^^A::B, ^^A, ^^::]
+ */
+template <std::meta::info Info>
+consteval std::vector<std::meta::info> all_parents()
+{
+    std::vector<std::meta::info> result;
+    
+    for (auto cur = Info; cur != ^^::; cur = parent_of(cur))
+    {
+        result.push_back(cur);
+    }
+    result.push_back(^^::);
+
+    return result;
 }
 
 /**

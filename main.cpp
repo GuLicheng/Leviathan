@@ -2,20 +2,7 @@
 #include <ranges>
 #include <leviathan/extc++/meta.hpp>
 
-template <std::meta::info Info>
-consteval std::vector<std::meta::info> all_parents()
-{
-    std::vector<std::meta::info> result;
-    auto cur = Info;
-    
-    for (auto cur = Info; cur != ^^::; cur = parent_of(cur))
-    {
-        result.push_back(cur);
-    }
-    result.push_back(^^::);
 
-    return result;
-}
 
 
 int main(int argc, char const *argv[])
