@@ -27,7 +27,7 @@ consteval std::vector<std::meta::info> all_bases_of_impl()
 
     return std::views::concat(
         all_bases_of_impl<typename [:type_of(bases[indices]):]>()...,
-        std::vector<std::meta::info>{ dealias(^^T) }
+        std::vector<std::meta::info>{ ^^T }
     ) | std::ranges::to<std::vector>();
 }
 
@@ -51,16 +51,18 @@ consteval std::vector<std::meta::info> all_bases_of()
 {
     auto result = detail::all_bases_of_impl<T>();
 
+    // std::meta::dealias is unnecessary since we use typename T
+    // instead of std::meta::info as template parameter.
     auto less = [](std::meta::info a, std::meta::info b) {
-        return std::meta::type_order(dealias(a), dealias(b)) < 0;
+        return std::meta::type_order(a, b) < 0;
     };
 
     auto equal_to = [](std::meta::info a, std::meta::info b) {
-        return std::meta::type_order(dealias(a), dealias(b)) == 0;
+        return std::meta::type_order(a, b) == 0;
     };
 
-    std::ranges::sort(result, less);
-    return { result.begin(), std::ranges::unique(result, equal_to).begin() };
+    std::ranges::sort(result, less, std::meta::dealias);
+    return { result.begin(), std::ranges::unique(result, equal_to, std::meta::dealias).begin() };
 }
 
 /**
@@ -70,12 +72,10 @@ consteval std::vector<std::meta::info> all_bases_of()
  * 
  * @example
  *  static_assert(cpp::refl::is_derived_from_template<^^std::vector<int>, ^^std::vector>()); // true
- *  
  */
 template <std::meta::info Type, std::meta::info ClassTemplate>
 consteval bool is_derived_from_template()
 {
-    constexpr auto type = dealias(Type);
     constexpr auto bases = define_static_array(all_bases_of<typename [:Type:]>());
     constexpr auto [...indices] = std::make_index_sequence<bases.size()>{};
     auto check = [&]<size_t Idx>() {
@@ -99,7 +99,7 @@ consteval std::vector<std::meta::info> all_parents()
 {
     std::vector<std::meta::info> result;
     
-    for (auto cur = Info; cur != ^^::; cur = parent_of(cur))
+    for (auto cur = dealias(Info); cur != ^^::; cur = parent_of(cur))
     {
         result.push_back(cur);
     }
