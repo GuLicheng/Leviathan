@@ -9,7 +9,28 @@
 
 namespace cpp::config::json
 {
+  
+// Use for cpp::refl::construct_struct<T>(initializer) to initialize a struct from json::value.
+struct initializer
+{
+    const cpp::json::value& root;    
+
+    initializer(const cpp::json::value& root) : root(root) {}
+
+    template <typename U>
+    void operator()(std::optional<U>& opt, const std::string& name) const
+    {
+        assert(opt.has_value() == false);
     
+        auto it = root.as<cpp::json::object>().find(cpp::json::string(name));
+
+        if (it != root.as<cpp::json::object>().end())
+        {
+            opt.emplace(cpp::cast<U>(it->second));
+        }
+    }
+};
+
 namespace detail
 {
 
@@ -73,31 +94,10 @@ struct caster;
 template <typename T>
 struct universal_caster
 {
-    struct initializer
-    {
-        const cpp::json::value& root;    
-
-        initializer(const cpp::json::value& root) : root(root) {}
-
-        template <typename U>
-        void operator()(std::optional<U>& opt, const std::string& name) const
-        {
-            assert(opt.has_value() == false);
-        
-            auto it = root.as<cpp::json::object>().find(cpp::json::string(name));
-
-            if (it != root.as<cpp::json::object>().end())
-            {
-                opt.emplace(cpp::cast<U>(it->second));
-            }
-        }
-    };
-
     static T operator()(const value& root)
     {
         return cpp::refl::construct_struct<T>(initializer(root));
     }
-
 };
 
 struct boolean_caster
@@ -226,25 +226,6 @@ struct caster
         }
     }
 };
-
-
-/*
-{
-    "name": "Alice",
-    "age": 30,
-    "is_student": false,
-    "grades": [
-        85,
-        90,
-        78
-    ],
-    "address": {
-        "street": "123 Main St",
-        "city": "Wonderland",
-        "zip": "12345"
-    }
-} 
-*/
 
 class indented_encoder
 {

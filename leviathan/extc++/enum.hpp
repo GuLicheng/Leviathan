@@ -1,9 +1,8 @@
 #pragma once
 
-#include <leviathan/annotations/all.hpp>
+#include <leviathan/extc++/meta.hpp>
 #include <leviathan/type_caster.hpp>
 #include <format>
-#include <meta>
 
 namespace cpp
 {

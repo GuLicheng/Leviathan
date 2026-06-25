@@ -75,6 +75,14 @@ inline constexpr struct { } value;
 
 // inline constexpr struct { } parse_annotation;
 
+// Any type annotated with [[=serializer]] will be treated as a serializer, which means that
+// when serializing the type, we will use the serializer to convert it into target type.
+inline constexpr struct { } serializer;
 
+// Any type annotated with [[=deserializer]] will be treated as a deserializer, which means that
+// when deserializing the type, we will use the deserializer to convert it into target
+// type. We do not require the result type of the deserializer to be the string type.
+// You can deserializer it as any type you want, such as std::string, SomeBase64, etc.
+inline constexpr struct { } deserializer;
 
 }  // namespace cpp::refl

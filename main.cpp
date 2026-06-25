@@ -2,18 +2,24 @@
 #include <ranges>
 #include <tuple>
 #include <leviathan/extc++/meta.hpp>
+#include <leviathan/config_parser/json/json.hpp>
 
-struct Base1 {};
-struct Base2 : Base1 {};
-struct Derived : Base2, std::string {};
-
+struct [[=cpp::derive::from<cpp::json::value>, =cpp::derive::debug]] Student
+{
+    std::string name;
+    int age;
+};
 
 int main(int argc, char const *argv[])
 {
-    template for (constexpr auto base : define_static_array(cpp::refl::all_bases_of<Derived>()))
-    {
-        std::print("{}\n", display_string_of(base));
-    }
+    cpp::json::value v = {
+        {"name", "Alice"},
+        {"age", 30}
+    };
+
+    Student s = cpp::cast<Student>(v);
+
+    std::println("Student name: {}, age: {}", s.name, s.age);
 
     return 0;
 }
