@@ -17,8 +17,8 @@ struct initializer
 
     initializer(const cpp::json::value& root) : root(root) {}
 
-    template <typename U>
-    void operator()(std::optional<U>& opt, const std::string& name) const
+    template <typename U, typename Serializer>
+    void operator()(std::optional<U>& opt, const std::string& name, Serializer serializer) const
     {
         assert(opt.has_value() == false);
     
@@ -26,7 +26,7 @@ struct initializer
 
         if (it != root.as<cpp::json::object>().end())
         {
-            opt.emplace(cpp::cast<U>(it->second));
+            opt.emplace(std::invoke(serializer, it->second));
         }
     }
 };

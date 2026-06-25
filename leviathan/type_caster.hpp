@@ -61,7 +61,7 @@ struct optional_caster<Arithmetic, std::string>
     }
 };
 
-// bool -> string
+// string_view -> bool
 template <>
 struct optional_caster<std::string_view, bool>
 {

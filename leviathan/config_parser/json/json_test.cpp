@@ -449,7 +449,52 @@ enum class [[=cpp::derive::from<json::value>]] Gender
 } 
 */
 
-struct Student
+// Change member field serializer, for example, add 1 to each grade when deserializing.
+template <typename F>
+struct [[=cpp::refl::serializer]] FunctionSerializer : cpp::refl::callable<F>
+{
+    using cpp::refl::callable<F>::callable;
+    using cpp::refl::callable<F>::operator();
+};
+
+inline constexpr auto PlusOneSerializer = FunctionSerializer([](const json::value& v) {
+    auto x1 = v.as<json::array>()[0].as<json::number>().as_signed_integer() + 1;
+    auto x2 = v.as<json::array>()[1].as<json::number>().as_signed_integer() + 1;
+    auto x3 = v.as<json::array>()[2].as<json::number>().as_signed_integer() + 1;
+    return std::vector<int>{(int)x1, (int)x2, (int)x3};
+});
+
+struct OtherInfo
+{
+    std::string information;
+};
+
+// Change class serializer, for example, add "Information: " prefix to the information field when deserializing.
+template <>
+struct cpp::optional_caster<json::value, OtherInfo>
+{
+    static std::optional<OtherInfo> operator()(const json::value& v)
+    {
+        if (!v.is_object())
+        {
+            return std::nullopt;
+        }
+
+        OtherInfo info;
+        auto it = v.as<json::object>().find("information");
+        if (it != v.as<json::object>().end() && it->second.is_string())
+        {
+            info.information = "Information: " + it->second.as<json::string>();
+            return std::make_optional(info);
+        }
+        else
+        {
+            return std::nullopt;
+        }
+    }
+};
+
+struct [[=cpp::derive::from<json::value>]] Student
 {
     std::string name;
     
@@ -457,13 +502,46 @@ struct Student
     
     Gender gender;
 
-    std::vector<double> grades;
+    [[=PlusOneSerializer]]
+    std::vector<int> grades;
 
     std::map<std::string, std::string> address;
 
+    OtherInfo other_info;
 };
 
+TEST_CASE("annotation")
+{
+    json::value v = {
+        {"name", "Alice"},
+        {"age", 30},
+        {"gender", "Female"},
+        {"grades", {85, 90, 78}},
+        {"address", {
+            {"street", "123 Main St"},
+            {"city", "Wonderland"},
+            {"zip", "12345"}
+        }},
+        {"other_info", {
+            {"information", "This is some other information."}
+        }}
+    };
 
+    auto student = cpp::cast<Student>(v);
+
+    REQUIRE(student.name == "Alice");
+    REQUIRE(student.age == 30);
+    REQUIRE(student.gender == Gender::Female);
+    REQUIRE(student.grades.size() == 3);
+    REQUIRE(student.grades[0] == 86);
+    REQUIRE(student.grades[1] == 91);
+    REQUIRE(student.grades[2] == 79);
+    REQUIRE(student.address.size() == 3);
+    REQUIRE(student.address["street"] == "123 Main St");
+    REQUIRE(student.address["city"] == "Wonderland");
+    REQUIRE(student.address["zip"] == "12345");
+    REQUIRE(student.other_info.information == "Information: This is some other information.");
+}
 
 
 

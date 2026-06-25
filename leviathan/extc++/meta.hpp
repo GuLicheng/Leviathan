@@ -389,6 +389,13 @@ struct field_handler
 
     static constexpr bool IsUnnamedField = has_identifier(FieldInfo) == false;
 
+    static constexpr bool IsUsingSerializer = [] {
+        template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
+            if constexpr (has_annotation(type_of(anno), serializer))
+                return true;
+        return false;
+    }();
+
     static_assert(!IsUnnamedField, "Unnamed field must be skippable since we have no way to initialize it.");
 
     template <typename Initializer>
@@ -406,7 +413,21 @@ struct field_handler
             std::optional<FieldType> value = std::nullopt;
 
             // Try init current field with initializer
-            std::invoke(initializer, value, name);
+            if constexpr (!IsUsingSerializer)
+            {
+                std::invoke(initializer, value, name, cpp::cast<FieldType>);
+            }
+            else
+            {
+                template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
+                {
+                    if constexpr (has_annotation(type_of(anno), serializer))
+                    {
+                        std::invoke(initializer, value, name, extract<typename [:type_of(anno):]>(anno));
+                        break;  // only one serializer is allowed for a field, so we can break here.
+                    }
+                }   
+            }
 
             // Try init current field with annotations
             return value ? value : default_value();
