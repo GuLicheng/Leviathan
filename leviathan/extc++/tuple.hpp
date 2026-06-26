@@ -125,6 +125,11 @@ constexpr auto make_tuple(Args&&... args)
     return tuple<std::unwrap_ref_decay_t<Args>...>((Args&&)args...);
 }
 
+// FIXME: std::__tuple_like is an implementation detail of the standard library, 
+// and it may not be available in all compilers or standard library implementations.
+template <typename T>
+concept tuple_like = std::__tuple_like<T> || refl::instance_of_template<^^T, cpp::tuple>();
+
 } // namespace cpp
 
 template <typename T>

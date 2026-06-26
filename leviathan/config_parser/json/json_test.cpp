@@ -388,6 +388,8 @@ struct [[=cpp::derive::from<json::value>]] Student
     std::map<std::string, std::string> address;
 
     OtherInfo other_info;
+
+    std::tuple<int, double, std::string> profile;
 };
 
 TEST_CASE("annotation")
@@ -404,7 +406,8 @@ TEST_CASE("annotation")
         }},
         {"other_info", {
             {"information", "This is some other information."}
-        }}
+        }},
+        {"profile", {1, 3.14, "Hello"}}
     };
 
     auto student = cpp::cast<Student>(v);
@@ -421,6 +424,9 @@ TEST_CASE("annotation")
     REQUIRE(student.address["city"] == "Wonderland");
     REQUIRE(student.address["zip"] == "12345");
     REQUIRE(student.other_info.information == "Information: This is some other information.");
+    REQUIRE(std::get<0>(student.profile) == 1);
+    REQUIRE(std::get<1>(student.profile) == 3.14);
+    REQUIRE(std::get<2>(student.profile) == "Hello");
 }
 
 

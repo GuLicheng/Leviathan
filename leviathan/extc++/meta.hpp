@@ -87,7 +87,7 @@ consteval bool is_derived_from_template()
 
 /**
  * @brief Get all parent levels of a type, including itself. The class
- * itself is decleared and namespace it belongs to are all considered as its parent levels. 
+ * itself is declared and the namespace it belongs to are all considered as its parent levels. 
  * 
  * @example
  *  
@@ -103,8 +103,8 @@ consteval std::vector<std::meta::info> all_parents()
     {
         result.push_back(cur);
     }
-    result.push_back(^^::);
 
+    result.push_back(^^::);
     return result;
 }
 
