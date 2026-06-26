@@ -37,7 +37,9 @@ inline constexpr struct { } op_pipe;
 
 /**
  * @brief Allow a class to be treated as a tuple-like type, 
- * which means that we can use structured bindings on it.
+ * which make it supported by std::tuple_size, std::tuple_element.
+ * You must derive from `cpp::tuple_get_interface` to provide the get 
+ * function for each field.
  */
 inline constexpr struct { } tuple_like;
 

@@ -315,9 +315,13 @@ struct field_handler;
  *  
  * @example
  *  struct SomeInitializer {
- *      template <typename T> 
- *      void operator()(std::optional<T>& value, std::string name) {
- *          // Implementation here...
+ *      template <typename T, typename Caster> 
+ *      void operator()(std::optional<T>& value, std::string name, Caster caster) {
+ *          // Implementation here such as:
+ *          auto result = GetValueByName(name);
+ *          if (IsValid(result)) {
+ *              value.emplace(caster(result));
+ *          }
  *      }    
  *  };
  */
