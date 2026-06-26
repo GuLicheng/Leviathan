@@ -77,11 +77,17 @@ using basic_tuple = typename [:define_basic_tuple<Ts...>():];
  *   {
  *      int X;
  *      double Y;
+ * 
+ *   public:
+ *      Point(int x, double y) : X(x), Y(y) {}
  *   };
  * 
  *  static_assert(std::tuple_size<Point>::value == 2);
  *  static_assert(std::is_same_v<std::tuple_element<0, Point>::type, int>);
  *  static_assert(std::is_same_v<std::tuple_element<1, Point>::type, double>);
+ *  Point p{1, 3.14};
+ *  auto [x, y] = p; // structured binding
+ *  assert(x == 1 && y == 3.14);
  */
 struct tuple_get_interface
 {
