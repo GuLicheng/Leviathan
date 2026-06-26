@@ -12,10 +12,6 @@ add_executable(toml_test ${CMAKE_SOURCE_DIR}/leviathan/config_parser/toml/toml_t
 target_link_libraries(toml_test PRIVATE Catch2::Catch2WithMain)
 add_test(NAME toml_test COMMAND toml_test)
 
-add_executable(json ${CMAKE_SOURCE_DIR}/leviathan/config_parser/json/json.cpp)
-target_link_libraries(json PRIVATE Catch2::Catch2WithMain)
-add_test(NAME json COMMAND json)
-
 add_executable(toml ${CMAKE_SOURCE_DIR}/leviathan/config_parser/toml/toml.cpp)
 target_link_libraries(toml PRIVATE Catch2::Catch2WithMain)
 add_test(NAME toml COMMAND toml)

@@ -152,111 +152,6 @@ TEST_CASE("literal")
     REQUIRE(value.as<json::array>().at(2).is_null());
 }
 
-// TEST_CASE("annotation")
-// {
-//     const char* file = R"(E:\Library\Leviathan\leviathan\config_parser\data\json\annotation.json)";
-
-//     auto root = json::load(file);
-
-//     // REQUIRE(root);
-
-//     REQUIRE(root.is_object());
-
-//     auto& object = root.as<json::object>()["00000_FV.json"].as<json::object>();
-
-//     std::string keys[] = {
-//         "annotation",
-//         "annotation-tags",
-//         "feedback",
-//         "image_channels",
-//         "image_height",
-//         "image_width",
-//         "job_batch_id",
-//         "status",  
-//     };
-
-//     for (const auto& key : keys)
-//     {
-//         REQUIRE(object.contains(key));
-//     }
-
-//     REQUIRE(object["feedback"].is_null());
-
-//     auto check_number = [&](const char* name, int value) {
-//         REQUIRE(object[name].is_number());
-//         REQUIRE(object[name].as<json::number>().as_signed_integer() == value);
-//     };
-
-//     check_number("image_channels", 3);
-//     check_number("image_height", 966);
-//     check_number("image_width", 1280);
-//     check_number("job_batch_id", 34314);
-//     check_number("job_id", 212425942);
-
-//     REQUIRE(object["status"].is_string());
-//     REQUIRE(object["status"].as<json::string>() == "finished");
-
-//     REQUIRE(object["annotation-tags"].is_array());
-//     auto& annotags = object["annotation-tags"].as<json::array>();
-
-//     std::ranges::sort(annotags, {}, [](json::value& value) {
-//         return value.as<json::string>();
-//     });
-
-//     std::string tags[] = {
-//         "green_strip",
-//         "ego_vehicle",
-//         "bus",
-//         "car",
-//         "movable_object",
-//         "person",
-//         "construction",
-//         "grouped_pedestrian_and_animals",
-//         "traffic_sign",
-//         "unknown_traffic_light",
-//         "traffic_light_red",
-//         "pole",
-//         "construction",
-//         "lane_marking",
-//         "road_surface",
-//         "curb",
-//         "free_space",
-//         "sky",
-//         "nature",
-//         "fence"
-//     };
-
-//     std::ranges::sort(tags);
-
-//     REQUIRE(annotags.size() == std::ranges::size(tags));
-
-//     // For string with different allocators
-//     auto StringCompareEqual = [](const auto& lhs, const auto& rhs) {
-//         return std::ranges::equal(lhs, rhs);
-//     };
-
-//     for (size_t i = 0; i < annotags.size(); ++i)
-//     {
-//         // REQUIRE(annotags[i].as<json::string>() == tags[i]);
-//         REQUIRE(StringCompareEqual(annotags[i].as<json::string>(), tags[i]));
-//     }
-
-//     REQUIRE(object["annotation"].is_array());
-//     auto& anno = object["annotation"].as<json::array>();
-
-//     int id = 0;
-
-//     for (auto& val : anno)
-//     {
-//         if (val.is_object())
-//         {
-//             id += val.as<json::object>().count("id");
-//         }
-//     }
-
-//     REQUIRE(id == 106);
-// }
-
 TEST_CASE("multi-dim operator[]")
 {
     // auto obj = json::make_json<json::object>();
@@ -304,21 +199,6 @@ TEST_CASE("failed cases")
     check(R"({"Comma instead if closing brace": true,)");
     check(R"(["mismatch"})");
 }
-
-// TEST_CASE("files")
-// {
-//     std::string paths[] = {
-//         R"(E:\Library\Leviathan\leviathan\config_parser\data\json\passa1.json)",
-//         R"(E:\Library\Leviathan\leviathan\config_parser\data\json\twitter.json)",
-//         R"(E:\Library\Leviathan\leviathan\config_parser\data\json\citm_catalog.json)",
-//     };
-
-//     for (const auto& path : paths)
-//     {
-//         auto root = json::load(path.c_str());
-//         // REQUIRE(root);
-//     }
-// }
 
 TEST_CASE("json_auto_make")
 {
