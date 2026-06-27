@@ -1,6 +1,6 @@
 #include "json.hpp"
 #include <catch2/catch_all.hpp>
-
+#include <leviathan/extc++/tuple.hpp>
 #include <numeric>
 #include <iostream>
 #include <functional>
@@ -311,24 +311,6 @@ enum class [[=cpp::derive::from<json::value>]] Gender
     Female,
 };
 
-/*
-{
-    "name": "Alice",
-    "age": 30,
-    "is_student": false,
-    "grades": [
-        85,
-        90,
-        78
-    ],
-    "address": {
-        "street": "123 Main St",
-        "city": "Wonderland",
-        "zip": "12345"
-    }
-} 
-*/
-
 // Change member field serializer, for example, add 1 to each grade when deserializing.
 template <typename F>
 struct [[=cpp::refl::serializer]] FunctionSerializer : cpp::refl::callable<F>
@@ -374,6 +356,15 @@ struct cpp::optional_caster<json::value, OtherInfo>
     }
 };
 
+template <typename T>
+inline constexpr auto SerializeAsTuple = FunctionSerializer([](const json::value& v) {
+    constexpr auto ctx = std::meta::access_context::current();
+    constexpr static auto members = std::define_static_array(std::meta::nonstatic_data_members_of(^^T, ctx));
+    constexpr auto [...indices] = std::make_index_sequence<members.size()>{};
+    return T(cpp::cast<typename [:type_of(members[indices]):]>(v.as<json::array>()[indices])...);
+});
+
+
 struct [[=cpp::derive::from<json::value>]] Student
 {
     std::string name;
@@ -389,7 +380,15 @@ struct [[=cpp::derive::from<json::value>]] Student
 
     OtherInfo other_info;
 
-    std::tuple<int, double, std::string> profile;
+    struct [[=cpp::derive::from<json::value>]] Profile
+    {
+        int weight;
+        double height;
+        std::string nickname;
+    };
+
+    [[=SerializeAsTuple<Profile>]]
+    Profile profile;
 };
 
 TEST_CASE("annotation")
@@ -424,9 +423,9 @@ TEST_CASE("annotation")
     REQUIRE(student.address["city"] == "Wonderland");
     REQUIRE(student.address["zip"] == "12345");
     REQUIRE(student.other_info.information == "Information: This is some other information.");
-    REQUIRE(std::get<0>(student.profile) == 1);
-    REQUIRE(std::get<1>(student.profile) == 3.14);
-    REQUIRE(std::get<2>(student.profile) == "Hello");
+    REQUIRE(student.profile.weight == 1);
+    REQUIRE(student.profile.height == 3.14);
+    REQUIRE(student.profile.nickname == "Hello");
 }
 
 

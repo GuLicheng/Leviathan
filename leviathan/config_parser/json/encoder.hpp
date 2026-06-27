@@ -212,11 +212,11 @@ struct caster
         {
             return range_caster<T>::operator()(v);
         }
-        else if constexpr (tuple_like<T>)
-        {
-            constexpr auto [...indices] = std::make_index_sequence<std::tuple_size_v<T>>{};
-            return T(cpp::cast<std::tuple_element_t<indices, T>>(v.as<array>()[indices])...);
-        }
+        // else if constexpr (tuple_like<T>)
+        // {
+        //     constexpr auto [...indices] = std::make_index_sequence<std::tuple_size_v<T>>{};
+        //     return T(cpp::cast<std::tuple_element_t<indices, T>>(v.as<array>()[indices])...);
+        // }
         else if constexpr (std::is_enum_v<T> && refl::has_annotation(^^T, cpp::derive::from<value>))
         {
             return enum_decoder<T>()(v.as<string>());

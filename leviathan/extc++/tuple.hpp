@@ -11,14 +11,14 @@ namespace detail
 {
 
 template <typename T>
-consteval size_t count_tuple_elements()
+consteval size_t count_elements()
 {
     constexpr auto indices = cpp::refl::indices_without_removed_member<T, cpp::refl::skip>(); 
     return indices.size();
 }
     
 template <typename T, size_t N>
-consteval std::meta::info tuple_element_type()
+consteval std::meta::info nth_element_type()
 {
     constexpr auto ctx = std::meta::access_context::unchecked();
     constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
@@ -95,7 +95,7 @@ struct tuple_get_interface
     constexpr decltype(auto) get(this Self&& tl)
     {
         using DTuple = std::remove_cvref_t<Self>;
-        constexpr auto member = cpp::detail::tuple_element_type<DTuple, N>();
+        constexpr auto member = cpp::detail::nth_element_type<DTuple, N>();
         return std::forward_like<Self>(tl.[:member:]);
     }
 };
@@ -134,10 +134,10 @@ concept tuple_like = std::__tuple_like<T> || refl::instance_of_template<^^T, cpp
 
 template <typename T>
     requires (std::is_class_v<T> && cpp::refl::has_annotation(^^T, cpp::derive::tuple_like))
-struct std::tuple_size<T> : std::integral_constant<size_t, cpp::detail::count_tuple_elements<T>()> { };
+struct std::tuple_size<T> : std::integral_constant<size_t, cpp::detail::count_elements<T>()> { };
 
 template <size_t N, typename T>
     requires (std::is_class_v<T> && cpp::refl::has_annotation(^^T, cpp::derive::tuple_like))
-struct std::tuple_element<N, T> : std::type_identity<typename [:type_of(cpp::detail::tuple_element_type<T, N>()):]> { };
+struct std::tuple_element<N, T> : std::type_identity<typename [:type_of(cpp::detail::nth_element_type<T, N>()):]> { };
 
 

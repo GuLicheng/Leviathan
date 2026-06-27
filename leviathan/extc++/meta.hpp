@@ -393,14 +393,15 @@ struct field_handler
 
     static constexpr bool IsUnnamedField = has_identifier(FieldInfo) == false;
 
-    static constexpr bool IsUsingSerializer = [] {
+    static_assert(!IsUnnamedField, "Unnamed field must be skippable since we have no way to initialize it.");
+
+    static consteval std::meta::info extract_serializer()
+    {
         template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
             if constexpr (has_annotation(type_of(anno), serializer))
-                return true;
-        return false;
-    }();
-
-    static_assert(!IsUnnamedField, "Unnamed field must be skippable since we have no way to initialize it.");
+                return anno;
+        return ^^cpp::cast<FieldType>;
+    }
 
     template <typename Initializer>
     static constexpr std::optional<FieldType> init_value(Initializer initializer)
@@ -417,21 +418,24 @@ struct field_handler
             std::optional<FieldType> value = std::nullopt;
 
             // Try init current field with initializer
-            if constexpr (!IsUsingSerializer)
-            {
-                std::invoke(initializer, value, name, cpp::cast<FieldType>);
-            }
-            else
-            {
-                template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
-                {
-                    if constexpr (has_annotation(type_of(anno), serializer))
-                    {
-                        std::invoke(initializer, value, name, extract<typename [:type_of(anno):]>(anno));
-                        break;  // only one serializer is allowed for a field, so we can break here.
-                    }
-                }   
-            }
+            constexpr auto serializer_info = extract_serializer();
+            std::invoke(initializer, value, name, extract<typename [:type_of(serializer_info):]>(serializer_info));
+
+            // if constexpr (!IsUsingSerializer) 
+            // {
+            //     std::invoke(initializer, value, name, cpp::cast<FieldType>);
+            // }
+            // else
+            // {
+            //     template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
+            //     {
+            //         if constexpr (has_annotation(type_of(anno), serializer))
+            //         {
+            //             std::invoke(initializer, value, name, extract<typename [:type_of(anno):]>(anno));
+            //             break;  // only one serializer is allowed for a field, so we can break here.
+            //         }
+            //     }   
+            // }
 
             // Try init current field with annotations
             return value ? value : default_value();
