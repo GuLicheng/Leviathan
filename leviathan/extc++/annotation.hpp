@@ -1,6 +1,9 @@
 #pragma once
 
 #include <algorithm>
+#include <functional>
+#include <ranges>
+#include <meta>
 
 namespace cpp::derive
 {
@@ -17,14 +20,16 @@ inline constexpr struct { } hash;
 
 /**
  * @brief Allow a class or enum to be converted into another 
- * type, for example, json::value.
+ * type, for example, json::value. Specialize the `cpp::type_caster` for the 
+ * target type to implement the conversion.
  */
 template <typename T> struct from_t { explicit from_t() = default; };
 template <typename T> inline constexpr auto from = from_t<T>{};
 
 /**
  * @brief Allow a class or enum to be converted from another 
- * type, for example, json::value.
+ * type, for example, json::value. Specialize the `cpp::type_caster` for the 
+ * source type to implement the conversion.
  */
 template <typename T> struct into_t { explicit into_t() = default; };
 template <typename T> inline constexpr auto into = into_t<T>{};
@@ -255,5 +260,7 @@ inline constexpr auto range = []<typename Lower, typename Upper>(Lower lower, Up
         return value >= lower && value <= upper;
     });
 };
+
+
 
 } // namespace cpp::refl

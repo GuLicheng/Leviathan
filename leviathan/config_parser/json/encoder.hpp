@@ -195,6 +195,25 @@ struct range_caster
     }
 };
 
+template <typename Enum>
+struct enum_caster
+{
+    static Enum operator()(const value& v)
+    {
+        if (v.is<string>())
+        {
+            return enum_decoder<Enum>()(v.as<string>());
+        }
+        else if (v.is<number>() && v.as<number>().is_integer())
+        {
+            using UnderlyingType = std::underlying_type_t<Enum>;
+            const auto n = v.as<number>().as<UnderlyingType>();
+            return static_cast<Enum>(n);
+        }
+        throw std::runtime_error("Value is not a string or integer for enum");
+    }
+};
+
 template <typename T> 
 struct caster
 {
@@ -219,7 +238,7 @@ struct caster
         // }
         else if constexpr (std::is_enum_v<T> && refl::has_annotation(^^T, cpp::derive::from<value>))
         {
-            return enum_decoder<T>()(v.as<string>());
+            return enum_caster<T>::operator()(v);
         }
         else if constexpr (std::is_class_v<T> && refl::has_annotation(^^T, cpp::derive::from<value>))
         {

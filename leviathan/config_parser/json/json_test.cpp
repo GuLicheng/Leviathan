@@ -326,27 +326,32 @@ inline constexpr auto PlusOne = FunctionSerializer([](std::optional<std::vector<
     opt.emplace(std::vector<int>{(int)x1, (int)x2, (int)x3});
 });
 
-struct OtherInfo
+struct OtherInfo1
 {
     std::string information;
 };
 
-// Change class serializer, for example, add "Information: " prefix to the information field when deserializing.
-template <>
-struct cpp::optional_caster<json::value, OtherInfo>
+struct OtherInfo2
 {
-    static std::optional<OtherInfo> operator()(const json::value& v)
+    std::string information;
+};
+
+// Change class serializer by specialize the optional_caster for OtherInfo1
+template <>
+struct cpp::optional_caster<json::value, OtherInfo1>
+{
+    static std::optional<OtherInfo1> operator()(const json::value& v)
     {
         if (!v.is_object())
         {
             return std::nullopt;
         }
 
-        OtherInfo info;
+        OtherInfo1 info;
         auto it = v.as<json::object>().find("information");
         if (it != v.as<json::object>().end() && it->second.is_string())
         {
-            info.information = "Information: " + it->second.as<json::string>();
+            info.information = "Information1: " + it->second.as<json::string>();
             return std::make_optional(info);
         }
         else
@@ -363,6 +368,21 @@ inline constexpr auto SerializeAsTuple = FunctionSerializer([]<typename T>(std::
     opt.emplace(T(cpp::cast<typename [:type_of(members[indices]):]>(v.as<json::array>()[indices])...));
 });
 
+// Use user-defined annotation 
+inline constexpr auto SerializeOtherInfo2 = FunctionSerializer([](auto& opt, const json::value& v) {
+    if (!v.is_object())
+    {
+        return;
+    }
+
+    OtherInfo2 info;
+    auto it = v.as<json::object>().find("information");
+    if (it != v.as<json::object>().end() && it->second.is_string())
+    {
+        info.information = "Information2: " + it->second.as<json::string>();
+        opt.emplace(std::move(info));
+    }
+});
 
 struct [[=cpp::derive::from<json::value>]] Student
 {
@@ -377,9 +397,12 @@ struct [[=cpp::derive::from<json::value>]] Student
 
     std::map<std::string, std::string> address;
 
-    OtherInfo other_info;
+    OtherInfo1 other_info1;
 
-    struct [[=cpp::derive::from<json::value>]] Profile
+    [[=SerializeOtherInfo2]]
+    OtherInfo2 other_info2;
+
+    struct Profile
     {
         int weight;
         double height;
@@ -402,7 +425,10 @@ TEST_CASE("annotation")
             {"city", "Wonderland"},
             {"zip", "12345"}
         }},
-        {"other_info", {
+        {"other_info1", {
+            {"information", "This is some other information."}
+        }},
+        {"other_info2", {
             {"information", "This is some other information."}
         }},
         {"profile", {1, 3.14, "Hello"}}
@@ -421,7 +447,8 @@ TEST_CASE("annotation")
     REQUIRE(student.address["street"] == "123 Main St");
     REQUIRE(student.address["city"] == "Wonderland");
     REQUIRE(student.address["zip"] == "12345");
-    REQUIRE(student.other_info.information == "Information: This is some other information.");
+    REQUIRE(student.other_info1.information == "Information1: This is some other information.");
+    REQUIRE(student.other_info2.information == "Information2: This is some other information.");
     REQUIRE(student.profile.weight == 1);
     REQUIRE(student.profile.height == 3.14);
     REQUIRE(student.profile.nickname == "Hello");
