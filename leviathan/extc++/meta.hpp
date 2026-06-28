@@ -319,9 +319,9 @@ struct field_handler;
  *      void operator()(std::optional<T>& value, std::string name, Caster caster) {
  *          // Implementation here such as:
  *          auto result = GetValueByName(name);
- *          if (IsValid(result)) {
- *              value.emplace(caster(result));
- *          }
+ *          // Is cast failed, we can throw exception or just leave the value as std::nullopt.
+ *          // However, if the value is std::nullopt, we will try to use the default value of the field if it has one.
+ *          caster(value, result);
  *      }    
  *  };
  */
@@ -381,7 +381,7 @@ constexpr TupleLike range_to_tuple(Range&& range)
 }
 
 template <std::meta::info ClassInfo, std::meta::info FieldInfo>
-struct field_handler
+class field_handler
 {
     static_assert(std::meta::is_class_type(ClassInfo) && std::meta::is_class_member(FieldInfo));
 
@@ -395,16 +395,23 @@ struct field_handler
 
     static_assert(!IsUnnamedField, "Unnamed field must be skippable since we have no way to initialize it.");
 
+    static constexpr auto caster_adaptor = 
+        [](std::optional<FieldType>& opt, const auto& value)
+    {
+        opt.emplace(cpp::cast<FieldType>(value));
+    };
+
     static consteval std::meta::info extract_serializer()
     {
         template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
             if constexpr (has_annotation(type_of(anno), serializer))
                 return anno;
-        return ^^cpp::cast<FieldType>;
+        // return ^^cpp::cast<FieldType>;
+        return ^^caster_adaptor;
     }
 
-    template <typename Initializer>
-    static constexpr std::optional<FieldType> init_value(Initializer initializer)
+    template <typename Resolver>
+    static constexpr std::optional<FieldType> init_value(Resolver resolver)
     {
         if constexpr (IsSkippable)
         {
@@ -417,25 +424,10 @@ struct field_handler
             auto name = extract_name_by_annotation<FieldInfo, ClassInfo>();
             std::optional<FieldType> value = std::nullopt;
 
-            // Try init current field with initializer
+            // Try init current field with resolver
             constexpr auto serializer_info = extract_serializer();
-            std::invoke(initializer, value, name, extract<typename [:type_of(serializer_info):]>(serializer_info));
 
-            // if constexpr (!IsUsingSerializer) 
-            // {
-            //     std::invoke(initializer, value, name, cpp::cast<FieldType>);
-            // }
-            // else
-            // {
-            //     template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
-            //     {
-            //         if constexpr (has_annotation(type_of(anno), serializer))
-            //         {
-            //             std::invoke(initializer, value, name, extract<typename [:type_of(anno):]>(anno));
-            //             break;  // only one serializer is allowed for a field, so we can break here.
-            //         }
-            //     }   
-            // }
+            std::invoke(resolver, value, name, extract<typename [:type_of(serializer_info):]>(serializer_info));
 
             // Try init current field with annotations
             return value ? value : default_value();
@@ -463,10 +455,12 @@ struct field_handler
         return true;
     }
 
-    template <typename Initializer>
-    static constexpr FieldType operator()(Initializer initializer)
+public:
+
+    template <typename Resolver>
+    static constexpr FieldType operator()(Resolver resolver)
     {
-        auto value = init_value(initializer);
+        auto value = init_value(resolver);
         return value.has_value() && is_valid(*value) 
              ? std::move(*value) 
              : throw std::runtime_error(std::format("Field {} is missing or invalid", display_string_of(FieldInfo)));

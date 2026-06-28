@@ -26,7 +26,7 @@ struct initializer
 
         if (it != root.as<cpp::json::object>().end())
         {
-            opt.emplace(std::invoke((Serializer&&)serializer, it->second));
+            std::invoke((Serializer&&)serializer, opt, it->second);
         }
     }
 };

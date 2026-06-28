@@ -319,11 +319,11 @@ struct [[=cpp::refl::serializer]] FunctionSerializer : cpp::refl::callable<F>
     using cpp::refl::callable<F>::operator();
 };
 
-inline constexpr auto PlusOneSerializer = FunctionSerializer([](const json::value& v) {
+inline constexpr auto PlusOneSerializer = FunctionSerializer([](std::optional<std::vector<int>>& opt, const json::value& v) {
     auto x1 = v.as<json::array>()[0].as<json::number>().as_signed_integer() + 1;
     auto x2 = v.as<json::array>()[1].as<json::number>().as_signed_integer() + 1;
     auto x3 = v.as<json::array>()[2].as<json::number>().as_signed_integer() + 1;
-    return std::vector<int>{(int)x1, (int)x2, (int)x3};
+    opt.emplace(std::vector<int>{(int)x1, (int)x2, (int)x3});
 });
 
 struct OtherInfo
@@ -356,12 +356,11 @@ struct cpp::optional_caster<json::value, OtherInfo>
     }
 };
 
-template <typename T>
-inline constexpr auto SerializeAsTuple = FunctionSerializer([](const json::value& v) {
+inline constexpr auto SerializeAsTuple = FunctionSerializer([]<typename T>(std::optional<T>& opt, const json::value& v) {
     constexpr auto ctx = std::meta::access_context::current();
     constexpr static auto members = std::define_static_array(std::meta::nonstatic_data_members_of(^^T, ctx));
     constexpr auto [...indices] = std::make_index_sequence<members.size()>{};
-    return T(cpp::cast<typename [:type_of(members[indices]):]>(v.as<json::array>()[indices])...);
+    opt.emplace(T(cpp::cast<typename [:type_of(members[indices]):]>(v.as<json::array>()[indices])...));
 });
 
 
@@ -387,7 +386,7 @@ struct [[=cpp::derive::from<json::value>]] Student
         std::string nickname;
     };
 
-    [[=SerializeAsTuple<Profile>]]
+    [[=SerializeAsTuple]]
     Profile profile;
 };
 
