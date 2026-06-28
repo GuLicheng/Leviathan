@@ -1,7 +1,6 @@
 #include <catch2/catch_all.hpp>
 #include <leviathan/extc++/enum.hpp>
 #include <leviathan/extc++/format.hpp>
-#include <leviathan/annotations/all.hpp>
 #include <leviathan/config_parser/json/json.hpp>
 #include <leviathan/extc++/format.hpp>
 #include <leviathan/extc++/enum.hpp>

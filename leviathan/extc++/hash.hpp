@@ -1,7 +1,6 @@
 #pragma once
 
 #include "concepts.hpp" 
-#include <leviathan/annotations/all.hpp>
 #include <leviathan/extc++/meta.hpp>
 
 namespace cpp

@@ -88,3 +88,172 @@ inline constexpr struct { } serializer;
 inline constexpr struct { } deserializer;
 
 }  // namespace cpp::refl
+
+namespace cpp::refl
+{
+
+template <typename F>
+struct callable
+{
+    F function;
+
+    explicit constexpr callable(F function) : function(std::move(function)) {}
+
+    template <typename Self, typename... Args>
+    constexpr auto operator()(this Self&& self, Args&&... args) 
+    {
+        return std::invoke(((Self&&)self).function, (Args&&)args...);
+    }
+};
+
+/*
+    - lowercase
+    - UPPERCASE
+    - PascalCase
+    - camelCase
+    - snake_case (default)
+    - SCREAMING_SNAKE_CASE
+    - kebab-case
+    - SCREAMING-KEBAB-CASE
+*/
+
+template <typename F>
+struct [[=modify_identifier]] rename_function : callable<F>
+{
+    using callable<F>::callable;
+    using callable<F>::operator();
+};
+
+inline constexpr auto shortname = rename_function([](std::string field_name) static 
+{
+    // assert(!name.empty(), "Name cannot be empty");
+    return '-' + std::string(field_name.begin(), field_name.begin() + 1);
+});
+
+inline constexpr auto longname = rename_function([](std::string field_name) static 
+{
+    // assert(!name.empty(), "Name cannot be empty");
+    return "--" + std::string(field_name);
+});
+
+inline constexpr auto selfname = rename_function([](std::string field_name) static 
+{
+    return std::string(field_name);
+});
+
+inline constexpr auto lowercase = rename_function([](std::string field_name) static 
+{
+    return field_name | std::views::transform(::tolower) | std::ranges::to<std::string>();
+});
+
+inline constexpr auto uppercase = rename_function([](std::string field_name) static 
+{
+    return field_name | std::views::transform(::toupper) | std::ranges::to<std::string>();
+});
+
+inline constexpr auto rename = [](std::string_view new_name) static
+{
+    return rename_function([name=define_static_string(new_name)](auto&&...)  
+    {
+        return std::string(name);
+    });
+};
+
+// Follows functions in terms of implementation maybe incorrect
+// FIXME: Rust clap-
+inline constexpr auto camel_case = rename_function([](std::string field_name) static
+{
+    std::string out;
+    bool upper_next = false;
+    for (char c : field_name) {
+        if (c == '_') { upper_next = true; continue; }
+        if (upper_next && c >= 'a' && c <= 'z')
+            out += static_cast<char>(c - ('a' - 'A'));
+        else
+            out += c;
+        upper_next = false;
+    }
+    return out;
+});
+
+inline constexpr auto pascal_case = rename_function([](std::string field_name) static
+{
+    auto upper_first_character = [](auto&& part) static {
+        if (!part.empty()) part.front() = ::toupper(part.front());
+        return part;
+    };
+
+    return field_name 
+         | std::views::split('_') 
+         | std::views::transform(upper_first_character)
+         | std::views::join
+         | std::ranges::to<std::string>();
+});
+
+inline constexpr auto kebab_case = rename_function([](std::string field_name) static
+{
+    return field_name | std::views::transform([](char c) { return c == '_' ? '-' : c; }) | std::ranges::to<std::string>();
+});
+
+template <typename F>
+struct [[=value]] function_value_annotation : callable<F>
+{
+    using callable<F>::callable;
+    using callable<F>::operator();
+};
+
+inline constexpr auto default_value = [](auto value) static
+{
+    return function_value_annotation([value = std::move(value)]() { return value; });
+};
+
+template <typename T>
+struct [[=value]] function_array_annotation
+{
+    const T* data;
+
+    size_t size;
+
+    consteval function_array_annotation(std::initializer_list<T> init) : data(define_static_array(init).data()), size(init.size()) { }
+
+    constexpr function_array_annotation(const T* data, size_t size) : data(data), size(size) { }
+
+    // The range should be constructible from random_access_iterator, which is the case for most of the standard containers.
+    template <std::ranges::range R>
+    constexpr operator R() const { return R(data, data + size); }
+
+    // We assume the value can get the value by invoke itself, so we return itself here
+    // and try cast it to the target type in value.
+    constexpr auto& operator()() const { return *this; }
+};
+
+inline constexpr auto default_array = []<typename T>(std::initializer_list<T> values) static
+{
+    return function_array_annotation<T>(values);
+};
+
+template <typename Prediction>
+struct [[=value_guard]] function_choice_annotation : callable<Prediction>
+{
+    using callable<Prediction>::callable;
+    using callable<Prediction>::operator();
+};
+
+inline constexpr auto choice = []<typename... Ts>(Ts&&... ts) 
+{
+    return function_choice_annotation([...ts=(Ts&&)ts](const auto& value) {
+        template for (const auto& element : std::make_tuple((Ts&&)ts...))
+            if (element == value)
+                return true;
+        return false;
+    });
+};
+
+inline constexpr auto range = []<typename Lower, typename Upper>(Lower lower, Upper upper) 
+{
+    return function_choice_annotation([lower, upper](const auto& value) {
+        return value >= lower && value <= upper;
+    });
+};
+
+} // namespace cpp::refl

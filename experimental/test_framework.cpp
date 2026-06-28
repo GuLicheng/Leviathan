@@ -8,7 +8,6 @@
 #include <tuple>
 #include <utility>
 #include <generator>
-#include <leviathan/annotations/all.hpp>
 #include <leviathan/extc++/tuple.hpp>
 
 inline constexpr struct { } TestFunction;
