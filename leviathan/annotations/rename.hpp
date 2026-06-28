@@ -36,6 +36,11 @@ inline constexpr auto longname = rename_function([](std::string field_name) stat
     return "--" + std::string(field_name);
 });
 
+inline constexpr auto selfname = rename_function([](std::string field_name) static 
+{
+    return std::string(field_name);
+});
+
 inline constexpr auto lowercase = rename_function([](std::string field_name) static 
 {
     return field_name | std::views::transform(::tolower) | std::ranges::to<std::string>();

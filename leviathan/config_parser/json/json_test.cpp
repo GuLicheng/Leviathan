@@ -319,7 +319,7 @@ struct [[=cpp::refl::serializer]] FunctionSerializer : cpp::refl::callable<F>
     using cpp::refl::callable<F>::operator();
 };
 
-inline constexpr auto PlusOneSerializer = FunctionSerializer([](std::optional<std::vector<int>>& opt, const json::value& v) {
+inline constexpr auto PlusOne = FunctionSerializer([](std::optional<std::vector<int>>& opt, const json::value& v) {
     auto x1 = v.as<json::array>()[0].as<json::number>().as_signed_integer() + 1;
     auto x2 = v.as<json::array>()[1].as<json::number>().as_signed_integer() + 1;
     auto x3 = v.as<json::array>()[2].as<json::number>().as_signed_integer() + 1;
@@ -372,7 +372,7 @@ struct [[=cpp::derive::from<json::value>]] Student
     
     Gender gender;
 
-    [[=PlusOneSerializer]]
+    [[=PlusOne]]
     std::vector<int> grades;
 
     std::map<std::string, std::string> address;

@@ -49,20 +49,17 @@ consteval std::vector<std::meta::info> all_bases_of_impl()
 template <typename T>
 consteval std::vector<std::meta::info> all_bases_of()
 {
-    auto result = detail::all_bases_of_impl<T>();
+    auto bases = detail::all_bases_of_impl<T>();
+    std::vector<std::meta::info> result;
 
-    // std::meta::dealias is unnecessary since we use typename T
-    // instead of std::meta::info as template parameter.
-    auto less = [](std::meta::info a, std::meta::info b) {
-        return std::meta::type_order(a, b) < 0;
-    };
+    // The `dealias` is unnecessary here since we use T
+    // as template parameter. Only std::meta::info should 
+    // be considered for duplicate check.
+    std::ranges::copy_if(bases, std::back_inserter(result), [&](auto info) {
+        return !std::ranges::contains(result, info, std::meta::dealias);
+    }, std::meta::dealias);
 
-    auto equal_to = [](std::meta::info a, std::meta::info b) {
-        return std::meta::type_order(a, b) == 0;
-    };
-
-    std::ranges::sort(result, less, std::meta::dealias);
-    return { result.begin(), std::ranges::unique(result, equal_to, std::meta::dealias).begin() };
+    return result;
 }
 
 /**
@@ -250,37 +247,29 @@ consteval std::meta::info member_named(const char* name)
 namespace detail
 {
 
-template <std::meta::info Info1, std::meta::info... Infos>
+static consteval bool has_modify_identifier(std::meta::info anno)
+{
+    // The anno must be an instance.
+    return has_annotation(type_of(anno), modify_identifier);
+}
+
+template <std::meta::info Info>
 struct extract_name_by_annotation_impl
 {
-    static consteval bool has_modify_identifier(std::meta::info anno)
-    {
-        // The anno must be an instance.
-        return has_annotation(type_of(anno), modify_identifier);
-    }
-
-    static constexpr std::string operator()(std::string name) requires (sizeof...(Infos) == 0)
-    {
-        template for (constexpr auto anno : define_static_array(annotations_of(Info1)))
-            if constexpr (has_modify_identifier(anno))
-                name = std::invoke(extract<typename [:type_of(anno):]>(anno), name);
-        return name;   
-    }
-
     static constexpr std::string operator()(std::string name)
     {
-        bool found = false;
-
-        template for (constexpr auto anno : define_static_array(annotations_of(Info1)))
+        if constexpr (Info == ^^::)
         {
-            if constexpr (has_modify_identifier(anno))
-            {
-                name = std::invoke(extract<typename [:type_of(anno):]>(anno), name);
-                found = true;
-            }
+            return name;
         }
-        return found ? name : extract_name_by_annotation_impl<Infos...>()(name);
-    }
+        else 
+        {
+            template for (constexpr auto anno : define_static_array(annotations_of(Info)))
+                if constexpr (has_modify_identifier(anno))
+                    return std::invoke(extract<typename [:type_of(anno):]>(anno), name);
+            return extract_name_by_annotation_impl<parent_of(Info)>()(name);
+        }
+    } 
 };
 
 }  // namespace detail
@@ -325,8 +314,8 @@ struct field_handler;
  *      }    
  *  };
  */
-template <typename T, typename Initializer>
-constexpr T construct_struct(Initializer initializer)
+template <typename T, typename Resolver>
+constexpr T construct_struct(Resolver resolver)
 {
     constexpr auto ctx = std::meta::access_context::current();
 
@@ -343,8 +332,8 @@ constexpr T construct_struct(Initializer initializer)
     // Init base class first and then init current class, since base class is usually
     // used as part of current class's field initialization.
     return T(
-        cpp::refl::construct_struct<typename [:type_of(bases[base_indices]):]>(std::ref(initializer))...,
-        cpp::refl::field_handler<^^T, members[indices]>()(std::ref(initializer))...
+        cpp::refl::construct_struct<typename [:type_of(bases[base_indices]):]>(std::ref(resolver))...,
+        cpp::refl::field_handler<^^T, members[indices]>()(std::ref(resolver))...
     );
 }
 
@@ -365,20 +354,19 @@ constexpr T construct_struct(Initializer initializer)
 template <typename T>
 constexpr auto struct_to_tuple(const T& t) 
 {
-    constexpr auto ctx = std::meta::access_context::current();
-    constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
+    constexpr auto members = define_static_array(all_nsdm_unchecked<T>());
     constexpr auto [...Is] = indices_without_removed_member<T, cpp::refl::skip>();
     return std::make_tuple(t.[:members[Is]:]...);
 }
 
 // TODO: input range support
-template <typename TupleLike, std::ranges::random_access_range Range>
-constexpr TupleLike range_to_tuple(Range&& range)
-{
-    constexpr auto N = std::meta::tuple_size(^^TupleLike);
-    constexpr auto [...idx] = std::make_index_sequence<N>();
-    return TupleLike(std::forward_like<Range>(range[idx])...);
-}
+// template <typename TupleLike, std::ranges::random_access_range Range>
+// constexpr TupleLike range_to_tuple(Range&& range)
+// {
+//     constexpr auto N = std::meta::tuple_size(^^TupleLike);
+//     constexpr auto [...idx] = std::make_index_sequence<N>();
+//     return TupleLike(std::forward_like<Range>(range[idx])...);
+// }
 
 template <std::meta::info ClassInfo, std::meta::info FieldInfo>
 class field_handler
@@ -395,8 +383,7 @@ class field_handler
 
     static_assert(!IsUnnamedField, "Unnamed field must be skippable since we have no way to initialize it.");
 
-    static constexpr auto caster_adaptor = 
-        [](std::optional<FieldType>& opt, const auto& value)
+    static constexpr auto caster_adaptor = [](auto& opt, const auto& value)
     {
         opt.emplace(cpp::cast<FieldType>(value));
     };
@@ -406,7 +393,6 @@ class field_handler
         template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
             if constexpr (has_annotation(type_of(anno), serializer))
                 return anno;
-        // return ^^cpp::cast<FieldType>;
         return ^^caster_adaptor;
     }
 
@@ -421,7 +407,7 @@ class field_handler
         else
         {
             // Get field name
-            auto name = extract_name_by_annotation<FieldInfo, ClassInfo>();
+            auto name = extract_name_by_annotation<FieldInfo>();
             std::optional<FieldType> value = std::nullopt;
 
             // Try init current field with resolver
