@@ -286,11 +286,11 @@ struct extract_name_by_annotation_impl
  *  std::string name1 = extract_name_by_annotation<^^MyStruct::X>(); // "X"
  *  std::string name2 = extract_name_by_annotation<^^MyStruct::Y>(); // "Z"
  */
-template <std::meta::info Info1, std::meta::info... Infos>
+template <std::meta::info Info>
 constexpr std::string extract_name_by_annotation()
 {
-    constexpr auto name = identifier_of(Info1);
-    return detail::extract_name_by_annotation_impl<Info1, Infos...>::operator()(std::string(name));
+    constexpr auto name = identifier_of(Info);
+    return detail::extract_name_by_annotation_impl<Info>()(std::string(name));
 }
 
 template <std::meta::info FieldInfo>
@@ -368,7 +368,7 @@ constexpr auto struct_to_tuple(const T& t)
 //     return TupleLike(std::forward_like<Range>(range[idx])...);
 // }
 
-// consteval std::meta::info extract_annotation()
+
 
 template <std::meta::info FieldInfo>
 class field_handler
@@ -425,7 +425,7 @@ class field_handler
     static constexpr std::optional<FieldType> default_value() 
     {
         template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
-            if constexpr (has_annotation(type_of(anno), value))
+            if constexpr (has_annotation(type_of(anno), initializer))
                 return std::make_optional(std::invoke(extract<typename [:type_of(anno):]>(anno)));
         if constexpr (IsDefaultConstructible)
             return std::make_optional(FieldType());
@@ -468,11 +468,11 @@ public:
  *  auto vec = annotations_with_type_annotation(^^MyStruct::X, ^^DoSomething);
  * 
  */
-template <typename T>
-consteval std::vector<std::meta::info> annotations_with_type_annotation(std::meta::info info, const T& x) 
+template <typename... Ts>
+consteval std::vector<std::meta::info> select_annotations(std::meta::info info, const Ts&... xs) 
 {
     return annotations_of(info) | std::views::filter([&](std::meta::info anno) {
-        return has_annotation(type_of(anno), x);
+        return has_annotation(type_of(anno), xs...);
     }) | std::ranges::to<std::vector>();
 }
 
@@ -494,7 +494,7 @@ consteval bool check_field(const T& x)
     constexpr auto [...indices] = std::make_index_sequence<members.size()>{};
     
     auto impl = [&]<size_t Idx>() {
-        constexpr auto gurads = define_static_array(annotations_with_type_annotation(members[Idx], cpp::refl::value_guard));
+        constexpr auto gurads = define_static_array(select_annotations(members[Idx], cpp::refl::value_guard));
         constexpr auto [...guard_indices] = std::make_index_sequence<gurads.size()>{};
         return (... && std::invoke(extract<typename [:type_of(gurads[guard_indices]):]>(gurads[guard_indices]), x.[:members[Idx]:]));
     };

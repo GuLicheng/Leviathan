@@ -78,7 +78,7 @@ inline constexpr struct { } value_guard;
 // Rename annotaion
 inline constexpr struct { } modify_identifier;
 
-inline constexpr struct { } value;
+inline constexpr struct { } initializer;
 
 // inline constexpr struct { } parse_annotation;
 
@@ -203,7 +203,7 @@ inline constexpr auto kebab_case = rename_function([](std::string field_name) st
 });
 
 template <typename F>
-struct [[=value]] function_value_annotation : callable<F>
+struct [[=initializer]] function_value_annotation : callable<F>
 {
     using callable<F>::callable;
     using callable<F>::operator();
@@ -215,7 +215,7 @@ inline constexpr auto default_value = [](auto value) static
 };
 
 template <typename T>
-struct [[=value]] function_array_annotation
+struct [[=initializer]] function_array_annotation
 {
     const T* data;
 
