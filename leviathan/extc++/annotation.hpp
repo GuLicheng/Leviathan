@@ -94,6 +94,8 @@ inline constexpr struct { } deserializer;
 
 }  // namespace cpp::refl
 
+
+
 namespace cpp::refl
 {
 
@@ -238,7 +240,7 @@ inline constexpr auto default_array = []<typename T>(std::initializer_list<T> va
 };
 
 template <typename Prediction>
-struct [[=value_guard]] function_choice_annotation : callable<Prediction>
+struct [[=value_guard]] guard : callable<Prediction>
 {
     using callable<Prediction>::callable;
     using callable<Prediction>::operator();
@@ -246,7 +248,7 @@ struct [[=value_guard]] function_choice_annotation : callable<Prediction>
 
 inline constexpr auto choice = []<typename... Ts>(Ts&&... ts) 
 {
-    return function_choice_annotation([...ts=(Ts&&)ts](const auto& value) {
+    return guard([...ts=(Ts&&)ts](const auto& value) {
         template for (const auto& element : std::make_tuple((Ts&&)ts...))
             if (element == value)
                 return true;
@@ -256,7 +258,7 @@ inline constexpr auto choice = []<typename... Ts>(Ts&&... ts)
 
 inline constexpr auto range = []<typename Lower, typename Upper>(Lower lower, Upper upper) 
 {
-    return function_choice_annotation([lower, upper](const auto& value) {
+    return guard([lower, upper](const auto& value) {
         return value >= lower && value <= upper;
     });
 };
@@ -264,3 +266,12 @@ inline constexpr auto range = []<typename Lower, typename Upper>(Lower lower, Up
 
 
 } // namespace cpp::refl
+
+
+namespace cpp::refl
+{
+
+
+
+} // namespace cpp::refl
+

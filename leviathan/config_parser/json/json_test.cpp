@@ -384,6 +384,11 @@ inline constexpr auto SerializeOtherInfo2 = FunctionSerializer([](auto& opt, con
     }
 });
 
+inline constexpr auto Flatten = FunctionSerializer([]<typename T>(std::optional<T>& opt, const json::value& v) {
+    auto result = cpp::refl::construct_struct<T>(json::initializer(v));
+    opt.emplace(std::move(result));
+});
+
 struct [[=cpp::derive::from<json::value>]] Student
 {
     std::string name;
@@ -397,10 +402,10 @@ struct [[=cpp::derive::from<json::value>]] Student
 
     std::map<std::string, std::string> address;
 
-    OtherInfo1 other_info1;
+    OtherInfo1 otherInfo1;
 
     [[=SerializeOtherInfo2]]
-    OtherInfo2 other_info2;
+    OtherInfo2 otherInfo2;
 
     struct Profile
     {
@@ -408,6 +413,15 @@ struct [[=cpp::derive::from<json::value>]] Student
         double height;
         std::string nickname;
     };
+
+    struct CustomerBasicInfo
+    {
+        std::string idType;
+        std::string idNumber;
+    };
+
+    [[=Flatten]]
+    CustomerBasicInfo customerBasicInfo;
 
     [[=SerializeAsTuple]]
     Profile profile;
@@ -425,13 +439,15 @@ TEST_CASE("annotation")
             {"city", "Wonderland"},
             {"zip", "12345"}
         }},
-        {"other_info1", {
+        {"otherInfo1", {
             {"information", "This is some other information."}
         }},
-        {"other_info2", {
+        {"otherInfo2", {
             {"information", "This is some other information."}
         }},
-        {"profile", {1, 3.14, "Hello"}}
+        {"profile", {1, 3.14, "Hello"}},
+        {"idType", "Passport"},
+        {"idNumber", "A12345678"}
     };
 
     auto student = cpp::cast<Student>(v);
@@ -447,8 +463,8 @@ TEST_CASE("annotation")
     REQUIRE(student.address["street"] == "123 Main St");
     REQUIRE(student.address["city"] == "Wonderland");
     REQUIRE(student.address["zip"] == "12345");
-    REQUIRE(student.other_info1.information == "Information1: This is some other information.");
-    REQUIRE(student.other_info2.information == "Information2: This is some other information.");
+    REQUIRE(student.otherInfo1.information == "Information1: This is some other information.");
+    REQUIRE(student.otherInfo2.information == "Information2: This is some other information.");
     REQUIRE(student.profile.weight == 1);
     REQUIRE(student.profile.height == 3.14);
     REQUIRE(student.profile.nickname == "Hello");

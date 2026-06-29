@@ -293,7 +293,7 @@ constexpr std::string extract_name_by_annotation()
     return detail::extract_name_by_annotation_impl<Info1, Infos...>::operator()(std::string(name));
 }
 
-template <std::meta::info ClassInfo, std::meta::info FieldInfo>
+template <std::meta::info FieldInfo>
 struct field_handler;
 
 /**
@@ -333,7 +333,7 @@ constexpr T construct_struct(Resolver resolver)
     // used as part of current class's field initialization.
     return T(
         cpp::refl::construct_struct<typename [:type_of(bases[base_indices]):]>(std::ref(resolver))...,
-        cpp::refl::field_handler<^^T, members[indices]>()(std::ref(resolver))...
+        cpp::refl::field_handler<members[indices]>()(std::ref(resolver))...
     );
 }
 
@@ -368,10 +368,12 @@ constexpr auto struct_to_tuple(const T& t)
 //     return TupleLike(std::forward_like<Range>(range[idx])...);
 // }
 
-template <std::meta::info ClassInfo, std::meta::info FieldInfo>
+// consteval std::meta::info extract_annotation()
+
+template <std::meta::info FieldInfo>
 class field_handler
 {
-    static_assert(std::meta::is_class_type(ClassInfo) && std::meta::is_class_member(FieldInfo));
+    static_assert(std::meta::is_class_member(FieldInfo));
 
     using FieldType = typename [:type_of(FieldInfo):];
 
@@ -452,6 +454,53 @@ public:
              : throw std::runtime_error(std::format("Field {} is missing or invalid", display_string_of(FieldInfo)));
     }
 };
+
+/**
+ * @brief Get all annotations of a type that have a specific type annotation.
+ * @param info The meta-information of the type to get annotations from.
+ * @param x The type annotation to filter annotations by.
+ * 
+ * @example
+ *  
+ *  struct [[=anno]] DoSomething { auto operator()(auto x); };
+ *  inline constexpr DoSomething do_something;
+ *  struct MyStruct { [[=DoSomething()]] int X; double Y; }; 
+ *  auto vec = annotations_with_type_annotation(^^MyStruct::X, ^^DoSomething);
+ * 
+ */
+template <typename T>
+consteval std::vector<std::meta::info> annotations_with_type_annotation(std::meta::info info, const T& x) 
+{
+    return annotations_of(info) | std::views::filter([&](std::meta::info anno) {
+        return has_annotation(type_of(anno), x);
+    }) | std::ranges::to<std::vector>();
+}
+
+/**
+ * @brief Check if all fields of a struct are valid according to their value_guard annotations.
+ * @param x The object to check.
+ * 
+ * @example
+ *  struct MyStruct { [[=cpp::refl::guard([](int x) { return x >= 0; })]] int X; };
+ *  MyStruct s{42};
+ *  assert(check_field(s)); // true
+ *  MyStruct s2{-1};
+ *  assert(!check_field(s2)); // false
+ */
+template <typename T>
+consteval bool check_field(const T& x)
+{
+    constexpr auto members = std::define_static_array(cpp::refl::all_nsdm_unchecked<T>());
+    constexpr auto [...indices] = std::make_index_sequence<members.size()>{};
+    
+    auto impl = [&]<size_t Idx>() {
+        constexpr auto gurads = define_static_array(annotations_with_type_annotation(members[Idx], cpp::refl::value_guard));
+        constexpr auto [...guard_indices] = std::make_index_sequence<gurads.size()>{};
+        return (... && std::invoke(extract<typename [:type_of(gurads[guard_indices]):]>(gurads[guard_indices]), x.[:members[Idx]:]));
+    };
+
+    return (... && impl.template operator()<indices>());
+}
 
 
 } // namespace cpp::refl
