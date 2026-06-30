@@ -368,8 +368,6 @@ constexpr auto struct_to_tuple(const T& t)
 //     return TupleLike(std::forward_like<Range>(range[idx])...);
 // }
 
-
-
 template <std::meta::info FieldInfo>
 class field_handler
 {
@@ -461,12 +459,11 @@ public:
  * @param x The type annotation to filter annotations by.
  * 
  * @example
- *  
- *  struct [[=anno]] DoSomething { auto operator()(auto x); };
- *  inline constexpr DoSomething do_something;
- *  struct MyStruct { [[=DoSomething()]] int X; double Y; }; 
- *  auto vec = annotations_with_type_annotation(^^MyStruct::X, ^^DoSomething);
- * 
+ *  inline constexpr struct { } serializer;
+ *  struct [[=serializer]] SomeCallable { auto operator()(auto x); };
+ *  struct MyStruct { [[=SomeCallable()]] int X; double Y; }; 
+ *  auto vec = annotations_with_type_annotation(^^MyStruct::X, serializer);
+ *  vec[0] -> instance of SomeCallable
  */
 template <typename... Ts>
 consteval std::vector<std::meta::info> select_annotations(std::meta::info info, const Ts&... xs) 
