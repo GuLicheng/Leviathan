@@ -473,6 +473,37 @@ consteval std::vector<std::meta::info> select_annotations(std::meta::info info, 
     }) | std::ranges::to<std::vector>();
 }
 
+template <std::meta::info FieldInfo>
+class handle
+{
+    static constexpr auto annotations = define_static_array(annotations_of(FieldInfo));
+
+    using FieldType = typename [:type_of(FieldInfo):];
+
+    static constexpr bool IsDefaultConstructible = std::is_default_constructible_v<FieldType>;
+
+public:
+
+    static constexpr std::optional<FieldType> default_value() 
+    {
+        std::optional<FieldType> value = std::nullopt;
+
+        constexpr auto initializers = define_static_array(select_annotations(FieldInfo, initializer));
+
+        if constexpr (initializers.size() > 0)
+        {
+            value.emplace(std::invoke(extract<typename [:type_of(initializers[0]):]>(initializers[0])));
+        }
+        else if constexpr (IsDefaultConstructible)
+        {
+            value.emplace();
+        }
+
+        return value;
+    }
+
+};
+
 /**
  * @brief Check if all fields of a struct are valid according to their value_guard annotations.
  * @param x The object to check.
