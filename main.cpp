@@ -2,13 +2,14 @@
 #include <leviathan/extc++/tuple.hpp>
 #include <print>
 
-struct Foo
+struct [[=cpp::refl::lowercase]] Foo
 {
     [[=cpp::refl::guard([](int x) { return x >= 0; })]] 
     [[=cpp::refl::choice(0, 1, 2, 3, 4, 5)]]
     [[=cpp::refl::default_value(10)]]
     int X;
 };
+
 
 int main(int argc, char const *argv[])
 {
@@ -20,8 +21,8 @@ int main(int argc, char const *argv[])
     std::println("Annotation type of Foo::X is {}", (display_string_of(info[0])));
     std::println("Annotation type of Foo::X is {}", (display_string_of(info[1])));
 
-    auto v = cpp::refl::handle<^^Foo::X>::default_value();
-    std::println("Default value of Foo::X is {}", v.value() );
+    auto v = cpp::refl::handle<^^Foo::X>::identifier();
+    std::println("Default value of Foo::X is {}", v);
 
 
     return 0;

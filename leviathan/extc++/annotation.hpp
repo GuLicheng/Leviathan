@@ -145,7 +145,7 @@ inline constexpr auto longname = rename_function([](std::string field_name) stat
 
 inline constexpr auto selfname = rename_function([](std::string field_name) static 
 {
-    return std::string(field_name);
+    return field_name;
 });
 
 inline constexpr auto lowercase = rename_function([](std::string field_name) static 

@@ -476,17 +476,45 @@ consteval std::vector<std::meta::info> select_annotations(std::meta::info info, 
 template <std::meta::info FieldInfo>
 class handle
 {
-    static constexpr auto annotations = define_static_array(annotations_of(FieldInfo));
+    template <std::meta::info>
+    friend class handle;
 
-    using FieldType = typename [:type_of(FieldInfo):];
-
-    static constexpr bool IsDefaultConstructible = std::is_default_constructible_v<FieldType>;
+    static constexpr bool IsGlobalNamespace = FieldInfo == ^^::;
+    
+    static constexpr std::string identifier(std::string name)
+    {
+        if constexpr (IsGlobalNamespace)
+        {
+            return name;
+        }
+        else
+        {
+            constexpr auto renames = define_static_array(select_annotations(FieldInfo, modify_identifier)); 
+            
+            if constexpr (renames.size() > 0)
+            {
+                return std::invoke(extract<typename [:type_of(renames[0]):]>(renames[0]), name);
+            }
+            else
+            {
+                return handle<parent_of(FieldInfo)>::identifier(std::move(name));
+            }
+        }
+    }
 
 public:
 
-    static constexpr std::optional<FieldType> default_value() 
+    static constexpr std::string identifier() 
     {
-        std::optional<FieldType> value = std::nullopt;
+        auto name = std::string(identifier_of(FieldInfo));
+        return identifier(std::move(name));
+    }
+
+    static constexpr auto default_value() 
+    {
+        using Type = typename [:type_of(FieldInfo):];
+
+        std::optional<Type> value = std::nullopt;
 
         constexpr auto initializers = define_static_array(select_annotations(FieldInfo, initializer));
 
@@ -494,7 +522,7 @@ public:
         {
             value.emplace(std::invoke(extract<typename [:type_of(initializers[0]):]>(initializers[0])));
         }
-        else if constexpr (IsDefaultConstructible)
+        else if constexpr (std::is_default_constructible_v<Type>)
         {
             value.emplace();
         }
