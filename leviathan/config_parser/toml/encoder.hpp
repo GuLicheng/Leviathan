@@ -181,7 +181,7 @@ struct universal_caster
 
     static T operator()(const value& root)
     {
-        return cpp::refl::construct_struct<T>(initializer(root));
+        throw std::runtime_error("universal_caster is not implemented yet");
     }
 };
 

@@ -12,7 +12,7 @@ struct [[=cpp::derive::debug, =cpp::derive::from<cpp::json::value>]] FlattenValu
 
 struct [[=cpp::refl::lowercase, =cpp::derive::from<cpp::json::value>, =cpp::derive::debug]] Foo
 {
-    [[=cpp::refl::guard([](int x) { return x >= 0; })]] 
+    [[=cpp::refl::guard([](int x) { return x >= 110; })]] 
     [[=cpp::refl::choice(0, 1, 2, 3, 4, 5)]]
     [[=cpp::refl::default_value(10)]]
     int X;
@@ -34,6 +34,8 @@ int main(int argc, char const *argv[])
     auto foo = cpp::cast<Foo>(v);
 
     std::println("{}", foo);
+
+    cpp::refl::check_field(foo);
 
     return 0;
 }

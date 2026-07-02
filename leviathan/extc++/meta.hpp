@@ -293,50 +293,6 @@ constexpr std::string extract_name_by_annotation()
     return detail::extract_name_by_annotation_impl<Info>()(std::string(name));
 }
 
-template <std::meta::info FieldInfo>
-struct field_handler;
-
-/**
- * @brief Construct an object of type T by initializing its fields with the provided initializer.
- * @param T The type of the object to construct. Must be a class type.
- * @param Initializer A callable that takes a reference to an optional field value 
- *  and the field name, then initializes the field value if possible.
- *  
- * @example
- *  struct SomeInitializer {
- *      template <typename T, typename Caster> 
- *      void operator()(std::optional<T>& value, std::string name, Caster caster) {
- *          // Implementation here such as:
- *          auto result = GetValueByName(name);
- *          // Is cast failed, we can throw exception or just leave the value as std::nullopt.
- *          // However, if the value is std::nullopt, we will try to use the default value of the field if it has one.
- *          caster(value, result);
- *      }    
- *  };
- */
-template <typename T, typename Resolver>
-constexpr T construct_struct(Resolver resolver)
-{
-    constexpr auto ctx = std::meta::access_context::current();
-
-    // base class
-    constexpr auto bases = define_static_array(bases_of(^^T, ctx));
-    constexpr auto M = bases.size();
-    constexpr auto [...base_indices] = std::make_index_sequence<M>();
-
-    // current
-    constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
-    constexpr auto N = members.size();
-    constexpr auto [...indices] = std::make_index_sequence<N>();
-
-    // Init base class first and then init current class, since base class is usually
-    // used as part of current class's field initialization.
-    return T(
-        cpp::refl::construct_struct<typename [:type_of(bases[base_indices]):]>(std::ref(resolver))...,
-        cpp::refl::field_handler<members[indices]>()(std::ref(resolver))...
-    );
-}
-
 /**
  * @brief Convert a struct to a tuple by its members.
  * @tparam T The struct type.
@@ -367,91 +323,6 @@ constexpr auto struct_to_tuple(const T& t)
 //     constexpr auto [...idx] = std::make_index_sequence<N>();
 //     return TupleLike(std::forward_like<Range>(range[idx])...);
 // }
-
-template <std::meta::info FieldInfo>
-class field_handler
-{
-    static_assert(std::meta::is_class_member(FieldInfo));
-
-    using FieldType = typename [:type_of(FieldInfo):];
-
-    static constexpr bool IsDefaultConstructible = std::is_default_constructible_v<FieldType>;
-
-    static constexpr bool IsSkippable = has_annotation(FieldInfo, skip);
-
-    static constexpr bool IsUnnamedField = has_identifier(FieldInfo) == false;
-
-    static_assert(!IsUnnamedField, "Unnamed field must be skippable since we have no way to initialize it.");
-
-    static constexpr auto caster_adaptor = [](auto& opt, const auto& value)
-    {
-        opt.emplace(cpp::cast<FieldType>(value));
-    };
-
-    static consteval std::meta::info extract_serializer()
-    {
-        template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
-            if constexpr (has_annotation(type_of(anno), serializer))
-                return anno;
-        return ^^caster_adaptor;
-    }
-
-    template <typename Resolver>
-    static constexpr std::optional<FieldType> init_value(Resolver resolver)
-    {
-        if constexpr (IsSkippable)
-        {
-            // Each member should be initialized in C++.
-            return default_value();
-        }
-        else
-        {
-            // Get field name
-            auto name = extract_name_by_annotation<FieldInfo>();
-            std::optional<FieldType> value = std::nullopt;
-
-            // Try init current field with resolver
-            constexpr auto serializer_info = extract_serializer();
-
-            std::invoke(resolver, value, name, extract<typename [:type_of(serializer_info):]>(serializer_info));
-
-            // Try init current field with annotations
-            return value ? value : default_value();
-        }
-    }
-
-    static constexpr std::optional<FieldType> default_value() 
-    {
-        template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
-            if constexpr (has_annotation(type_of(anno), initializer))
-                return std::make_optional(std::invoke(extract<typename [:type_of(anno):]>(anno)));
-        if constexpr (IsDefaultConstructible)
-            return std::make_optional(FieldType());
-        else
-            return std::nullopt;
-    }
-
-    template <typename T>
-    static constexpr bool is_valid(const T& value)
-    {
-        template for (constexpr auto anno : define_static_array(annotations_of(FieldInfo)))
-            if constexpr (has_annotation(type_of(anno), value_guard))
-                if (!std::invoke(extract<typename [:type_of(anno):]>(anno), value))
-                    return false;
-        return true;
-    }
-
-public:
-
-    template <typename Resolver>
-    static constexpr FieldType operator()(Resolver resolver)
-    {
-        auto value = init_value(resolver);
-        return value.has_value() && is_valid(*value) 
-             ? std::move(*value) 
-             : throw std::runtime_error(std::format("Field {} is missing or invalid", display_string_of(FieldInfo)));
-    }
-};
 
 /**
  * @brief Get all annotations of a type that have a specific type annotation.
@@ -559,7 +430,7 @@ public:
 template <typename T>
 constexpr bool check_field(const T& x)
 {
-    constexpr auto members = std::define_static_array(cpp::refl::all_nsdm_unchecked<T>());
+    constexpr static auto members = std::define_static_array(cpp::refl::all_nsdm_unchecked<T>());
     constexpr auto [...indices] = std::make_index_sequence<members.size()>{};
     
     auto impl = [&]<size_t Idx>() {

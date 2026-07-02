@@ -10,11 +10,17 @@
 namespace cpp::config::json
 {
   
-// Use for cpp::refl::construct_struct<T>(initializer) to initialize a struct from json::value.
 template <typename T>
-struct initializer
+class initializer
 {
     const cpp::json::value& root;    
+
+    static constexpr auto caster_adaptor = []<typename U>(std::optional<U>& opt, const auto& value)
+    {
+        opt.emplace(cpp::cast<U>(value));
+    };
+
+public:
 
     initializer(const cpp::json::value& root) : root(root) {}
 
@@ -50,7 +56,10 @@ struct initializer
             initialize_field<members[indices]>()...
         );
 
-        // cpp::refl::check_field(result);
+        if (!cpp::refl::check_field(result))
+        {
+            throw std::runtime_error(std::format("Field check failed for {}", std::string(identifier_of(^^T))));
+        }
 
         return result;
     }
@@ -77,8 +86,8 @@ struct initializer
 
             if (it != root.as<cpp::json::object>().end())
             {
-                constexpr auto info = cpp::refl::select_annotation(^^cpp::cast<FieldType>, Field, cpp::refl::serializer);
-                result.emplace(std::invoke(extract<typename [:type_of(info):]>(info), it->second));
+                constexpr auto info = cpp::refl::select_annotation(^^caster_adaptor, Field, cpp::refl::serializer);
+                std::invoke(extract<typename [:type_of(info):]>(info), result, it->second);
             }
         }
 
@@ -159,7 +168,6 @@ struct universal_caster
 {
     static T operator()(const value& root)
     {
-        // return cpp::refl::construct_struct<T>(initializer<T>(root));
         return initializer<T>(root)();
     }
 };

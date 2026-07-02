@@ -420,7 +420,7 @@ struct [[=cpp::derive::from<json::value>]] Student
         std::string idNumber;
     };
 
-    [[=Flatten]]
+    [[=cpp::refl::flatten]]
     CustomerBasicInfo customerBasicInfo;
 
     [[=SerializeAsTuple]]
@@ -468,6 +468,8 @@ TEST_CASE("annotation")
     REQUIRE(student.profile.weight == 1);
     REQUIRE(student.profile.height == 3.14);
     REQUIRE(student.profile.nickname == "Hello");
+    REQUIRE(student.customerBasicInfo.idType == "Passport");
+    REQUIRE(student.customerBasicInfo.idNumber == "A12345678");
 }
 
 
