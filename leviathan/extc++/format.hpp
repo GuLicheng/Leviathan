@@ -45,7 +45,7 @@ struct universal_formatter
         template for (constexpr auto mem : define_static_array(nonstatic_data_members_of(^^T, unchecked))) 
         {
             delim();
-            std::string mem_label = has_identifier(mem) ? refl::extract_name_by_annotation<mem, ^^T>()
+            std::string mem_label = has_identifier(mem) ? refl::extract_name_by_annotation<mem>()
                 : "(unnamed-member)";
 
             out = std::format_to(out, "{}: {}", mem_label, t.[:mem:]);

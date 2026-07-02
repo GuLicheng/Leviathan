@@ -473,17 +473,30 @@ consteval std::vector<std::meta::info> select_annotations(std::meta::info info, 
     }) | std::ranges::to<std::vector>();
 }
 
+/**
+ * @brief Select first info which satisfies the given annotation type, or return the default info if none found.
+ * @param default_info The default info to return if no matching annotation is found.
+ * @param info The meta-information to search for annotations.
+ * @param xs The annotation types to search for.
+ * 
+ * @example
+ */
+template <typename... Ts>
+consteval std::meta::info select_annotation(std::meta::info default_info, std::meta::info info, const Ts&... xs) 
+{
+    auto annos = select_annotations(info, xs...);
+    return annos.size() > 0 ? annos[0] : default_info;
+}
+
 template <std::meta::info FieldInfo>
 class handle
 {
     template <std::meta::info>
     friend class handle;
 
-    static constexpr bool IsGlobalNamespace = FieldInfo == ^^::;
-    
     static constexpr std::string identifier(std::string name)
     {
-        if constexpr (IsGlobalNamespace)
+        if constexpr (FieldInfo == ^^::)
         {
             return name;
         }
@@ -544,7 +557,7 @@ public:
  *  assert(!check_field(s2)); // false
  */
 template <typename T>
-consteval bool check_field(const T& x)
+constexpr bool check_field(const T& x)
 {
     constexpr auto members = std::define_static_array(cpp::refl::all_nsdm_unchecked<T>());
     constexpr auto [...indices] = std::make_index_sequence<members.size()>{};

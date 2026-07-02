@@ -11,24 +11,85 @@ namespace cpp::config::json
 {
   
 // Use for cpp::refl::construct_struct<T>(initializer) to initialize a struct from json::value.
+template <typename T>
 struct initializer
 {
     const cpp::json::value& root;    
 
     initializer(const cpp::json::value& root) : root(root) {}
 
-    template <typename U, typename Serializer>
-    void operator()(std::optional<U>& opt, const std::string& name, Serializer&& serializer) const
-    {
-        assert(opt.has_value() == false);
+    // template <typename U, typename Serializer>
+    // void operator()(std::optional<U>& opt, const std::string& name, Serializer&& serializer) const
+    // {
+    //     assert(opt.has_value() == false);
     
-        auto it = root.as<cpp::json::object>().find(cpp::json::string(name));
+    //     auto it = root.as<cpp::json::object>().find(cpp::json::string(name));
 
-        if (it != root.as<cpp::json::object>().end())
-        {
-            std::invoke((Serializer&&)serializer, opt, it->second);
-        }
+    //     if (it != root.as<cpp::json::object>().end())
+    //     {
+    //         std::invoke((Serializer&&)serializer, opt, it->second);
+    //     }
+    // }
+
+    T operator()() const
+    {
+        constexpr auto ctx = std::meta::access_context::current();
+        
+        // base class
+        constexpr auto bases = define_static_array(bases_of(^^T, ctx));
+        constexpr auto M = bases.size();
+        constexpr auto [...base_indices] = std::make_index_sequence<M>();
+
+        // current
+        constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
+        constexpr auto N = members.size();
+        constexpr auto [...indices] = std::make_index_sequence<N>();
+
+        auto result =  T(
+            initializer<typename [:type_of(bases[base_indices]):]>(root)()...,
+            initialize_field<members[indices]>()...
+        );
+
+        // cpp::refl::check_field(result);
+
+        return result;
     }
+
+    template <std::meta::info Field>
+    auto initialize_field() const
+    {
+        using FieldType = typename [:type_of(Field):];
+        std::optional<FieldType> result = std::nullopt;
+        
+        // Skippable
+        if constexpr (cpp::refl::has_annotation(Field, cpp::refl::skip, cpp::refl::skip_deserialization))
+        {
+            result = cpp::refl::handle<Field>::default_value();
+        }
+        else if constexpr (cpp::refl::has_annotation(Field, cpp::refl::flatten))
+        {
+            result.emplace(initializer<FieldType>(root)());
+        }
+        else
+        {
+            auto name = cpp::refl::handle<Field>::identifier();
+            auto it = root.as<cpp::json::object>().find(cpp::json::string(name));
+
+            if (it != root.as<cpp::json::object>().end())
+            {
+                constexpr auto info = cpp::refl::select_annotation(^^cpp::cast<FieldType>, Field, cpp::refl::serializer);
+                result.emplace(std::invoke(extract<typename [:type_of(info):]>(info), it->second));
+            }
+        }
+
+        if (!result)
+        {
+            throw std::runtime_error(std::format("Field {} is not skippable and has no default value", display_string_of(Field)));
+        }
+
+        return *result;
+    }
+    
 };
 
 
@@ -98,7 +159,8 @@ struct universal_caster
 {
     static T operator()(const value& root)
     {
-        return cpp::refl::construct_struct<T>(initializer(root));
+        // return cpp::refl::construct_struct<T>(initializer<T>(root));
+        return initializer<T>(root)();
     }
 };
 

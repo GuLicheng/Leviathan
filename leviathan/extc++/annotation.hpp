@@ -71,9 +71,9 @@ inline constexpr struct { } range_maker;
 // class SomeInterface { bool operator(const auto&); }
 inline constexpr struct { } value_guard;
 
-// inline constexpr struct { } skip_serialization;
+inline constexpr struct { } skip_serialization;
 
-// inline constexpr struct { } skip_deserialization;
+inline constexpr struct { } skip_deserialization;
 
 // Rename annotaion
 inline constexpr struct { } modify_identifier;
@@ -91,6 +91,10 @@ inline constexpr struct { } serializer;
 // type. We do not require the result type of the deserializer to be the string type.
 // You can deserializer it as any type you want, such as std::string, SomeBase64, etc.
 inline constexpr struct { } deserializer;
+
+// Any field annotated with [[=flatten]] will be treated as a flatten field, which means that
+// when serializing the field, we will serialize its members instead of the field itself.
+inline constexpr struct { } flatten;
 
 }  // namespace cpp::refl
 
