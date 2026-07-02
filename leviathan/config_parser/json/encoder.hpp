@@ -24,19 +24,6 @@ public:
 
     initializer(const cpp::json::value& root) : root(root) {}
 
-    // template <typename U, typename Serializer>
-    // void operator()(std::optional<U>& opt, const std::string& name, Serializer&& serializer) const
-    // {
-    //     assert(opt.has_value() == false);
-    
-    //     auto it = root.as<cpp::json::object>().find(cpp::json::string(name));
-
-    //     if (it != root.as<cpp::json::object>().end())
-    //     {
-    //         std::invoke((Serializer&&)serializer, opt, it->second);
-    //     }
-    // }
-
     T operator()() const
     {
         constexpr auto ctx = std::meta::access_context::current();
@@ -51,7 +38,7 @@ public:
         constexpr auto N = members.size();
         constexpr auto [...indices] = std::make_index_sequence<N>();
 
-        auto result =  T(
+        auto result = T(
             initializer<typename [:type_of(bases[base_indices]):]>(root)()...,
             initialize_field<members[indices]>()...
         );
@@ -100,8 +87,6 @@ public:
     }
     
 };
-
-
 
 namespace detail
 {

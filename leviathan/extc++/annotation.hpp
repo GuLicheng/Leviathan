@@ -213,11 +213,6 @@ struct [[=initializer]] function_value_annotation : callable<F>
     using callable<F>::operator();
 };
 
-inline constexpr auto default_value = [](auto value) static
-{
-    return function_value_annotation([value = std::move(value)]() { return value; });
-};
-
 template <typename T>
 struct [[=initializer]] function_array_annotation
 {
@@ -238,10 +233,32 @@ struct [[=initializer]] function_array_annotation
     constexpr auto& operator()() const { return *this; }
 };
 
-inline constexpr auto default_array = []<typename T>(std::initializer_list<T> values) static
+inline constexpr struct 
 {
-    return function_array_annotation<T>(values);
-};
+    template <typename T>
+    static constexpr auto operator()(const T& value) 
+    {
+        return function_value_annotation([x = *std::define_static_object(value)]() { return x; });
+    }
+
+    template <typename T>
+    static constexpr auto operator()(std::initializer_list<T> values) 
+    {
+        return function_array_annotation<T>(values);
+    }
+
+} default_value;
+
+// inline constexpr auto default_value = [](auto value) static
+// {
+//     // return function_value_annotation([value = std::move(value)]() { return value; });
+//     return function_value_annotation([value = *std::define_static_object(value)]() { return value; });
+// };
+
+// inline constexpr auto default_value = []<typename T>(std::initializer_list<T> values) static
+// {
+//     return function_array_annotation<T>(values);
+// };
 
 template <typename Prediction>
 struct [[=value_guard]] guard : callable<Prediction>

@@ -4,6 +4,7 @@
 #include <numeric>
 #include <iostream>
 #include <functional>
+#include <list>
 
 namespace json = cpp::json;
 
@@ -384,11 +385,6 @@ inline constexpr auto SerializeOtherInfo2 = FunctionSerializer([](auto& opt, con
     }
 });
 
-inline constexpr auto Flatten = FunctionSerializer([]<typename T>(std::optional<T>& opt, const json::value& v) {
-    auto result = cpp::refl::construct_struct<T>(json::initializer(v));
-    opt.emplace(std::move(result));
-});
-
 struct [[=cpp::derive::from<json::value>]] Student
 {
     std::string name;
@@ -425,6 +421,12 @@ struct [[=cpp::derive::from<json::value>]] Student
 
     [[=SerializeAsTuple]]
     Profile profile;
+
+    [[=cpp::refl::skip, =cpp::refl::default_value("Unknown")]]
+    std::string unknownAttribute1;
+
+    [[=cpp::refl::skip, =cpp::refl::default_value({-1, -2})]]
+    std::list<int> unknownAttribute2;
 };
 
 TEST_CASE("annotation")
@@ -447,7 +449,8 @@ TEST_CASE("annotation")
         }},
         {"profile", {1, 3.14, "Hello"}},
         {"idType", "Passport"},
-        {"idNumber", "A12345678"}
+        {"idNumber", "A12345678"},
+        {"unknownAttribute1", "This attribute is unknown."}
     };
 
     auto student = cpp::cast<Student>(v);
@@ -470,6 +473,10 @@ TEST_CASE("annotation")
     REQUIRE(student.profile.nickname == "Hello");
     REQUIRE(student.customerBasicInfo.idType == "Passport");
     REQUIRE(student.customerBasicInfo.idNumber == "A12345678");
+    REQUIRE(student.unknownAttribute1 == "Unknown");
+    REQUIRE(student.unknownAttribute2.size() == 2);
+    REQUIRE(student.unknownAttribute2.front() == -1);
+    REQUIRE(student.unknownAttribute2.back() == -2);
 }
 
 
