@@ -53,6 +53,19 @@ inline constexpr struct { } tuple_like;
 namespace cpp::refl
 {
 
+struct annotation { };
+
+struct rename_annotation : annotation { };
+
+struct initializer_annotation : annotation { };
+
+struct value_annotation : annotation { };
+
+struct source_annotation : annotation { };
+
+
+
+
 // Any field annotated with [[=skip]] will be ignored in code generation
 // When initializing a struct from a tuple, the skipped fields will be 
 // initialized with default value or default initializer.
@@ -79,8 +92,6 @@ inline constexpr struct { } skip_deserialization;
 inline constexpr struct { } modify_identifier;
 
 inline constexpr struct { } initializer;
-
-// inline constexpr struct { } parse_annotation;
 
 // Any type annotated with [[=serializer]] will be treated as a serializer, which means that
 // when serializing the type, we will use the serializer to convert it into target type.

@@ -1,75 +1,63 @@
 #include <leviathan/extc++/meta.hpp>
 #include <leviathan/extc++/tuple.hpp>
 #include <leviathan/extc++/format.hpp>
+#include <leviathan/extc++/variant.hpp>
 #include <leviathan/extc++/array.hpp>
 #include <leviathan/config_parser/json/json.hpp>
 #include <print>
 
-struct [[=cpp::derive::debug, =cpp::derive::from<cpp::json::value>]] FlattenValue
+struct Rename : cpp::refl::rename_annotation
 {
-    int A;
-    int B;
-};
-
-inline constexpr struct 
-{
-    template <typename T>
-    static constexpr auto operator()(const T& value) 
+    constexpr std::string operator()(std::string old_name) 
     {
-        return cpp::refl::function_value_annotation([x = *std::define_static_object(value)]() { return x; });
+        return "new_" + old_name;
     }
-
-    template <typename T>
-    static constexpr auto operator()(std::initializer_list<T> values) 
-    {
-        return cpp::refl::function_array_annotation<T>(values);
-    }
-} DefaultValue;
-
-union Union
-{
-    int X;
-    double Y;
-
-    constexpr Union() = default;
-
-    template <typename T>
-    constexpr Union(T x) {
-        if (std::integral<T>) 
-        {
-            X = static_cast<int>(x);
-        }
-        else if (std::floating_point<T>)
-        {
-            Y = static_cast<double>(x);
-        }
-    }
-
 };
 
-struct [[=cpp::refl::lowercase, =cpp::derive::from<cpp::json::value>, =cpp::derive::debug]] Foo
-{
-    [[=cpp::refl::default_value(10)]]
-    int X;
+struct Base1 : std::pair<int, int> { };
 
-    [[=Union(4)]]
-    [[=cpp::refl::skip]]
-    [[=DefaultValue(cpp::array<cpp::array<int>>{ { 1, 2, 3}, { 4, 5, 6, 7}})]]
-    std::vector<std::vector<int>> Y;
+using PII = std::pair<int, int>;
+
+struct Foo : Base1, std::tuple<int, double, std::string>
+{
 };
 
+using Bar = Foo;
 
+consteval std::vector<std::meta::info> all_bases_of(std::meta::info info)
+{
+    auto bases = std::views::concat(std::vector{std::meta::dealias(info)}, bases_of(info, std::meta::access_context::unchecked()) 
+            | std::views::transform(std::meta::type_of)
+            | std::views::transform(all_bases_of)
+            | std::views::join)
+            | std::ranges::to<std::vector>();
 
+    std::vector<std::meta::info> result;
+    std::ranges::copy_if(bases, std::back_inserter(result), [&](auto info) {
+        return !std::ranges::contains(result, info, std::meta::dealias);
+    }, std::meta::dealias);
+    return result;
+}
+
+consteval bool is_derived_from(std::meta::info derived, std::meta::info base)
+{
+    return std::ranges::contains(all_bases_of(derived), dealias(base), std::meta::dealias);
+}
+
+consteval bool is_derived_from_template(std::meta::info derived, std::meta::info template_info)
+{
+}
 
 int main(int argc, char const *argv[])
 {
-    cpp::json::value v = {
-        {"x", 120},
-    };
+    constexpr static auto bases = define_static_array(all_bases_of(^^Bar));
 
-    auto foo = cpp::cast<Foo>(v);
+    template for (constexpr auto base : bases)
+    {
+        std::print("base: [{}]\n", display_string_of(base));
+    }
 
-    std::println("foo: {}", foo);
+    static_assert(is_derived_from(^^Bar, ^^Base1));
 
     return 0;
 }
