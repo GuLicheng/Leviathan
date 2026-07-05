@@ -35,7 +35,7 @@ public:
 
     T operator()() const
     {
-        if constexpr (std::meta::is_aggregate_type(^^T))
+        if constexpr (is_aggregate_type(^^T))
         {
             return aggregate_constructor();
         }
@@ -48,7 +48,7 @@ public:
     T user_defined_constructor() const
     {
         constexpr auto ctor = constructor();
-        constexpr static auto params = define_static_array(std::meta::parameters_of(ctor));
+        constexpr static auto params = define_static_array(parameters_of(ctor));
         constexpr auto [...indices] = std::make_index_sequence<params.size()>();
 
         auto impl = [&]<size_t Idx>() {

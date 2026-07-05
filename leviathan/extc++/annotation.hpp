@@ -110,7 +110,7 @@ inline constexpr struct { } constructor;
 namespace cpp::refl
 {
 
-template <typename F, typename Annotation>
+template <typename Annotation, typename F>
 struct callable : public Annotation
 {
     F function;
@@ -124,6 +124,12 @@ struct callable : public Annotation
     }
 };
 
+template <typename Annotation, typename F>
+constexpr auto make_callable(F f) 
+{
+    return callable<Annotation, F>(std::move(f));
+}
+
 /*
     - lowercase
     - UPPERCASE
@@ -135,43 +141,36 @@ struct callable : public Annotation
     - SCREAMING-KEBAB-CASE
 */
 
-template <typename F>
-struct rename_function : callable<F, rename_annotation>
-{
-    using callable<F, rename_annotation>::callable;
-    using callable<F, rename_annotation>::operator();
-};
-
-inline constexpr auto shortname = rename_function([](std::string field_name) static 
+inline constexpr auto shortname = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static 
 {
     // assert(!name.empty(), "Name cannot be empty");
     return '-' + std::string(field_name.begin(), field_name.begin() + 1);
 });
 
-inline constexpr auto longname = rename_function([](std::string field_name) static 
+inline constexpr auto longname = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static 
 {
     // assert(!name.empty(), "Name cannot be empty");
     return "--" + std::string(field_name);
 });
 
-inline constexpr auto selfname = rename_function([](std::string field_name) static 
+inline constexpr auto selfname = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static 
 {
     return field_name;
 });
 
-inline constexpr auto lowercase = rename_function([](std::string field_name) static 
+inline constexpr auto lowercase = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static 
 {
     return field_name | std::views::transform(::tolower) | std::ranges::to<std::string>();
 });
 
-inline constexpr auto uppercase = rename_function([](std::string field_name) static 
+inline constexpr auto uppercase = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static 
 {
     return field_name | std::views::transform(::toupper) | std::ranges::to<std::string>();
 });
 
 inline constexpr auto rename = [](std::string_view new_name) static
 {
-    return rename_function([name=define_static_string(new_name)](auto&&...)  
+    return make_callable<cpp::refl::rename_annotation>([name=define_static_string(new_name)](auto&&...)  
     {
         return std::string(name);
     });
@@ -179,7 +178,7 @@ inline constexpr auto rename = [](std::string_view new_name) static
 
 // Follows functions in terms of implementation maybe incorrect
 // FIXME: Rust clap-
-inline constexpr auto camel_case = rename_function([](std::string field_name) static
+inline constexpr auto camel_case = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static
 {
     std::string out;
     bool upper_next = false;
@@ -194,7 +193,7 @@ inline constexpr auto camel_case = rename_function([](std::string field_name) st
     return out;
 });
 
-inline constexpr auto pascal_case = rename_function([](std::string field_name) static
+inline constexpr auto pascal_case = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static
 {
     auto upper_first_character = [](auto&& part) static {
         if (!part.empty()) part.front() = ::toupper(part.front());
@@ -208,17 +207,10 @@ inline constexpr auto pascal_case = rename_function([](std::string field_name) s
          | std::ranges::to<std::string>();
 });
 
-inline constexpr auto kebab_case = rename_function([](std::string field_name) static
+inline constexpr auto kebab_case = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static
 {
     return field_name | std::views::transform([](char c) { return c == '_' ? '-' : c; }) | std::ranges::to<std::string>();
 });
-
-template <typename F>
-struct function_value_annotation : callable<F, initializer_annotation> 
-{
-    using callable<F, initializer_annotation>::callable;
-    using callable<F, initializer_annotation>::operator();
-};
 
 template <typename T>
 struct function_array_annotation : initializer_annotation
@@ -245,7 +237,7 @@ inline constexpr struct
     template <typename T>
     static constexpr auto operator()(const T& value) 
     {
-        return function_value_annotation([x = *std::define_static_object(value)]() { return x; });
+        return make_callable<initializer_annotation>([x = *std::define_static_object(value)]() { return x; });
     }
 
     template <typename T>
@@ -256,16 +248,9 @@ inline constexpr struct
 
 } default_value;
 
-template <typename Prediction>
-struct guard : callable<Prediction, guard_annotation>
-{
-    using callable<Prediction, guard_annotation>::callable;
-    using callable<Prediction, guard_annotation>::operator();
-};
-
 inline constexpr auto choice = []<typename... Ts>(Ts&&... ts) 
 {
-    return guard([...ts=(Ts&&)ts](const auto& value) {
+    return make_callable<guard_annotation>([...ts=(Ts&&)ts](const auto& value) {
         template for (const auto& element : std::make_tuple((Ts&&)ts...))
             if (element == value)
                 return true;
@@ -275,7 +260,11 @@ inline constexpr auto choice = []<typename... Ts>(Ts&&... ts)
 
 inline constexpr auto range = []<typename Lower, typename Upper>(Lower lower, Upper upper) 
 {
-    return guard([lower, upper](const auto& value) {
+    // return guard([lower, upper](const auto& value) {
+    //     return value >= lower && value <= upper;
+    // });
+
+    return make_callable<guard_annotation>([lower, upper](const auto& value) {
         return value >= lower && value <= upper;
     });
 };

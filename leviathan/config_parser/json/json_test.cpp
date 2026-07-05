@@ -312,15 +312,7 @@ enum class [[=cpp::derive::from<json::value>]] Gender
     Female,
 };
 
-// Change member field serializer, for example, add 1 to each grade when deserializing.
-template <typename F>
-struct FunctionSerializer : cpp::refl::callable<F, cpp::refl::serializer_annotation>
-{
-    using cpp::refl::callable<F, cpp::refl::serializer_annotation>::callable;
-    using cpp::refl::callable<F, cpp::refl::serializer_annotation>::operator();
-};
-
-inline constexpr auto PlusOne = FunctionSerializer([](std::optional<std::vector<int>>& opt, const json::value& v) {
+inline constexpr auto PlusOne = cpp::refl::make_callable<cpp::refl::serializer_annotation>([](std::optional<std::vector<int>>& opt, const json::value& v) {
     auto x1 = v.as<json::array>()[0].as<json::number>().as_signed_integer() + 1;
     auto x2 = v.as<json::array>()[1].as<json::number>().as_signed_integer() + 1;
     auto x3 = v.as<json::array>()[2].as<json::number>().as_signed_integer() + 1;
@@ -362,7 +354,7 @@ struct cpp::optional_caster<json::value, OtherInfo1>
     }
 };
 
-inline constexpr auto SerializeAsTuple = FunctionSerializer([]<typename T>(std::optional<T>& opt, const json::value& v) {
+inline constexpr auto SerializeAsTuple = cpp::refl::make_callable<cpp::refl::serializer_annotation>([]<typename T>(std::optional<T>& opt, const json::value& v) {
     constexpr auto ctx = std::meta::access_context::current();
     constexpr static auto members = std::define_static_array(std::meta::nonstatic_data_members_of(^^T, ctx));
     constexpr auto [...indices] = std::make_index_sequence<members.size()>{};
@@ -370,7 +362,7 @@ inline constexpr auto SerializeAsTuple = FunctionSerializer([]<typename T>(std::
 });
 
 // Use user-defined annotation 
-inline constexpr auto SerializeOtherInfo2 = FunctionSerializer([](auto& opt, const json::value& v) {
+inline constexpr auto SerializeOtherInfo2 = cpp::refl::make_callable<cpp::refl::serializer_annotation>([](auto& opt, const json::value& v) {
     if (!v.is_object())
     {
         return;
