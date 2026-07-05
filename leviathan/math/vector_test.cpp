@@ -61,7 +61,7 @@ TEST_CASE("3D vector floating test binary operation")
 }
 
 template <typename Vector>
-struct [[=cpp::refl::range_maker]] VectorDataGenerator
+struct [[=cpp::refl::range_maker]] VectorDataGenerator : cpp::refl::source_annotation
 {
     using R = cpp::tuple<Vector, Vector>;
 

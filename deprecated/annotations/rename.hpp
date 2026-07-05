@@ -18,10 +18,10 @@ namespace cpp::refl
 {
 
 template <typename F>
-struct [[=modify_identifier]] rename_function : callable<F>
+struct rename_function : callable<F, rename_annotation>
 {
-    using callable<F>::callable;
-    using callable<F>::operator();
+    using callable<F, rename_annotation>::callable;
+    using callable<F, rename_annotation>::operator();
 };
 
 inline constexpr auto shortname = rename_function([](std::string field_name) static 

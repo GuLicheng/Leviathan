@@ -50,7 +50,8 @@ void invoke_test_functions()
                         constexpr auto args = extract<typename [:type_of(anno):]>(anno);
                         cpp::apply([:info:], args);
                     } 
-                    else if constexpr (cpp::refl::has_annotation(type_of(anno), cpp::refl::range_maker)) 
+                    // else if constexpr (cpp::refl::has_annotation(type_of(anno), cpp::refl::range_maker)) 
+                    else if constexpr (cpp::refl::is_derived_from(type_of(anno), ^^cpp::refl::source_annotation)) 
                     {
                         for (auto data : std::invoke(extract<typename [:type_of(anno):]>(anno))) 
                         {

@@ -9,7 +9,7 @@
 #include <vector>
 #include <ranges>
 #include <functional>
-#include <leviathan//type_caster.hpp>
+#include <leviathan/type_caster.hpp>
 #include <leviathan/extc++/annotation.hpp>
 
 namespace cpp::refl
@@ -111,8 +111,6 @@ consteval std::vector<std::meta::info> all_parents(std::meta::info info)
     return result;
 }
 
-
-
 /**
  * @brief Check if the given annotation is present on the given info.
  * @param r Anything that can be reflected, such as class, field, base class, etc.
@@ -126,14 +124,20 @@ consteval std::vector<std::meta::info> all_parents(std::meta::info info)
  * inline constexpr auto SomeInstance [[=some_annotation]] = SomeInstance{};
  * static_assert(has_annotation(^^SomeInstance, some_annotation));
  */
-template <typename... Ts>
-consteval bool has_annotation(std::meta::info r, const Ts&... objs) 
+template <typename T>
+consteval bool has_annotation(std::meta::info r, const T& obj) 
 {
-    return (... || std::ranges::contains(
-        annotations_of_with_type(r, ^^Ts),
-        std::meta::reflect_constant(objs),
+    return std::ranges::contains(
+        annotations_of_with_type(r, ^^T),
+        std::meta::reflect_constant(obj),
         std::meta::constant_of
-    ));
+    );
+}
+
+template <typename... Ts>
+consteval bool has_annotations(std::meta::info r, const Ts&... objs) 
+{
+    return (... || has_annotation(r, objs));
 }
 
 /**
@@ -180,11 +184,44 @@ consteval std::vector<std::meta::info> all_nsdm_unchecked()
     ) | std::ranges::to<std::vector>();
 }
 
+/**
+ * @brief Get all non-static data members of a class, including those inherited from base classes.
+ * @param info The meta-information of the class to get the non-static data members of.
+ * @param ctx The access context to use when accessing the members.
+ */
 consteval std::vector<std::meta::info> all_nonstatic_data_members_of(std::meta::info info, std::meta::access_context ctx)
 {
-    return all_bases_of(info) | std::views::transform([=](auto base) {
-        return nonstatic_data_members_of(base, ctx);
-    }) | std::views::join | std::ranges::to<std::vector>();
+    return all_bases_of(info) 
+         | std::views::transform([=](auto base) { return nonstatic_data_members_of(base, ctx); })
+         | std::views::join 
+         | std::ranges::to<std::vector>();
+}
+
+/**
+ * @brief Get all annotations of a type that have a specific type annotation.
+ *  Different from std::meta::annotations_of_with_type, this function will return 
+ *  the annotations that are derived from the given type annotation, not just the exact type.
+ * @param info The meta-information of the type to get annotations from.
+ * @param type_or_template The meta-information of the type or template to filter annotations by.
+ */
+consteval std::vector<std::meta::info> select_annotations_with_type(std::meta::info info, std::meta::info type_or_template)
+{ 
+    auto instance_of = std::views::filter([=](std::meta::info anno_type) { 
+        return is_template(type_or_template) 
+             ? is_derived_from_template(anno_type, type_or_template) 
+             : is_derived_from(anno_type, type_or_template); 
+    });
+
+    return annotations_of(info) 
+         | std::views::transform(std::meta::type_of) 
+         | instance_of
+         | std::ranges::to<std::vector>();
+}
+
+consteval std::meta::info select_annotation_with_type(std::meta::info default_info, std::meta::info info, std::meta::info type_or_template)
+{
+    auto annotations = select_annotations_with_type(info, type_or_template);
+    return annotations.size() > 0 ? annotations[0] : default_info;
 }
 
 /**
@@ -238,58 +275,10 @@ consteval std::meta::info member_named(const char* name)
     for (std::meta::info field : members_of(^^T, ctx))
         if (has_identifier(field) && identifier_of(field) == name)
             return field;
-    // throw std::runtime_error(std::format("No member named {} in type {}", name, identifier_of(^^T)));
     throw std::runtime_error("No member named " + std::string(name) + " in type " + std::string(identifier_of(^^T)));
 }
 
-namespace detail
-{
 
-static consteval bool has_modify_identifier(std::meta::info anno)
-{
-    // The anno must be an instance.
-    return has_annotation(type_of(anno), modify_identifier);
-}
-
-template <std::meta::info Info>
-struct extract_name_by_annotation_impl
-{
-    static constexpr std::string operator()(std::string name)
-    {
-        if constexpr (Info == ^^::)
-        {
-            return name;
-        }
-        else 
-        {
-            template for (constexpr auto anno : define_static_array(annotations_of(Info)))
-                if constexpr (has_modify_identifier(anno))
-                    return std::invoke(extract<typename [:type_of(anno):]>(anno), name);
-            return extract_name_by_annotation_impl<parent_of(Info)>()(name);
-        }
-    } 
-};
-
-}  // namespace detail
-
-/**
- * @brief Extract the name of a member by its annotation. If multiple annotations are provided, 
- * the first annotation that can extract a name will be used.
- * 
- * @tparam Info1 The meta-information of the member to extract the name from.
- * @tparam Infos The meta-information of the annotations to use for extracting the name.
- * 
- * @example
- *  struct MyStruct { int X; double [[=rename("Z")]] Y; };
- *  std::string name1 = extract_name_by_annotation<^^MyStruct::X>(); // "X"
- *  std::string name2 = extract_name_by_annotation<^^MyStruct::Y>(); // "Z"
- */
-template <std::meta::info Info>
-constexpr std::string extract_name_by_annotation()
-{
-    constexpr auto name = identifier_of(Info);
-    return detail::extract_name_by_annotation_impl<Info>()(std::string(name));
-}
 
 /**
  * @brief Convert a struct to a tuple by its members.
@@ -337,9 +326,9 @@ constexpr auto struct_to_tuple(const T& t)
 template <typename... Ts>
 consteval std::vector<std::meta::info> select_annotations(std::meta::info info, const Ts&... xs) 
 {
-    return annotations_of(info) | std::views::filter([&](std::meta::info anno) {
-        return has_annotation(type_of(anno), xs...);
-    }) | std::ranges::to<std::vector>();
+    return annotations_of(info) 
+         | std::views::filter([&](std::meta::info anno) { return has_annotation(type_of(anno), xs...); })
+         | std::ranges::to<std::vector>();
 }
 
 /**
@@ -371,7 +360,7 @@ class handle
         }
         else
         {
-            constexpr auto renames = define_static_array(select_annotations(FieldInfo, modify_identifier)); 
+            constexpr auto renames = define_static_array(select_annotations_with_type(FieldInfo, ^^rename_annotation)); 
             
             if constexpr (renames.size() > 0)
             {
@@ -386,6 +375,15 @@ class handle
 
 public:
 
+    /**
+     * @brief Extract the name of a member by its annotation. If multiple annotations are provided, 
+     * the first annotation that can extract a name will be used.
+     * 
+     * @example
+     *  struct MyStruct { int X; double [[=rename("Z")]] Y; };
+     *  std::string name1 = identifier<^^MyStruct::X>(); // "X"
+     *  std::string name2 = identifier<^^MyStruct::Y>(); // "Z"
+     */
     static constexpr std::string identifier() 
     {
         auto name = std::string(identifier_of(FieldInfo));
@@ -398,7 +396,7 @@ public:
 
         std::optional<Type> value = std::nullopt;
 
-        constexpr auto initializers = define_static_array(select_annotations(FieldInfo, initializer));
+        constexpr auto initializers = define_static_array(select_annotations_with_type(FieldInfo, ^^initializer_annotation));
 
         if constexpr (initializers.size() > 0)
         {
@@ -432,7 +430,8 @@ constexpr bool check_field(const T& x)
     constexpr auto [...indices] = std::make_index_sequence<members.size()>{};
     
     auto impl = [&]<size_t Idx>() {
-        constexpr auto gurads = define_static_array(select_annotations(members[Idx], cpp::refl::value_guard));
+        // constexpr auto gurads = define_static_array(select_annotations(members[Idx], cpp::refl::value_guard));
+        constexpr auto gurads = define_static_array(select_annotations_with_type(members[Idx], ^^cpp::refl::guard_annotation));
         constexpr auto [...guard_indices] = std::make_index_sequence<gurads.size()>{};
         return (... && std::invoke(extract<typename [:type_of(gurads[guard_indices]):]>(gurads[guard_indices]), x.[:members[Idx]:]));
     };

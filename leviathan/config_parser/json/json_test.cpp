@@ -314,10 +314,10 @@ enum class [[=cpp::derive::from<json::value>]] Gender
 
 // Change member field serializer, for example, add 1 to each grade when deserializing.
 template <typename F>
-struct [[=cpp::refl::serializer]] FunctionSerializer : cpp::refl::callable<F>
+struct FunctionSerializer : cpp::refl::callable<F, cpp::refl::serializer_annotation>
 {
-    using cpp::refl::callable<F>::callable;
-    using cpp::refl::callable<F>::operator();
+    using cpp::refl::callable<F, cpp::refl::serializer_annotation>::callable;
+    using cpp::refl::callable<F, cpp::refl::serializer_annotation>::operator();
 };
 
 inline constexpr auto PlusOne = FunctionSerializer([](std::optional<std::vector<int>>& opt, const json::value& v) {

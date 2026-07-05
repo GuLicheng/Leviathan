@@ -58,22 +58,23 @@ public:
         std::optional<FieldType> result = std::nullopt;
         
         // Skippable
-        if constexpr (cpp::refl::has_annotation(Field, cpp::refl::skip, cpp::refl::skip_deserialization))
+        if constexpr (refl::has_annotations(Field, refl::skip_deserialization, refl::skip))
         {
-            result = cpp::refl::handle<Field>::default_value();
+            result = refl::handle<Field>::default_value();
         }
-        else if constexpr (cpp::refl::has_annotation(Field, cpp::refl::flatten))
+        else if constexpr (refl::has_annotation(Field, refl::flatten))
         {
             result.emplace(initializer<FieldType>(root)());
         }
         else
         {
-            auto name = cpp::refl::handle<Field>::identifier();
+            auto name = refl::handle<Field>::identifier();
             auto it = root.as<cpp::json::object>().find(cpp::json::string(name));
 
             if (it != root.as<cpp::json::object>().end())
             {
-                constexpr auto info = cpp::refl::select_annotation(^^caster_adaptor, Field, cpp::refl::serializer);
+                // constexpr auto info = refl::select_annotation(^^caster_adaptor, Field, refl::serializer);
+                constexpr auto info = refl::select_annotation_with_type(^^caster_adaptor, Field, ^^refl::serializer_annotation);
                 std::invoke(extract<typename [:type_of(info):]>(info), result, it->second);
             }
         }

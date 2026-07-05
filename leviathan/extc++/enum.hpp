@@ -21,7 +21,7 @@ struct enum_decoder
     static constexpr std::optional<Enum> operator()(std::string_view str) requires (!Exception)
     {
         template for (constexpr auto e : define_static_array(enumerators_of(^^Enum)))
-            if (str == refl::extract_name_by_annotation<e>())
+            if (str == refl::handle<e>::identifier())
                 return [:e:];
         return std::nullopt;
     }
@@ -42,7 +42,7 @@ struct enum_encoder
     {
         template for (constexpr auto e : define_static_array(enumerators_of(^^Enum)))
             if (value == [:e:])
-                return refl::extract_name_by_annotation<e>();
+                return refl::handle<e>::identifier();
         return std::nullopt;
     }
 };

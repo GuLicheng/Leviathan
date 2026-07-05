@@ -299,7 +299,7 @@ public:
 
             template for (constexpr auto mem : members)
             {
-                std::string_view mem_name = has_identifier(mem) ? refl::extract_name_by_annotation<mem, ^^Source>()
+                std::string_view mem_name = has_identifier(mem) ? refl::handle<mem>::identifier()
                     : std::meta::display_string_of(mem);
 
                 obj.try_emplace(

@@ -61,47 +61,39 @@ struct initializer_annotation : annotation { };
 
 struct value_annotation : annotation { };
 
+struct guard_annotation : annotation { };
+
+// Any type annotated with [[=serializer]] will be treated as a serializer, which means that
+// when serializing the type, we will use the serializer to convert it into target type.
+struct serializer_annotation : annotation { };
+
+// Any type annotated with [[=deserializer]] will be treated as a deserializer, which means that
+// when deserializing the type, we will use the deserializer to convert it into target
+// type. We do not require the result type of the deserializer to be the string type.
+// You can deserializer it as any type you want, such as std::string, SomeBase64, etc.
+struct deserializer_annotation : annotation { };
+
+// Any class annotated with [[=range_maker]] will be treated as a range producer, 
+// such as derive from followe class
+// class SomeInterface { std::ranges::range<R> operator()(); }
 struct source_annotation : annotation { };
-
-
-
 
 // Any field annotated with [[=skip]] will be ignored in code generation
 // When initializing a struct from a tuple, the skipped fields will be 
 // initialized with default value or default initializer.
 inline constexpr struct { } skip;
 
-inline constexpr struct { } test;
+inline constexpr struct { } skip_deserialization;
 
-// Any class annotated with [[=range_maker]] will be treated as a range producer, 
-// such as derive from followe class
-// class SomeInterface { std::ranges::range<R> operator()(); }
-inline constexpr struct { } range_maker;
+inline constexpr struct { } skip_serialization;
+
+inline constexpr struct { } test;
 
 // Any field annotated with [[=value_guard]] will be treated as a choice field, which means that
 // when initializing the field, we will try to find an annotation with [[=value_guard]] 
 // and use it to check if the value is valid. Such as derive from followe class
 // class SomeInterface { bool operator(const auto&); }
-inline constexpr struct { } value_guard;
-
-inline constexpr struct { } skip_serialization;
-
-inline constexpr struct { } skip_deserialization;
-
-// Rename annotaion
-inline constexpr struct { } modify_identifier;
-
-inline constexpr struct { } initializer;
-
-// Any type annotated with [[=serializer]] will be treated as a serializer, which means that
-// when serializing the type, we will use the serializer to convert it into target type.
-inline constexpr struct { } serializer;
-
-// Any type annotated with [[=deserializer]] will be treated as a deserializer, which means that
-// when deserializing the type, we will use the deserializer to convert it into target
-// type. We do not require the result type of the deserializer to be the string type.
-// You can deserializer it as any type you want, such as std::string, SomeBase64, etc.
-inline constexpr struct { } deserializer;
+// inline constexpr struct { } value_guard;
 
 // Any field annotated with [[=flatten]] will be treated as a flatten field, which means that
 // when serializing the field, we will serialize its members instead of the field itself.
@@ -114,12 +106,12 @@ inline constexpr struct { } flatten;
 namespace cpp::refl
 {
 
-template <typename F>
-struct callable
+template <typename F, typename Annotation>
+struct callable : public Annotation
 {
     F function;
 
-    explicit constexpr callable(F function) : function(std::move(function)) {}
+    explicit constexpr callable(F function) : Annotation(), function(std::move(function)) {}
 
     template <typename Self, typename... Args>
     constexpr auto operator()(this Self&& self, Args&&... args) 
@@ -140,10 +132,10 @@ struct callable
 */
 
 template <typename F>
-struct [[=modify_identifier]] rename_function : callable<F>
+struct rename_function : callable<F, rename_annotation>
 {
-    using callable<F>::callable;
-    using callable<F>::operator();
+    using callable<F, rename_annotation>::callable;
+    using callable<F, rename_annotation>::operator();
 };
 
 inline constexpr auto shortname = rename_function([](std::string field_name) static 
@@ -218,14 +210,14 @@ inline constexpr auto kebab_case = rename_function([](std::string field_name) st
 });
 
 template <typename F>
-struct [[=initializer]] function_value_annotation : callable<F>
+struct function_value_annotation : callable<F, initializer_annotation> 
 {
-    using callable<F>::callable;
-    using callable<F>::operator();
+    using callable<F, initializer_annotation>::callable;
+    using callable<F, initializer_annotation>::operator();
 };
 
 template <typename T>
-struct [[=initializer]] function_array_annotation
+struct function_array_annotation : initializer_annotation
 {
     const T* data;
 
@@ -260,22 +252,11 @@ inline constexpr struct
 
 } default_value;
 
-// inline constexpr auto default_value = [](auto value) static
-// {
-//     // return function_value_annotation([value = std::move(value)]() { return value; });
-//     return function_value_annotation([value = *std::define_static_object(value)]() { return value; });
-// };
-
-// inline constexpr auto default_value = []<typename T>(std::initializer_list<T> values) static
-// {
-//     return function_array_annotation<T>(values);
-// };
-
 template <typename Prediction>
-struct [[=value_guard]] guard : callable<Prediction>
+struct guard : callable<Prediction, guard_annotation>
 {
-    using callable<Prediction>::callable;
-    using callable<Prediction>::operator();
+    using callable<Prediction, guard_annotation>::callable;
+    using callable<Prediction, guard_annotation>::operator();
 };
 
 inline constexpr auto choice = []<typename... Ts>(Ts&&... ts) 

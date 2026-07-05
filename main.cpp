@@ -5,8 +5,14 @@
 #include <leviathan/extc++/array.hpp>
 #include <leviathan/config_parser/json/json.hpp>
 #include <print>
+#include <iostream>
 
-struct Rename : cpp::refl::rename_annotation
+template <typename T>
+struct SkipAnnotation : cpp::refl::annotation
+{
+};
+
+struct Rename1 : SkipAnnotation<int>
 {
     constexpr std::string operator()(std::string old_name) 
     {
@@ -14,41 +20,39 @@ struct Rename : cpp::refl::rename_annotation
     }
 };
 
-struct Base1 : std::pair<int, int> { };
-
-using PII = std::pair<int, int>;
-
-struct Foo : Base1, std::tuple<int, double, std::string>
+struct Rename2 : cpp::refl::rename_annotation
 {
+    constexpr std::string operator()([[=Rename1()]] std::string old_name) 
+    {
+        return "another_" + old_name;
+    }
 };
 
-using Bar = Foo;
-
-namespace Cxx::Rust
+struct MyStruct
 {
-    struct Class1
-    {
-        enum class Color : uint8_t {
-            Red = 0,
-            Green,
-            Blue,
-            Yellow,
-            Magenta,
-            Cyan
-        };
-    };
-}
+    int a;
+    [[=Rename1(), =Rename2(), =cpp::refl::skip]] double b;
+    [[=cpp::refl::skip]] std::string c;
+};
 
+using TypeAlias = MyStruct;
 
 
 int main(int argc, char const *argv[])
 {
-    constexpr static auto bases = define_static_array(all_nonstatic_data_members_of(^^Bar, std::meta::access_context::unchecked()));
+    constexpr static auto bases = define_static_array(cpp::refl::select_annotations_with_type(^^MyStruct::b, ^^cpp::refl::annotation));
 
     template for (constexpr auto base : bases)
     {
         std::print("base: [{}]\n", display_string_of(base));
     }
+
+    TypeAlias c;
+
+    std::cout << display_string_of(type_of(^^c)) << std::endl;
+
+    static_assert(!std::meta::is_template(^^std::vector<int>));
+    static_assert(std::meta::is_template(^^std::vector));
 
     return 0;
 }
