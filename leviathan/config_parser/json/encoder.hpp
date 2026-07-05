@@ -73,7 +73,6 @@ public:
 
             if (it != root.as<cpp::json::object>().end())
             {
-                // constexpr auto info = refl::select_annotation(^^caster_adaptor, Field, refl::serializer);
                 constexpr auto info = refl::select_annotation_with_type(^^caster_adaptor, Field, ^^refl::serializer_annotation);
                 std::invoke(extract<typename [:type_of(info):]>(info), result, it->second);
             }

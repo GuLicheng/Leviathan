@@ -7,55 +7,30 @@
 #include <print>
 #include <iostream>
 
-template <typename T>
-struct SkipAnnotation : cpp::refl::annotation
+struct [[=cpp::derive::from<cpp::json::value>, =cpp::derive::debug]] MyStruct
 {
+    [[=cpp::refl::rename("X")]]
+    int x;
+    double y;
+    std::string z;
 };
-
-struct Rename1 : SkipAnnotation<int>
-{
-    constexpr std::string operator()(std::string old_name) 
-    {
-        return "new_" + old_name;
-    }
-};
-
-struct Rename2 : cpp::refl::rename_annotation
-{
-    constexpr std::string operator()([[=Rename1()]] std::string old_name) 
-    {
-        return "another_" + old_name;
-    }
-};
-
-struct MyStruct
-{
-    int a;
-    [[=Rename1(), =Rename2(), =cpp::refl::skip]] double b;
-    [[=cpp::refl::skip]] std::string c;
-};
-
-using TypeAlias = MyStruct;
-
 
 int main(int argc, char const *argv[])
 {
-    constexpr static auto bases = define_static_array(cpp::refl::select_annotations_with_type(^^MyStruct::b, ^^cpp::refl::annotation));
+    
+    auto name = cpp::refl::handle<^^MyStruct::x>::identifier();
 
-    template for (constexpr auto base : bases)
-    {
-        std::print("base: [{}]\n", display_string_of(base));
-    }
+    std::println("Field name: {}", name);
 
-    TypeAlias c;
+    cpp::json::value obj = {
+        {"X", 1},
+        {"y", 3.14},
+        {"z", "hello"}
+    };
 
-    std::cout << display_string_of(type_of(^^c)) << std::endl;
+    auto s = cpp::cast<MyStruct>(obj);
 
-    static_assert(!std::meta::is_template(^^std::vector<int>));
-    static_assert(std::meta::is_template(^^std::vector));
+    std::println("{} {} {}", s.x, s.y, s.z);
 
     return 0;
 }
-
-
-

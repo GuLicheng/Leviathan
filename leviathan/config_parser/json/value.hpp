@@ -294,7 +294,8 @@ public:
         }
         else if constexpr (std::is_class_v<Source> && refl::has_annotation(^^Source, cpp::derive::into<cpp::json::value>))
         {
-            constexpr static auto members = define_static_array(cpp::refl::all_nsdm_unchecked<Source>());
+            constexpr auto ctx = std::meta::access_context::unchecked();
+            constexpr static auto members = define_static_array(cpp::refl::all_nonstatic_data_members_of(^^Source, ctx));
             json::object obj;
 
             template for (constexpr auto mem : members)

@@ -30,7 +30,7 @@ namespace cpp::refl
 consteval std::vector<std::meta::info> all_bases_of(std::meta::info info)
 {
     auto bases = std::views::concat(std::vector{std::meta::dealias(info)}, bases_of(info, std::meta::access_context::unchecked()) 
-            | std::views::transform(std::meta::type_of)
+            | std::views::transform(std::meta::type_of) // The info from bases_of is a base class specifier, we need to get the type of it.
             | std::views::transform(all_bases_of)
             | std::views::join)
             | std::ranges::to<std::vector>();
@@ -169,21 +169,6 @@ consteval std::meta::info remove_skipped_member()
 template <typename T, auto... Annotations>
 using indices_without_removed_member = typename [:remove_skipped_member<T, Annotations...>():];
 
-template <typename T>
-consteval std::vector<std::meta::info> all_nsdm_unchecked()
-{
-    constexpr auto ctx = std::meta::access_context::unchecked();
-    constexpr auto bases =  define_static_array(bases_of(^^T, ctx));
-    constexpr auto [...base_indices] = std::make_index_sequence<bases.size()>{};
-    constexpr auto [...indices] = cpp::refl::indices_without_removed_member<T, cpp::refl::skip>();
-    constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
-
-    return std::views::concat(
-        all_nsdm_unchecked<typename [:type_of(bases[base_indices]):]>()...,
-        std::vector<std::meta::info>{ members[indices]... }
-    ) | std::ranges::to<std::vector>();
-}
-
 /**
  * @brief Get all non-static data members of a class, including those inherited from base classes.
  * @param info The meta-information of the class to get the non-static data members of.
@@ -206,14 +191,14 @@ consteval std::vector<std::meta::info> all_nonstatic_data_members_of(std::meta::
  */
 consteval std::vector<std::meta::info> select_annotations_with_type(std::meta::info info, std::meta::info type_or_template)
 { 
-    auto instance_of = std::views::filter([=](std::meta::info anno_type) { 
+    auto instance_of = std::views::filter([=](std::meta::info anno) { 
+        auto anno_type = type_of(anno);
         return is_template(type_or_template) 
              ? is_derived_from_template(anno_type, type_or_template) 
              : is_derived_from(anno_type, type_or_template); 
     });
 
     return annotations_of(info) 
-         | std::views::transform(std::meta::type_of) 
          | instance_of
          | std::ranges::to<std::vector>();
 }
@@ -297,7 +282,7 @@ consteval std::meta::info member_named(const char* name)
 template <typename T>
 constexpr auto struct_to_tuple(const T& t) 
 {
-    constexpr auto members = define_static_array(all_nsdm_unchecked<T>());
+    constexpr auto members = define_static_array(all_nonstatic_data_members_of(^^T, std::meta::access_context::unchecked()));
     constexpr auto [...Is] = indices_without_removed_member<T, cpp::refl::skip>();
     return std::make_tuple(t.[:members[Is]:]...);
 }
@@ -426,11 +411,10 @@ public:
 template <typename T>
 constexpr bool check_field(const T& x)
 {
-    constexpr static auto members = std::define_static_array(cpp::refl::all_nsdm_unchecked<T>());
+    constexpr static auto members = std::define_static_array(all_nonstatic_data_members_of(^^T, std::meta::access_context::unchecked()));
     constexpr auto [...indices] = std::make_index_sequence<members.size()>{};
     
     auto impl = [&]<size_t Idx>() {
-        // constexpr auto gurads = define_static_array(select_annotations(members[Idx], cpp::refl::value_guard));
         constexpr auto gurads = define_static_array(select_annotations_with_type(members[Idx], ^^cpp::refl::guard_annotation));
         constexpr auto [...guard_indices] = std::make_index_sequence<gurads.size()>{};
         return (... && std::invoke(extract<typename [:type_of(gurads[guard_indices]):]>(gurads[guard_indices]), x.[:members[Idx]:]));
