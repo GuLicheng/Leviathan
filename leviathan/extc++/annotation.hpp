@@ -99,6 +99,10 @@ inline constexpr struct { } test;
 // when serializing the field, we will serialize its members instead of the field itself.
 inline constexpr struct { } flatten;
 
+inline constexpr struct { } required;
+
+inline constexpr struct { } constructor;
+
 }  // namespace cpp::refl
 
 

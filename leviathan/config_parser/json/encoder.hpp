@@ -13,18 +13,61 @@ namespace cpp::config::json
 template <typename T>
 class initializer
 {
-    const cpp::json::value& root;    
+    const value& root;    
 
     static constexpr auto caster_adaptor = []<typename U>(std::optional<U>& opt, const auto& value)
     {
         opt.emplace(cpp::cast<U>(value));
     };
 
+    static consteval std::meta::info constructor()
+    {
+        auto constructors = members_of(^^T, std::meta::access_context::current())
+                          | std::views::filter(std::meta::is_constructor)
+                          | std::views::filter([](std::meta::info ctor) { return refl::has_annotation(ctor, refl::constructor); })
+                          | std::ranges::to<std::vector>();
+        return constructors[0];
+    }  
+
 public:
 
-    initializer(const cpp::json::value& root) : root(root) {}
+    initializer(const value& root) : root(root) {}
 
     T operator()() const
+    {
+        if constexpr (std::meta::is_aggregate_type(^^T))
+        {
+            return aggregate_constructor();
+        }
+        else
+        {
+            return user_defined_constructor();
+        }
+    }
+
+    T user_defined_constructor() const
+    {
+        constexpr auto ctor = constructor();
+        constexpr static auto params = define_static_array(std::meta::parameters_of(ctor));
+        constexpr auto [...indices] = std::make_index_sequence<params.size()>();
+
+        auto impl = [&]<size_t Idx>() {
+            using ParamType = typename [:type_of(params[Idx]):];
+            auto ParamName = identifier_of(params[Idx]);
+            return cpp::cast<ParamType>(root.as<object>().find(string(ParamName))->second);
+        };
+
+        auto result = T(impl.template operator()<indices>()...);
+        
+        if (!cpp::refl::check_field(result))
+        {
+            throw std::runtime_error(std::format("Field check failed for {}", std::string(identifier_of(^^T))));
+        }
+
+        return result;
+    }
+
+    T aggregate_constructor() const
     {
         constexpr auto ctx = std::meta::access_context::current();
         
@@ -69,18 +112,29 @@ public:
         else
         {
             auto name = refl::handle<Field>::identifier();
-            auto it = root.as<cpp::json::object>().find(cpp::json::string(name));
+            auto it = root.as<object>().find(string(name));
 
-            if (it != root.as<cpp::json::object>().end())
+            if (it != root.as<object>().end())
             {
                 constexpr auto info = refl::select_annotation_with_type(^^caster_adaptor, Field, ^^refl::serializer_annotation);
                 std::invoke(extract<typename [:type_of(info):]>(info), result, it->second);
+            }
+            else if (refl::has_annotation(Field, refl::required))
+            {
+                throw std::runtime_error(std::format("Field {} is required but not found in the JSON object", name));
             }
         }
 
         if (!result)
         {
-            throw std::runtime_error(std::format("Field {} is not skippable and has no default value", display_string_of(Field)));
+            if constexpr (std::is_default_constructible_v<FieldType>)
+            {
+                result.emplace();
+            }
+            else
+            {
+                throw std::runtime_error(std::format("Field {} has no default value and is not skippable", display_string_of(Field)));
+            }
         }
 
         return *result;

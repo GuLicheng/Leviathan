@@ -9,10 +9,12 @@
 
 struct [[=cpp::derive::from<cpp::json::value>, =cpp::derive::debug]] MyStruct
 {
-    [[=cpp::refl::rename("X")]]
     int x;
     double y;
     std::string z;
+
+    [[=cpp::refl::constructor]]
+    MyStruct(int x, double y) : x(x), y(y), z("default") { }
 };
 
 int main(int argc, char const *argv[])
@@ -23,14 +25,13 @@ int main(int argc, char const *argv[])
     std::println("Field name: {}", name);
 
     cpp::json::value obj = {
-        {"X", 1},
+        {"x", 1},
         {"y", 3.14},
-        {"z", "hello"}
     };
 
     auto s = cpp::cast<MyStruct>(obj);
 
     std::println("{} {} {}", s.x, s.y, s.z);
-
+    
     return 0;
 }
