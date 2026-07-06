@@ -59,8 +59,6 @@ struct rename_annotation : annotation { };
 
 struct initializer_annotation : annotation { };
 
-struct value_annotation : annotation { };
-
 struct guard_annotation : annotation { };
 
 // Any type annotated with [[=serializer]] will be treated as a serializer, which means that

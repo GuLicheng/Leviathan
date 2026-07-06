@@ -377,6 +377,14 @@ inline constexpr auto SerializeOtherInfo2 = cpp::refl::make_callable<cpp::refl::
     }
 });
 
+struct ComplexString : cpp::refl::initializer_annotation
+{
+    static constexpr std::list<std::string> operator()()
+    {
+        return { "Hello", "World" };
+    }
+};
+
 struct [[=cpp::derive::from<json::value>]] Student
 {
     std::string name;
@@ -417,8 +425,8 @@ struct [[=cpp::derive::from<json::value>]] Student
     [[=cpp::refl::skip, =cpp::refl::default_value("Unknown")]]
     std::string unknownAttribute1;
 
-    [[=cpp::refl::skip, =cpp::refl::default_value({-1, -2})]]
-    std::list<int> unknownAttribute2;
+    [[=cpp::refl::skip, =ComplexString{}]]
+    std::list<std::string> unknownAttribute2;
 };
 
 TEST_CASE("annotation")
@@ -467,8 +475,8 @@ TEST_CASE("annotation")
     REQUIRE(student.customerBasicInfo.idNumber == "A12345678");
     REQUIRE(student.unknownAttribute1 == "Unknown");
     REQUIRE(student.unknownAttribute2.size() == 2);
-    REQUIRE(student.unknownAttribute2.front() == -1);
-    REQUIRE(student.unknownAttribute2.back() == -2);
+    REQUIRE(student.unknownAttribute2.front() == "Hello");
+    REQUIRE(student.unknownAttribute2.back() == "World");
 }
 
 
