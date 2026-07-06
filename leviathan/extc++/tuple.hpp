@@ -13,17 +13,13 @@ namespace detail
 template <typename T>
 consteval size_t count_elements()
 {
-    constexpr auto indices = cpp::refl::indices_without_removed_member<T, cpp::refl::skip>(); 
-    return indices.size();
+    return refl::no_skipped_fields(^^T, std::meta::access_context::unchecked()).size();
 }
     
 template <typename T, size_t N>
 consteval std::meta::info nth_element_type()
 {
-    constexpr auto ctx = std::meta::access_context::unchecked();
-    constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, ctx));
-    constexpr auto [...indices] = cpp::refl::indices_without_removed_member<T, cpp::refl::skip>(); 
-    return members[indices...[N]];
+    return refl::no_skipped_fields(^^T, std::meta::access_context::unchecked())[N];
 }
 
 template <typename... Ts>

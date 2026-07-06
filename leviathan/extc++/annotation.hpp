@@ -141,36 +141,36 @@ constexpr auto make_callable(F f)
     - SCREAMING-KEBAB-CASE
 */
 
-inline constexpr auto shortname = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static 
+inline constexpr auto shortname = make_callable<rename_annotation>([](std::string field_name) static 
 {
     // assert(!name.empty(), "Name cannot be empty");
     return '-' + std::string(field_name.begin(), field_name.begin() + 1);
 });
 
-inline constexpr auto longname = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static 
+inline constexpr auto longname = make_callable<rename_annotation>([](std::string field_name) static 
 {
     // assert(!name.empty(), "Name cannot be empty");
     return "--" + std::string(field_name);
 });
 
-inline constexpr auto selfname = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static 
+inline constexpr auto selfname = make_callable<rename_annotation>([](std::string field_name) static 
 {
     return field_name;
 });
 
-inline constexpr auto lowercase = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static 
+inline constexpr auto lowercase = make_callable<rename_annotation>([](std::string field_name) static 
 {
     return field_name | std::views::transform(::tolower) | std::ranges::to<std::string>();
 });
 
-inline constexpr auto uppercase = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static 
+inline constexpr auto uppercase = make_callable<rename_annotation>([](std::string field_name) static 
 {
     return field_name | std::views::transform(::toupper) | std::ranges::to<std::string>();
 });
 
 inline constexpr auto rename = [](std::string_view new_name) static
 {
-    return make_callable<cpp::refl::rename_annotation>([name=define_static_string(new_name)](auto&&...)  
+    return make_callable<rename_annotation>([name=define_static_string(new_name)](auto&&...)  
     {
         return std::string(name);
     });
@@ -178,7 +178,7 @@ inline constexpr auto rename = [](std::string_view new_name) static
 
 // Follows functions in terms of implementation maybe incorrect
 // FIXME: Rust clap-
-inline constexpr auto camel_case = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static
+inline constexpr auto camel_case = make_callable<rename_annotation>([](std::string field_name) static
 {
     std::string out;
     bool upper_next = false;
@@ -193,7 +193,7 @@ inline constexpr auto camel_case = make_callable<cpp::refl::rename_annotation>([
     return out;
 });
 
-inline constexpr auto pascal_case = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static
+inline constexpr auto pascal_case = make_callable<rename_annotation>([](std::string field_name) static
 {
     auto upper_first_character = [](auto&& part) static {
         if (!part.empty()) part.front() = ::toupper(part.front());
@@ -207,7 +207,7 @@ inline constexpr auto pascal_case = make_callable<cpp::refl::rename_annotation>(
          | std::ranges::to<std::string>();
 });
 
-inline constexpr auto kebab_case = make_callable<cpp::refl::rename_annotation>([](std::string field_name) static
+inline constexpr auto kebab_case = make_callable<rename_annotation>([](std::string field_name) static
 {
     return field_name | std::views::transform([](char c) { return c == '_' ? '-' : c; }) | std::ranges::to<std::string>();
 });
@@ -260,10 +260,6 @@ inline constexpr auto choice = []<typename... Ts>(Ts&&... ts)
 
 inline constexpr auto range = []<typename Lower, typename Upper>(Lower lower, Upper upper) 
 {
-    // return guard([lower, upper](const auto& value) {
-    //     return value >= lower && value <= upper;
-    // });
-
     return make_callable<guard_annotation>([lower, upper](const auto& value) {
         return value >= lower && value <= upper;
     });

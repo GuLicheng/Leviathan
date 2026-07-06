@@ -140,34 +140,20 @@ consteval bool has_annotations(std::meta::info r, const Ts&... objs)
     return (... || has_annotation(r, objs));
 }
 
-/**
- * @brief Get the valid member indices of a class, excluding the members with [[=Annotations]] annotation.
- * @tparam T The class type.
- * 
- * @example
- *  struct MyStruct { int X; [[=Annotations]] double Y; char Z; };
- *  The valid member indices of MyStruct are 0 and 2, while index 1 is skipped due to the annotation.
- */
-template <typename T, auto... Annotations>
-consteval std::meta::info remove_skipped_member()
+template <typename Pred>
+consteval std::vector<std::meta::info> select_members(std::meta::info type, std::meta::access_context ctx, Pred pred)
 {
-    std::vector args { ^^size_t };
-    constexpr auto ctx = std::meta::access_context::unchecked();
-    constexpr auto member = define_static_array(nonstatic_data_members_of(^^T, ctx));
-    constexpr auto size = member.size();
-    constexpr auto [...indices] = std::make_index_sequence<size>{};
-
-    auto pusher = [=, &args]<size_t idx>() {
-        if constexpr (!cpp::refl::has_annotation(member[idx], Annotations...))
-            args.push_back(std::meta::reflect_constant(idx));
-    };
-
-    (pusher.template operator()<indices>(), ...);
-    return substitute(^^std::integer_sequence, args);
+    return members_of(type, ctx) 
+         | std::views::filter(pred)
+         | std::ranges::to<std::vector>();
 }
 
-template <typename T, auto... Annotations>
-using indices_without_removed_member = typename [:remove_skipped_member<T, Annotations...>():];
+consteval std::vector<std::meta::info> no_skipped_fields(std::meta::info type, std::meta::access_context ctx)
+{
+    return select_members(type, ctx, [](std::meta::info member) {
+        return std::meta::is_nonstatic_data_member(member) && !cpp::refl::has_annotation(member, cpp::refl::skip);
+    });
+}
 
 /**
  * @brief Get all non-static data members of a class, including those inherited from base classes.
@@ -225,10 +211,7 @@ consteval std::meta::info select_annotation_with_type(std::meta::info default_in
 template <typename T>
 consteval std::meta::info member_number(size_t N)
 {
-    constexpr auto ctx = std::meta::access_context::unchecked();
-    constexpr auto [...indices] = indices_without_removed_member<T, skip>();
-    constexpr auto sarray[] = { indices... };
-    return std::meta::nonstatic_data_members_of(^^T, ctx)[sarray[N]];
+    return no_skipped_fields(^^T, std::meta::access_context::unchecked())[N];
 }
 
 /**
@@ -263,8 +246,6 @@ consteval std::meta::info member_named(const char* name)
     throw std::runtime_error("No member named " + std::string(name) + " in type " + std::string(identifier_of(^^T)));
 }
 
-
-
 /**
  * @brief Convert a struct to a tuple by its members.
  * @tparam T The struct type.
@@ -282,8 +263,8 @@ consteval std::meta::info member_named(const char* name)
 template <typename T>
 constexpr auto struct_to_tuple(const T& t) 
 {
-    constexpr auto members = define_static_array(all_nonstatic_data_members_of(^^T, std::meta::access_context::unchecked()));
-    constexpr auto [...Is] = indices_without_removed_member<T, cpp::refl::skip>();
+    constexpr auto members = define_static_array(no_skipped_fields(^^T, std::meta::access_context::unchecked()));
+    constexpr auto [...Is] = std::make_index_sequence<members.size()>{};
     return std::make_tuple(t.[:members[Is]:]...);
 }
 

@@ -7,31 +7,31 @@
 #include <print>
 #include <iostream>
 
-struct [[=cpp::derive::from<cpp::json::value>, =cpp::derive::debug]] MyStruct
+struct [[=cpp::derive::from<cpp::json::value>, =cpp::derive::debug, =cpp::derive::tuple_like]] MyStruct : cpp::tuple_get_interface
 {
     int x;
     double y;
+
+    [[=cpp::refl::skip]]
     std::string z;
 
     [[=cpp::refl::constructor]]
     MyStruct(int x, double y) : x(x), y(y), z("default") { }
 };
 
+
+
 int main(int argc, char const *argv[])
 {
     
-    auto name = cpp::refl::handle<^^MyStruct::x>::identifier();
-
-    std::println("Field name: {}", name);
-
-    cpp::json::value obj = {
-        {"x", 1},
-        {"y", 3.14},
-    };
-
-    auto s = cpp::cast<MyStruct>(obj);
-
-    std::println("{} {} {}", s.x, s.y, s.z);
+    template for (constexpr auto mem : define_static_array(cpp::refl::no_skipped_fields( ^^MyStruct, std::meta::access_context::unchecked() )))
+    {
+        print("Member: {}\n", display_string_of(mem));
+    }
     
+    MyStruct s{42, 3.14};
+
+    auto [x, y] = s; // structured binding
+
     return 0;
 }
