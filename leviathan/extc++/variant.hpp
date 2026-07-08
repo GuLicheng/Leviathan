@@ -37,7 +37,7 @@ template <size_t N> struct undefined;
 
 // Class ^^Undefined
 template <std::meta::info Class>
-struct variant_builder 
+class variant_builder 
 {
     static consteval bool is_defined(size_t index) 
     {
@@ -51,6 +51,8 @@ struct variant_builder
         return k;
     }
 
+public:
+
     static consteval void put(std::meta::info info)
     {
         auto index = size();
@@ -60,19 +62,19 @@ struct variant_builder
         );
     }
 
+    // Template is necessary since the consteval function
+    // maybe evaluated only once, so we must keep sth changing 
+    // to make it evaluated again.
     template <size_t Index = size() - 1>
     static consteval std::meta::info current()
     {
         return type_of(^^undefined<Index>::value);
     }
 
-    template <size_t Index = size() - 1>
-    using get_t = decltype(undefined<Index>::value);
-
     template <typename T>
     static consteval void declare()
     {
-        put(variant_append(current<>(), ^^T));
+        put(variant_append(current(), ^^T));
     }
 };
 
@@ -84,8 +86,8 @@ consteval { variant_builder::put(^^std::variant<std::monostate>); }
 
 /*
 consteval {
-    Builder::declare<double>();
-    Builder::declare<bool>();
+    variant_builder::declare<double>();
+    variant_builder::declare<bool>();
 }
 */
 

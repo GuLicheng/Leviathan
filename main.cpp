@@ -6,17 +6,99 @@
 #include <leviathan/config_parser/json/json.hpp>
 #include <print>
 #include <iostream>
+#include <unordered_map>
 
-struct MyStruct : cpp::tuple_get_interface, std::tuple<int, double, std::string>
+class JsonValue;
+using JsonArray = std::vector<JsonValue>;
+using JsonString = std::string;
+using JsonObject = std::unordered_map<JsonString, JsonValue>;
+using JsonNull = std::nullptr_t;
+using JsonBoolean = bool;
+using JsonNumber = double;
+
+class JsonValue : public std::variant<JsonNull, JsonNumber, JsonBoolean, JsonString, JsonArray, JsonObject>
 {
+public:
+    using base = std::variant<JsonNull, JsonNumber, JsonBoolean, JsonString, JsonArray, JsonObject>;
+    using base::base;
+}; 
+
+template <>
+struct std::formatter<JsonValue> : cpp::tag_union_formatter
+{
+};
+
+template <typename T> struct Seralizer;
+
+template <> 
+struct Seralizer<bool> 
+{
+    static bool operator()(const JsonValue& value)
+    {
+        return std::get<JsonBoolean>(value);
+    }
+};
+
+template <typename T> 
+    requires (std::meta::is_arithmetic_type(^^T))
+struct Seralizer<T>
+{
+    static T operator()(const JsonValue& value)
+    {
+        return static_cast<T>(std::get<JsonNumber>(value));
+    }
+};
+
+template <std::ranges::range R>
+struct Seralizer<R>
+{
+    static R operator()(const JsonValue& value)
+    {
+        using ValueType = std::remove_cv_t<std::remove_reference_t<std::ranges::range_value_t<R>>>;
+
+        if constexpr (std::is_same_v<ValueType, char>)
+        {
+            // JsonString
+            return R(std::get<JsonString>(value).begin(), std::get<JsonString>(value).end());
+        }
+        else if constexpr (cpp::meta::pair_like<ValueType>)
+        {
+            // JsonObject
+            using KeyType = std::remove_cvref_t<std::tuple_element_t<0, ValueType>>;
+            using MappedType = std::tuple_element_t<1, ValueType>;
+
+            return std::get<JsonObject>(value)
+                | cpp::views::pair_transform(Seralizer<KeyType>(), Seralizer<MappedType>())
+                | std::ranges::to<R>();
+        }
+        else
+        {
+            // JsonValue
+            return std::get<JsonArray>(value) 
+                 | std::views::transform(Seralizer<ValueType>()) 
+                 | std::ranges::to<R>();
+        }
+    }
 };
 
 consteval { cpp::variant_builder::declare<int>(); }
 
 int main(int argc, char const *argv[])
 {
-    constexpr auto info = cpp::variant_builder::current();
-    std::cout << display_string_of(info) << std::endl;
+    JsonValue json_value = JsonObject{
+        {"name", JsonString("John")},
+        {"age", JsonNumber(30)},
+        {"is_student", JsonBoolean(false)},
+        {"courses", JsonArray{JsonString("Math"), JsonString("Science")}},
+        {"address", JsonObject{
+            {"street", JsonString("123 Main St")},
+            {"city", JsonString("Anytown")},
+            {"zip", JsonNumber(12345)}
+        }},
+        {"null_value", JsonNull(nullptr)}
+    };
+
+    std::cout << std::format("{}", json_value) << std::endl;
 
     return 0;
 }

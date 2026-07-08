@@ -1,5 +1,10 @@
 import os
 
+class Leviathan:
+
+    def __init__(self, path: str):
+        self.path = path
+
 def generate_all_header(path: str):
     r = os.listdir(path)
     r = filter(lambda x: x.endswith(".hpp") and x != "all.hpp", r)
