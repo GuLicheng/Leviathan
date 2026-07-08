@@ -55,24 +55,34 @@ namespace cpp::refl
 
 struct annotation { };
 
+// Rename field or classname, which will be used when serializing or 
+// deserializing the field or class.
+// struct SomeAnnotation { static constexpr std::string operator()(std::string); };
 struct rename_annotation : annotation { };
 
+// For a field, provide a default value for it, which will be 
+// used when the field is not present in the input data.
+// struct SomeAnnotation { static constexpr auto operator(); };
 struct initializer_annotation : annotation { };
 
+// Check if a field is valid according to the value_guard annotation, which will be
+// used when initializing the field. The value_guard annotation should be a callable 
+// type, which takes the field value as input and returns a boolean value 
+// indicating whether the field is valid or not.
+// struct SomeAnnotation { static constexpr bool operator()(const auto&); };
 struct guard_annotation : annotation { };
 
-// Any type annotated with [[=serializer]] will be treated as a serializer, which means that
+// Any type inherit from serializer_annotation will be treated as a serializer, which means that
 // when serializing the type, we will use the serializer to convert it into target type.
 struct serializer_annotation : annotation { };
 
-// Any type annotated with [[=deserializer]] will be treated as a deserializer, which means that
+// Any type inherit from deserializer_annotation will be treated as a deserializer, which means that
 // when deserializing the type, we will use the deserializer to convert it into target
 // type. We do not require the result type of the deserializer to be the string type.
 // You can deserializer it as any type you want, such as std::string, SomeBase64, etc.
 struct deserializer_annotation : annotation { };
 
-// Any class annotated with [[=range_maker]] will be treated as a range producer, 
-// such as derive from followe class
+// Any class inherit from source_annotation will be treated as a range producer, 
 // class SomeInterface { std::ranges::range<R> operator()(); }
 struct source_annotation : annotation { };
 
@@ -97,8 +107,13 @@ inline constexpr struct { } test;
 // when serializing the field, we will serialize its members instead of the field itself.
 inline constexpr struct { } flatten;
 
+// Any field annotated with [[=required]] will be treated as a required field, which means that
+// when initializing the field, we will check if the field is present in the input data.
 inline constexpr struct { } required;
 
+// Any field annotated with [[=constructor]] will be treated as a constructor field, which means that
+// when initializing the field, we will use the constructor to initialize it.
+// There must be only one constructor field in a struct, and it must be a non-static data member.
 inline constexpr struct { } constructor;
 
 }  // namespace cpp::refl
@@ -168,8 +183,7 @@ inline constexpr auto uppercase = make_callable<rename_annotation>([](std::strin
 
 inline constexpr auto rename = [](std::string_view new_name) static
 {
-    return make_callable<rename_annotation>([name=define_static_string(new_name)](auto&&...)  
-    {
+    return make_callable<rename_annotation>([name=define_static_string(new_name)](auto&&...) {
         return std::string(name);
     });
 };

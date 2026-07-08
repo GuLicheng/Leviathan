@@ -7,31 +7,16 @@
 #include <print>
 #include <iostream>
 
-struct [[=cpp::derive::from<cpp::json::value>, =cpp::derive::debug, =cpp::derive::tuple_like]] MyStruct : cpp::tuple_get_interface
+struct MyStruct : cpp::tuple_get_interface, std::tuple<int, double, std::string>
 {
-    int x;
-    double y;
-
-    [[=cpp::refl::skip]]
-    std::string z;
-
-    [[=cpp::refl::constructor]]
-    MyStruct(int x, double y) : x(x), y(y), z("default") { }
 };
 
-
+consteval { cpp::variant_builder::declare<int>(); }
 
 int main(int argc, char const *argv[])
 {
-    
-    template for (constexpr auto mem : define_static_array(cpp::refl::no_skipped_fields( ^^MyStruct, std::meta::access_context::unchecked() )))
-    {
-        print("Member: {}\n", display_string_of(mem));
-    }
-    
-    MyStruct s{42, 3.14};
-
-    auto [x, y] = s; // structured binding
+    constexpr auto info = cpp::variant_builder::current();
+    std::cout << display_string_of(info) << std::endl;
 
     return 0;
 }

@@ -26,12 +26,12 @@ struct tag_union_formatter
 namespace detail
 {
 
-template <typename List, typename T> struct type_list_append;
-
-template <template <typename...> typename Template, typename... Ts, typename T>
-struct type_list_append<Template<Ts...>, T> {
-    using type = std::conditional_t<(((std::same_as<Ts, T>) || ...)), Template<Ts...>, Template<Ts..., T>>;
-};   
+consteval std::meta::info variant_append(std::meta::info type, std::meta::info info)
+{
+    auto params = std::meta::template_arguments_of(type);
+    params.emplace_back(info);
+    return std::meta::substitute(std::meta::template_of(type), params);
+}
     
 template <size_t N> struct undefined;
 
@@ -39,24 +39,31 @@ template <size_t N> struct undefined;
 template <std::meta::info Class>
 struct variant_builder 
 {
-    static consteval bool is_defined(size_t index) {
+    static consteval bool is_defined(size_t index) 
+    {
         return is_complete_type(substitute(Class, {std::meta::reflect_constant(index)}));
     }
 
-    static consteval size_t get_last_index() {
+    static consteval size_t get_last_index() 
+    {
         size_t k = 0;
         for (; is_defined(k); ++k);
         return k;
     }
 
-    template <typename T>   
-    static consteval void put()
+    static consteval void put(std::meta::info info)
     {
-        constexpr auto index = get_last_index();
+        auto index = get_last_index();
         define_aggregate(
             substitute(Class, { std::meta::reflect_constant(index) }),
-            { std::meta::data_member_spec(^^T, { .name = "value" }) }
+            { std::meta::data_member_spec(info, { .name = "value" }) }
         );
+    }
+
+    template <size_t Index = get_last_index() - 1>
+    static consteval std::meta::info current()
+    {
+        return type_of(^^undefined<Index>::value);
     }
 
     template <size_t Index = get_last_index() - 1>
@@ -65,9 +72,7 @@ struct variant_builder
     template <typename T>
     static consteval void declare()
     {
-        using CurrentType = get_t<>;
-        using NextType = typename type_list_append<CurrentType, T>::type;
-        put<NextType>();
+        put(variant_append(current<>(), ^^T));
     }
 };
 
@@ -75,7 +80,7 @@ struct variant_builder
 
 using variant_builder = detail::variant_builder<^^detail::undefined>;
 
-consteval { variant_builder::put<std::variant<std::monostate>>(); }
+consteval { variant_builder::put(^^std::variant<std::monostate>); }
 
 /*
 consteval {

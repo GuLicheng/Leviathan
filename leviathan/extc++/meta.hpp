@@ -29,17 +29,19 @@ namespace cpp::refl
  */
 consteval std::vector<std::meta::info> all_bases_of(std::meta::info info)
 {
-    auto bases = std::views::concat(std::vector{std::meta::dealias(info)}, bases_of(info, std::meta::access_context::unchecked()) 
+    std::vector results { dealias(info) };
+
+    std::ranges::copy_if(
+        bases_of(info, std::meta::access_context::unchecked()) 
             | std::views::transform(std::meta::type_of) // The info from bases_of is a base class specifier, we need to get the type of it.
             | std::views::transform(all_bases_of)
-            | std::views::join)
-            | std::ranges::to<std::vector>();
-
-    std::vector<std::meta::info> result;
-    std::ranges::copy_if(bases, std::back_inserter(result), [&](auto info) {
-        return !std::ranges::contains(result, info, std::meta::dealias);
-    }, std::meta::dealias);
-    return result;
+            | std::views::join,
+        std::back_inserter(results),
+        [&](auto info) { return !std::ranges::contains(results, info, std::meta::dealias); },
+        std::meta::dealias
+    );
+    
+    return results;
 }
 
 /**
