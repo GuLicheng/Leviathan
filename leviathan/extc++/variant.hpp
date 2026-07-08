@@ -44,7 +44,7 @@ struct variant_builder
         return is_complete_type(substitute(Class, {std::meta::reflect_constant(index)}));
     }
 
-    static consteval size_t get_last_index() 
+    static consteval size_t size() 
     {
         size_t k = 0;
         for (; is_defined(k); ++k);
@@ -53,20 +53,20 @@ struct variant_builder
 
     static consteval void put(std::meta::info info)
     {
-        auto index = get_last_index();
+        auto index = size();
         define_aggregate(
             substitute(Class, { std::meta::reflect_constant(index) }),
             { std::meta::data_member_spec(info, { .name = "value" }) }
         );
     }
 
-    template <size_t Index = get_last_index() - 1>
+    template <size_t Index = size() - 1>
     static consteval std::meta::info current()
     {
         return type_of(^^undefined<Index>::value);
     }
 
-    template <size_t Index = get_last_index() - 1>
+    template <size_t Index = size() - 1>
     using get_t = decltype(undefined<Index>::value);
 
     template <typename T>
