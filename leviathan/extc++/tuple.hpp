@@ -129,11 +129,11 @@ concept tuple_like = std::__tuple_like<T> || refl::instance_of_template(^^T, ^^c
 } // namespace cpp
 
 template <typename T>
-    requires (std::is_class_v<T> && cpp::refl::has_annotation(^^T, cpp::derive::tuple_like))
+    requires (std::is_class_v<T> && cpp::refl::has_annotations(^^T, cpp::derive::tuple_like))
 struct std::tuple_size<T> : std::integral_constant<size_t, cpp::detail::count_elements<T>()> { };
 
 template <size_t N, typename T>
-    requires (std::is_class_v<T> && cpp::refl::has_annotation(^^T, cpp::derive::tuple_like))
+    requires (std::is_class_v<T> && cpp::refl::has_annotations(^^T, cpp::derive::tuple_like))
 struct std::tuple_element<N, T> : std::type_identity<typename [:type_of(cpp::detail::nth_element_type<T, N>()):]> { };
 
 

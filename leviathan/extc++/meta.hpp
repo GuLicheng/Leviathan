@@ -16,6 +16,21 @@ namespace cpp::refl
 {
 
 /**
+ * @brief The consteval has more strict requirement than constexpr. In some
+ * functions with constexpr, it is difficult for the compiler to evaluate them at compile time.
+ * We must encapsulate this portion of expressions that can be 
+ * evaluated at compile time within a new function and decorate it with the consteval.
+ */
+inline constexpr struct 
+{
+    template <typename... RangeAdaptorClosures>
+    static consteval auto operator()(RangeAdaptorClosures... closures)
+    {
+        return (... | closures);
+    }
+} pipeline;
+
+/**
  * @brief Get all base classes of a class, including indirect base classes. 
  * The result is sorted by the type order and contains no duplicate types.
  * 
@@ -113,48 +128,28 @@ consteval std::vector<std::meta::info> all_parents(std::meta::info info)
     return result;
 }
 
-/**
- * @brief Check if the given annotation is present on the given info.
- * @param r Anything that can be reflected, such as class, field, base class, etc.
- * @param obj The annotation to check.
- * @return true if the annotation is present, false otherwise.
- * 
- * @example
- * struct SomeThing { [[=some_annotation]] int x; }
- * static_assert(has_annotation(^^SomeThing::x, some_annotation));
- * 
- * inline constexpr auto SomeInstance [[=some_annotation]] = SomeInstance{};
- * static_assert(has_annotation(^^SomeInstance, some_annotation));
- */
-template <typename T>
-consteval bool has_annotation(std::meta::info r, const T& obj) 
-{
-    return std::ranges::contains(
-        annotations_of_with_type(r, ^^T),
-        std::meta::reflect_constant(obj),
-        std::meta::constant_of
-    );
-}
-
-template <typename... Ts>
-consteval bool has_annotations(std::meta::info r, const Ts&... objs) 
-{
-    return (... || has_annotation(r, objs));
-}
-
-template <typename Pred>
-consteval std::vector<std::meta::info> select_members(std::meta::info type, std::meta::access_context ctx, Pred pred)
-{
-    return members_of(type, ctx) 
-         | std::views::filter(pred)
-         | std::ranges::to<std::vector>();
-}
+// Maybe callable object is better than just function.
+// See std.ranges
+inline constexpr struct
+{   
+    template <typename... Ts>
+    static consteval bool operator()(std::meta::info r, const Ts&... objs)
+    {
+        return (... ||std::ranges::contains(
+            annotations_of_with_type(r, ^^Ts),
+            std::meta::reflect_constant(objs),
+            std::meta::constant_of
+        ));
+    }
+} has_annotations;
 
 consteval std::vector<std::meta::info> no_skipped_fields(std::meta::info type, std::meta::access_context ctx)
 {
-    return select_members(type, ctx, [](std::meta::info member) {
-        return std::meta::is_nonstatic_data_member(member) && !cpp::refl::has_annotation(member, cpp::refl::skip);
-    });
+    return pipeline(
+        std::meta::nonstatic_data_members_of(type, ctx),
+        std::views::filter(std::bind_back(cpp::refl::has_annotations, cpp::refl::skip)),
+        std::ranges::to<std::vector>()
+    );
 }
 
 /**
@@ -278,41 +273,6 @@ constexpr auto struct_to_tuple(const T& t)
 //     constexpr auto [...idx] = std::make_index_sequence<N>();
 //     return TupleLike(std::forward_like<Range>(range[idx])...);
 // }
-
-/**
- * @brief Get all annotations of a type that have a specific type annotation.
- * @param info The meta-information of the type to get annotations from.
- * @param x The type annotation to filter annotations by.
- * 
- * @example
- *  inline constexpr struct { } serializer;
- *  struct [[=serializer]] SomeCallable { auto operator()(auto x); };
- *  struct MyStruct { [[=SomeCallable()]] int X; double Y; }; 
- *  auto vec = annotations_with_type_annotation(^^MyStruct::X, serializer);
- *  vec[0] -> instance of SomeCallable
- */
-template <typename... Ts>
-consteval std::vector<std::meta::info> select_annotations(std::meta::info info, const Ts&... xs) 
-{
-    return annotations_of(info) 
-         | std::views::filter([&](std::meta::info anno) { return has_annotation(type_of(anno), xs...); })
-         | std::ranges::to<std::vector>();
-}
-
-/**
- * @brief Select first info which satisfies the given annotation type, or return the default info if none found.
- * @param default_info The default info to return if no matching annotation is found.
- * @param info The meta-information to search for annotations.
- * @param xs The annotation types to search for.
- * 
- * @example
- */
-template <typename... Ts>
-consteval std::meta::info select_annotation(std::meta::info default_info, std::meta::info info, const Ts&... xs) 
-{
-    auto annos = select_annotations(info, xs...);
-    return annos.size() > 0 ? annos[0] : default_info;
-}
 
 template <std::meta::info FieldInfo>
 class handle

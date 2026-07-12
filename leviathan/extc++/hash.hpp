@@ -61,10 +61,10 @@ struct enum_hasher
 }
 
 template <typename T>
-    requires (cpp::refl::has_annotation(^^T, cpp::derive::hash) && std::is_class_v<T>)
+    requires (cpp::refl::has_annotations(^^T, cpp::derive::hash) && std::is_class_v<T>)
 struct std::hash<T> : cpp::struct_hasher { }; 
 
 template <typename Enum>
-    requires (cpp::refl::has_annotation(^^Enum, cpp::derive::hash) && std::is_enum_v<Enum>)
+    requires (cpp::refl::has_annotations(^^Enum, cpp::derive::hash) && std::is_enum_v<Enum>)
 struct std::hash<Enum> : cpp::enum_hasher { };
 

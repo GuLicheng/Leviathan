@@ -24,7 +24,7 @@ class initializer
     {
         auto constructors = members_of(^^T, std::meta::access_context::current())
                           | std::views::filter(std::meta::is_constructor)
-                          | std::views::filter([](std::meta::info ctor) { return refl::has_annotation(ctor, refl::constructor); })
+                          | std::views::filter([](std::meta::info ctor) { return refl::has_annotations(ctor, refl::constructor); })
                           | std::ranges::to<std::vector>();
         return constructors[0];
     }  
@@ -52,7 +52,7 @@ public:
         constexpr auto [...indices] = std::make_index_sequence<params.size()>();
 
         auto impl = [&]<size_t Idx>() {
-            using ParamType = typename [:type_of(params[Idx]):];
+            using ParamType = typename [:remove_cvref(type_of(params[Idx])):];
             auto ParamName = identifier_of(params[Idx]);
             return cpp::cast<ParamType>(root.as<object>().find(string(ParamName))->second);
         };
@@ -100,41 +100,32 @@ public:
         using FieldType = typename [:type_of(Field):];
         std::optional<FieldType> result = std::nullopt;
         
-        // Skippable
-        if constexpr (refl::has_annotations(Field, refl::skip_deserialization, refl::skip))
+        if constexpr (!refl::has_annotations(Field, refl::skip_deserialization, refl::skip))
         {
-            result = refl::handle<Field>::default_value();
-        }
-        else if constexpr (refl::has_annotation(Field, refl::flatten))
-        {
-            result.emplace(initializer<FieldType>(root)());
-        }
-        else
-        {
-            auto name = refl::handle<Field>::identifier();
-            auto it = root.as<object>().find(string(name));
-
-            if (it != root.as<object>().end())
+            if constexpr (refl::has_annotations(Field, refl::flatten))
             {
-                constexpr auto info = refl::select_annotation_with_type(^^caster_adaptor, Field, ^^refl::serializer_annotation);
-                std::invoke(extract<typename [:type_of(info):]>(info), result, it->second);
+                result.emplace(initializer<FieldType>(root)());
             }
-            else if (refl::has_annotation(Field, refl::required))
+            else
             {
-                throw std::runtime_error(std::format("Field {} is required but not found in the JSON object", name));
+                auto name = refl::handle<Field>::identifier();
+                auto it = root.as<object>().find(string(name));
+
+                if (it != root.as<object>().end())
+                {
+                    constexpr auto info = refl::select_annotation_with_type(^^caster_adaptor, Field, ^^refl::serializer_annotation);
+                    std::invoke(extract<typename [:type_of(info):]>(info), result, it->second);
+                }
+                else if (refl::has_annotations(Field, refl::required))
+                {
+                    throw std::runtime_error(std::format("Field {} is required but not found in the JSON object", name));
+                }
             }
         }
 
         if (!result)
         {
-            if constexpr (std::is_default_constructible_v<FieldType>)
-            {
-                result.emplace();
-            }
-            else
-            {
-                throw std::runtime_error(std::format("Field {} has no default value and is not skippable", display_string_of(Field)));
-            }
+            result = refl::handle<Field>::default_value();
         }
 
         return *result;
@@ -342,11 +333,11 @@ struct caster
         {
             return range_caster<T>::operator()(v);
         }
-        else if constexpr (std::is_enum_v<T> && refl::has_annotation(^^T, cpp::derive::from<value>))
+        else if constexpr (std::is_enum_v<T> && refl::has_annotations(^^T, cpp::derive::from<value>))
         {
             return enum_caster<T>::operator()(v);
         }
-        else if constexpr (std::is_class_v<T> && refl::has_annotation(^^T, cpp::derive::from<value>))
+        else if constexpr (std::is_class_v<T> && refl::has_annotations(^^T, cpp::derive::from<value>))
         {
             return universal_caster<T>::operator()(v);
         }

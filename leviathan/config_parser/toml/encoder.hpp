@@ -203,11 +203,11 @@ struct caster
         {
             return range_caster<T>::operator()(v);
         }
-        else if constexpr (std::is_enum_v<T> && refl::has_annotation(^^T, cpp::derive::decode<value>))
+        else if constexpr (std::is_enum_v<T> && refl::has_annotations(^^T, cpp::derive::decode<value>))
         {
             return enum_decoder<T>()(v.as<string>());
         }
-        else if constexpr (std::is_class_v<T> && refl::has_annotation(^^T, cpp::derive::decode<value>))
+        else if constexpr (std::is_class_v<T> && refl::has_annotations(^^T, cpp::derive::decode<value>))
         {
             return universal_caster<T>::operator()(v);
         }

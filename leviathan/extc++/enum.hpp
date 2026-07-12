@@ -50,14 +50,14 @@ struct enum_encoder
 }
  
 template <typename Enum>
-    requires (std::is_enum_v<Enum> && cpp::refl::has_annotation(^^Enum, cpp::derive::op_pipe))
+    requires (std::is_enum_v<Enum> && cpp::refl::has_annotations(^^Enum, cpp::derive::op_pipe))
 constexpr Enum operator|(Enum x, Enum y)
 {
     return Enum(std::to_underlying(x) | std::to_underlying(y));
 }
 
 template <typename Enum>
-    requires (std::is_enum_v<Enum> && cpp::refl::has_annotation(^^Enum, cpp::derive::op_pipe))
+    requires (std::is_enum_v<Enum> && cpp::refl::has_annotations(^^Enum, cpp::derive::op_pipe))
 constexpr Enum& operator|=(Enum& x, Enum y)
 {
     x = Enum(std::to_underlying(x) | std::to_underlying(y));

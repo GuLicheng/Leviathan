@@ -71,9 +71,9 @@ struct enum_formatter
 } // namespace cpp
 
 template <typename T, typename CharT>
-    requires (cpp::refl::has_annotation(^^T, cpp::derive::debug) && std::is_class_v<T>)
+    requires (cpp::refl::has_annotations(^^T, cpp::derive::debug) && std::is_class_v<T>)
 struct std::formatter<T, CharT> : cpp::universal_formatter { };
 
 template <typename T, typename CharT>
-    requires (cpp::refl::has_annotation(^^T, cpp::derive::debug) && std::is_enum_v<T>)
+    requires (cpp::refl::has_annotations(^^T, cpp::derive::debug) && std::is_enum_v<T>)
 struct std::formatter<T, CharT> : cpp::enum_formatter { };

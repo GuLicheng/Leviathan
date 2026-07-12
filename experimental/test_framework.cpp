@@ -83,7 +83,7 @@ void InvokeTestFunctions()
 
     template for (constexpr auto info : define_static_array(members_of(Namespace, ctx))) 
     {
-        if constexpr (is_function(info) && cpp::refl::has_annotation(info, TestFunction)) 
+        if constexpr (is_function(info) && cpp::refl::has_annotations(info, TestFunction)) 
         {
             constexpr auto params_count = parameters_of(info).size();
 
@@ -100,7 +100,7 @@ void InvokeTestFunctions()
                         constexpr auto args = extract<typename [:type_of(anno):]>(anno);
                         cpp::apply([:info:], args);
                     } 
-                    else if constexpr (cpp::refl::has_annotation(type_of(anno), DataGenerator)) 
+                    else if constexpr (cpp::refl::has_annotations(type_of(anno), DataGenerator)) 
                     {
                         for (auto data : std::invoke(extract<ComplexObjectGenerator>(anno))) 
                         {
