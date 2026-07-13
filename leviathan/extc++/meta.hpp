@@ -1,34 +1,12 @@
 #pragma once
 
 #include <meta>
-#include <format>
-#include <type_traits>
-#include <string_view>
-#include <stdexcept>
-#include <string>
-#include <vector>
 #include <ranges>
 #include <functional>
-#include <leviathan/type_caster.hpp>
-#include <leviathan/extc++/annotation.hpp>
+#include <algorithm>
 
 namespace cpp::refl
 {
-
-/**
- * @brief The consteval has more strict requirement than constexpr. In some
- * functions with constexpr, it is difficult for the compiler to evaluate them at compile time.
- * We must encapsulate this portion of expressions that can be 
- * evaluated at compile time within a new function and decorate it with the consteval.
- */
-inline constexpr struct 
-{
-    template <typename... RangeAdaptorClosures>
-    static consteval auto operator()(RangeAdaptorClosures... closures)
-    {
-        return (... | closures);
-    }
-} pipeline;
 
 /**
  * @brief Get all base classes of a class, including indirect base classes. 
@@ -143,15 +121,6 @@ inline constexpr struct
     }
 } has_annotations;
 
-consteval std::vector<std::meta::info> no_skipped_fields(std::meta::info type, std::meta::access_context ctx)
-{
-    return pipeline(
-        std::meta::nonstatic_data_members_of(type, ctx),
-        std::views::filter(std::bind_back(cpp::refl::has_annotations, cpp::refl::skip)),
-        std::ranges::to<std::vector>()
-    );
-}
-
 /**
  * @brief Get all non-static data members of a class, including those inherited from base classes.
  * @param info The meta-information of the class to get the non-static data members of.
@@ -208,7 +177,7 @@ consteval std::meta::info select_annotation_with_type(std::meta::info default_in
 template <typename T>
 consteval std::meta::info member_number(size_t N)
 {
-    return no_skipped_fields(^^T, std::meta::access_context::unchecked())[N];
+    return all_nonstatic_data_members_of(^^T, std::meta::access_context::unchecked())[N];
 }
 
 /**
@@ -252,17 +221,17 @@ consteval std::meta::info member_named(const char* name)
  *  together with struct_to_tuple to achieve the same effect as tuple_to_struct.
  * 
  * @example
- *  struct MyStruct { int X; double Y; [[=cpp::refl::skip]] std::string Z; };
+ *  struct MyStruct { int X; double Y; std::string Z; };
  *  MyStruct s{1, 3.14, "hello"};
  *  auto t = cpp::refl::struct_to_tuple(s);
- *  assert(t == std::make_tuple(1, 3.14));
+ *  assert(t == std::make_tuple(1, 3.14, "hello"));
  */
 template <typename T>
 constexpr auto struct_to_tuple(const T& t) 
 {
-    constexpr auto members = define_static_array(no_skipped_fields(^^T, std::meta::access_context::unchecked()));
-    constexpr auto [...Is] = std::make_index_sequence<members.size()>{};
-    return std::make_tuple(t.[:members[Is]:]...);
+    constexpr auto members = define_static_array(all_nonstatic_data_members_of(^^T, std::meta::access_context::unchecked()));
+    constexpr auto [...indices] = std::make_index_sequence<members.size()>{};
+    return std::make_tuple(t.[:members[indices]:]...);
 }
 
 // TODO: input range support
@@ -274,113 +243,7 @@ constexpr auto struct_to_tuple(const T& t)
 //     return TupleLike(std::forward_like<Range>(range[idx])...);
 // }
 
-template <std::meta::info FieldInfo>
-class handle
-{
-    template <std::meta::info>
-    friend class handle;
-
-    static constexpr std::string identifier(std::string name)
-    {
-        if constexpr (FieldInfo == ^^::)
-        {
-            return name;
-        }
-        else
-        {
-            constexpr auto renames = define_static_array(select_annotations_with_type(FieldInfo, ^^rename_annotation)); 
-            
-            if constexpr (renames.size() > 0)
-            {
-                return std::invoke(extract<typename [:type_of(renames[0]):]>(renames[0]), name);
-            }
-            else
-            {
-                return handle<parent_of(FieldInfo)>::identifier(std::move(name));
-            }
-        }
-    }
-
-public:
-
-    /**
-     * @brief Extract the name of a member by its annotation. If multiple annotations are provided, 
-     * the first annotation that can extract a name will be used.
-     * 
-     * @example
-     *  struct MyStruct { int X; double [[=rename("Z")]] Y; };
-     *  std::string name1 = identifier<^^MyStruct::X>(); // "X"
-     *  std::string name2 = identifier<^^MyStruct::Y>(); // "Z"
-     */
-    static constexpr std::string identifier() 
-    {
-        auto name = std::string(identifier_of(FieldInfo));
-        return identifier(std::move(name));
-    }
-
-    static constexpr auto default_value() 
-    {
-        using Type = typename [:type_of(FieldInfo):];
-
-        std::optional<Type> value = std::nullopt;
-
-        constexpr auto initializers = define_static_array(select_annotations_with_type(FieldInfo, ^^initializer_annotation));
-
-        if constexpr (initializers.size() > 0)
-        {
-            value.emplace(std::invoke(extract<typename [:type_of(initializers[0]):]>(initializers[0])));
-        }
-        else if constexpr (std::is_default_constructible_v<Type>)
-        {
-            value.emplace();
-        }
-
-        return value;
-    }
-
-};
-
-/**
- * @brief Check if all fields of a struct are valid according to their value_guard annotations.
- * @param x The object to check.
- * 
- * @example
- *  struct MyStruct { [[=cpp::refl::guard([](int x) { return x >= 0; })]] int X; };
- *  MyStruct s{42};
- *  assert(check_field(s)); // true
- *  MyStruct s2{-1};
- *  assert(!check_field(s2)); // false
- */
-template <typename T>
-constexpr bool check_field(const T& x)
-{
-    constexpr static auto members = std::define_static_array(all_nonstatic_data_members_of(^^T, std::meta::access_context::unchecked()));
-    constexpr auto [...indices] = std::make_index_sequence<members.size()>{};
-    
-    auto impl = [&]<size_t Idx>() {
-        constexpr auto gurads = define_static_array(select_annotations_with_type(members[Idx], ^^cpp::refl::guard_annotation));
-        constexpr auto [...guard_indices] = std::make_index_sequence<gurads.size()>{};
-        return (... && std::invoke(extract<typename [:type_of(gurads[guard_indices]):]>(gurads[guard_indices]), x.[:members[Idx]:]));
-    };
-
-    return (... && impl.template operator()<indices>());
-}
 
 
 } // namespace cpp::refl
 
-/*
-template <typename T>
-struct type
-{
-    static constexpr void show_all_members()
-    {
-        constexpr static auto members = define_static_array(cpp::refl::all_nsdm_unchecked<T>());
-        template for (constexpr auto member : members)
-        {
-            std::print("Member: {}\n", has_identifier(member) ? identifier_of(member) : "<unnamed>");
-        }
-    }
-};
-
-*/

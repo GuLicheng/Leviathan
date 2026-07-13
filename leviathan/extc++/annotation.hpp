@@ -1,9 +1,10 @@
 #pragma once
 
+#include <leviathan/extc++/meta.hpp>
+
 #include <algorithm>
 #include <functional>
 #include <ranges>
-#include <meta>
 
 namespace cpp::derive
 {
@@ -97,12 +98,6 @@ inline constexpr struct { } skip_serialization;
 
 inline constexpr struct { } test;
 
-// Any field annotated with [[=value_guard]] will be treated as a choice field, which means that
-// when initializing the field, we will try to find an annotation with [[=value_guard]] 
-// and use it to check if the value is valid. Such as derive from followe class
-// class SomeInterface { bool operator(const auto&); }
-// inline constexpr struct { } value_guard;
-
 // Any field annotated with [[=flatten]] will be treated as a flatten field, which means that
 // when serializing the field, we will serialize its members instead of the field itself.
 inline constexpr struct { } flatten;
@@ -117,8 +112,6 @@ inline constexpr struct { } required;
 inline constexpr struct { } constructor;
 
 }  // namespace cpp::refl
-
-
 
 namespace cpp::refl
 {
@@ -285,7 +278,104 @@ inline constexpr auto range = []<typename Lower, typename Upper>(Lower lower, Up
 namespace cpp::refl
 {
 
+template <std::meta::info FieldInfo>
+class handle
+{
+    template <std::meta::info>
+    friend class handle;
 
+    static constexpr std::string identifier(std::string name)
+    {
+        if constexpr (FieldInfo == ^^::)
+        {
+            return name;
+        }
+        else
+        {
+            constexpr auto renames = define_static_array(select_annotations_with_type(FieldInfo, ^^rename_annotation)); 
+            
+            if constexpr (renames.size() > 0)
+            {
+                return std::invoke(extract<typename [:type_of(renames[0]):]>(renames[0]), name);
+            }
+            else
+            {
+                return handle<parent_of(FieldInfo)>::identifier(std::move(name));
+            }
+        }
+    }
+
+public:
+
+    /**
+     * @brief Extract the name of a member by its annotation. If multiple annotations are provided, 
+     * the first annotation that can extract a name will be used.
+     * 
+     * @example
+     *  struct MyStruct { int X; double [[=rename("Z")]] Y; };
+     *  std::string name1 = identifier<^^MyStruct::X>(); // "X"
+     *  std::string name2 = identifier<^^MyStruct::Y>(); // "Z"
+     */
+    static constexpr std::string identifier() 
+    {
+        auto name = std::string(identifier_of(FieldInfo));
+        return identifier(std::move(name));
+    }
+
+    static constexpr auto default_value() 
+    {
+        using Type = typename [:type_of(FieldInfo):];
+
+        std::optional<Type> value = std::nullopt;
+
+        constexpr auto initializers = define_static_array(select_annotations_with_type(FieldInfo, ^^initializer_annotation));
+
+        if constexpr (initializers.size() > 0)
+        {
+            value.emplace(std::invoke(extract<typename [:type_of(initializers[0]):]>(initializers[0])));
+        }
+        else if constexpr (std::is_default_constructible_v<Type>)
+        {
+            value.emplace();
+        }
+
+        return value;
+    }
+
+};
+
+/**
+ * @brief Check if all fields of a struct are valid according to their value_guard annotations.
+ * @param x The object to check.
+ * 
+ * @example
+ *  struct MyStruct { [[=cpp::refl::guard([](int x) { return x >= 0; })]] int X; };
+ *  MyStruct s{42};
+ *  assert(check_field(s)); // true
+ *  MyStruct s2{-1};
+ *  assert(!check_field(s2)); // false
+ */
+template <typename T>
+constexpr bool check_field(const T& x)
+{
+    constexpr static auto members = std::define_static_array(all_nonstatic_data_members_of(^^T, std::meta::access_context::unchecked()));
+    constexpr auto [...indices] = std::make_index_sequence<members.size()>{};
+    
+    auto impl = [&]<size_t Idx>() {
+        constexpr auto gurads = define_static_array(select_annotations_with_type(members[Idx], ^^cpp::refl::guard_annotation));
+        constexpr auto [...guard_indices] = std::make_index_sequence<gurads.size()>{};
+        return (... && std::invoke(extract<typename [:type_of(gurads[guard_indices]):]>(gurads[guard_indices]), x.[:members[Idx]:]));
+    };
+
+    return (... && impl.template operator()<indices>());
+}
+
+consteval std::vector<std::meta::info> no_skipped_fields(std::meta::info type, std::meta::access_context ctx)
+{
+    return nonstatic_data_members_of(type, ctx) 
+         | std::views::filter(std::bind_back(cpp::refl::has_annotations, cpp::refl::skip))
+         | std::ranges::to<std::vector>();
+}
 
 } // namespace cpp::refl
 
