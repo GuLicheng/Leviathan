@@ -7,7 +7,36 @@
 namespace cpp
 {
 
-template <typename Enum, bool Exception = true>
+// template <typename Enum, bool UseUnderlying, bool Exception>
+// struct default_enum_decoder;
+
+// template <typename Enum, bool UseUnderlying, bool Exception>
+// struct default_enum_decoder
+// {
+//     static constexpr auto value() 
+//     {
+//         if constexpr (UseUnderlying)
+//         {
+//             return enum_encoder<Enum, Exception>()(static_cast<Enum>(0));
+//         }
+//         else
+//         {
+//             return enum_encoder<Enum, Exception>()([:enumerators_of(^^Enum)[0]:]);
+//         }
+//     }
+// };
+
+// template <typename Enum, bool UseUnderlying>
+// struct default_enum_decoder<Enum, UseUnderlying, true>
+// {
+//     static constexpr auto operator()(std::string_view str)
+//     {
+//         auto result = default_enum_decoder<Enum, UseUnderlying, false>()(str);
+//         return result ? *result : throw std::runtime_error(std::format("Invalid enum string: {}", str));
+//     }
+// };
+
+template <typename Enum, bool UseUnderlying = false, bool Exception = true>
 struct enum_decoder
 {
     static_assert(std::is_enum_v<Enum>, "universal_enum_parser can only be used with enum types");

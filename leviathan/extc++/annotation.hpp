@@ -87,6 +87,8 @@ struct deserializer_annotation : annotation { };
 // class SomeInterface { std::ranges::range<R> operator()(); }
 struct source_annotation : annotation { };
 
+struct alias_annotation : annotation { };
+
 // Any field annotated with [[=skip]] will be ignored in code generation
 // When initializing a struct from a tuple, the skipped fields will be 
 // initialized with default value or default initializer.
@@ -256,10 +258,7 @@ inline constexpr struct
 inline constexpr auto choice = []<typename... Ts>(Ts&&... ts) 
 {
     return make_callable<guard_annotation>([...ts=(Ts&&)ts](const auto& value) {
-        template for (const auto& element : std::make_tuple((Ts&&)ts...))
-            if (element == value)
-                return true;
-        return false;
+        return ((value == ts) || ...);
     });
 };
 
@@ -270,7 +269,12 @@ inline constexpr auto range = []<typename Lower, typename Upper>(Lower lower, Up
     });
 };
 
-
+inline constexpr auto alias = []<typename... Ts>(Ts&&... value) static
+{
+    return make_callable<alias_annotation>([...value=std::define_static_string(value)]() {
+        return std::vector<std::string>{value...};
+    });
+};
 
 } // namespace cpp::refl
 
@@ -320,6 +324,25 @@ public:
     {
         auto name = std::string(identifier_of(FieldInfo));
         return identifier(std::move(name));
+    }
+
+    static constexpr std::vector<std::string> identifier_and_aliases() 
+    {
+        std::vector<std::string> names { identifier() };
+
+        constexpr static auto aliases = define_static_array(select_annotations_with_type(FieldInfo, ^^alias_annotation));
+
+        template for (constexpr auto info : aliases)
+        {
+            auto alias_names = std::invoke(extract<typename [:type_of(info):]>(info));
+            
+            // Unique
+            std::ranges::copy_if(alias_names, std::back_inserter(names), [&names](const auto& alias_name) {
+                return std::ranges::find(names, alias_name) == names.end();
+            });
+        }
+
+        return names;
     }
 
     static constexpr auto default_value() 

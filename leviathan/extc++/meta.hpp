@@ -25,15 +25,15 @@ consteval std::vector<std::meta::info> all_bases_of(std::meta::info info)
     std::vector results { dealias(info) };
 
     std::ranges::copy_if(
-        bases_of(info, std::meta::access_context::unchecked()) 
-            | std::views::transform(std::meta::type_of) // The info from bases_of is a base class specifier, we need to get the type of it.
-            | std::views::transform(all_bases_of)
-            | std::views::join,
+        bases_of(info, std::meta::access_context::unchecked())
+        | std::views::transform(std::meta::type_of) // The info from bases_of is a base class specifier, we need to get the type of it.
+        | std::views::transform(all_bases_of)
+        | std::views::join,
         std::back_inserter(results),
         [&](auto info) { return !std::ranges::contains(results, info, std::meta::dealias); },
         std::meta::dealias
     );
-    
+
     return results;
 }
 
@@ -242,6 +242,7 @@ constexpr auto struct_to_tuple(const T& t)
 //     constexpr auto [...idx] = std::make_index_sequence<N>();
 //     return TupleLike(std::forward_like<Range>(range[idx])...);
 // }
+
 
 
 

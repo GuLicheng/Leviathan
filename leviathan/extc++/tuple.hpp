@@ -48,8 +48,8 @@ consteval std::meta::info define_basic_tuple()
         };
 
         auto member_specs = std::vector<std::meta::info>{ ^^Ts... } 
-                          | std::views::enumerate 
-                          | std::views::transform(int2string);
+                            | std::views::enumerate 
+                            | std::views::transform(int2string);
 
         define_aggregate(^^implementation, member_specs);
     }
