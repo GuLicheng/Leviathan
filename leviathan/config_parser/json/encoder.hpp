@@ -24,7 +24,7 @@ class initializer
     {
         auto constructors = members_of(^^T, std::meta::access_context::current())
                           | std::views::filter(std::meta::is_constructor)
-                          | std::views::filter([](std::meta::info ctor) { return refl::has_annotations(ctor, refl::constructor); })
+                          | std::views::filter(std::bind_back(cpp::refl::has_annotations, refl::constructor))
                           | std::ranges::to<std::vector>();
         return constructors[0];
     }  
@@ -304,13 +304,13 @@ struct enum_caster
     {
         if (v.is<string>())
         {
-            return enum_decoder<Enum>()(v.as<string>());
+            return enum_str_decoder<Enum>()(v.as<string>());
         }
         else if (v.is<number>() && v.as<number>().is_integer())
         {
             using UnderlyingType = std::underlying_type_t<Enum>;
             const auto n = v.as<number>().as<UnderlyingType>();
-            return static_cast<Enum>(n);
+            return enum_int_decoder<Enum>()(n);
         }
         throw std::runtime_error("Value is not a string or integer for enum");
     }

@@ -289,7 +289,7 @@ public:
         }
         else if constexpr (std::is_enum_v<Source> && refl::has_annotations(^^Source, cpp::derive::into<cpp::json::value>))
         {
-            auto enum_name = cpp::enum_encoder<Source>()(source);
+            auto enum_name = default_enum_decoder<Source, false, true>()(source);
             return json::make_json<json::string>(std::move(enum_name));
         }
         else if constexpr (std::is_class_v<Source> && refl::has_annotations(^^Source, cpp::derive::into<cpp::json::value>))

@@ -335,7 +335,7 @@ public:
         template for (constexpr auto info : aliases)
         {
             auto alias_names = std::invoke(extract<typename [:type_of(info):]>(info));
-            
+
             // Unique
             std::ranges::copy_if(alias_names, std::back_inserter(names), [&names](const auto& alias_name) {
                 return std::ranges::find(names, alias_name) == names.end();
@@ -345,7 +345,8 @@ public:
         return names;
     }
 
-    static constexpr auto default_value() 
+    // FIXME: static member is also allowed
+    static constexpr auto default_value() requires (is_nonstatic_data_member(FieldInfo))
     {
         using Type = typename [:type_of(FieldInfo):];
 

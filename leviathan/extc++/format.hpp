@@ -64,7 +64,7 @@ struct enum_formatter
     template <typename EnumType>
     static auto format(EnumType value, auto& ctx) 
     {
-        return std::format_to(ctx.out(), "{}", enum_encoder<EnumType>()(value));
+        return std::format_to(ctx.out(), "{}", cpp::default_enum_decoder<EnumType, false, true>()(value));
     }
 };
 
