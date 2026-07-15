@@ -427,6 +427,9 @@ struct [[=cpp::derive::from<json::value>]] Student
 
     [[=cpp::refl::skip, =ComplexString{}]]
     std::list<std::string> unknownAttribute2;
+
+    [[=cpp::refl::alias("alias_field1")]]
+    std::string alias_field;
 };
 
 TEST_CASE("annotation")
@@ -450,7 +453,8 @@ TEST_CASE("annotation")
         {"profile", {1, 3.14, "Hello"}},
         {"idType", "Passport"},
         {"idNumber", "A12345678"},
-        {"unknownAttribute1", "This attribute is unknown."}
+        {"unknownAttribute1", "This attribute is unknown."},
+        {"alias_field1", "This is an alias field."},
     };
 
     auto student = cpp::cast<Student>(v);
@@ -477,6 +481,7 @@ TEST_CASE("annotation")
     REQUIRE(student.unknownAttribute2.size() == 2);
     REQUIRE(student.unknownAttribute2.front() == "Hello");
     REQUIRE(student.unknownAttribute2.back() == "World");
+    REQUIRE(student.alias_field == "This is an alias field.");
 }
 
 

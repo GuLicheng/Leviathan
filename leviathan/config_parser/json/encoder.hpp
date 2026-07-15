@@ -108,8 +108,19 @@ public:
             }
             else
             {
-                auto name = refl::handle<Field>::identifier();
-                auto it = root.as<object>().find(string(name));
+                auto names = refl::handle<Field>::identifier_and_aliases();
+                auto it = root.as<object>().end();
+                
+                for (auto name : names)
+                {
+                    it = root.as<object>().find(name);
+
+                    if (it != root.as<object>().end())
+                    {
+                        break;
+                    }
+                }
+                
 
                 if (it != root.as<object>().end())
                 {
@@ -118,7 +129,7 @@ public:
                 }
                 else if (refl::has_annotations(Field, refl::required))
                 {
-                    throw std::runtime_error(std::format("Field {} is required but not found in the JSON object", name));
+                    throw std::runtime_error(std::format("Field {} is required but not found in the JSON object", (display_string_of(Field))));
                 }
             }
         }
