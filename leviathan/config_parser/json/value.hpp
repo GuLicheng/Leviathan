@@ -177,8 +177,8 @@ public:
         return *this;
     }
 
-    template <string_viewable StringView>
-    value& operator[](const StringView& sv)
+    template <std::convertible_to<string> Str>
+    value& operator[](const Str& sv)
     {
         if (this->is_null())
         {
@@ -197,9 +197,29 @@ public:
         return pos->second;
     }
 
-    // TODO: Add operator[] for array.
-    // template <std::integral Index>
-    // value& operator[](Index index);
+    template <std::integral Index>
+    value& operator[](Index index)
+    {
+        if (this->is_null())
+        {
+            // Implicitly convert null to array.
+            // This is useful when you want to create a new array.
+            // For example, `value v; v[0] = "value";` will create an array.
+            this->emplace<array>();
+        }
+        else if (!this->is_array())
+        {
+            throw std::runtime_error(std::format("Cannot access index {} in a non-array value", index));
+        }
+
+        auto& arr = this->as<array>();
+        if (index < 0 || static_cast<size_t>(index) >= arr.size())
+        {
+            throw std::out_of_range(std::format("Index {} is out of range for array of size {}", index, arr.size()));
+        }
+
+        return arr[index];
+    }
 
     bool is_integer() const
     {
