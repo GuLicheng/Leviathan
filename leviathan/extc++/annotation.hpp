@@ -77,6 +77,8 @@ struct guard_annotation : annotation { };
 // when serializing the type, we will use the serializer to convert it into target type.
 struct serializer_annotation : annotation { };
 
+struct serializer_if_annotation : serializer_annotation { };
+
 // Any type inherit from deserializer_annotation will be treated as a deserializer, which means that
 // when deserializing the type, we will use the deserializer to convert it into target
 // type. We do not require the result type of the deserializer to be the string type.
@@ -112,6 +114,8 @@ inline constexpr struct { } required;
 // when initializing the field, we will use the constructor to initialize it.
 // There must be only one constructor field in a struct, and it must be a non-static data member.
 inline constexpr struct { } constructor;
+
+inline constexpr struct { } deny_unknown_fields;
 
 }  // namespace cpp::refl
 
@@ -399,6 +403,16 @@ consteval std::vector<std::meta::info> no_skipped_fields(std::meta::info type, s
     return nonstatic_data_members_of(type, ctx) 
          | std::views::filter(std::bind_back(cpp::refl::has_annotations, cpp::refl::skip))
          | std::ranges::to<std::vector>();
+}
+
+template <typename T>
+constexpr std::vector<std::string> extract_field_names()
+{
+    constexpr static auto members = define_static_array(all_nonstatic_data_members_of(^^T, std::meta::access_context::current()));
+    constexpr auto [...indices] = std::make_index_sequence<members.size()>{};
+    std::vector<std::string> names;
+    (names.emplace_back(handle<members[indices]>::identifier()), ...);
+    return names;
 }
 
 } // namespace cpp::refl

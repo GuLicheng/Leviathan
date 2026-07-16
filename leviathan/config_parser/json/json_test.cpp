@@ -385,7 +385,9 @@ struct ComplexString : cpp::refl::initializer_annotation
     }
 };
 
-struct [[=cpp::derive::from<json::value>]] Student
+struct 
+[[=cpp::derive::from<json::value>]] 
+Student
 {
     std::string name;
     

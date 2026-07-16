@@ -95,15 +95,9 @@ consteval bool is_derived_from_template(std::meta::info type, std::meta::info te
  */
 consteval std::vector<std::meta::info> all_parents(std::meta::info info)
 {
-    std::vector<std::meta::info> result;
-    
-    for (auto cur = dealias(info); cur != ^^::; cur = parent_of(cur))
-    {
-        result.push_back(cur);
-    }
-
-    result.push_back(^^::);
-    return result;
+    return info == ^^:: 
+         ? std::vector{ info } 
+         : std::views::concat(std::views::single(info), all_parents(parent_of(info))) | std::ranges::to<std::vector>();
 }
 
 // Maybe callable object is better than just function.
@@ -129,7 +123,7 @@ inline constexpr struct
 consteval std::vector<std::meta::info> all_nonstatic_data_members_of(std::meta::info info, std::meta::access_context ctx)
 {
     return all_bases_of(info) 
-         | std::views::transform([=](auto base) { return nonstatic_data_members_of(base, ctx); })
+         | std::views::transform(std::bind_back(std::meta::nonstatic_data_members_of, ctx))
          | std::views::join 
          | std::ranges::to<std::vector>();
 }
@@ -170,14 +164,13 @@ consteval std::meta::info select_annotation_with_type(std::meta::info default_in
  * @example
  *  struct MyStruct { int X; double Y; };
  *  MyStruct s;
- *  s.[:member_number<MyStruct>(0):] = 1;
- *  s.[:member_number<MyStruct>(1):] = 3.14;
+ *  s.[:member_number(^^MyStruct, 0):] = 1;
+ *  s.[:member_number(^^MyStruct, 1):] = 3.14;
  *  assert(s.X == 1 && s.Y == 3.14);
  */
-template <typename T>
-consteval std::meta::info member_number(size_t N)
+consteval std::meta::info member_number(std::meta::info type, size_t N)
 {
-    return all_nonstatic_data_members_of(^^T, std::meta::access_context::unchecked())[N];
+    return all_nonstatic_data_members_of(type, std::meta::access_context::unchecked())[N];
 }
 
 /**
@@ -197,19 +190,16 @@ consteval std::meta::info member_number(size_t N)
  *  };
  * 
  *  MyStruct s;
- *  s.[:member_named<MyStruct>("X"):] = 1;
- *  s.[:member_named<MyStruct>("Y"):] = 3.14;
+ *  s.[:member_named(^^MyStruct, "X"):] = 1;
+ *  s.[:member_named(^^MyStruct, "Y"):] = 3.14;
  *  assert(s.X == 1 && s.Y == 3.14);
- *  assert(s.[:member_named<MyStruct>("ReturnConstant"):]() == 42);
+ *  assert(s.[:member_named(^^MyStruct, "ReturnConstant"):]() == 42);
  */
-template <typename T>
-consteval std::meta::info member_named(const char* name)
+consteval std::meta::info member_named(std::meta::info type, const char* name)
 {
-    auto ctx = std::meta::access_context::unchecked();
-    for (std::meta::info field : members_of(^^T, ctx))
-        if (has_identifier(field) && identifier_of(field) == name)
-            return field;
-    throw std::runtime_error("No member named " + std::string(name) + " in type " + std::string(identifier_of(^^T)));
+    auto members = members_of(type, std::meta::access_context::unchecked());
+    auto same_as_name = [=](auto member) { return has_identifier(member) && identifier_of(member) == name; };
+    return *std::ranges::find_if(members, same_as_name);
 }
 
 /**
@@ -226,25 +216,16 @@ consteval std::meta::info member_named(const char* name)
  *  auto t = cpp::refl::struct_to_tuple(s);
  *  assert(t == std::make_tuple(1, 3.14, "hello"));
  */
-template <typename T>
-constexpr auto struct_to_tuple(const T& t) 
+inline constexpr struct 
 {
-    constexpr auto members = define_static_array(all_nonstatic_data_members_of(^^T, std::meta::access_context::unchecked()));
-    constexpr auto [...indices] = std::make_index_sequence<members.size()>{};
-    return std::make_tuple(t.[:members[indices]:]...);
-}
-
-// TODO: input range support
-// template <typename TupleLike, std::ranges::random_access_range Range>
-// constexpr TupleLike range_to_tuple(Range&& range)
-// {
-//     constexpr auto N = std::meta::tuple_size(^^TupleLike);
-//     constexpr auto [...idx] = std::make_index_sequence<N>();
-//     return TupleLike(std::forward_like<Range>(range[idx])...);
-// }
-
-
-
+    template <typename T>
+    static constexpr auto operator()(const T& t) 
+    {
+        constexpr auto members = define_static_array(all_nonstatic_data_members_of(^^T, std::meta::access_context::unchecked()));
+        constexpr auto [...indices] = std::make_index_sequence<members.size()>{};
+        return std::make_tuple(t.[:members[indices]:]...);
+    }
+} struct_to_tuple;
 
 } // namespace cpp::refl
 

@@ -29,6 +29,43 @@ class initializer
         return constructors[0];
     }  
 
+    static constexpr bool allow_unknown_fields = !refl::has_annotations(^^T, refl::deny_unknown_fields);
+
+    // Is necessary for [[=deny_unknown_fields]]?
+    bool check_unknown_fields() const
+    {
+        if constexpr (allow_unknown_fields)
+        {
+            return true;
+        }
+
+        // Maybe not efficient, can we optimize it later if needed without changing followd implementation
+        // in public part?
+
+        // std::vector<json::string>
+        auto names = root.as<object>()
+                   | std::views::keys
+                   | std::ranges::to<std::vector>();
+
+        std::vector<std::string> names_of_fields;
+
+        if constexpr (is_aggregate_type(^^T))
+        {
+            names_of_fields = refl::extract_field_names<T>();
+        }
+        else
+        {
+            constexpr static auto names = define_static_array(
+                parameters_of(constructor()) | std::views::transform(std::meta::identifier_of)
+            );
+            names_of_fields.append_range(names | std::views::transform([](auto name) { return std::string(name); }));
+        }
+
+        return std::ranges::all_of(names_of_fields, [&names](const auto& name) {
+            return std::ranges::contains(names, name);
+        });
+    }
+
 public:
 
     initializer(const value& root) : root(root) {}
