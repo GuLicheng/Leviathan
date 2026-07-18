@@ -11,95 +11,6 @@
 #include <leviathan/extc++/concepts.hpp>
 #include <leviathan/extc++/functional.hpp>
 #include <leviathan/type_caster.hpp>
-// #include <leviathan/math/int128.hpp>
-
-// Some utils
-namespace cpp::ranges::detail
-{
-
-using cpp::meta::maybe_const_t;
-using cpp::meta::simple_view;
-
-template <typename F, typename Tuple>
-constexpr auto tuple_transform(F&& f, Tuple&& tuple)
-{
-    return std::apply([&]<typename... Ts>(Ts&&... elements) {
-        return meta::tuple_or_pair<std::invoke_result_t<F&, Ts>...>(std::invoke(f, (Ts&&) elements)...);
-    }, (Tuple&&) tuple);
-}
-
-template <typename F, typename Tuple>
-constexpr void tuple_for_each(F&& f, Tuple&& tuple)
-{
-    std::apply([&]<typename... Ts>(Ts&&... elements) {
-        (std::invoke(f, (Ts&&) elements), ...);
-    }, (Tuple&&) tuple);
-} 
-
-template <typename... Ts>
-struct last_element : std::type_identity<decltype((std::type_identity<Ts>{}, ...))> { };
-
-template <typename... Ts>
-using last_element_t = typename last_element<Ts...>::type;
-
-template <bool HasType, typename T>
-struct has_typedef_name_of_iterator_category { };
-
-template <typename T>
-struct has_typedef_name_of_iterator_category<true, T> 
-{
-    using iterator_category = T;
-};
-
-// some iterator may not have iterator_category so we use follow meta as helper
-// std::derived_from<void, tag> will be false for any tag in [input/forward/bidirectional/random_access]iterator_tag
-template <typename Iter, bool HasIteratorCategory>
-struct iter_category_impl : std::type_identity<void> { };
-
-template <typename Iter>
-struct iter_category_impl<Iter, true> : std::type_identity<typename std::iterator_traits<Iter>::iterator_category> { };
-
-template <typename Iter>
-concept has_iterator_category = requires 
-{
-    typename std::iterator_traits<Iter>::iterator_category;
-};
-
-template <typename T>
-using iter_category_t = typename iter_category_impl<T, has_iterator_category<T>>::type;
-
-template <typename Base>
-consteval auto simple_iterator_concept()
-{
-    if constexpr (std::ranges::random_access_range<Base>)
-        return std::random_access_iterator_tag();
-    else if constexpr (std::ranges::bidirectional_range<Base>)
-        return std::bidirectional_iterator_tag();
-    else if constexpr (std::ranges::input_range<Base>)
-        return std::forward_iterator_tag();
-    else    
-        return std::input_iterator_tag();
-}
-
-// template <typename T>
-// constexpr auto to_signed_like(T x) 
-// {
-//     if constexpr (!std::integral<T>)
-//         return std::iter_difference_t<T>();
-//     else if constexpr (sizeof(std::iter_difference_t<T>) > sizeof(T))
-//         return std::iter_difference_t<T>(x);
-//     else if constexpr (sizeof(std::ptrdiff_t) > sizeof(T))
-//         return std::ptrdiff_t(x);
-//     else if constexpr (sizeof(long long) > sizeof(T))
-//         return (long long)(x);
-//     else
-//         return int128_t(x);  // return __max_diff_type(x);
-// }
-
-template<typename T>
-using iota_diff_t = decltype(to_signed_like(std::declval<T>()));
-
-}
 
 namespace cpp::ranges
 {
@@ -257,20 +168,11 @@ namespace cpp::ranges::views
 using namespace std::views;
 
 template <typename T>
-inline constexpr closure as = []<typename R>(R&& r) static
-{
-    return (R&&)r | transform(cpp::cast<T>);
-};
+inline constexpr auto as = transform(cpp::cast<T>);
 
-inline constexpr closure indirect = []<typename R>(R&& r) static
-{
-    return (R&&)r | transform(indirection);
-};
+inline constexpr auto indirect = transform(indirection);
 
-inline constexpr closure format = []<typename R>(R&& r) static
-{
-    return (R&&)r | transform(to_string) | cache_latest;
-};
+inline constexpr auto format = transform([](const auto& x) { return std::format("{}", x); }) | cache_latest;
 
 inline constexpr closure head = []<typename R>(R&& r) static
 {
@@ -287,20 +189,14 @@ inline constexpr closure unique = []<typename R>(R&& r) static
     return (R&&)r | std::views::chunk_by(std::ranges::equal_to()) | head;
 };
 
-inline constexpr closure to_lower = []<typename R>(R&& r) static
-{
-    return (R&&)r | transform([]<typename CharT>(CharT c) static { return (CharT)::tolower(c); });
-};
+inline constexpr auto to_lower = transform([]<typename CharT>(CharT c) static { return (CharT)::tolower(c); });
 
-inline constexpr closure to_upper = []<typename R>(R&& r) static
-{
-    return (R&&)r | transform([]<typename CharT>(CharT c) static { return (CharT)::toupper(c); });
-};
+inline constexpr auto to_upper = transform([]<typename CharT>(CharT c) static { return (CharT)::toupper(c); });
 
-inline constexpr closure split_line = []<typename R>(R&& r) static
-{
-    return (R&&)r | split('\n') | transform([](auto&& x) static { return std::string_view(x); });
-};
+// inline constexpr closure split_line = []<typename R>(R&& r) static
+// {
+//     return (R&&)r | split('\n') | transform([](auto&& x) static { return std::string_view(x); });
+// };
 
 inline constexpr closure cycle = []<typename R>(R&& r) static
 {

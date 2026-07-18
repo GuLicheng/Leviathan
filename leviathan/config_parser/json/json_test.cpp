@@ -393,6 +393,7 @@ Student
     
     int age;
     
+    [[=cpp::refl::lowercase]]
     Gender gender;
 
     [[=PlusOne]]

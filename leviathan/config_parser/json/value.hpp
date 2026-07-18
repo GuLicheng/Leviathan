@@ -221,6 +221,8 @@ public:
         return arr[index];
     }
 
+    // Find for const overload.
+
     bool is_integer() const
     {
         return is<number>() 
@@ -320,8 +322,8 @@ public:
 
             template for (constexpr auto mem : members)
             {
-                std::string_view mem_name = has_identifier(mem) ? refl::handle<mem>::identifier()
-                    : std::meta::display_string_of(mem);
+                auto mem_name = has_identifier(mem) ? refl::handle<mem>::identifier()
+                    : std::string(display_string_of(mem));
 
                 obj.try_emplace(
                     cpp::json::string(mem_name), 

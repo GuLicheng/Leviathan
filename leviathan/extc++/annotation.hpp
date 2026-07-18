@@ -1,10 +1,10 @@
 #pragma once
 
 #include <leviathan/extc++/meta.hpp>
+#include <leviathan/extc++/ranges.hpp>
 
 #include <algorithm>
 #include <functional>
-#include <ranges>
 
 namespace cpp::derive
 {
@@ -77,7 +77,7 @@ struct guard_annotation : annotation { };
 // when serializing the type, we will use the serializer to convert it into target type.
 struct serializer_annotation : annotation { };
 
-struct serializer_if_annotation : serializer_annotation { };
+struct skip_serializing_if_annotation : serializer_annotation { };
 
 // Any type inherit from deserializer_annotation will be treated as a deserializer, which means that
 // when deserializing the type, we will use the deserializer to convert it into target
@@ -115,6 +115,9 @@ inline constexpr struct { } required;
 // There must be only one constructor field in a struct, and it must be a non-static data member.
 inline constexpr struct { } constructor;
 
+// Any field annotated with [[=deny_unknown_fields]] will be treated as a deny unknown fields, which means that
+// when initializing the struct, we will check if there are any unknown fields in the input data
+// and throw an error if there are any unknown fields. This is useful for preventing typos in the input data.
 inline constexpr struct { } deny_unknown_fields;
 
 }  // namespace cpp::refl
@@ -172,7 +175,7 @@ inline constexpr auto selfname = make_callable<rename_annotation>([](std::string
 
 inline constexpr auto lowercase = make_callable<rename_annotation>([](std::string field_name) static 
 {
-    return field_name | std::views::transform(::tolower) | std::ranges::to<std::string>();
+    return field_name | cpp::views::to_lower | std::ranges::to<std::string>();
 });
 
 inline constexpr auto uppercase = make_callable<rename_annotation>([](std::string field_name) static 
@@ -213,8 +216,7 @@ inline constexpr auto pascal_case = make_callable<rename_annotation>([](std::str
 
     return field_name 
          | std::views::split('_') 
-         | std::views::transform(upper_first_character)
-         | std::views::join
+         | cpp::views::transform_join(upper_first_character)
          | std::ranges::to<std::string>();
 });
 

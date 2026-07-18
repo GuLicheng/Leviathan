@@ -1,7 +1,8 @@
 #pragma once
 
+#include <leviathan/extc++/ranges.hpp>
+
 #include <meta>
-#include <ranges>
 #include <functional>
 #include <algorithm>
 
@@ -24,10 +25,10 @@ consteval std::vector<std::meta::info> all_bases_of(std::meta::info info)
 {
     std::vector results { dealias(info) };
 
+    // The info from bases_of is a base class specifier, we need to get the type of it.
     std::ranges::copy_if(
         bases_of(info, std::meta::access_context::unchecked())
-        | std::views::transform(std::meta::type_of) // The info from bases_of is a base class specifier, we need to get the type of it.
-        | std::views::transform(all_bases_of)
+        | cpp::views::compose(std::meta::type_of, all_bases_of)
         | std::views::join,
         std::back_inserter(results),
         [&](auto info) { return !std::ranges::contains(results, info, std::meta::dealias); },
@@ -123,8 +124,7 @@ inline constexpr struct
 consteval std::vector<std::meta::info> all_nonstatic_data_members_of(std::meta::info info, std::meta::access_context ctx)
 {
     return all_bases_of(info) 
-         | std::views::transform(std::bind_back(std::meta::nonstatic_data_members_of, ctx))
-         | std::views::join 
+         | cpp::views::transform_join(std::bind_back(std::meta::nonstatic_data_members_of, ctx))
          | std::ranges::to<std::vector>();
 }
 

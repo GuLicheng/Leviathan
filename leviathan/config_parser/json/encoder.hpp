@@ -58,7 +58,8 @@ class initializer
             constexpr static auto names = define_static_array(
                 parameters_of(constructor()) | std::views::transform(std::meta::identifier_of)
             );
-            names_of_fields.append_range(names | std::views::transform([](auto name) { return std::string(name); }));
+            // names_of_fields.append_range(names | std::views::transform([](auto name) { return std::string(name); }));
+            names_of_fields.append_range(names | cpp::views::as<std::string>);
         }
 
         return std::ranges::all_of(names_of_fields, [&names](const auto& name) {

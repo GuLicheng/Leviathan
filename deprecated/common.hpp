@@ -9,43 +9,6 @@
 namespace cpp::ranges::detail
 {
 
-template <typename F, typename Tuple>
-constexpr auto tuple_transform(F&& f, Tuple&& tuple)
-{
-    return std::apply([&]<typename... Ts>(Ts&&... elements) {
-        return tuple_or_pair<std::invoke_result_t<F&, Ts>...>(std::invoke(f, (Ts&&) elements)...);
-    }, (Tuple&&) tuple);
-}
-
-template <typename F, typename Tuple>
-constexpr void tuple_for_each(F&& f, Tuple&& tuple)
-{
-    std::apply([&]<typename... Ts>(Ts&&... elements) {
-        (std::invoke(f, (Ts&&) elements), ...);
-    }, (Tuple&&) tuple);
-} 
-
-template <typename... Ts>
-struct last_element : std::type_identity<decltype((std::type_identity<Ts>{}, ...))> { };
-
-template <typename... Ts>
-using last_element_t = typename last_element<Ts...>::type;
-
-template <bool HasType, typename T>
-struct has_typedef_name_of_iterator_category { };
-
-template <typename T>
-struct has_typedef_name_of_iterator_category<true, T> 
-{
-    using iterator_category = T;
-};
-
-// some iterator may not have iterator_category so we use follow meta as helper
-// std::derived_from<void, tag> will be false for any tag in [input/forward/bidirectional/random_access]iterator_tag
-template <typename Iter, bool HasIteratorCategory>
-struct iter_category_impl : std::type_identity<void> { };
-
-template <typename Iter>
 struct iter_category_impl<Iter, true> : std::type_identity<typename std::iterator_traits<Iter>::iterator_category> { };
 
 template <typename Iter>
