@@ -87,15 +87,6 @@ namespace cpp
     
 inline constexpr struct
 {
-    template <typename... Callables>
-    static constexpr auto operator()(Callables&&... callables)
-    {
-        return detail::tuple_callables<std::decay_t<Callables>...>((Callables&&) callables...);
-    }
-} make_tuple_callables;
-
-inline constexpr struct
-{
     template <typename T>
     static constexpr std::string operator()(T&& value) 
     {

@@ -1,8 +1,5 @@
-#include <leviathan/extc++/annotation.hpp>
-#include <leviathan/extc++/meta.hpp>
-#include <leviathan/extc++/tuple.hpp>
-#include <leviathan/extc++/enum.hpp>
-#include <leviathan/config_parser/json/json.hpp>
+#include <leviathan/extc++/all.hpp>
+#include <bits/stdc++.h>
 #include <print>
 #include <assert.h>
 
@@ -36,6 +33,10 @@ int main()
     //     std::println("{}", display_string_of(name));
     // }
 
+    constexpr auto size = sizeof(std::meta::info);
+
     print();
+
+    std::cout << "sizeof(std::meta::info) = " << size << std::endl;
 
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <ranges>
 #include <concepts>
 #include <tuple>
@@ -174,6 +175,11 @@ inline constexpr auto indirect = transform(indirection);
 
 inline constexpr auto format = transform([](const auto& x) { return std::format("{}", x); }) | cache_latest;
 
+inline constexpr auto format_with = [](std::string_view fmt) static
+{
+    return transform([=](const auto& x) { return std::format(std::dynamic_format(fmt), x); }) | cache_latest;
+};
+
 inline constexpr closure head = []<typename R>(R&& r) static
 {
     return (R&&)r | transform(front); 
@@ -212,7 +218,15 @@ namespace cpp::ranges::views
 // we need to transform it to std::pair<Key, T> to make it work with std::apply.
 inline constexpr auto pair_transform = []<typename F1, typename F2>(F1&& f1, F2&& f2) static
 {
-    return transform(make_tuple_callables((F1&&)f1, (F2&&)f2));
+    auto fn = [f1 = (F1&&)f1, f2 = (F2&&)f2](auto&& pair) 
+    {
+        auto&& [key, value] = (decltype(pair)&&) pair;
+        return std::make_pair(
+            std::invoke(f1, key),
+            std::invoke(f2, value)
+        );
+    };
+    return transform(std::move(fn));
 };
 
 inline constexpr auto compose = []<typename... Fs>(Fs&&... fs) static
@@ -253,7 +267,6 @@ namespace cpp::views
     using namespace cpp::ranges::views;
 }
 
-#include <algorithm>
 
 namespace cpp::action
 {
