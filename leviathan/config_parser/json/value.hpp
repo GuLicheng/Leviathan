@@ -22,9 +22,6 @@
 namespace cpp::config::json
 {
 
-template <typename T>
-concept arithmetic = std::is_arithmetic_v<T>;
-
 using cpp::string::string_viewable;
 using cpp::string::string_hash_key_equal;
 
@@ -68,7 +65,7 @@ struct as_unique_ptr_if_large_than
     template <typename T>
     static constexpr auto to_address(T* t) 
     {
-        if constexpr (!cpp::refl::instance_of_template(^^T, ^^std::unique_ptr))
+        if constexpr (!refl::instance_of_template(^^T, ^^std::unique_ptr))
         {
             return t;
         }
@@ -265,6 +262,8 @@ inline constexpr auto make = cpp::cast<value>;
 template <typename Source>
 class cpp::optional_caster<Source, cpp::json::value>
 {
+    static_assert(std::is_same_v<Source, std::remove_cvref_t<Source>>, "Source type must be non-cvref");
+
 public:
 
     using result_type = std::optional<cpp::json::value>;
@@ -279,7 +278,7 @@ public:
         {
             return json::make_json<json::null>();
         }
-        else if constexpr (meta::arithmetic<Source>)
+        else if constexpr (std::meta::is_arithmetic(^^Source))
         {
             return json::make_json<json::number>(source);
         }
