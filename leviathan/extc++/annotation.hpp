@@ -180,7 +180,7 @@ inline constexpr auto lowercase = make_callable<rename_annotation>([](std::strin
 
 inline constexpr auto uppercase = make_callable<rename_annotation>([](std::string field_name) static 
 {
-    return field_name | std::views::transform(::toupper) | std::ranges::to<std::string>();
+    return field_name | cpp::views::to_upper | std::ranges::to<std::string>();
 });
 
 inline constexpr auto rename = [](std::string_view new_name) static
@@ -222,7 +222,7 @@ inline constexpr auto pascal_case = make_callable<rename_annotation>([](std::str
 
 inline constexpr auto kebab_case = make_callable<rename_annotation>([](std::string field_name) static
 {
-    return field_name | std::views::transform([](char c) { return c == '_' ? '-' : c; }) | std::ranges::to<std::string>();
+    return field_name | cpp::views::replace('_', '-') | std::ranges::to<std::string>();
 });
 
 template <typename T>
