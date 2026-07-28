@@ -23,6 +23,8 @@ add_subdirectory(third_part/Catch2)
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE "-lstdc++exp")
 
+add_executable(ccb scripts/ccb.cpp)
+set_target_properties(ccb PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_ROOT_PATH}/bin")
 
 # Root CMakeLists.txt over
 

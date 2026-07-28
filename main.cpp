@@ -3,37 +3,38 @@
 
 #include "leviathan/config_parser/cmd/cmd.hpp"
 
-using namespace cpp::config::cmd;
+// using namespace cpp::config::cmd;
+namespace cmd = cpp::config::cmd;
 
 int main(int argc, char** argv) {
     try {
-        auto matches = command("myapp")
+        auto matches = cmd::command("myapp")
             .description("一个示例 CLI 程序")
             .version("1.0.0")
             .author("Your Name")
-            .arg(arg("input")
+            .arg(cmd::arg("input")
                 .help("输入文件路径")
                 .positional(1)
                 .required(true))
-            .arg(arg("output")
+            .arg(cmd::arg("output")
                 .help("输出文件路径")
                 .positional(2))
-            .arg(arg("config")
+            .arg(cmd::arg("config")
                 .help("配置文件路径")
                 .named('c', "config")
                 .takes_value(true))
-            .arg(arg("verbose")
+            .arg(cmd::arg("verbose")
                 .help("启用详细输出")
                 .named('v', "verbose")
                 .takes_value(false))
-            .arg(arg("count")
+            .arg(cmd::arg("count")
                 .help("重复次数")
                 .named('n', "count")
                 .takes_value(true))
             .subcommand(
-                command("init")
+                cmd::command("init")
                     .description("初始化项目")
-                    .arg(arg("name")
+                    .arg(cmd::arg("name")
                         .help("项目名称")
                         .positional(1)
                         .required(true))

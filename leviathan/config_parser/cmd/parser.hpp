@@ -211,7 +211,7 @@ private:
 
     // -------- 验证 --------
     void validate_required() {
-        const auto& args = m_root_cmd.args();
+        const auto& args = m_root_cmd.arguments();
         for (const auto& a : args) {
             if (a.is_required() && !m_matches.is_present(a.id())) {
                 throw std::runtime_error("Required argument missing: " + a.id());

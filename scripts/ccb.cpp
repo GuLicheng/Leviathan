@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <leviathan/extc++/all.hpp>
 
-int LuhnSum(std::string_view numbers) 
+constexpr int LuhnSum(std::string_view numbers) 
 {
     auto OddTransform = [](int x) static
     {
@@ -36,7 +36,7 @@ inline constexpr auto ValidBankCard = [](auto&& numbers) static -> bool
 {
     const auto prefix = numbers.substr(0, numbers.size() - 1);
     const auto expected = numbers.back() - '0';
-    return Luhn(prefix) == expected;
+    return LuhnSum(prefix) == expected;
 };
 
 inline constexpr std::string_view digits = "0123456789";
@@ -59,24 +59,27 @@ auto FillStar = [](this auto&& self, std::string numbers, std::string_view candi
     idx != std::string::npos ? co_yield std::ranges::elements_of(candidates | cpp::views::transform_join(fn)) : co_yield numbers;
 };
 
-auto GenerateAccount(std::string_view IIN, std::string_view numbers, char expected)
+auto GenerateAccount(std::string_view number)
 {
-    const std::string number = std::format("{}{}{}", IIN, numbers, expected);
-    return FillDash(number) 
+    return FillDash(std::string(number))
          | cpp::views::transform_join(FillStar)
          | std::views::filter(ValidBankCard);
 }
 
 int main(int argc, char const *argv[])
 {
-    static_assert(Luhn("621499163215333") == 3);
-    static_assert(Luhn("621467163001365234") == 5);
+    static_assert(LuhnSum("621499163215333") == 3);
+    static_assert(LuhnSum("621467163001365234") == 5);
 
-    std::string numbers = "621499163215333";
+    if (argc != 2)
+    {
+        std::cout << "Exactly one argument is required." << std::endl;
+        return 0;
+    }
 
-    std::cout << ValidBankCard(std::string("6214991632153333")) << std::endl;
+    std::string_view numbers = argv[1];
 
-    for (auto number : GenerateAccount("621488163", "0**8--", '-'))
+    for (auto number : GenerateAccount(numbers))
     {
         std::cout << number << std::endl;
     }

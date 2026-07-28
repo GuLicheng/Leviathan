@@ -71,7 +71,7 @@ public:
     const std::string& description() const { return m_description; }
     const std::string& version() const { return m_version; }
     const std::string& author() const { return m_author; }
-    const std::vector<arg>& args() const { return m_args; }
+    const std::vector<arg>& arguments() const { return m_args; }
     const std::vector<command>& subcommands() const { return m_subcommands; }
 
     // -------- 辅助查询 --------
