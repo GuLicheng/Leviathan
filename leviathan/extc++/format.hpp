@@ -62,9 +62,17 @@ struct enum_formatter
     static constexpr auto parse(auto& ctx) { return ctx.begin(); }
 
     template <typename EnumType>
+        requires (std::is_enum_v<EnumType>)
     static auto format(EnumType value, auto& ctx) 
     {
-        return std::format_to(ctx.out(), "{}", cpp::default_enum_decoder<EnumType, false, true>()(value));
+        template for (constexpr auto e : define_static_array(enumerators_of(^^EnumType)))
+        {
+            if (value == [:e:])
+            {
+                return std::format_to(ctx.out(), "{}", refl::handle<e>::identifier());
+            }
+        }
+        return std::format_to(ctx.out(), "Unknown enum value");
     }
 };
 

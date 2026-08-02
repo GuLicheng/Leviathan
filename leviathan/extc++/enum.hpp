@@ -1,6 +1,7 @@
 #pragma once
 
 #include <leviathan/extc++/meta.hpp>
+#include <leviathan/extc++/annotation.hpp>
 #include <leviathan/type_caster.hpp>
 #include <format>
 
