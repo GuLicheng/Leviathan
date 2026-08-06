@@ -30,18 +30,17 @@ enum class arg_action
 class arg {
 
     // -------- 内部类型 --------
-    struct action_only { };
+    struct [[=derive::debug]] action_only { };
 
-    struct positional {
+    struct [[=derive::debug]] positional {
         int index = 0;
     };
-    struct named {
+    struct [[=derive::debug]] named {
         char short_name = '\0';
         std::string long_name;
     };
     
     using kind = std::variant<action_only, positional, named>;
-
 
 public:
     // -------- 构造函数 --------

@@ -2,6 +2,7 @@
 
 #include <leviathan/variable.hpp>
 #include <leviathan/extc++/format.hpp>
+#include <leviathan/extc++/variant.hpp>
 
 #include <string>
 #include <vector>
@@ -12,49 +13,70 @@
 namespace cpp::config::cli 
 {
 
-enum class [[=derive::debug]] arg_action
+enum class arg_action
 {
-    set,          // 存储一个值
-    set_true,     // 布尔标志（出现即为 true）
-    set_false,    // 反向布尔标志（出现即为 false）
-    append,       // 追加到向量（可多次出现）
-    count,        // 计数器（统计出现次数）
-    help,         // 显示帮助信息
-    version,      // 显示版本信息
+    store,        // store value, such as --name bob
+    store_multi,  // store multiple values, such as --name bob --name alice
+    store_const,  // store a constant value, such as --enable-feature (store true)
+    count,        // count occurrences, such as -vvv (count = 3)
+    store_true,   // store true if present, such as --enable-feature
+    store_false,  // store false if present, such as --disable-feature
+    help,         // show help information
+    version,      // show version information
 };
 
-struct [[=derive::debug]] arg
+struct [[=derive::debug]] action_only { };
+
+struct [[=derive::debug]] positional  { int index = 0; };
+
+struct [[=derive::debug]] named 
 {
+    char short_name = '\0';
+    std::string long_name;
+};
+
+using arg_kind = std::variant<action_only, positional, named>;
+
+struct arg
+{
+
+    // Our parser will search for arguments by their id, so it must be unique.
     std::string id;
+
+    // Help message for the argument, shown in help output.
     std::string help = "No help available";
-    arg_action action = arg_action::set;
-    bool required = false;
-    bool takes_value = true;
+    
+    // The action to perform when this argument is encountered.
+    arg_action action = arg_action::store;
 
-    struct action_only { };
+    // Whether the argument is required or optional.
+    bool is_required = false;
 
-    // 位置参数
-    struct positional {
-        int index = 0;
-    };
+    // The kind of argument: positional, named, or action-only.
+    arg_kind kind;
+    
+    // The constant value to store when arg_action::store_const is used. 
+    // This is optional and only relevant for store_const actions.
+    std::string const_value;
 
-    // 命名参数
-    struct named {
-        char short_name = '\0';
-        std::string long_name;
-    };
+    // The default value for the argument, if any. This is optional and can be used to provide a fallback.
+    std::string default_value;
 
-    using kind = std::variant<action_only, positional, named>;
+    // Whether the argument should be hidden from help output. This is optional and defaults to false.
+    bool hidden = false;
 
-    // kind arg_kind;
+    // Placeholder for the value in help output, defaults to "VALUE".
+    // --output <metavar>
+    std::string metavar = "VALUE";  
 
-    // 预留字段
-    // std::optional<std::string> default_value;
-    // bool hidden = false;
-    // std::vector<std::string> aliases;
-    // std::vector<std::string> possible_values;
-    // std::vector<std::string> conflicts_with;
-    // std::vector<std::string> requires_fields;
+    // Whether the argument can be specified multiple times.
+    bool multiple = false; 
+
+    template <typename T>
+    constexpr bool is() const
+    {
+        return std::holds_alternative<T>(kind);
+    }
 };
 
 
