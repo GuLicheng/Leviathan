@@ -6,7 +6,7 @@ namespace cli = cpp::config::cli;
 
 void dump_command(const cli::command& cmd)
 {
-    std::print("Usage: {} <FILE> [OPTIONS] [SUBCOMMANDS]\n", cmd.name);
+    std::print("Usage: {} <FILE> [OPTIONS] [SUBCOMMANDS] [ARGS...]\n", cmd.name);
 
     std::print("\nDescription:\n  {}\n", cmd.description);
 
@@ -60,7 +60,7 @@ int main()
         .hidden = false 
     };
 
-    cmd.add_arg(cli::arg { 
+    cmd.add_argument(cli::arg { 
         .id = "input", 
         .help = "Input file", 
         .action = cli::arg_action::store, 

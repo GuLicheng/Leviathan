@@ -28,7 +28,7 @@ struct command
     bool hidden = false;
 
     // Convenience builder‑style helpers (optional, public members still usable directly)
-    command& add_arg(arg a)
+    command& add_argument(arg a)
     {
         args.push_back(std::move(a));
         return *this;
