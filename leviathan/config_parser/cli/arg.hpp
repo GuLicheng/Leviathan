@@ -39,7 +39,6 @@ using arg_kind = std::variant<action_only, positional, named>;
 
 struct arg
 {
-
     // Our parser will search for arguments by their id, so it must be unique.
     std::string id;
 
