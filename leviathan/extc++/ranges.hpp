@@ -285,4 +285,13 @@ inline constexpr cpp::ranges::closure sort = []<std::ranges::viewable_range R>(R
     return (R&&)r;
 };
 
-}
+inline constexpr cpp::ranges::adaptor invoke = 
+    []<typename R, typename F, typename... Args>(R&& r, F&& f, Args&&... args) static
+{
+    std::invoke((F&&)f, (R&&)r, (Args&&)args...);
+};
+
+}  // namespace cpp::action
+
+
+
