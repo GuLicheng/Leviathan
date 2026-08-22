@@ -4,6 +4,7 @@
 #include <optional>
 #include <tuple>
 #include <variant>
+#include <leviathan/extc++/annotation.hpp>
 
 namespace nom
 {
@@ -83,18 +84,18 @@ enum class error_kind
  * indicating how many characters we still need in input.
  */
 template <typename Failure, typename Error = Failure>
-struct err
+struct [[=cpp::derive::debug]] err
 {
     // >_< !
-    struct incomplete { size_t value; };
-    struct error { Error value; };
-    struct failure { Failure value; };
+    struct [[=cpp::derive::debug]] incomplete { size_t value; };
+    struct [[=cpp::derive::debug]] error { Error value; };
+    struct [[=cpp::derive::debug]] failure { Failure value; };
 
     std::variant<incomplete, error, failure> value;
 
-    constexpr err(incomplete i) : value(i) { }
-    constexpr err(error e) : value(e) { }
-    constexpr err(failure f) : value(f) { }
+    constexpr err(incomplete i) : value(std::in_place_index<0>, std::move(i)) { }
+    constexpr err(error e) : value(std::in_place_index<1>, std::move(e)) { }
+    constexpr err(failure f) : value(std::in_place_index<2>, std::move(f)) { }
 
     constexpr err(const err&) = default;
     constexpr err(err&&) = default;
@@ -102,7 +103,7 @@ struct err
     constexpr static err make_incomplete(size_t n) { return err(incomplete{ .value = n }); }
     constexpr static err make_error(Error e) { return err(error{ .value = std::move(e) }); }
     constexpr static err make_failure(Failure f) { return err(failure{ .value = std::move(f) }); }
-    
+
     constexpr bool is_incomplete() const { return std::holds_alternative<incomplete>(value); }
     constexpr bool is_error() const { return std::holds_alternative<error>(value); }
     constexpr bool is_failure() const { return std::holds_alternative<failure>(value); }
@@ -123,41 +124,57 @@ struct err
                     ↓ 原料：ErrorKind 枚举（底层错误编码）
 */
 // Why not use (I, Result<O, E>) -- std::pair<I, std::expected<O, E> ?
-template <typename Input, typename Output, typename Error = error<Input, error_kind>>
-class iresult : public result<std::pair<Input, Output>, Error>
-{
-    using base = result<std::pair<Input, Output>, Error>;
+// template <typename Input, typename Output, typename Error = error<Input, error_kind>>
+// class iresult : public result<std::pair<Input, Output>, Error>
+// {
+//     using base = result<std::pair<Input, Output>, Error>;
 
-public:
+// public:
 
-    using input_type = Input;
-    using output_type = Output;
-    using typename base::error_type;
+//     using input_type = Input;
+//     using output_type = Output;
+//     using typename base::error_type;
 
-    template <typename... Args>
-    constexpr iresult(in_place_t, Args&&... args)
-        : base(in_place,  (Args&&)args...)
-    { }
+//     template <typename... Args>
+//     constexpr iresult(in_place_t, Args&&... args)
+//         : base(in_place,  (Args&&)args...)
+//     { }
 
-    template <typename... Args>
-    constexpr iresult(unexpect_t, Args&&... args)
-        : base(unexpect, (Args&&)args...)
-    { }
-};
+//     template <typename... Args>
+//     constexpr iresult(unexpect_t, Args&&... args)
+//         : base(unexpect, (Args&&)args...)
+//     { }
+// };
 
-// https://docs.rs/nom/latest/nom/error/trait.ParseError.html
-template <typename E, typename I>
-concept parse_error = requires(E err, I input, error_kind kind, typename I::context_type ctx) 
-{
-    { E::from_error_kind(input, kind) } -> std::same_as<E>;
+// // https://docs.rs/nom/latest/nom/error/trait.ParseError.html
+// template <typename E, typename I>
+// concept parse_error = requires(E err, I input, error_kind kind, typename I::context_type ctx) 
+// {
+//     { E::from_error_kind(input, kind) } -> std::same_as<E>;
 
-    { err.append(input, kind) } -> std::same_as<void>;
+//     { err.append(input, kind) } -> std::same_as<void>;
 
-    { err.add_context(input, ctx) } -> std::same_as<void>;
-};
+//     { err.add_context(input, ctx) } -> std::same_as<void>;
+// };
 
 } // namespace nom
 
 
+// Extend
 
+#include <leviathan/extc++/tuple.hpp>
+#include <leviathan/extc++/variant.hpp>
+#include <leviathan/extc++/enum.hpp>
+#include <leviathan/extc++/format.hpp>
 
+// template <typename Failure, typename Error>
+// struct std::formatter<typename nom::err<Failure, Error>::incomplete> : cpp::universal_formatter { };
+
+// template <typename Failure, typename Error>
+// struct std::formatter<nom::err<Failure, Error>>::error { } : cpp::universal_formatter { };
+
+// template <typename Failure, typename Error>
+// struct std::formatter<nom::err<Failure, Error>>::failure { } : cpp::universal_formatter { };
+
+// template <typename Failure, typename Error>
+// struct std::formatter<nom::err<Failure, Error>> : cpp::universal_formatter { };
