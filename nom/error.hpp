@@ -3,6 +3,7 @@
 #include <expected>
 #include <optional>
 #include <tuple>
+#include <variant>
 
 namespace nom
 {
@@ -72,22 +73,55 @@ enum class error_kind
  *    Error(Error),
  *    Failure(Failure),
  *  }
- *  
- *  We have found that in most cases, the Error and Failure are the same.
- *  So we merge them into one, and use a boolean flag to indicate 
- *  whether it is recoverable.
+ * 
+ *  pub enum Needed {
+ *    Unknown,
+ *    Size(NonZeroUsize),
+ *  }
+ * 
+ * The Incomplete in our error can just be a size_t, 
+ * indicating how many characters we still need in input.
  */
-template <typename Input, typename ErrorCode>
-struct error
+template <typename Failure, typename Error = Failure>
+struct err
 {
-    Input input;
-    ErrorCode code;
-    bool recoverable;
+    // >_< !
+    struct incomplete { size_t value; };
+    struct error { Error value; };
+    struct failure { Failure value; };
 
-    constexpr error(Input i, ErrorCode ec, bool r) 
-        : input(std::move(i)), code(ec), recoverable(r) { }
+    std::variant<incomplete, error, failure> value;
+
+    constexpr err(incomplete i) : value(i) { }
+    constexpr err(error e) : value(e) { }
+    constexpr err(failure f) : value(f) { }
+
+    constexpr err(const err&) = default;
+    constexpr err(err&&) = default;
+
+    constexpr static err make_incomplete(size_t n) { return err(incomplete{ .value = n }); }
+    constexpr static err make_error(Error e) { return err(error{ .value = std::move(e) }); }
+    constexpr static err make_failure(Failure f) { return err(failure{ .value = std::move(f) }); }
+    
+    constexpr bool is_incomplete() const { return std::holds_alternative<incomplete>(value); }
+    constexpr bool is_error() const { return std::holds_alternative<error>(value); }
+    constexpr bool is_failure() const { return std::holds_alternative<failure>(value); }
 };
 
+/*
+    IResult<I, O, E>
+    ├─ Ok → (剩余输入I，输出O)
+    └─ Err(Err<E>)
+        ├─ Incomplete(Needed)         // 数据不足，非语法错误
+        ├─ Error(E)                   // 可恢复错误，允许回溯
+        └─ Failure(E)                 // 不可恢复，禁止回溯
+            ↓ E 必须实现 ParseError<I> trait
+                ├─ from_error_kind()  // 创建错误
+                ├─ append()           // 合并回溯错误
+                ├─ from_char()        // 辅助构造
+                └─ or()               // alt多分支错误选择
+                    ↓ 原料：ErrorKind 枚举（底层错误编码）
+*/
 // Why not use (I, Result<O, E>) -- std::pair<I, std::expected<O, E> ?
 template <typename Input, typename Output, typename Error = error<Input, error_kind>>
 class iresult : public result<std::pair<Input, Output>, Error>
@@ -109,6 +143,17 @@ public:
     constexpr iresult(unexpect_t, Args&&... args)
         : base(unexpect, (Args&&)args...)
     { }
+};
+
+// https://docs.rs/nom/latest/nom/error/trait.ParseError.html
+template <typename E, typename I>
+concept parse_error = requires(E err, I input, error_kind kind, typename I::context_type ctx) 
+{
+    { E::from_error_kind(input, kind) } -> std::same_as<E>;
+
+    { err.append(input, kind) } -> std::same_as<void>;
+
+    { err.add_context(input, ctx) } -> std::same_as<void>;
 };
 
 } // namespace nom

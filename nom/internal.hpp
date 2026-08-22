@@ -1,12 +1,16 @@
 #pragma once
 
+#include "error.hpp"
+
 namespace nom::detail
 {
 
-template <typename Context, typename Error>
+
+    
+template <typename Context, typename Error = error<Context, error_kind>>
 struct tag_parser
 {
-    using error_type = error<Context, error_kind>;
+    using error_type = Error;
     using char_type = typename Context::value_type;
     using tag_type = std::basic_string_view<char_type>;
     using output_type = Context;
