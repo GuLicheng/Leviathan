@@ -103,5 +103,24 @@ inline constexpr struct
     }
 } write_file;
 
+inline constexpr struct
+{
+    static std::string operator()(const char* filename, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::binary)
+    {
+        std::ifstream ifs(std::string(filename), mode);
+        std::string context;
+        
+        if (ifs)
+        {
+            ifs.seekg(0, std::ios::end);
+            context.resize(ifs.tellg());
+            ifs.seekg(0, std::ios::beg);
+            ifs.read(&context[0], context.size());
+        }
+
+        return context;
+    }
+} readfile;
+
 } // namespace cpp
 

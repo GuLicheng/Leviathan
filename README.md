@@ -1,8 +1,35 @@
-# This is a library for myself since I don't like write codes twice or more
-## Leviathan
+# Leviathan
+
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 you can test as example
 
-# TODO:
+## Algorithm
 
-- Remove concepts.hpp, the functions in it should be moved into meta.hpp
-- Update json
+### Sort Algorithm
+
+- heap_sort
+
+- intro_sort
+
+- peek_sort
+
+- pdq_sort
+
+- power_sort
+
+- tim_sort
+
+### Search Algorithm
+
+- linear_search
+
+## collections
+
+- hashtable
+
+- heap
+
+- skiplist
+
+- tree
