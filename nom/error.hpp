@@ -1,60 +1,55 @@
 #pragma once
 
+#include "error_kind.hpp"
+
+#include <leviathan/extc++/annotation.hpp>
+#include <leviathan/extc++/tuple.hpp>
+#include <leviathan/extc++/variant.hpp>
+#include <leviathan/extc++/enum.hpp>
+#include <leviathan/extc++/format.hpp>
+
 #include <expected>
 #include <optional>
-#include <tuple>
-#include <variant>
-#include <leviathan/extc++/annotation.hpp>
 
 namespace nom
 {
-    
+
 template <typename T, typename E>
-using result = std::expected<T, E>;
-
-// I am not sure how to map `()` in rust to C++.
-// Maybe use std::tuple<> or define an empty struct?
-// https://doc.rust-lang.org/nightly/std/primitive.unit.html
-// It seems like `void` in C++ but a complete type.
-using unit = std::tuple<>;
-
-using in_place_t = std::in_place_t;
-using std::nullopt_t;
-using std::unexpect_t;
-
-using std::in_place;
-using std::unexpect;
-using std::nullopt;
-
-// https://docs.rs/nom/latest/nom/error/enum.ErrorKind.html
-enum class error_kind
+class [[=cpp::derive::debug]] result
 {
-    ok,
-    tag,
-    take_while1,
-    take_till1,
-    is_a,
-    is_not,
-    eof,
-    digit,
-    alpha,
-    space,
-    multispace,
-    alphanumeric,
-    one_of,
-    none_of,
-    satisfy,
-    one_char,
-    bin_digit,
-    oct_digit,
-    hex_digit,
-    crlf,
-    alt,
-    fail,
-    not_,
-    verify,
-    many1,
-    unknown,
+    struct [[=cpp::derive::debug]] ok { T value; };
+    struct [[=cpp::derive::debug]] err { E value; };
+
+    constexpr result(ok o) : value(std::in_place_index<0>, std::move(o)) { }
+    constexpr result(err e) : value(std::in_place_index<1>, std::move(e)) { }
+
+public:
+
+    constexpr result(const result&) = default;
+    constexpr result(result&&) = default;
+
+    static constexpr result make_ok(T t) { return result(ok{ .value = std::move(t) }); }
+    static constexpr result make_err(E e) { return result(err{ .value = std::move(e) }); }
+
+    constexpr bool is_ok() const { return std::holds_alternative<ok>(value); }
+    constexpr bool is_err() const { return std::holds_alternative<err>(value); }
+
+    template <typename Self>
+    constexpr auto& unwarp_ok(this Self&& self) 
+    { 
+        return std::forward_like<Self>(std::get<ok>(self.value).value);
+    }
+
+    template <typename Self>
+    constexpr auto& unwarp_err(this Self&& self)
+    { 
+        return std::forward_like<Self>(std::get<err>(self.value).value);
+    }
+
+private:
+
+    std::variant<ok, err> value;
+
 };
 
 /**
@@ -84,30 +79,41 @@ enum class error_kind
  * indicating how many characters we still need in input.
  */
 template <typename Failure, typename Error = Failure>
-struct [[=cpp::derive::debug]] err
+class [[=cpp::derive::debug]] err
 {
     // >_< !
     struct [[=cpp::derive::debug]] incomplete { size_t value; };
     struct [[=cpp::derive::debug]] error { Error value; };
     struct [[=cpp::derive::debug]] failure { Failure value; };
 
-    std::variant<incomplete, error, failure> value;
-
     constexpr err(incomplete i) : value(std::in_place_index<0>, std::move(i)) { }
     constexpr err(error e) : value(std::in_place_index<1>, std::move(e)) { }
     constexpr err(failure f) : value(std::in_place_index<2>, std::move(f)) { }
 
+public:
+
     constexpr err(const err&) = default;
     constexpr err(err&&) = default;
 
-    constexpr static err make_incomplete(size_t n) { return err(incomplete{ .value = n }); }
-    constexpr static err make_error(Error e) { return err(error{ .value = std::move(e) }); }
-    constexpr static err make_failure(Failure f) { return err(failure{ .value = std::move(f) }); }
+    static constexpr err make_incomplete(size_t n) { return err(incomplete{ .value = n }); }
+    static constexpr err make_error(Error e) { return err(error{ .value = std::move(e) }); }
+    static constexpr err make_failure(Failure f) { return err(failure{ .value = std::move(f) }); }
 
     constexpr bool is_incomplete() const { return std::holds_alternative<incomplete>(value); }
     constexpr bool is_error() const { return std::holds_alternative<error>(value); }
     constexpr bool is_failure() const { return std::holds_alternative<failure>(value); }
+
+    constexpr auto& as_incomplete() { return std::get<incomplete>(value); }
+    constexpr auto& as_error() { return std::get<error>(value); }
+    constexpr auto& as_failure() { return std::get<failure>(value); }
+
+private:
+
+    std::variant<incomplete, error, failure> value;
+
 };
+
+
 
 /*
     IResult<I, O, E>
@@ -160,21 +166,3 @@ struct [[=cpp::derive::debug]] err
 } // namespace nom
 
 
-// Extend
-
-#include <leviathan/extc++/tuple.hpp>
-#include <leviathan/extc++/variant.hpp>
-#include <leviathan/extc++/enum.hpp>
-#include <leviathan/extc++/format.hpp>
-
-// template <typename Failure, typename Error>
-// struct std::formatter<typename nom::err<Failure, Error>::incomplete> : cpp::universal_formatter { };
-
-// template <typename Failure, typename Error>
-// struct std::formatter<nom::err<Failure, Error>>::error { } : cpp::universal_formatter { };
-
-// template <typename Failure, typename Error>
-// struct std::formatter<nom::err<Failure, Error>>::failure { } : cpp::universal_formatter { };
-
-// template <typename Failure, typename Error>
-// struct std::formatter<nom::err<Failure, Error>> : cpp::universal_formatter { };
