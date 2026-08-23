@@ -7,7 +7,6 @@
 namespace nom
 {
 
-// Is std::expected<T, E> compatible with rust::result<T, E>?
 template <typename T, typename E>
 class [[=cpp::derive::debug]] result 
 {
@@ -64,8 +63,10 @@ private:
 
 };
 
-template <typename I, typename O, typename E>
-using iresult = result<std::pair<I, O>, error<E>>;
+// https://docs.rs/nom/latest/nom/type.IResult.html
+// pub type IResult<I, O, E = Error<I>> = Result<(I, O), Err<E>>;
+template <typename I, typename O, typename E = error<I>>
+using iresult = result<std::pair<I, O>, err<E>>;
 
 }  // namespace nom
 

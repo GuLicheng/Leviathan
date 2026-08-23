@@ -1,5 +1,7 @@
 #pragma once
 
+#include "error_kind.hpp"
+
 #include <leviathan/extc++/annotation.hpp>
 #include <leviathan/extc++/tuple.hpp>
 #include <leviathan/extc++/variant.hpp>
@@ -37,7 +39,7 @@ namespace nom
  * and rename the Error and Failure to Recoverable and Unrecoverable.
  */
 template <typename Recoverable, typename Unrecoverable = Recoverable>
-class [[=cpp::derive::debug]] error
+class [[=cpp::derive::debug]] err
 {
     // >_< !
     // struct [[=cpp::derive::debug]] incomplete { size_t value; };
@@ -45,7 +47,7 @@ class [[=cpp::derive::debug]] error
     // struct [[=cpp::derive::debug]] unrecoverable { Unrecoverable value; };
 
     template <size_t N, typename T>
-    constexpr error(std::in_place_index_t<N>, T&& v) : value(std::in_place_index<N>, std::forward<T>(v)) { }
+    constexpr err(std::in_place_index_t<N>, T&& v) : value(std::in_place_index<N>, std::forward<T>(v)) { }
 
 public:
 
@@ -55,12 +57,12 @@ public:
     using recoverable_type = Recoverable;
     using unrecoverable_type = Unrecoverable;
 
-    constexpr error(const error&) = default;
-    constexpr error(error&&) = default;
+    constexpr err(const err&) = default;
+    constexpr err(err&&) = default;
 
-    static constexpr error make_incomplete(size_t n) { return error(std::in_place_index<0>, n); }
-    static constexpr error make_recoverable(Recoverable e) { return error(std::in_place_index<1>, std::move(e)); }
-    static constexpr error make_unrecoverable(Unrecoverable f) { return error(std::in_place_index<2>, std::move(f)); }
+    static constexpr err make_incomplete(size_t n) { return err(std::in_place_index<0>, n); }
+    static constexpr err make_recoverable(Recoverable e) { return err(std::in_place_index<1>, std::move(e)); }
+    static constexpr err make_unrecoverable(Unrecoverable f) { return err(std::in_place_index<2>, std::move(f)); }
 
     // We use index instead of std::holds_alternative to avoid the overhead of typeid.
     constexpr bool is_incomplete() const { return value.index() == 0; }
@@ -75,6 +77,13 @@ private:
 
     std::variant<incomplete, Recoverable, Unrecoverable> value;
 
+};
+
+template <typename Input, typename ErrorCode = error_kind>
+struct [[=cpp::derive::debug]] error
+{
+    Input input;
+    ErrorCode code;
 };
 
 } // namespace nom
