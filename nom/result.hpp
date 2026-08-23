@@ -1,5 +1,7 @@
 #pragma once
 
+#include <leviathan/extc++/expected.hpp>
+
 #include "error.hpp"
 
 namespace nom
@@ -52,3 +54,4 @@ template <typename I, typename O, typename E>
 using iresult = result<std::pair<I, O>, error<E>>;
 
 }  // namespace nom
+
