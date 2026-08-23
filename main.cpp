@@ -51,21 +51,21 @@ int main()
     if (ir_inc.is_err())
     {
         auto& inner_err = ir_inc.unwrap_err();
-        std::cout << "iresult incomplete: need=" << inner_err.as_incomplete().value << "\n";
+        std::cout << "iresult incomplete: need=" << inner_err.as_incomplete() << "\n";
     }
     if (ir_err.is_err())
     {
         auto& inner_err = ir_err.unwrap_err();
-        std::cout << "iresult error: val=" << inner_err.as_recoverable().value << "\n";
+        std::cout << "iresult error: val=" << inner_err.as_recoverable() << "\n";
     }
     if (ir_fail.is_err())
     {
         auto& inner_err = ir_fail.unwrap_err();
-        std::cout << "iresult failure: val=" << inner_err.as_unrecoverable().value << "\n";
+        std::cout << "iresult failure: val=" << inner_err.as_unrecoverable() << "\n";
     }
 
-    auto ir_err2 = ir_err.map_err(ReplaceErrorCode);
-    std::println("ir_err2: {}", ir_err2);
+    // auto ir_err2 = ir_err.map_err(ReplaceErrorCode);
+    // std::println("ir_err2: {}", ir_err2);
 
     return 0;
 }
