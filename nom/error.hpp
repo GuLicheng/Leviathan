@@ -11,44 +11,6 @@
 namespace nom
 {
 
-template <typename T, typename E>
-class [[=cpp::derive::debug]] result
-{
-    struct [[=cpp::derive::debug]] ok { T value; };
-    struct [[=cpp::derive::debug]] err { E value; };
-
-    constexpr result(ok o) : value(std::in_place_index<0>, std::move(o)) { }
-    constexpr result(err e) : value(std::in_place_index<1>, std::move(e)) { }
-
-public:
-
-    constexpr result(const result&) = default;
-    constexpr result(result&&) = default;
-
-    static constexpr result make_ok(T t) { return result(ok{ .value = std::move(t) }); }
-    static constexpr result make_err(E e) { return result(err{ .value = std::move(e) }); }
-
-    constexpr bool is_ok() const { return std::holds_alternative<ok>(value); }
-    constexpr bool is_err() const { return std::holds_alternative<err>(value); }
-
-    template <typename Self>
-    constexpr auto& unwrap_ok(this Self&& self) 
-    { 
-        return std::forward_like<Self>(std::get<ok>(self.value).value);
-    }
-
-    template <typename Self>
-    constexpr auto& unwrap_err(this Self&& self)
-    { 
-        return std::forward_like<Self>(std::get<err>(self.value).value);
-    }
-
-private:
-
-    std::variant<ok, err> value;
-
-};
-
 /**
  * @brief The error structure for nom parsers.
  * https://docs.rs/nom/latest/nom/error/struct.Error.html
@@ -72,46 +34,122 @@ private:
  *    Size(NonZeroUsize),
  *  }
  * 
- * The Incomplete in our error can just be a size_t, 
- * indicating how many characters we still need in input.
+ * We make the Incomplete in our error structure a size_t,
+ * and rename the Error and Failure to Recoverable and Unrecoverable.
  */
-template <typename Failure, typename Error = Failure>
-class [[=cpp::derive::debug]] err
+template <typename Recoverable, typename Unrecoverable = Recoverable>
+class [[=cpp::derive::debug]] error
 {
     // >_< !
     struct [[=cpp::derive::debug]] incomplete { size_t value; };
-    struct [[=cpp::derive::debug]] error { Error value; };
-    struct [[=cpp::derive::debug]] failure { Failure value; };
+    struct [[=cpp::derive::debug]] recoverable { Recoverable value; };
+    struct [[=cpp::derive::debug]] unrecoverable { Unrecoverable value; };
 
-    constexpr err(incomplete i) : value(std::in_place_index<0>, std::move(i)) { }
-    constexpr err(error e) : value(std::in_place_index<1>, std::move(e)) { }
-    constexpr err(failure f) : value(std::in_place_index<2>, std::move(f)) { }
+    constexpr error(incomplete i) : value(std::in_place_index<0>, std::move(i)) { }
+    constexpr error(recoverable e) : value(std::in_place_index<1>, std::move(e)) { }
+    constexpr error(unrecoverable f) : value(std::in_place_index<2>, std::move(f)) { }
+
+    template <size_t N, typename T>
+    constexpr error(std::in_place_index_t<N>, T&& v) : value(std::in_place_index<N>, std::forward<T>(v)) { }
 
 public:
 
-    constexpr err(const err&) = default;
-    constexpr err(err&&) = default;
+    using incomplete_type = incomplete;
+    using recoverable_type = Recoverable;
+    using unrecoverable_type = Unrecoverable;
 
-    static constexpr err make_incomplete(size_t n) { return err(incomplete{ .value = n }); }
-    static constexpr err make_error(Error e) { return err(error{ .value = std::move(e) }); }
-    static constexpr err make_failure(Failure f) { return err(failure{ .value = std::move(f) }); }
+    constexpr error(const error&) = default;
+    constexpr error(error&&) = default;
+
+    static constexpr error make_incomplete(size_t n) { return error(incomplete{ .value = n }); }
+    static constexpr error make_recoverable(Recoverable e) { return error(recoverable{ .value = std::move(e) }); }
+    static constexpr error make_unrecoverable(Unrecoverable f) { return error(unrecoverable{ .value = std::move(f) }); }
 
     constexpr bool is_incomplete() const { return std::holds_alternative<incomplete>(value); }
-    constexpr bool is_error() const { return std::holds_alternative<error>(value); }
-    constexpr bool is_failure() const { return std::holds_alternative<failure>(value); }
+    constexpr bool is_recoverable() const { return std::holds_alternative<recoverable>(value); }
+    constexpr bool is_unrecoverable() const { return std::holds_alternative<unrecoverable>(value); }
 
     constexpr auto& as_incomplete() { return std::get<incomplete>(value); }
-    constexpr auto& as_error() { return std::get<error>(value); }
-    constexpr auto& as_failure() { return std::get<failure>(value); }
+    constexpr auto& as_recoverable() { return std::get<recoverable>(value); }
+    constexpr auto& as_unrecoverable() { return std::get<unrecoverable>(value); }
 
 private:
 
-    std::variant<incomplete, error, failure> value;
+    std::variant<incomplete, recoverable, unrecoverable> value;
 
 };
 
+template <typename T, typename E>
+class [[=cpp::derive::debug]] result
+{
+    struct [[=cpp::derive::debug]] ok { T value; };
+    struct [[=cpp::derive::debug]] err { E value; };
+
+    constexpr result(ok o) : value(std::in_place_index<0>, std::move(o)) { }
+    constexpr result(err e) : value(std::in_place_index<1>, std::move(e)) { }
+
+public:
+
+    constexpr result(const result&) = default;
+    constexpr result(result&&) = default;
+
+    static constexpr result make_ok(T t) { return result(ok{ .value = std::move(t) }); }
+    static constexpr result make_err(E e) { return result(err{ .value = std::move(e) }); }
+
+    constexpr bool is_ok() const { return std::holds_alternative<ok>(value); }
+    constexpr bool is_err() const { return std::holds_alternative<err>(value); }
+
+    template <typename Self>
+    constexpr auto&& unwrap_ok(this Self&& self) 
+    { 
+        return std::forward_like<Self>(std::get<ok>(self.value).value);
+    }
+
+    template <typename Self>
+    constexpr auto&& unwrap_err(this Self&& self)
+    { 
+        return std::forward_like<Self>(std::get<err>(self.value).value);
+    }
+
+    template <typename Self, typename F>
+    constexpr auto map_err(this Self&& self, F&& f)
+    {
+        using Recoverable = std::invoke_result_t<F, typename E::recoverable>;
+        using Unrecoverable = std::invoke_result_t<F, typename E::unrecoverable>;
+        
+        using Err = error<Recoverable, Unrecoverable>;
+        using R = result<T, Err>;
+
+        if (self.is_ok())
+        {
+            return R::make_ok(std::forward_like<Self>(self).unwrap_ok());
+        }
+        
+        auto&& e = self.unwrap_err();
+
+        if (e.is_incomplete())
+        {
+            return R::make_err(Err::make_incomplete(e.as_incomplete().value));
+        }
+        else if (e.is_recoverable())
+        {
+            return R::make_err(Err::make_recoverable(std::invoke(std::forward<F>(f), std::forward_like<Self>(e).as_recoverable().value)));
+        }
+        else
+        {
+            return R::make_err(Err::make_unrecoverable(std::invoke(std::forward<F>(f), std::forward_like<Self>(e).as_unrecoverable().value)));
+        }
+    }
+
+private:
+
+    std::variant<ok, err> value;
+
+};
+
+
 template <typename I, typename O, typename E>
-using iresult = result<std::pair<I, O>, err<E>>;
+using iresult = result<std::pair<I, O>, error<E>>;
 
 // // https://docs.rs/nom/latest/nom/error/trait.ParseError.html
 // template <typename E, typename I>
