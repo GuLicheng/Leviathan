@@ -5,8 +5,6 @@
 namespace nom::detail
 {
 
-
-    
 template <typename Context, typename Error = error<Context, error_kind>>
 struct tag_parser
 {

@@ -8,9 +8,6 @@
 #include <leviathan/extc++/enum.hpp>
 #include <leviathan/extc++/format.hpp>
 
-#include <expected>
-#include <optional>
-
 namespace nom
 {
 
@@ -35,13 +32,13 @@ public:
     constexpr bool is_err() const { return std::holds_alternative<err>(value); }
 
     template <typename Self>
-    constexpr auto& unwarp_ok(this Self&& self) 
+    constexpr auto& unwrap_ok(this Self&& self) 
     { 
         return std::forward_like<Self>(std::get<ok>(self.value).value);
     }
 
     template <typename Self>
-    constexpr auto& unwarp_err(this Self&& self)
+    constexpr auto& unwrap_err(this Self&& self)
     { 
         return std::forward_like<Self>(std::get<err>(self.value).value);
     }
@@ -113,44 +110,8 @@ private:
 
 };
 
-
-
-/*
-    IResult<I, O, E>
-    ├─ Ok → (剩余输入I，输出O)
-    └─ Err(Err<E>)
-        ├─ Incomplete(Needed)         // 数据不足，非语法错误
-        ├─ Error(E)                   // 可恢复错误，允许回溯
-        └─ Failure(E)                 // 不可恢复，禁止回溯
-            ↓ E 必须实现 ParseError<I> trait
-                ├─ from_error_kind()  // 创建错误
-                ├─ append()           // 合并回溯错误
-                ├─ from_char()        // 辅助构造
-                └─ or()               // alt多分支错误选择
-                    ↓ 原料：ErrorKind 枚举（底层错误编码）
-*/
-// Why not use (I, Result<O, E>) -- std::pair<I, std::expected<O, E> ?
-// template <typename Input, typename Output, typename Error = error<Input, error_kind>>
-// class iresult : public result<std::pair<Input, Output>, Error>
-// {
-//     using base = result<std::pair<Input, Output>, Error>;
-
-// public:
-
-//     using input_type = Input;
-//     using output_type = Output;
-//     using typename base::error_type;
-
-//     template <typename... Args>
-//     constexpr iresult(in_place_t, Args&&... args)
-//         : base(in_place,  (Args&&)args...)
-//     { }
-
-//     template <typename... Args>
-//     constexpr iresult(unexpect_t, Args&&... args)
-//         : base(unexpect, (Args&&)args...)
-//     { }
-// };
+template <typename I, typename O, typename E>
+using iresult = result<std::pair<I, O>, err<E>>;
 
 // // https://docs.rs/nom/latest/nom/error/trait.ParseError.html
 // template <typename E, typename I>
