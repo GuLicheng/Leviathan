@@ -11,9 +11,9 @@ enum class [[=cpp::derive::debug]] ErrorCode
     TestError = 1001,
 };
 
-auto ReplaceErrorCode = [](nom::error<int> e) -> nom::error<ErrorCode>
+auto ReplaceErrorCode = [](nom::error<ErrorCode> e) -> int
 {
-    return nom::error<ErrorCode>::make_recoverable(ErrorCode::TestError);
+    return 1;
 };
 
 int main()
@@ -22,11 +22,10 @@ int main()
     using Result2 = iresult<int, std::string_view, int>;
 
     auto r1 = Result1::make_err(nom::error<ErrorCode>::make_recoverable(ErrorCode::TestError));
-    // auto r2 = r1.map_err(ReplaceErrorCode);
-
-    std::expected<int, std::string> ex = std::unexpected("error");
+    auto r2 = r1.map_err(ReplaceErrorCode);
 
     std::print("ex: {}\n", r1);
+    std::print("ex: {}\n", r2);
 
     return 0;
 }

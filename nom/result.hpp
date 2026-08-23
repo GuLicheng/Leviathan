@@ -41,7 +41,17 @@ public:
     template <typename Self, typename F>
     constexpr auto map_err(this Self&& self, F&& f)
     {
-        return std::forward_like<Self>(self).value.transform_error(std::forward<F>(f));
+        using E2 = std::invoke_result_t<F, E>;
+        using R = result<T, E2>;
+
+        if (self.is_ok())
+        {
+            return R::make_ok(std::forward_like<Self>(self).unwrap_ok());
+        }
+        else
+        {
+            return R::make_err(std::invoke(std::forward<F>(f), std::forward_like<Self>(self).unwrap_err()));
+        }
     }
 
 private:
