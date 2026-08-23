@@ -16,6 +16,9 @@ class [[=cpp::derive::debug]] result
 
 public:
 
+    using value_type = T;
+    using error_type = E;
+
     constexpr result() = default;
     constexpr result(const result&) = default;
     constexpr result(result&&) = default;

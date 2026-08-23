@@ -46,8 +46,8 @@ class [[=cpp::derive::debug]] err
     // struct [[=cpp::derive::debug]] recoverable { Recoverable value; };
     // struct [[=cpp::derive::debug]] unrecoverable { Unrecoverable value; };
 
-    template <size_t N, typename T>
-    constexpr err(std::in_place_index_t<N>, T&& v) : value(std::in_place_index<N>, std::forward<T>(v)) { }
+    template <size_t N, typename... Args>
+    constexpr err(std::in_place_index_t<N>, Args&&... args) : value(std::in_place_index<N>, std::forward<Args>(args)...) { }
 
 public:
 
@@ -61,8 +61,18 @@ public:
     constexpr err(err&&) = default;
 
     static constexpr err make_incomplete(size_t n) { return err(std::in_place_index<0>, n); }
-    static constexpr err make_recoverable(Recoverable e) { return err(std::in_place_index<1>, std::move(e)); }
-    static constexpr err make_unrecoverable(Unrecoverable f) { return err(std::in_place_index<2>, std::move(f)); }
+
+    template <typename... Args>
+    static constexpr err make_recoverable(Args&&... args) 
+    { 
+        return err(std::in_place_index<1>, std::forward<Args>(args)...); 
+    }
+    
+    template <typename... Args>
+    static constexpr err make_unrecoverable(Args&&... args) 
+    { 
+        return err(std::in_place_index<2>, std::forward<Args>(args)...); 
+    }
 
     // We use index instead of std::holds_alternative to avoid the overhead of typeid.
     constexpr bool is_incomplete() const { return value.index() == 0; }

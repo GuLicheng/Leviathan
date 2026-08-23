@@ -2,6 +2,7 @@
 
 #include "error.hpp"
 #include "error_kind.hpp"
+#include "result.hpp"
 
 namespace nom::detail
 {
@@ -28,9 +29,11 @@ struct tag_parser
         }
         else
         {
+            using E = error<Context, typename Context::error_code>;
+            using EE = err<E>;
+
             return result_type::make_err(
-                std::move(ctx),
-                error_type::make_recoverable(error_kind::tag)
+                EE::make_recoverable(std::move(ctx), error_kind::tag)
             );
             // return result_type{};
             // return result_type::make_err(std::move(ctx), error<error_kind>::make_recoverable(error_kind::tag));
