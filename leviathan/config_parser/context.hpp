@@ -353,7 +353,7 @@ public:
 
     constexpr basic_cursor_context& operator-=(size_type n)
     {
-        assert(n <= m_cursor.offset);
+        assert(n <= (size_type)m_cursor.offset);
         m_data.remove_suffix(n);
         return *this;
     }

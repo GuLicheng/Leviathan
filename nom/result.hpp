@@ -17,11 +17,15 @@ class [[=cpp::derive::debug]] result
 
 public:
 
+    constexpr result() = default;
     constexpr result(const result&) = default;
     constexpr result(result&&) = default;
 
-    static constexpr result make_ok(T t) { return result(std::move(t)); }
-    static constexpr result make_err(E e) { return result(std::unexpect, std::move(e)); }
+    template <typename... Args>
+    static constexpr result make_ok(Args&&... args) { return result(std::in_place, std::forward<Args>(args)...); }
+
+    template <typename... Args>
+    static constexpr result make_err(Args&&... args) { return result(std::unexpect, std::forward<Args>(args)...); }
 
     constexpr bool is_ok() const { return value.has_value(); }
     constexpr bool is_err() const { return !value.has_value(); }

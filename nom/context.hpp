@@ -6,14 +6,14 @@ namespace nom
 {
 
 template <typename ErrorCode>
-class context : public cpp::config::cursor_context
+class context : public cpp::config::context
 {
 
 public:
 
     using error_code = ErrorCode;
 
-    using cpp::config::cursor_context::cursor_context;
+    using cpp::config::context::context;
 
 };
 

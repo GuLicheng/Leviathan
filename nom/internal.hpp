@@ -28,7 +28,8 @@ struct tag_parser
         }
         else
         {
-            return result_type::make_err(std::move(ctx), error<error_kind>::make_recoverable(error_kind::tag));
+            return result_type{};
+            // return result_type::make_err(std::move(ctx), error<error_kind>::make_recoverable(error_kind::tag));
         }
     }
 };

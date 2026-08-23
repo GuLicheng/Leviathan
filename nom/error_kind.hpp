@@ -1,10 +1,12 @@
 #pragma once
 
+#include <leviathan/extc++/enum.hpp>
+
 namespace nom
 {
 
 // https://docs.rs/nom/latest/nom/error/enum.ErrorKind.html
-enum class error_kind
+enum class [[=cpp::derive::debug]] error_kind
 {
     ok,
     tag,
@@ -34,5 +36,6 @@ enum class error_kind
     unknown,
 };
 
-
 }  // namespace nom
+
+

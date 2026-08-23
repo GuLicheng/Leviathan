@@ -11,24 +11,18 @@ enum class [[=cpp::derive::debug]] ErrorCode
     TestError = 1001,
 };
 
-auto ReplaceErrorCode = [](nom::error<ErrorCode> e) -> int
-{
-    return 1;
-};
+using Context = nom::context<nom::error_kind>;
+
 
 int main()
 {
-    using Result1 = iresult<int, std::string_view, ErrorCode>;
-    using Result2 = iresult<int, std::string_view, int>;
-
-    auto r1 = Result1::make_err(nom::error<ErrorCode>::make_recoverable(ErrorCode::TestError));
-    auto r2 = r1.map_err(ReplaceErrorCode);
-
-    std::print("ex: {}\n", r1);
-    std::print("ex: {}\n", r2);
-
     auto parser = nom::bytes::tag(std::string_view("abc"));
 
+    auto ctx = Context("abcdef");
+
+    auto result = parser(ctx); 
+
+    std::println("Result: {}", result);
 
     return 0;
 }
