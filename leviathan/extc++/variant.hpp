@@ -18,7 +18,7 @@ struct tag_union_formatter
     static typename FmtContext::iterator format(const Variant& u, FmtContext& ctx)
     {
         return std::visit([&ctx](const auto& value) {
-            return std::format_to(ctx.out(), "{}", value);
+            return std::format_to(ctx.out(), "{}({})", display_string_of(^^Variant), value);
         }, u);
     }
 };

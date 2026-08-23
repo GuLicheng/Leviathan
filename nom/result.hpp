@@ -8,7 +8,7 @@ namespace nom
 {
 
 template <typename T, typename E>
-class [[=cpp::derive::debug]] result 
+class result 
 {
 
     template <typename... Args>
@@ -19,7 +19,7 @@ public:
     using value_type = T;
     using error_type = E;
 
-    constexpr result() = default;
+    // constexpr result() = default;
     constexpr result(const result&) = default;
     constexpr result(result&&) = default;
 
@@ -31,6 +31,8 @@ public:
 
     constexpr bool is_ok() const { return value.has_value(); }
     constexpr bool is_err() const { return !value.has_value(); }
+
+    constexpr operator bool() const { return is_ok(); }
 
     template <typename Self>
     constexpr auto&& unwrap_ok(this Self&& self) 
@@ -72,4 +74,27 @@ template <typename I, typename O, typename E = error<I>>
 using iresult = result<std::pair<I, O>, err<E>>;
 
 }  // namespace nom
+
+template <typename I, typename O, typename E>
+struct std::formatter<nom::iresult<I, O, E>> 
+{
+    template <typename FormatContext>
+    static constexpr auto parse(FormatContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    static constexpr auto format(const nom::iresult<I, O, E>& r, FormatContext& ctx) 
+    {
+        if (r.is_ok())
+        {
+            return std::format_to(ctx.out(), "Ok({})", r.unwrap_ok());
+        }
+        else
+        {
+            return std::format_to(ctx.out(), "Err({})", r.unwrap_err());
+        }
+    }
+};
 

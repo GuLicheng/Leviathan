@@ -17,7 +17,7 @@ struct universal_expected_formatter
     template <typename Expected, typename FmtContext>
     static typename FmtContext::iterator format(const Expected& ex, FmtContext& ctx)
     {
-        return ex.has_value() 
+        return !!ex 
              ? std::format_to(ctx.out(), "Ok({})", ex.value())
              : std::format_to(ctx.out(), "Err({})", ex.error());
     }
