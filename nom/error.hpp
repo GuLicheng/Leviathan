@@ -5,6 +5,7 @@
 #include <leviathan/extc++/variant.hpp>
 #include <leviathan/extc++/enum.hpp>
 #include <leviathan/extc++/format.hpp>
+#include <leviathan/extc++/expected.hpp>
 
 namespace nom
 {
