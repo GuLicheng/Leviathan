@@ -1,14 +1,15 @@
 #pragma once
 
 #include "error.hpp"
+#include "error_kind.hpp"
 
 namespace nom::detail
 {
 
-template <typename Context, typename Error = error<Context, error_kind>>
+template <typename Context>
 struct tag_parser
 {
-    using error_type = Error;
+    using error_type = error<Context, typename Context::error_code>;
     using char_type = typename Context::value_type;
     using tag_type = std::basic_string_view<char_type>;
     using output_type = Context;
@@ -23,14 +24,32 @@ struct tag_parser
         if (ctx.match(tag_value, false))
         {
             auto [left, right] = ctx.split_at(tag_value.size());
-            return result_type(rust::in_place, std::move(right), std::move(left));
+            return result_type::make_ok(std::move(right), std::move(left));
         }
         else
         {
-            return result_type(rust::unexpect, std::move(ctx), error_kind::tag);
+            return result_type::make_err(std::move(ctx), error<error_kind>::make_recoverable(error_kind::tag));
         }
     }
 };
+
+template <typename CharT>
+struct tag_fn
+{
+    std::basic_string_view<CharT> tag_value;
+
+    constexpr tag_fn(std::basic_string_view<CharT> t) : tag_value(t) { }
+
+    constexpr tag_fn(const CharT* t) : tag_value(t) { }
+
+    template <typename Context>
+    constexpr auto operator()(Context ctx)
+    {
+        return tag_parser<Context>(tag_value)(std::move(ctx));
+    }
+};
+
+
 
 
 }  // namespace nom::detail

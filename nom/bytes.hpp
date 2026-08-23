@@ -24,11 +24,14 @@
 
 #pragma once
 
-#include "error.hpp"
+#include "internal.hpp"
 
 namespace nom::bytes
 {
 
+inline constexpr auto tag = []<typename StringLike>(StringLike tv)
+{
+    return detail::tag_fn(tv);
+};
 
-
-}  // namespace nom
+}  // namespace nom::bytes

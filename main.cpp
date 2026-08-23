@@ -27,5 +27,8 @@ int main()
     std::print("ex: {}\n", r1);
     std::print("ex: {}\n", r2);
 
+    auto parser = nom::bytes::tag(std::string_view("abc"));
+
+
     return 0;
 }
