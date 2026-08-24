@@ -8,12 +8,17 @@ namespace nom::detail
 {
 
 template <typename Context>
-struct tag_parser
+class tag_parser
 {
+
+    using ErrorCode = typename Context::error_code;
+
+public:
+
     using char_type = typename Context::value_type;
     using tag_type = std::basic_string_view<char_type>;
     using output_type = Context;
-    using error_type = error<Context, typename Context::error_code>;
+    using error_type = error<Context, ErrorCode>;
     using result_type = iresult<Context, output_type, error_type>;
 
     tag_type tag_value;
@@ -30,7 +35,10 @@ struct tag_parser
         else
         {
             return result_type::make_err(
-                err<error_type>::make_recoverable(std::move(ctx), error_kind::tag) 
+                err<error_type>::make_recoverable(
+                    std::move(ctx), 
+                    error_traits<ErrorCode>::from_error_kind(error_kind::tag)
+                )
             );
         }
     }

@@ -36,6 +36,31 @@ enum class [[=cpp::derive::debug]] error_kind
     unknown,
 };
 
+template <typename ErrorCode>
+struct error_traits
+{
+    static constexpr ErrorCode from_error_kind(error_kind kind) = delete;
+
+    template <typename Context>
+    static constexpr ErrorCode append(const Context& ctx, error_kind kind, const ErrorCode& other) = delete;
+
+    template <typename Context>
+    static constexpr ErrorCode add_context(const Context& ctx, const char* context, const ErrorCode& other) = delete;
+};
+
+template <>
+struct error_traits<error_kind>
+{
+    static constexpr error_kind from_error_kind(error_kind kind) { return kind; }
+
+    // template <typename Context>
+    // static constexpr error_kind append(const Context& ctx, error_kind kind, const error_kind& other) { return kind; }
+
+    // template <typename Context>
+    // static constexpr error_kind add_context(const Context& ctx, const char* context, const error_kind& other) { return other; }
+};
+
+
 }  // namespace nom
 
 
