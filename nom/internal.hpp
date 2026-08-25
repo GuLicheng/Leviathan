@@ -44,24 +44,8 @@ public:
     }
 };
 
-template <typename CharT>
-struct tag_fn
-{
-    std::basic_string_view<CharT> tag_value;
-
-    constexpr tag_fn(std::basic_string_view<CharT> t) : tag_value(t) { }
-
-    constexpr tag_fn(const CharT* t) : tag_value(t) { }
-
-    template <typename Context>
-    constexpr auto operator()(Context ctx)
-    {
-        return tag_parser<Context>(tag_value)(std::move(ctx));
-    }
-};
-
-template <typename Context, typename Prediction>
-class conditional_loop0
+template <typename Context, typename Prediction, bool RequireAtLeastOne>
+class loop_parser
 {
     using ErrorCode = typename Context::error_code;
 
@@ -72,9 +56,34 @@ public:
 
     Prediction pred;
 
-    constexpr conditional_loop0(Prediction p) : pred(std::move(p)) { }
+    constexpr loop_parser(Prediction p) : pred(std::move(p)) { }
+
+    constexpr result_type operator()(Context ctx) requires(RequireAtLeastOne)
+    {
+        auto result = parse(ctx);
+
+        if (!result || result->second.empty())
+        {
+            // return result_type(rust::unexpect, std::move(ctx), code);
+            return result_type::make_err(
+                err<error_type>::make_recoverable(
+                    std::move(ctx), 
+                    error_traits<ErrorCode>::from_error_kind(error_kind::take_while1)
+                )
+            );
+        }
+
+        return result;
+    }
 
     constexpr result_type operator()(Context ctx)
+    {
+        return parse(std::move(ctx));
+    }
+
+private:
+
+    constexpr result_type parse(Context ctx)
     {
         auto first = ctx.begin(), last = ctx.end();
 
@@ -83,6 +92,7 @@ public:
         auto [left, right] = ctx.split_at(std::distance(ctx.begin(), first));
         return result_type::make_ok(std::move(right), std::move(left));
     }
+
 };
 
 

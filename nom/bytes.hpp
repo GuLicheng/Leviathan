@@ -29,16 +29,29 @@
 namespace nom::bytes
 {
 
-inline constexpr auto tag = []<typename StringLike>(StringLike tv)
+inline constexpr struct
 {
-    return detail::tag_fn(tv);
-};
+    template <typename CharT>
+    static constexpr auto operator()(const CharT* t)
+    {
+        return operator()(std::basic_string_view<CharT>(t));
+    }
+
+    template <typename CharT>
+    static constexpr auto operator()(std::basic_string_view<CharT> t)
+    {
+        return [=]<typename Context>(Context ctx) 
+        {
+            return detail::tag_parser<Context>(t)(std::move(ctx));
+        };
+    }
+} tag;
 
 inline constexpr auto take_while = []<typename Pred>(Pred pred) static
 {
     return [pred = std::move(pred)]<typename Context>(Context ctx) 
     {
-        return detail::conditional_loop0<Context, Pred>(std::move(pred))(std::move(ctx));
+        return detail::loop_parser<Context, Pred, false>(std::move(pred))(std::move(ctx));
     };
 };
 
