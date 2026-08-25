@@ -34,4 +34,12 @@ inline constexpr auto tag = []<typename StringLike>(StringLike tv)
     return detail::tag_fn(tv);
 };
 
+inline constexpr auto take_while = []<typename Pred>(Pred pred) static
+{
+    return [pred = std::move(pred)]<typename Context>(Context ctx) 
+    {
+        return detail::conditional_loop0<Context, Pred>(std::move(pred))(std::move(ctx));
+    };
+};
+
 }  // namespace nom::bytes

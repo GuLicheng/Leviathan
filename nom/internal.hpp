@@ -60,7 +60,30 @@ struct tag_fn
     }
 };
 
+template <typename Context, typename Prediction>
+class conditional_loop0
+{
+    using ErrorCode = typename Context::error_code;
 
+public:
+
+    using error_type = error<Context, ErrorCode>;
+    using result_type = iresult<Context, Context, error_type>;
+
+    Prediction pred;
+
+    constexpr conditional_loop0(Prediction p) : pred(std::move(p)) { }
+
+    constexpr result_type operator()(Context ctx)
+    {
+        auto first = ctx.begin(), last = ctx.end();
+
+        for (; first != last && std::invoke(pred, *first); ++first);
+
+        auto [left, right] = ctx.split_at(std::distance(ctx.begin(), first));
+        return result_type::make_ok(std::move(right), std::move(left));
+    }
+};
 
 
 }  // namespace nom::detail

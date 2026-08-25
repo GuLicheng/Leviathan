@@ -13,16 +13,16 @@ enum class [[=cpp::derive::debug]] ErrorCode
 
 using Context = nom::context<nom::error_kind>;
 
-
 int main()
 {
     auto parser = nom::bytes::tag(std::string_view("abc"));
+    auto parser2 = nom::bytes::take_while([](char c) { return std::isalpha(c); });
 
-    auto ctx = Context("ab1cdef");
+    auto ctx = Context("abcdef1");
 
-    auto result = parser(ctx); 
+    auto result = parser2(ctx); 
 
-    std::println("Result: {}", result);
+    std::println("Res: {}", result);
 
     return 0;
 }
