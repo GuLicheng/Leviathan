@@ -10,7 +10,6 @@ namespace nom::detail
 template <typename Context>
 class tag_parser
 {
-
     using ErrorCode = typename Context::error_code;
 
 public:
@@ -62,9 +61,8 @@ public:
     {
         auto result = parse(ctx);
 
-        if (!result || result->second.empty())
+        if (!result || result.unwrap_ok().second.empty())
         {
-            // return result_type(rust::unexpect, std::move(ctx), code);
             return result_type::make_err(
                 err<error_type>::make_recoverable(
                     std::move(ctx), 

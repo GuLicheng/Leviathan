@@ -17,10 +17,11 @@ int main()
 {
     auto parser1 = nom::bytes::tag(std::string_view("abc"));
     auto parser2 = nom::bytes::take_while([](char c) { return std::isalpha(c); });
+    auto parser3 = nom::bytes::take_while1([](char c) { return std::isalpha(c); });
 
-    auto ctx = Context("abcdef1");
+    auto ctx = Context("0abcdef1");
 
-    auto result = parser1(ctx); 
+    auto result = parser3(ctx); 
 
     std::println("Res: {}", result);
 
