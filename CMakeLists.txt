@@ -34,11 +34,11 @@ set_target_properties(ccb PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_ROOT_PA
 #     add_subdirectory(benchmark)
 # endif()
 
-# set(LEVIATHAN_BUILD_NOM ON)
-# if(LEVIATHAN_BUILD_NOM STREQUAL "ON")
-#     message(STATUS "Build nom")
-#     add_subdirectory(${PROJECT_ROOT_PATH}/leviathan/nom)
-# endif()
+set(LEVIATHAN_BUILD_NOM ON)
+if(LEVIATHAN_BUILD_NOM STREQUAL "ON")
+    message(STATUS "Build nom")
+    add_subdirectory(${PROJECT_ROOT_PATH}/nom)
+endif()
 
 # set(LEVIATHAN_BUILD_LOGGING ON)
 # if(LEVIATHAN_BUILD_LOGGING STREQUAL "ON")

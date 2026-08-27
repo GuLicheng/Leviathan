@@ -61,7 +61,8 @@ public:
     {
         auto result = parse(ctx);
 
-        if (!result || result.unwrap_ok().second.empty())
+        // The result must be ok.
+        if (result.unwrap_ok().second.empty())
         {
             return result_type::make_err(
                 err<error_type>::make_recoverable(

@@ -34,6 +34,7 @@ public:
 
     constexpr operator bool() const { return is_ok(); }
 
+    // Maybe we can derived std::expected to avoid this boilerplate code
     template <typename Self>
     constexpr auto&& unwrap_ok(this Self&& self) 
     { 
@@ -89,7 +90,7 @@ struct std::formatter<nom::iresult<I, O, E>>
     {
         if (r.is_ok())
         {
-            return std::format_to(ctx.out(), "Ok({})", r.unwrap_ok());
+            return std::format_to(ctx.out(), "Ok({:n})", r.unwrap_ok());
         }
         else
         {
