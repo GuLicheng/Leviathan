@@ -8,7 +8,7 @@ namespace nom::detail
 {
 
 template <typename Context>
-class tag_parser
+struct tag_parser
 {
     using ErrorCode = typename Context::error_code;
 
@@ -43,46 +43,17 @@ public:
     }
 };
 
-template <typename Context, typename Prediction, bool RequireAtLeastOne>
-class loop_parser
+template <typename Context, typename Prediction>
+struct loop_parser
 {
-    using ErrorCode = typename Context::error_code;
-
-public:
-
-    using error_type = error<Context, ErrorCode>;
+    using error_type = error<Context, typename Context::error_code>;
     using result_type = iresult<Context, Context, error_type>;
 
     Prediction pred;
 
     constexpr loop_parser(Prediction p) : pred(std::move(p)) { }
 
-    constexpr result_type operator()(Context ctx) requires(RequireAtLeastOne)
-    {
-        auto result = parse(ctx);
-
-        // The result must be ok.
-        if (result.unwrap_ok().second.empty())
-        {
-            return result_type::make_err(
-                err<error_type>::make_recoverable(
-                    std::move(ctx), 
-                    error_traits<ErrorCode>::from_error_kind(error_kind::take_while1)
-                )
-            );
-        }
-
-        return result;
-    }
-
     constexpr result_type operator()(Context ctx)
-    {
-        return parse(std::move(ctx));
-    }
-
-private:
-
-    constexpr result_type parse(Context ctx)
     {
         auto first = ctx.begin(), last = ctx.end();
 
@@ -94,6 +65,41 @@ private:
 
 };
 
+template <typename Context, typename Prediction>
+struct loop_parser1 : public loop_parser<Context, Prediction>
+{
+private:
+
+    using ErrorCode = typename Context::error_code;
+
+public:
+
+    using base = loop_parser<Context, Prediction>;
+    using result_type = typename base::result_type;
+    using error_type = error<Context, ErrorCode>;
+
+    ErrorCode ec;
+
+    constexpr loop_parser1(Prediction p, ErrorCode ec) : base(std::move(p)), ec(ec) { }
+
+    constexpr result_type operator()(Context ctx) 
+    {
+        auto result = base::operator()(ctx);
+
+        // The result must be ok.
+        if (result.unwrap_ok().second.empty())
+        {
+            return result_type::make_err(
+                err<error_type>::make_recoverable(
+                    std::move(ctx), 
+                    error_traits<ErrorCode>::from_error_kind(ec)
+                )
+            );
+        }
+
+        return result;
+    }
+};
 
 }  // namespace nom::detail
 

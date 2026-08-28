@@ -100,3 +100,54 @@ TEST_CASE("take_while", "[bytes]")
     REQUIRE(CheckResult(parser1, Context(""), Recoverable(nom::error_kind::take_while1), ""));
 }
 
+TEST_CASE("take_till", "[bytes]")
+{
+    auto parser0 = nom::bytes::take_till([](char c) { return c == ':'; });
+    auto parser1 = nom::bytes::take_till1([](char c) { return c == ':'; });
+
+    REQUIRE(CheckResult(parser0, Context("latin:123"), Succeed(), "latin"));
+    REQUIRE(CheckResult(parser0, Context(":empty matched"), Succeed(), ""));
+    REQUIRE(CheckResult(parser0, Context("12345"), Succeed(), "12345"));
+    REQUIRE(CheckResult(parser0, Context(""), Succeed(), ""));
+
+    REQUIRE(CheckResult(parser1, Context("latin:123"), Succeed(), "latin"));
+    REQUIRE(CheckResult(parser1, Context(":empty matched"), Recoverable(nom::error_kind::take_till1), ":empty matched"));
+    REQUIRE(CheckResult(parser1, Context("12345"), Succeed(), "12345"));
+    REQUIRE(CheckResult(parser1, Context(""), Recoverable(nom::error_kind::take_till1), ""));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

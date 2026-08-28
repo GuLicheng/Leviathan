@@ -50,7 +50,7 @@ inline constexpr auto take_while = []<typename Pred>(Pred pred) static
 {
     return [pred = std::move(pred)]<typename Context>(Context ctx) 
     {
-        return detail::loop_parser<Context, Pred, false>(std::move(pred))(std::move(ctx));
+        return detail::loop_parser<Context, Pred>(std::move(pred))(std::move(ctx));
     };
 };
 
@@ -58,7 +58,25 @@ inline constexpr auto take_while1 = []<typename Pred>(Pred pred) static
 {
     return [pred = std::move(pred)]<typename Context>(Context ctx) 
     {
-        return detail::loop_parser<Context, Pred, true>(std::move(pred))(std::move(ctx));
+        return detail::loop_parser1<Context, Pred>(std::move(pred), error_kind::take_while1)(std::move(ctx));
+    };
+};
+
+inline constexpr auto take_till = []<typename Pred>(Pred pred) static
+{
+    return [pred = std::move(pred)]<typename Context>(Context ctx) 
+    {
+        auto fn = std::not_fn(std::move(pred));
+        return detail::loop_parser<Context, decltype(fn)>(std::move(fn))(std::move(ctx));
+    };
+};
+
+inline constexpr auto take_till1 = []<typename Pred>(Pred pred) static
+{
+    return [pred = std::move(pred)]<typename Context>(Context ctx) 
+    {
+        auto fn = std::not_fn(std::move(pred));
+        return detail::loop_parser1<Context, decltype(fn)>(std::move(fn), error_kind::take_till1)(std::move(ctx));
     };
 };
 
