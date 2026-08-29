@@ -1,6 +1,8 @@
 #pragma once
 
 #include <leviathan/extc++/variant.hpp>
+#include <any>
+#include <optional>
 
 namespace winnow
 {
@@ -19,7 +21,7 @@ struct error_traits
      * @tparam Stream Stream type satisfying stream concept.
      * @param stream Current parse input stream.
      */
-    template <stream Stream>
+    template <typename Stream>
     static constexpr E from_input(const Stream& stream);
 
     /**
@@ -30,7 +32,7 @@ struct error_traits
      * @param err Existing error instance.
      * @param item Additional context information.
      */
-    template <stream Stream, typename Item>
+    template <typename Stream, typename Item>
     static constexpr E add_context(const Stream& stream, E err, Item&& item);
 
     /**
@@ -40,7 +42,7 @@ struct error_traits
      * @param stream Current parse input stream.
      * @param ext Original external error.
      */
-    template <stream Stream, typename Ext>
+    template <typename Stream, typename Ext>
     static constexpr E from_external(const Stream& stream, Ext&& ext);
 };
 
@@ -121,6 +123,59 @@ private:
 
 };
 
+////////////////////////////////////////////////////////////////////////////////////////
+// ------------------------------
+// winnow::error::StrContext
+// ------------------------------
+enum class str_context_kind
+{
+    label,
+    expected,
+    description,
+};
+
+struct str_context
+{
+    str_context_kind kind;
+    std::string_view text;
+};
+
+// ------------------------------
+// winnow::error::ContextError
+// ------------------------------
+struct context_error
+{
+    std::vector<str_context> context_stack;
+    std::optional<std::any> cause;
+};
+
+template <>
+struct error_traits<context_error>
+{
+    template <typename Stream>
+    static constexpr context_error from_input(const Stream& /*stream*/)
+    {
+        return context_error {
+            .context_stack = {},
+            .cause = std::nullopt
+        };
+    }
+
+    template <typename Stream, typename Item>
+    static constexpr context_error add_context(const Stream& /*stream*/, context_error err, Item&& item)
+    {
+        err.context_stack.push_back(std::forward<Item>(item));
+        return err;
+    }
+
+    template <typename Stream, typename Ext>
+    static constexpr context_error from_external(const Stream& /*stream*/, Ext&& ext)
+    {
+        context_error e{};
+        e.cause = std::forward<Ext>(ext);
+        return e;
+    }
+};
 
 
 } // namespace winnow

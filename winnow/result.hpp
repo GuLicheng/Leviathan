@@ -75,8 +75,8 @@ using modal_result = result<O, err_mode<E>>;
 
 }  // namespace winnow
 
-template <typename I, typename O, typename E>
-struct std::formatter<nom::iresult<I, O, E>> 
+template <typename O, typename E>
+struct std::formatter<winnow::modal_result<O, E>> 
 {
     template <typename FormatContext>
     static constexpr auto parse(FormatContext& ctx)
@@ -85,7 +85,7 @@ struct std::formatter<nom::iresult<I, O, E>>
     }
 
     template <typename FormatContext>
-    static constexpr auto format(const nom::iresult<I, O, E>& r, FormatContext& ctx) 
+    static constexpr auto format(const winnow::modal_result<O, E>& r, FormatContext& ctx) 
     {
         if (r.is_ok())
         {

@@ -5,13 +5,13 @@
 namespace winnow
 {
 
-template <typename ErrorCode>
+template <typename Error>
 class stream : public cpp::config::context
 {
 
 public:
 
-    using error_code = ErrorCode;
+    using error_type = Error;
 
     using cpp::config::context::context;
 
