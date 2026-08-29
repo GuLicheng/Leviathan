@@ -80,4 +80,58 @@ inline constexpr auto take_till1 = []<typename Pred>(Pred pred) static
     };
 };
 
+inline constexpr struct
+{
+    template <typename CharT>
+    static constexpr auto operator()(const CharT* partten)
+    {
+        return operator()(std::basic_string_view<CharT>(partten));
+    }
+
+    template <typename CharT>
+    static constexpr auto operator()(std::basic_string_view<CharT> partten)
+    {
+        return [=]<typename Context>(Context ctx) 
+        {
+            auto searcher = [=](CharT ch) { return partten.contains(ch); };
+            return detail::loop_parser1<Context, decltype(searcher)>(std::move(searcher), error_kind::is_a)(std::move(ctx));
+        };
+    }
+} is_a;
+
+inline constexpr struct
+{
+    template <typename CharT>
+    static constexpr auto operator()(const CharT* partten)
+    {
+        return operator()(std::basic_string_view<CharT>(partten));
+    }
+
+    template <typename CharT>
+    static constexpr auto operator()(std::basic_string_view<CharT> partten)
+    {
+        return [=]<typename Context>(Context ctx) 
+        {
+            auto searcher = [=](CharT ch) { return !partten.contains(ch); };
+            return detail::loop_parser1<Context, decltype(searcher)>(std::move(searcher), error_kind::is_not)(std::move(ctx));
+        };
+    }
+} is_not;
+
+inline constexpr auto take = [](size_t count) static
+{
+    return [=]<typename Context>(Context ctx) 
+    {
+        return detail::take_parser<Context>(count)(std::move(ctx));
+    };
+};
+
+inline constexpr auto escaped = []<typename Normal, typename ControlChar, typename Escapable>(Normal n, ControlChar c, Escapable e) static
+{
+    return [n = std::move(n), c = std::move(c), e = std::move(e)]<typename Context>(Context ctx) 
+    {
+        return detail::escaped_parser<Context, Normal, ControlChar, Escapable>(std::move(n), std::move(c), std::move(e))(std::move(ctx));
+    };
+};
+
 }  // namespace nom::bytes

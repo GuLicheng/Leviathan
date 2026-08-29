@@ -36,8 +36,8 @@ set_target_properties(ccb PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_ROOT_PA
 
 set(LEVIATHAN_BUILD_NOM ON)
 if(LEVIATHAN_BUILD_NOM STREQUAL "ON")
-    message(STATUS "Build nom")
-    add_subdirectory(${PROJECT_ROOT_PATH}/nom)
+    message(STATUS "Build winnow")
+    add_subdirectory(${PROJECT_ROOT_PATH}/winnow)
 endif()
 
 # set(LEVIATHAN_BUILD_LOGGING ON)

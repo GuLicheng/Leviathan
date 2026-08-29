@@ -101,5 +101,90 @@ public:
     }
 };
 
+template <typename Context>
+struct take_parser
+{
+    using error_type = error<Context, typename Context::error_code>;
+    using result_type = iresult<Context, Context, error_type>;
+
+    size_t count;
+
+    constexpr take_parser(size_t c) : count(c) { }
+
+    constexpr result_type operator()(Context ctx) const
+    {
+        if (ctx.size() < count)
+        {
+            return result_type::make_err(
+                err<error_type>::make_recoverable(
+                    std::move(ctx), 
+                    error_traits<typename Context::error_code>::from_error_kind(error_kind::eof)
+                )
+            );
+        }
+
+        auto [left, right] = ctx.split_at(count);
+        return result_type::make_ok(std::move(right), std::move(left));
+    }
+};
+
+template <typename Context, typename Normal, typename ControlChar, typename Escapable>
+struct escaped_parser
+{
+    using error_type = error<Context, typename Context::error_code>;
+    using result_type = iresult<Context, Context, error_type>;
+
+    Normal normal;
+    ControlChar control_char;
+    Escapable escapable;
+
+    constexpr escaped_parser(Normal n, ControlChar c, Escapable e) 
+        : normal(std::move(n)), control_char(std::move(c)), escapable(std::move(e)) 
+    { }
+
+    constexpr result_type operator()(Context ctx) 
+    {
+        auto clone = ctx;
+
+        while (1)
+        {
+            auto result = normal(ctx);
+
+            if (!result)
+            {
+                auto [left, _] = clone.split_at(std::distance(clone.begin(), ctx.begin()));
+                return result_type::make_ok(std::move(ctx), std::move(left));
+            }
+
+            ctx = std::move(result->first);
+
+            if (ctx.empty() || ctx[0] != control_char)
+            {
+                auto [left, _] = clone.split_at(std::distance(clone.begin(), ctx.begin()));
+                return result_type::make_ok(std::move(ctx), std::move(left));
+            }
+
+            // Skip the control character
+            ctx.advance(1);
+
+            auto esc_result = escapable(ctx);
+
+            if (!esc_result)
+            {
+                auto [left, _] = clone.split_at(std::distance(clone.begin(), ctx.begin()));
+                return result_type::make_ok(std::move(ctx), std::move(left));
+            }
+
+            ctx = std::move(esc_result->first);
+        }
+    }
+};
+
+
+
+
+
+
+
 }  // namespace nom::detail
 

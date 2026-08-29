@@ -116,13 +116,50 @@ TEST_CASE("take_till", "[bytes]")
     REQUIRE(CheckResult(parser1, Context(""), Recoverable(nom::error_kind::take_till1), ""));
 }
 
+TEST_CASE("is_a", "[bytes]")
+{
+    auto parser = nom::bytes::is_a("1234567890ABCDEF");
 
+    REQUIRE(CheckResult(parser, Context("123 and voila"), Succeed(), "123"));
+    REQUIRE(CheckResult(parser, Context("DEADBEEF and others"), Succeed(), "DEADBEEF"));
+    REQUIRE(CheckResult(parser, Context("BADBABEsomething"), Succeed(), "BADBABE"));
+    REQUIRE(CheckResult(parser, Context("D15EA5E"), Succeed(), "D15EA5E"));
+    REQUIRE(CheckResult(parser, Context(""), Recoverable(nom::error_kind::is_a), ""));
+}
 
+TEST_CASE("is_not", "[bytes]")
+{
+    auto parser = nom::bytes::is_not(" \t\r\n");
 
+    REQUIRE(CheckResult(parser, Context("Hello, World!"), Succeed(), "Hello,"));
+    REQUIRE(CheckResult(parser, Context("Sometimes\t"), Succeed(), "Sometimes"));
+    REQUIRE(CheckResult(parser, Context("Nospace"), Succeed(), "Nospace"));
+    REQUIRE(CheckResult(parser, Context(""), Recoverable(nom::error_kind::is_not), ""));
+}
 
+TEST_CASE("take", "[bytes]")
+{
+    auto parser = nom::bytes::take(3);
 
+    REQUIRE(CheckResult(parser, Context("abcdef"), Succeed(), "abc"));
+    REQUIRE(CheckResult(parser, Context("ab"), Recoverable(nom::error_kind::eof), "ab"));
+    REQUIRE(CheckResult(parser, Context(""), Recoverable(nom::error_kind::eof), ""));
+}
 
+TEST_CASE("escaped", "[bytes]")
+{
+    auto parser = nom::bytes::escaped(
+            nom::character::digit1, 
+            '\\', 
+            nom::character::one_of(R"("n\)")
+        );
 
+    REQUIRE(CheckResult(parser, Context("123;"), Succeed(), "123"));
+    REQUIRE(CheckResult(parser, Context(R"(12\"34;)"), Succeed(), R"(12\"34)"));
+
+    // CheckResult(parser, "123;", ";", nom::error_kind::ok, "123");
+    // CheckResult(parser, R"(12\"34;)", ";", nom::error_kind::ok, R"(12\"34)");
+}
 
 
 
