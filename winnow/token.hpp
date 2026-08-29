@@ -18,11 +18,35 @@ inline constexpr struct
     {
         return [=]<typename Stream>(Stream& stream) 
         {
+            static_assert(std::is_same_v<CharT, typename Stream::value_type>, "Stream value type must match literal type");
             return detail::literal_parser<Stream>(str)(stream);
         };
     }
 } literal;
 
+inline constexpr struct
+{
+    template <typename Pred>
+    static constexpr auto operator()(Pred pred, size_t min, std::optional<size_t> max = std::nullopt)
+    {
+        return [=]<typename Stream>(Stream& stream)
+        {
+            return detail::take_while_parser<Stream, Pred>(pred, min, max)(stream);
+        };
+    }
+} take_while;
     
+inline constexpr struct
+{
+    template <typename Pred>
+    static constexpr auto operator()(Pred pred, size_t min, std::optional<size_t> max = std::nullopt)
+    {
+        return [=]<typename Stream>(Stream& stream)
+        {
+            auto fn = std::not_fn(std::move(pred));
+            return detail::take_while_parser<Stream, decltype(fn)>(std::move(fn), min, max)(stream);
+        };
+    }
+} take_till;
 
-}  // namespace winnow
+}  // namespace winnow::token
