@@ -18,10 +18,11 @@ struct literal_parser
 
     constexpr result_type operator()(Stream& stream) const
     {
-        if (stream.match(value, true))
+        if (stream.match(value, false))
         {
             auto [left, right] = stream.split_at(value.size());
-            return result_type::make_ok(std::move(left));
+            stream = right;
+            return result_type::make_ok(left);
         }
         else
         {
@@ -77,6 +78,35 @@ struct take_while_parser
         }
     }
         
+};
+
+template <typename Stream>
+struct take_parser
+{
+    using error_type = typename Stream::error_type;
+    using result_type = modal_result<std::basic_string_view<typename Stream::value_type>, error_type>;
+
+    size_t count;
+
+    constexpr take_parser(size_t n) : count(n) { }
+
+    constexpr result_type operator()(Stream& stream) const
+    {
+        if (stream.size() < count)
+        {
+            return result_type::make_err(
+                err_mode<error_type>::make_backtrack(
+                    error_traits<error_type>::from_input(stream)
+                )
+            );
+        }
+        else
+        {
+            auto [left, right] = stream.split_at(count);
+            stream = right;
+            return result_type::make_ok(std::move(left));
+        }
+    }
 };
 
 

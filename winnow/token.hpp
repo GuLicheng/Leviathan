@@ -49,4 +49,15 @@ inline constexpr struct
     }
 } take_till;
 
+inline constexpr struct
+{
+    static constexpr auto operator()(size_t count)
+    {
+        return [=]<typename Stream>(Stream& stream)
+        {
+            return detail::take_parser<Stream>(count)(stream);
+        };
+    }
+} take;
+
 }  // namespace winnow::token
