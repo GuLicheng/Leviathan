@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include "error.hpp"
@@ -51,6 +52,8 @@ struct take_while_parser
 
     constexpr result_type operator()(Stream& stream) const
     {
+        // User should ensure that the max is not less than min.
+
         size_t count = 0;
 
         while (count < stream.size() && std::invoke(pred, stream[count]))
@@ -108,6 +111,56 @@ struct take_parser
         }
     }
 };
+
+template <typename Stream>
+struct take_until_parser
+{
+    using literal_type = std::basic_string_view<typename Stream::value_type>;
+    using error_type = typename Stream::error_type;
+    using result_type = modal_result<literal_type, error_type>;
+
+    literal_type value;
+    size_t min;
+    std::optional<size_t> max;
+
+    constexpr take_until_parser(literal_type v, size_t min_count, std::optional<size_t> max_count)
+        : value(v), min(min_count), max(max_count) { }
+
+    constexpr result_type operator()(Stream& stream) const
+    {
+        const auto left = min;
+        const auto right = max.value_or(stream.size());
+        const auto slice = stream.to_string_view().substr(left, right);
+
+        const auto pos = slice.find(value);
+
+        if (pos == literal_type::npos)
+        {   
+            return result_type::make_err(
+                err_mode<error_type>::make_backtrack(
+                    error_traits<error_type>::from_input(stream)
+                )
+            );
+        }
+        auto [left_part, right_part] = stream.split_at(left + pos);
+        stream = right_part;
+        return result_type::make_ok(left_part);
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 }  // namespace winnow::detail
