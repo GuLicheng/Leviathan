@@ -148,13 +148,122 @@ struct take_until_parser
     }
 };
 
+template <typename Stream, typename IgnoredParser, typename Parser>
+struct preceded_parser
+{
+    using result_type1 = std::invoke_result_t<IgnoredParser, Stream&>;
+    using result_type2 = std::invoke_result_t<Parser, Stream&>;    
+    
+    using error_type1 = typename result_type1::error_type;
+    using error_type2 = typename result_type2::error_type;
 
+    using error_type = typename Stream::error_type;
+    using result_type = result_type2;
 
+    // static_assert(std::is_same_v<error_type1, error_type>, "Error type of IgnoredParser must match Stream's error type");
+    // static_assert(std::is_same_v<error_type2, error_type>, "Error type of Parser must match Stream's error type");
 
+    IgnoredParser ignored_parser;
+    Parser parser;
 
+    constexpr preceded_parser(IgnoredParser ip, Parser p) 
+        : ignored_parser(std::move(ip)), parser(std::move(p)) { }
 
+    constexpr result_type operator()(Stream& stream) const
+    {
+        auto ignored_result = ignored_parser(stream);
 
+        if (!ignored_result)
+        {
+            return result_type::make_err(std::move(ignored_result.unwrap_err()));
+        }
+        return parser(stream);
+    }
 
+};
+
+template <typename Stream, typename Parser, typename IgnoredParser>
+struct terminated_parser
+{
+    using result_type1 = std::invoke_result_t<Parser, Stream&>;
+    using result_type2 = std::invoke_result_t<IgnoredParser, Stream&>;    
+    
+    using error_type1 = typename result_type1::error_type;
+    using error_type2 = typename result_type2::error_type;
+
+    using error_type = typename Stream::error_type;
+    using result_type = result_type1;
+
+    // static_assert(std::is_same_v<error_type1, error_type>, "Error type of Parser must match Stream's error type");
+    // static_assert(std::is_same_v<error_type2, error_type>, "Error type of IgnoredParser must match Stream's error type");
+
+    Parser parser;
+    IgnoredParser ignored_parser;
+
+    constexpr terminated_parser(Parser p, IgnoredParser ip) 
+        : parser(std::move(p)), ignored_parser(std::move(ip)) { }
+
+    constexpr result_type operator()(Stream& stream) const
+    {
+        auto result = parser(stream);
+
+        if (!result)
+        {
+            return result_type::make_err(std::move(result.unwrap_err()));
+        }
+        auto ignored_result = ignored_parser(stream);
+
+        if (!ignored_result)
+        {
+            return result_type::make_err(std::move(ignored_result.unwrap_err()));
+        }
+        return result;
+    }
+};
+
+template <typename Stream, typename Parser1, typename SepParser, typename Parser2>
+struct separated_pair_parser
+{
+    using result_type1 = std::invoke_result_t<Parser1, Stream&>;
+    using result_type2 = std::invoke_result_t<Parser2, Stream&>;
+
+    using error_type1 = typename result_type1::error_type;
+    using error_type2 = typename result_type2::error_type;
+
+    using error_type = typename Stream::error_type;
+    using output_type = std::pair<typename result_type1::value_type, typename result_type2::value_type>;
+    using result_type = modal_result<output_type, error_type>;
+
+    Parser1 parser1;
+    SepParser sep_parser;
+    Parser2 parser2;
+
+    constexpr separated_pair_parser(Parser1 p1, SepParser sp, Parser2 p2) 
+        : parser1(std::move(p1)), sep_parser(std::move(sp)), parser2(std::move(p2)) { }
+
+    constexpr result_type operator()(Stream& stream) const
+    {
+        auto result1 = parser1(stream);
+
+        if (!result1)
+        {
+            return result_type::make_err(std::move(result1.unwrap_err()));
+        }
+        auto sep_result = sep_parser(stream);
+
+        if (!sep_result)
+        {
+            return result_type::make_err(std::move(sep_result.unwrap_err()));
+        }
+        auto result2 = parser2(stream);
+
+        if (!result2)
+        {
+            return result_type::make_err(std::move(result2.unwrap_err()));
+        }
+        return result_type::make_ok(std::make_pair(std::move(result1.unwrap_ok()), std::move(result2.unwrap_ok())));
+    }
+};
 
 
 

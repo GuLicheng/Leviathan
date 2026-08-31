@@ -120,13 +120,53 @@ TEST_CASE("one_of", "[token]")
     REQUIRE(CheckResult(winnow::token::one_of("abc"), Context(""), Backtrack()));
 }
 
+TEST_CASE("preceded", "[sequence][combinator]")
+{
+    auto parser = winnow::combinator::preceded(
+        winnow::token::literal("hello"), winnow::token::literal("world")
+    );
+    REQUIRE(CheckResult(parser, Context("helloworld"), Succeed<std::string_view>{ "world" }));
+    REQUIRE(CheckResult(parser, Context("helloabc"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("abcworld"), Backtrack()));
+}
 
+TEST_CASE("terminated", "[sequence][combinator]")
+{
+    auto parser = winnow::combinator::terminated(
+        winnow::token::literal("hello"), winnow::token::literal("world")
+    );
+    REQUIRE(CheckResult(parser, Context("helloworld"), Succeed<std::string_view>{ "hello" }));
+    REQUIRE(CheckResult(parser, Context("helloabc"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("abcworld"), Backtrack()));
+}
 
+TEST_CASE("delimited", "[sequence][combinator]")
+{
+    auto parser = winnow::combinator::delimited(
+        winnow::token::literal("["), 
+        winnow::token::literal("content"), 
+        winnow::token::literal("]")
+    );
+    
+    REQUIRE(CheckResult(parser, Context("[content]"), Succeed<std::string_view>{ "content" }));
+    REQUIRE(CheckResult(parser, Context("[content"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("content]"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("[]"), Backtrack()));
+}
 
+TEST_CASE("separated_pair", "[sequence][combinator]")
+{
+    auto parser = winnow::combinator::separated_pair(
+        winnow::token::literal("first"), 
+        winnow::token::literal(","), 
+        winnow::token::literal("second")
+    );
 
-
-
-
+    REQUIRE(CheckResult(parser, Context("first,second"), Succeed<std::pair<std::string_view, std::string_view>>{ {"first", "second"} }));
+    REQUIRE(CheckResult(parser, Context("first;second"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("first,"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context(",second"), Backtrack()));
+}
 
 
 
