@@ -99,5 +99,41 @@ TEST_CASE("rest_len", "[token]")
     REQUIRE(CheckResult(winnow::token::rest_len, Context(""), Succeed<size_t>{ 0 }));
 }
 
+TEST_CASE("any", "[token]")
+{
+    REQUIRE(CheckResult(winnow::token::any, Context("abcdef"), Succeed<std::string_view>{ "a" }));
+    REQUIRE(CheckResult(winnow::token::any, Context(""), Backtrack())); 
+}
+
+TEST_CASE("none_of", "[token]")
+{
+    REQUIRE(CheckResult(winnow::token::none_of("abc"), Context("def"), Succeed<std::string_view>{ "d" }));
+    REQUIRE(CheckResult(winnow::token::none_of("abc"), Context("abc"), Backtrack()));
+    REQUIRE(CheckResult(winnow::token::none_of("abc"), Context(""), Backtrack()));
+}
+
+
+TEST_CASE("one_of", "[token]")
+{
+    REQUIRE(CheckResult(winnow::token::one_of("abc"), Context("abc"), Succeed<std::string_view>{ "a" }));
+    REQUIRE(CheckResult(winnow::token::one_of("abc"), Context("def"), Backtrack()));
+    REQUIRE(CheckResult(winnow::token::one_of("abc"), Context(""), Backtrack()));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

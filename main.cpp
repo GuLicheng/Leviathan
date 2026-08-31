@@ -1,29 +1,18 @@
 #include <iostream>
 #include <print>
-#include <leviathan/extc++/all.hpp>
-#include <winnow/all.hpp>
+#include <meta>
 
-using nom::error;
-using nom::iresult;
-
-enum class [[=cpp::derive::debug]] ErrorCode
+consteval std::string_view calc_type_name(std::meta::info info)
 {
-    TestError = 1001,
-};
-
-using Context = nom::context<nom::error_kind>;
+    using T = std::int8_t;
+    if (dealias(info) == dealias(^^T)) return "int8";
+    return display_string_of(info);
+}
 
 int main()
 {
-    auto parser1 = nom::bytes::tag(std::string_view("abc"));
-    auto parser2 = nom::bytes::take_while([](char c) { return std::isalpha(c); });
-    auto parser3 = nom::bytes::take_while1([](char c) { return std::isalpha(c); });
-
-    auto ctx = Context("0abcdef1");
-
-    auto result = parser3(ctx); 
-
-    std::println("Res: {}", result);
+    std::cout << calc_type_name(^^int) << std::endl;
+    std::cout << calc_type_name(^^::int8_t) << std::endl;
 
     return 0;
 }

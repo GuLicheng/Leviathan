@@ -23,7 +23,7 @@ struct literal_parser
         {
             auto [left, right] = stream.split_at(value.size());
             stream = right;
-            return result_type::make_ok(left);
+            return result_type::make_ok(std::move(left));
         }
         else
         {
@@ -144,7 +144,7 @@ struct take_until_parser
         }
         auto [left_part, right_part] = stream.split_at(left + pos);
         stream = right_part;
-        return result_type::make_ok(left_part);
+        return result_type::make_ok(std::move(left_part));
     }
 };
 

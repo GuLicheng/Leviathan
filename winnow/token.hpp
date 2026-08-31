@@ -9,12 +9,12 @@
     - take_until
     - rest
     - rest_len
-
-    
-    TODO:
     - any
     - none_of
     - one_of
+    
+    TODO:
+
 
 */
 
@@ -126,15 +126,94 @@ inline constexpr struct
     }
 } rest_len;
 
+inline constexpr struct
+{
+    template <typename Stream>
+    static constexpr auto operator()(Stream& stream)
+    {
+        using literal_type = std::basic_string_view<typename Stream::value_type>;
+        using error_type = typename Stream::error_type;
+        using result_type = modal_result<literal_type, error_type>;
 
+        if (stream.size() == 0)
+        {
+            return result_type::make_err(
+                err_mode<error_type>::make_backtrack(
+                    error_traits<error_type>::from_input(stream)
+                )
+            );
+        }
+        else
+        {
+            auto [left, right] = stream.split_at(1);
+            stream = right;
+            return result_type::make_ok(std::move(left));
+        }
+    }
+} any;
 
+inline constexpr struct
+{
+    template <typename CharT>
+    static constexpr auto operator()(const CharT* str)
+    {
+        return operator()(std::basic_string_view<CharT>(str));
+    }
 
+    template <typename Tokens>
+    static constexpr auto operator()(Tokens tokens)
+    {
+        return [tokens=std::move(tokens)]<typename Stream>(Stream& stream) 
+        {
+            // Different from Rust, we return a string_view instead of a char.
+            using error_type = typename Stream::error_type;
+            using result_type = modal_result<std::basic_string_view<typename Stream::value_type>, error_type>;
 
+            if (stream.size() == 0 || std::ranges::contains(tokens, stream[0]))
+            {
+                return result_type::make_err(
+                    err_mode<error_type>::make_backtrack(
+                        error_traits<error_type>::from_input(stream)
+                    )
+                );
+            }
+            auto [left, right] = stream.split_at(1);
+            stream = right;
+            return result_type::make_ok(std::move(left));
+        };
+    }
+} none_of;
 
+inline constexpr struct 
+{
+    template <typename CharT>
+    static constexpr auto operator()(const CharT* str)
+    {
+        return operator()(std::basic_string_view<CharT>(str));
+    }
 
+    template <typename Tokens>
+    static constexpr auto operator()(Tokens tokens)
+    {
+        return [tokens=std::move(tokens)]<typename Stream>(Stream& stream) 
+        {
+            // Different from Rust, we return a string_view instead of a char.
+            using error_type = typename Stream::error_type;
+            using result_type = modal_result<std::basic_string_view<typename Stream::value_type>, error_type>;
 
-
-
-
+            if (stream.size() == 0 || !std::ranges::contains(tokens, stream[0]))
+            {
+                return result_type::make_err(
+                    err_mode<error_type>::make_backtrack(
+                        error_traits<error_type>::from_input(stream)
+                    )
+                );
+            }
+            auto [left, right] = stream.split_at(1);
+            stream = right;
+            return result_type::make_ok(std::move(left));
+        };
+    }
+} one_of;
 
 }  // namespace winnow::token
