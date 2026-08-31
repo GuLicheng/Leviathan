@@ -168,9 +168,28 @@ TEST_CASE("separated_pair", "[sequence][combinator]")
     REQUIRE(CheckResult(parser, Context(",second"), Backtrack()));
 }
 
+TEST_CASE("map", "[sequence][combinator]")
+{
+    auto parser = winnow::combinator::map(
+        winnow::token::literal("hello"), 
+        [](std::string_view str) { return std::string(str) + " world"; }
+    );
 
+    REQUIRE(CheckResult(parser, Context("hello"), Succeed<std::string>{ "hello world" }));
+    REQUIRE(CheckResult(parser, Context("abc"), Backtrack()));
+}
 
+TEST_CASE("verify", "[sequence][combinator]")
+{
+    auto parser = winnow::combinator::verify(
+        winnow::ascii::alpha1,
+        [](std::string_view str) { return str.size() == 4; }
+    );
 
+    REQUIRE(CheckResult(parser, Context("abcd"), Succeed<std::string_view>{ "abcd" }));
+    REQUIRE(CheckResult(parser, Context("abcde"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("123abcd"), Backtrack()));
+}
 
 
 

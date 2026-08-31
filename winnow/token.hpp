@@ -46,7 +46,7 @@ inline constexpr struct
 inline constexpr struct
 {
     template <typename Pred>
-    static constexpr auto operator()(Pred pred, size_t min, std::optional<size_t> max = std::nullopt)
+    static constexpr auto operator()(Pred pred, size_t min = 0, std::optional<size_t> max = std::nullopt)
     {
         return [=]<typename Stream>(Stream& stream)
         {
@@ -59,7 +59,7 @@ inline constexpr struct
 inline constexpr struct
 {
     template <typename Pred>
-    static constexpr auto operator()(Pred pred, size_t min, std::optional<size_t> max = std::nullopt)
+    static constexpr auto operator()(Pred pred, size_t min = 0, std::optional<size_t> max = std::nullopt)
     {
         return [=]<typename Stream>(Stream& stream)
         {

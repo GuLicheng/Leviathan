@@ -63,5 +63,28 @@ inline constexpr struct
     }
 } separated_pair;
 
+inline constexpr struct
+{
+    template <typename F, typename M>
+    static constexpr auto operator()(F f, M m)
+    {
+        return [f = std::move(f), m = std::move(m)]<typename Stream>(Stream& stream)
+        {
+            return detail::map_parser<Stream, F, M>(std::move(f), std::move(m))(stream);
+        };
+    }
+} map;
 
-}
+inline constexpr struct 
+{
+    template <typename F, typename M>
+    static constexpr auto operator()(F f, M m)
+    {
+        return [f = std::move(f), m = std::move(m)]<typename Stream>(Stream& stream)
+        {
+            return detail::verify_parser<Stream, F, M>(std::move(f), std::move(m))(stream);
+        };
+    }
+} verify;
+
+}  // namespace winnow::combinator

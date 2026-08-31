@@ -5,6 +5,7 @@
 #include "stream.hpp"
 #include "token.hpp"
 #include "combinator.hpp"
+#include "ascii.hpp"
 
 
 

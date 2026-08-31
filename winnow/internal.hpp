@@ -7,8 +7,9 @@ namespace winnow::detail
 {
 
 template <typename Stream>
-struct literal_parser
+struct literal_parser 
 {
+    using stream_type = Stream;
     using literal_type = std::basic_string_view<typename Stream::value_type>;
     using error_type = typename Stream::error_type;
     using result_type = modal_result<literal_type, error_type>;
@@ -160,9 +161,6 @@ struct preceded_parser
     using error_type = typename Stream::error_type;
     using result_type = result_type2;
 
-    // static_assert(std::is_same_v<error_type1, error_type>, "Error type of IgnoredParser must match Stream's error type");
-    // static_assert(std::is_same_v<error_type2, error_type>, "Error type of Parser must match Stream's error type");
-
     IgnoredParser ignored_parser;
     Parser parser;
 
@@ -194,9 +192,6 @@ struct terminated_parser
     using error_type = typename Stream::error_type;
     using result_type = result_type1;
 
-    // static_assert(std::is_same_v<error_type1, error_type>, "Error type of Parser must match Stream's error type");
-    // static_assert(std::is_same_v<error_type2, error_type>, "Error type of IgnoredParser must match Stream's error type");
-
     Parser parser;
     IgnoredParser ignored_parser;
 
@@ -226,9 +221,6 @@ struct separated_pair_parser
 {
     using result_type1 = std::invoke_result_t<Parser1, Stream&>;
     using result_type2 = std::invoke_result_t<Parser2, Stream&>;
-
-    using error_type1 = typename result_type1::error_type;
-    using error_type2 = typename result_type2::error_type;
 
     using error_type = typename Stream::error_type;
     using output_type = std::pair<typename result_type1::value_type, typename result_type2::value_type>;
@@ -265,11 +257,65 @@ struct separated_pair_parser
     }
 };
 
+template <typename Stream, typename Parser, typename F>
+struct map_parser
+{
+    using result_type1 = std::invoke_result_t<Parser, Stream&>;
+    using error_type = typename Stream::error_type;
+    using output_type1 = typename result_type1::value_type;
+    using output_type = std::invoke_result_t<F, output_type1>;
+    using result_type = modal_result<output_type, error_type>;
 
+    Parser parser;
+    F func;
 
+    constexpr map_parser(Parser p, F f) : parser(std::move(p)), func(std::move(f)) { }
 
+    constexpr result_type operator()(Stream& stream) const
+    {
+        auto result = parser(stream);
 
+        if (!result)
+        {
+            return result_type::make_err(std::move(result.unwrap_err()));
+        }
+        return result_type::make_ok(std::invoke(func, std::move(result.unwrap_ok())));
+    }
+};
 
+template <typename Stream, typename Parser, typename P>
+struct verify_parser
+{
+    using error_type = typename Stream::error_type;
+    using result_type = std::invoke_result_t<Parser, Stream&>;
 
+    Parser parser;
+    P predicate;
+
+    constexpr verify_parser(Parser p, P pred) : parser(std::move(p)), predicate(std::move(pred)) { }
+
+    constexpr result_type operator()(Stream& stream) const
+    {
+        auto result = parser(stream);
+
+        if (!result)
+        {
+            return result_type::make_err(std::move(result.unwrap_err()));
+        }
+
+        if (!std::invoke(predicate, result.unwrap_ok()))
+        {
+            return result_type::make_err(
+                err_mode<error_type>::make_backtrack(
+                    error_traits<error_type>::from_input(stream)
+                )
+            );
+        }
+
+        return result_type::make_ok(std::move(result.unwrap_ok()));
+    }
+};
 
 }  // namespace winnow::detail
+
+
