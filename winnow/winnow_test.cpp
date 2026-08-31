@@ -177,6 +177,13 @@ TEST_CASE("map", "[sequence][combinator]")
 
     REQUIRE(CheckResult(parser, Context("hello"), Succeed<std::string>{ "hello world" }));
     REQUIRE(CheckResult(parser, Context("abc"), Backtrack()));
+
+    auto parser2 = winnow::token::literal("123") | winnow::combinator::map(
+        [](std::string_view str) { return std::stoi(std::string(str)); }
+    );
+
+    REQUIRE(CheckResult(parser2, Context("123"), Succeed<int>{ 123 }));
+    REQUIRE(CheckResult(parser2, Context("abc"), Backtrack()));
 }
 
 TEST_CASE("verify", "[sequence][combinator]")
