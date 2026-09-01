@@ -170,32 +170,47 @@ TEST_CASE("separated_pair", "[sequence][combinator]")
 
 TEST_CASE("map", "[sequence][combinator]")
 {
-    auto parser = winnow::combinator::map(
-        winnow::token::literal("hello"), 
-        [](std::string_view str) { return std::string(str) + " world"; }
-    );
-
-    REQUIRE(CheckResult(parser, Context("hello"), Succeed<std::string>{ "hello world" }));
-    REQUIRE(CheckResult(parser, Context("abc"), Backtrack()));
-
-    // auto parser2 = winnow::token::literal("123") | winnow::combinator::map(
-    //     [](std::string_view str) { return std::stoi(std::string(str)); }
+    // auto parser = winnow::combinator::map(
+    //     winnow::token::literal("hello"), 
+    //     [](std::string_view str) { return std::string(str) + " world"; }
     // );
 
-    // REQUIRE(CheckResult(parser2, Context("123"), Succeed<int>{ 123 }));
-    // REQUIRE(CheckResult(parser2, Context("abc"), Backtrack()));
+    // REQUIRE(CheckResult(parser, Context("hello"), Succeed<std::string>{ "hello world" }));
+    // REQUIRE(CheckResult(parser, Context("abc"), Backtrack()));
+
+    auto parser2 = winnow::token::literal("123").map(
+        [](std::string_view str) { return std::stoi(std::string(str)); }
+    );
+
+    REQUIRE(CheckResult(parser2, Context("123"), Succeed<int>{ 123 }));
+    REQUIRE(CheckResult(parser2, Context("abc"), Backtrack()));
+
+    auto parser3 = winnow::token::literal("!!!")
+                   .map([](auto x) { return x.substr(0, 1); })
+                   .map([](auto x) { return x.substr(0, 1); })
+                   .map([](auto x) { return std::string("HelloWorld") + x; });
+
+    REQUIRE(CheckResult(parser3, Context("!!!"), Succeed<std::string>{ "HelloWorld!" }));
 }
 
 TEST_CASE("verify", "[sequence][combinator]")
 {
-    auto parser = winnow::combinator::verify(
-        winnow::ascii::alpha1,
+    // auto parser = winnow::combinator::verify(
+    //     winnow::ascii::alpha1,
+    //     [](std::string_view str) { return str.size() == 4; }
+    // );
+
+    // REQUIRE(CheckResult(parser, Context("abcd"), Succeed<std::string_view>{ "abcd" }));
+    // REQUIRE(CheckResult(parser, Context("abcde"), Backtrack()));
+    // REQUIRE(CheckResult(parser, Context("123abcd"), Backtrack()));
+
+    auto parser2 = winnow::ascii::alpha1.verify(
         [](std::string_view str) { return str.size() == 4; }
     );
-
-    REQUIRE(CheckResult(parser, Context("abcd"), Succeed<std::string_view>{ "abcd" }));
-    REQUIRE(CheckResult(parser, Context("abcde"), Backtrack()));
-    REQUIRE(CheckResult(parser, Context("123abcd"), Backtrack()));
+    
+    REQUIRE(CheckResult(parser2, Context("abcd"), Succeed<std::string_view>{ "abcd" }));
+    REQUIRE(CheckResult(parser2, Context("abcde"), Backtrack()));
+    REQUIRE(CheckResult(parser2, Context("123abcd"), Backtrack()));
 }
 
 
