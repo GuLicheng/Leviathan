@@ -1,7 +1,7 @@
 /*
     https://docs.rs/winnow/latest/winnow/token/index.html
 
-    Implemented:
+    [Basic elements]
     - literal
     - take_while
     - take_till
@@ -12,8 +12,6 @@
     - any
     - none_of
     - one_of
-    
-    TODO:
 
 */
 

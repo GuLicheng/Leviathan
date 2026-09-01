@@ -98,11 +98,6 @@ public:
         return err_mode(std::in_place_index<2>, std::forward<Args>(args)...); 
     }
 
-    constexpr err_mode to_cut() const
-    {
-        return is_backtrack() ? make_cut(as_backtrack()) : *this;
-    }
-
     // We use index instead of std::holds_alternative to avoid the overhead of typeid.
     constexpr bool is_incomplete() const { return value.index() == 0; }
     constexpr bool is_backtrack() const { return value.index() == 1; }
@@ -116,6 +111,22 @@ public:
 
     constexpr auto& as_cut() { return std::get<2>(value); }
     constexpr auto& as_cut() const { return std::get<2>(value); }
+
+    constexpr void switch_to_cut()
+    {
+        if (is_backtrack())
+        {
+            value = std::variant<Incomplete, Error, Error>{std::in_place_index<2>, as_backtrack()};
+        }
+    }
+
+    constexpr void switch_to_backtrack()
+    {
+        if (is_cut())
+        {
+            value = std::variant<Incomplete, Error, Error>{std::in_place_index<1>, as_cut()};
+        }
+    }
 
 private:
 

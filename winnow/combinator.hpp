@@ -1,12 +1,30 @@
 /*
     https://docs.rs/winnow/latest/winnow/combinator/index.html
 
-    Implemented
-
-    - preceded
-    - terminated
+    - [x] alt
+    - backtrack_err
+    - [x] cond
+    - cut_err
     - delimited
+    - [x] empty
+    - [x] eof
+    - [x] expression
+    - [x] fail
+    - [x] fill
+    - [x] iterator
+    - [x] not
+    - [x] opt
+    - [x] peek
+    - preceded
+    - [x] repeat
+    - [x] repeat_till
+    - [x] separated
+    - [x] separated_foldl1
+    - [x] separated_foldr1
     - separated_pair
+    - terminated
+    - [x] todo
+    - [x] trace
 
 */
 
@@ -54,5 +72,22 @@ inline constexpr struct
     }
 } separated_pair;
 
+inline constexpr struct
+{
+    template <typename Parser>
+    static constexpr auto operator()(Parser parser)
+    {
+        return detail::backtrack_err_parser<Parser>(std::move(parser));
+    }
+} backtrack_err;
+
+inline constexpr struct
+{
+    template <typename Parser>
+    static constexpr auto operator()(Parser parser)
+    {
+        return detail::cut_err_parser<Parser>(std::move(parser));
+    }
+} cut_err;
 
 }  // namespace winnow::combinator

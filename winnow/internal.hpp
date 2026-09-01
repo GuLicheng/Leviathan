@@ -416,6 +416,47 @@ struct check_next_character_parser : parser_interface
     }
 };
 
+template <typename Parser>
+struct backtrack_err_parser : parser_interface
+{
+    Parser parser;
+
+    constexpr backtrack_err_parser(Parser p) : parser(std::move(p)) {}
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        auto result = parser(stream);
+
+        if (!result) 
+        {
+            result.unwrap_err().switch_to_backtrack();
+        }
+
+        return result;
+    }
+};
+
+template <typename Parser>
+struct cut_err_parser : parser_interface
+{
+    Parser parser;
+
+    constexpr cut_err_parser(Parser p) : parser(std::move(p)) {}
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        auto result = parser(stream);
+
+        if (!result) 
+        {
+            result.unwrap_err().switch_to_cut();
+        }
+
+        return result;
+    }
+};
 
 }  // namespace winnow::detail
 

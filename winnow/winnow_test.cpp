@@ -44,6 +44,15 @@ struct Backtrack
     }
 };
 
+struct Cut
+{
+    template <typename Result>
+    static constexpr bool operator()(const Result& result)
+    {
+        return result.is_err() && result.unwrap_err().is_cut();
+    }
+};
+
 template <typename Parser, typename Context, typename Checker>
 bool CheckResult(Parser parser, Context context, Checker checker)
 {
@@ -213,5 +222,23 @@ TEST_CASE("verify", "[sequence][combinator]")
     REQUIRE(CheckResult(parser2, Context("123abcd"), Backtrack()));
 }
 
+TEST_CASE("backtrack_err", "[sequence][combinator]")
+{
+    auto parser = winnow::combinator::backtrack_err(
+        winnow::token::literal("hello")
+    );
 
+    REQUIRE(CheckResult(parser, Context("hello"), Succeed<std::string_view>{ "hello" }));
+    REQUIRE(CheckResult(parser, Context("world"), Backtrack()));
+}
+
+TEST_CASE("cut_err", "[sequence][combinator]")
+{
+    auto parser = winnow::combinator::cut_err(
+        winnow::token::literal("hello")
+    );
+
+    REQUIRE(CheckResult(parser, Context("hello"), Succeed<std::string_view>{ "hello" }));
+    REQUIRE(CheckResult(parser, Context("world"), Cut()));
+}
 
