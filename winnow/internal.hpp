@@ -6,20 +6,21 @@
 namespace winnow::detail
 {
 
-template <typename Stream>
+template <typename CharT>
 struct literal_parser 
 {
-    using stream_type = Stream;
-    using literal_type = std::basic_string_view<typename Stream::value_type>;
-    using error_type = typename Stream::error_type;
-    using result_type = modal_result<literal_type, error_type>;
+    using literal_type = std::basic_string_view<CharT>;
 
     literal_type value;
 
     constexpr literal_parser(literal_type t) : value(t) { }
 
-    constexpr result_type operator()(Stream& stream) const
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
     {
+        using error_type = typename Stream::error_type;
+        using result_type = modal_result<literal_type, error_type>;
+
         if (stream.match(value, false))
         {
             auto [left, right] = stream.split_at(value.size());
@@ -37,24 +38,23 @@ struct literal_parser
     }
 };
 
-template <typename Stream, typename Pred>
+template <typename Pred>
 struct take_while_parser
 {
-    using error_type = typename Stream::error_type;
-    using result_type = modal_result<std::basic_string_view<typename Stream::value_type>, error_type>;
-
     Pred pred;
     size_t min;
     std::optional<size_t> max;
 
     constexpr take_while_parser(Pred p, size_t min_count, std::optional<size_t> max_count)
         : pred(p), min(min_count), max(max_count) { }
-
-
-    constexpr result_type operator()(Stream& stream) const
+    
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
     {
+        using error_type = typename Stream::error_type;
+        using result_type = modal_result<std::basic_string_view<typename Stream::value_type>, error_type>;
+        
         // User should ensure that the max is not less than min.
-
         size_t count = 0;
 
         while (count < stream.size() && std::invoke(pred, stream[count]))
@@ -84,18 +84,18 @@ struct take_while_parser
         
 };
 
-template <typename Stream>
 struct take_parser
 {
-    using error_type = typename Stream::error_type;
-    using result_type = modal_result<std::basic_string_view<typename Stream::value_type>, error_type>;
-
     size_t count;
 
     constexpr take_parser(size_t n) : count(n) { }
 
-    constexpr result_type operator()(Stream& stream) const
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
     {
+        using error_type = typename Stream::error_type;
+        using result_type = modal_result<std::basic_string_view<typename Stream::value_type>, error_type>;
+
         if (stream.size() < count)
         {
             return result_type::make_err(
@@ -113,13 +113,11 @@ struct take_parser
     }
 };
 
-template <typename Stream>
+template <typename CharT>
 struct take_until_parser
 {
-    using literal_type = std::basic_string_view<typename Stream::value_type>;
-    using error_type = typename Stream::error_type;
-    using result_type = modal_result<literal_type, error_type>;
-
+    using literal_type = std::basic_string_view<CharT>;
+    
     literal_type value;
     size_t min;
     std::optional<size_t> max;
@@ -127,8 +125,12 @@ struct take_until_parser
     constexpr take_until_parser(literal_type v, size_t min_count, std::optional<size_t> max_count)
         : value(v), min(min_count), max(max_count) { }
 
-    constexpr result_type operator()(Stream& stream) const
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
     {
+        using error_type = typename Stream::error_type;
+        using result_type = modal_result<literal_type, error_type>;
+        
         const auto left = min;
         const auto right = max.value_or(stream.size());
         const auto slice = stream.to_string_view().substr(left, right);
@@ -257,22 +259,23 @@ struct separated_pair_parser
     }
 };
 
-template <typename Stream, typename Parser, typename F>
+template <typename Parser, typename F>
 struct map_parser
 {
-    using result_type1 = std::invoke_result_t<Parser, Stream&>;
-    using error_type = typename Stream::error_type;
-    using output_type1 = typename result_type1::value_type;
-    using output_type = std::invoke_result_t<F, output_type1>;
-    using result_type = modal_result<output_type, error_type>;
-
     Parser parser;
     F func;
 
     constexpr map_parser(Parser p, F f) : parser(std::move(p)), func(std::move(f)) { }
 
+    template <typename Stream>
     constexpr result_type operator()(Stream& stream) const
     {
+        using result_type1 = std::invoke_result_t<Parser, Stream&>;
+        using output_type1 = typename result_type1::value_type;
+        using error_type = typename Stream::error_type;
+        using output_type = std::invoke_result_t<F, output_type1>;
+        using result_type = modal_result<output_type, error_type>;
+
         auto result = parser(stream);
 
         if (!result)

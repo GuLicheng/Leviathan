@@ -35,11 +35,7 @@ inline constexpr struct
     template <typename CharT>
     static constexpr auto operator()(std::basic_string_view<CharT> str)
     {
-        return [=]<typename Stream>(Stream& stream) 
-        {
-            static_assert(std::is_same_v<CharT, typename Stream::value_type>, "Stream value type must match literal type");
-            return detail::literal_parser<Stream>(str)(stream);
-        };
+        return detail::literal_parser<CharT>(str);
     }
 } literal;
 
@@ -48,11 +44,7 @@ inline constexpr struct
     template <typename Pred>
     static constexpr auto operator()(Pred pred, size_t min = 0, std::optional<size_t> max = std::nullopt)
     {
-        return [=]<typename Stream>(Stream& stream)
-        {
-            // auto fn = [](auto& pred, const Stream& c) { return !std::invoke(pred, c); };
-            return detail::take_while_parser<Stream, Pred>(pred, min, max)(stream);
-        };
+        return detail::take_while_parser<Pred>(std::move(pred), min, max);
     }
 } take_while;
     
@@ -61,11 +53,8 @@ inline constexpr struct
     template <typename Pred>
     static constexpr auto operator()(Pred pred, size_t min = 0, std::optional<size_t> max = std::nullopt)
     {
-        return [=]<typename Stream>(Stream& stream)
-        {
-            auto fn = std::not_fn(std::move(pred));
-            return detail::take_while_parser<Stream, decltype(fn)>(std::move(fn), min, max)(stream);
-        };
+        auto fn = std::not_fn(std::move(pred));
+        return detail::take_while_parser<decltype(fn)>(std::move(fn), min, max);
     }
 } take_till;
 
@@ -73,10 +62,7 @@ inline constexpr struct
 {
     static constexpr auto operator()(size_t count)
     {
-        return [=]<typename Stream>(Stream& stream)
-        {
-            return detail::take_parser<Stream>(count)(stream);
-        };
+        return detail::take_parser(count);
     }
 } take;
 
@@ -91,11 +77,7 @@ inline constexpr struct
     template <typename CharT>
     static constexpr auto operator()(std::basic_string_view<CharT> str, size_t min = 0, std::optional<size_t> max = std::nullopt)
     {
-        return [=]<typename Stream>(Stream& stream) 
-        {
-            static_assert(std::is_same_v<CharT, typename Stream::value_type>, "Stream value type must match literal type");
-            return detail::take_until_parser<Stream>(str, min, max)(stream);
-        };
+        return detail::take_until_parser<CharT>(str, min, max);
     }
 } take_until;
 
@@ -114,7 +96,7 @@ inline constexpr struct
     }
 } rest;
 
-inline constexpr struct
+inline constexpr struct 
 {
     template <typename Stream>
     static constexpr auto operator()(Stream& stream)

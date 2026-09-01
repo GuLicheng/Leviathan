@@ -34,6 +34,27 @@ struct Pipe : AdaptorClosure<Pipe<L, R>>
 
 };
 
+template <typename Adaptor, typename... Args>
+struct Partial : AdaptorClosure<Partial<Adaptor, Args...>>
+{
+    using binder = decltype(std::bind_back(std::declval<Adaptor>(), std::declval<Args>()...));
+
+    [[no_unique_address]] binder m_binder;
+
+    template <typename... Ts>
+    constexpr Partial(Ts&&... args) 
+        : m_binder(std::bind_back(Adaptor(), std::forward<Ts>(args)...)) { }
+    
+    template <typename Self, typename Other>
+    constexpr auto operator()(this Self&& self, Other&& other) 
+    {
+        return std::invoke(
+            std::forward_like<Self>(self.m_binder),
+            std::forward<Other>(other)
+        );
+    }
+};
+
 
 int main(int argc, char const *argv[])
 {
