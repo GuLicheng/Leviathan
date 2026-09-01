@@ -81,57 +81,11 @@ inline constexpr struct
     }
 } take_until;
 
-inline constexpr struct
-{
-    template <typename Stream>
-    static constexpr auto operator()(Stream& stream)
-    {
-        using literal_type = std::basic_string_view<typename Stream::value_type>;
-        using error_type = typename Stream::error_type;
-        using result_type = modal_result<literal_type, error_type>;
+inline constexpr detail::rest_parser rest;
 
-        auto left = stream.to_string_view();
-        stream.advance(stream.size());
-        return result_type::make_ok(left);
-    }
-} rest;
+inline constexpr detail::rest_len_parser rest_len;
 
-inline constexpr struct 
-{
-    template <typename Stream>
-    static constexpr auto operator()(Stream& stream)
-    {
-        using error_type = typename Stream::error_type;
-        using result_type = modal_result<size_t, error_type>;
-        return result_type::make_ok(stream.size());
-    }
-} rest_len;
-
-inline constexpr struct
-{
-    template <typename Stream>
-    static constexpr auto operator()(Stream& stream)
-    {
-        using literal_type = std::basic_string_view<typename Stream::value_type>;
-        using error_type = typename Stream::error_type;
-        using result_type = modal_result<literal_type, error_type>;
-
-        if (stream.size() == 0)
-        {
-            return result_type::make_err(
-                err_mode<error_type>::make_backtrack(
-                    error_traits<error_type>::from_input(stream)
-                )
-            );
-        }
-        else
-        {
-            auto [left, right] = stream.split_at(1);
-            stream = right;
-            return result_type::make_ok(std::move(left));
-        }
-    }
-} any;
+inline constexpr auto any = detail::check_next_character_parser<detail::always_false>(detail::always_false());
 
 inline constexpr struct
 {
@@ -144,24 +98,8 @@ inline constexpr struct
     template <typename Tokens>
     static constexpr auto operator()(Tokens tokens)
     {
-        return [tokens=std::move(tokens)]<typename Stream>(Stream& stream) 
-        {
-            // Different from Rust, we return a string_view instead of a char.
-            using error_type = typename Stream::error_type;
-            using result_type = modal_result<std::basic_string_view<typename Stream::value_type>, error_type>;
-
-            if (stream.size() == 0 || std::ranges::contains(tokens, stream[0]))
-            {
-                return result_type::make_err(
-                    err_mode<error_type>::make_backtrack(
-                        error_traits<error_type>::from_input(stream)
-                    )
-                );
-            }
-            auto [left, right] = stream.split_at(1);
-            stream = right;
-            return result_type::make_ok(std::move(left));
-        };
+        auto contains = [tokens = std::move(tokens)](auto c) { return std::ranges::contains(tokens, c); };
+        return detail::check_next_character_parser<decltype(contains)>(std::move(contains));
     }
 } none_of;
 
@@ -176,24 +114,8 @@ inline constexpr struct
     template <typename Tokens>
     static constexpr auto operator()(Tokens tokens)
     {
-        return [tokens=std::move(tokens)]<typename Stream>(Stream& stream) 
-        {
-            // Different from Rust, we return a string_view instead of a char.
-            using error_type = typename Stream::error_type;
-            using result_type = modal_result<std::basic_string_view<typename Stream::value_type>, error_type>;
-
-            if (stream.size() == 0 || !std::ranges::contains(tokens, stream[0]))
-            {
-                return result_type::make_err(
-                    err_mode<error_type>::make_backtrack(
-                        error_traits<error_type>::from_input(stream)
-                    )
-                );
-            }
-            auto [left, right] = stream.split_at(1);
-            stream = right;
-            return result_type::make_ok(std::move(left));
-        };
+        auto contains = [tokens = std::move(tokens)](auto c) { return !std::ranges::contains(tokens, c); };
+        return detail::check_next_character_parser<decltype(contains)>(std::move(contains));
     }
 } one_of;
 

@@ -245,7 +245,7 @@ struct take_until_parser : parser_interface
 };
 
 template <typename IgnoredParser, typename Parser>
-struct preceded_parser
+struct preceded_parser : parser_interface
 {
     IgnoredParser ignored_parser;
     Parser parser;
@@ -277,7 +277,7 @@ struct preceded_parser
 };
 
 template <typename Parser, typename IgnoredParser>
-struct terminated_parser
+struct terminated_parser : parser_interface
 {
     Parser parser;
     IgnoredParser ignored_parser;
@@ -314,7 +314,7 @@ struct terminated_parser
 };
 
 template <typename Parser1, typename SepParser, typename Parser2>
-struct separated_pair_parser
+struct separated_pair_parser : parser_interface
 {
     Parser1 parser1;
     SepParser sep_parser;
@@ -352,6 +352,67 @@ struct separated_pair_parser
             return result_type::make_err(std::move(result2.unwrap_err()));
         }
         return result_type::make_ok(std::make_pair(std::move(result1.unwrap_ok()), std::move(result2.unwrap_ok())));
+    }
+};
+
+struct rest_parser : parser_interface
+{
+    template <typename Stream>
+    static constexpr auto operator()(Stream& stream)
+    {
+        using literal_type = std::basic_string_view<typename Stream::value_type>;
+        using error_type = typename Stream::error_type;
+        using result_type = modal_result<literal_type, error_type>;
+
+        auto left = stream.to_string_view();
+        stream.advance(stream.size());
+        return result_type::make_ok(left);
+    }
+};
+
+struct rest_len_parser : parser_interface
+{
+    template <typename Stream>
+    static constexpr auto operator()(Stream& stream)
+    {
+        using error_type = typename Stream::error_type;
+        using result_type = modal_result<size_t, error_type>;
+        return result_type::make_ok(stream.size());
+    }
+};
+
+struct always_false
+{
+    template <typename... Ts>
+    static constexpr bool operator()(Ts&&...) { return false; }
+};
+
+template <typename Pred>
+struct check_next_character_parser : parser_interface
+{
+    Pred pred;
+
+    constexpr check_next_character_parser(Pred pred) : pred(std::move(pred)) {}
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using literal_type = std::basic_string_view<typename Stream::value_type>;
+        using error_type = typename Stream::error_type;
+        using result_type = modal_result<literal_type, error_type>;
+
+        // if (stream.size() == 0 || !std::ranges::contains(tokens, stream[0]))
+        if (stream.size() == 0 || std::invoke(pred, stream[0]))
+        {
+            return result_type::make_err(
+                err_mode<error_type>::make_backtrack(
+                    error_traits<error_type>::from_input(stream)
+                )
+            );
+        }
+        auto [left, right] = stream.split_at(1);
+        stream = right;
+        return result_type::make_ok(std::move(left));
     }
 };
 
