@@ -94,7 +94,6 @@ struct pipe : range_adaptor_closure
 
 };
 
-// https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p2387r1.html
 template <typename F>
 class closure : public range_adaptor_closure<closure<F>>
 {

@@ -1,6 +1,9 @@
 #include <catch2/catch_all.hpp>
-#include "all.hpp"
+
+#include <meta>
 #include <print>
+
+#include "all.hpp"
 
 using Context = winnow::stream<winnow::context_error>;
 
@@ -60,73 +63,101 @@ bool CheckResult(Parser parser, Context context, Checker checker)
     return checker(result);
 }
 
+template <typename Parser, typename Context, typename Checker, typename Rest>
+bool CheckResult(Parser parser, Context context, Checker checker, Rest rest)
+{
+    auto result = parser(context);
+    return checker(result) && context.to_string_view() == rest;
+}
+
+
 TEST_CASE("literal", "[token]")
 {
-    REQUIRE(CheckResult(winnow::token::literal("hello"), Context("hello world"), Succeed<std::string_view>{"hello"}));
-    REQUIRE(CheckResult(winnow::token::literal("123"), Context("123456"), Succeed<std::string_view>{"123"}));
-    REQUIRE(CheckResult(winnow::token::literal("abc"), Context("xyz"), Backtrack()));
+    using winnow::token::literal;
+
+    REQUIRE(CheckResult(literal("hello"), Context("hello world"), Succeed<std::string_view>{"hello"}, " world"));
+    REQUIRE(CheckResult(literal("123"), Context("123456"), Succeed<std::string_view>{"123"}, "456"));
+    REQUIRE(CheckResult(literal("abc"), Context("xyz"), Backtrack(), "xyz"));
 }
 
 TEST_CASE("take_while", "[token]")
 {
-    REQUIRE(CheckResult(winnow::token::take_while(::isalpha, 1), Context("abc123"), Succeed<std::string_view>{ "abc" }));
-    REQUIRE(CheckResult(winnow::token::take_while(::isalpha, 1, 2), Context("abc123"), Succeed<std::string_view>{ "ab" }));
-    REQUIRE(CheckResult(winnow::token::take_while(::isalpha, 1, 2), Context("a123"), Succeed<std::string_view>{ "a" }));
-    REQUIRE(CheckResult(winnow::token::take_while(::isalpha, 1, 2), Context("123"), Backtrack()));
-    REQUIRE(CheckResult(winnow::token::take_while(::isalpha, 1, 2), Context(""), Backtrack()));
+    using winnow::token::take_while;
+
+    REQUIRE(CheckResult(take_while(::isalpha, 1), Context("abc123"), Succeed<std::string_view>{ "abc" }, "123"));
+    REQUIRE(CheckResult(take_while(::isalpha, 1, 2), Context("abc123"), Succeed<std::string_view>{ "ab" }, "c123"));
+    REQUIRE(CheckResult(take_while(::isalpha, 1, 2), Context("a123"), Succeed<std::string_view>{ "a" }, "123"));
+    REQUIRE(CheckResult(take_while(::isalpha, 1, 2), Context("123"), Backtrack()));
+    REQUIRE(CheckResult(take_while(::isalpha, 1, 2), Context(""), Backtrack()));
 }
 
 TEST_CASE("take_till", "[token]")
 {
-    REQUIRE(CheckResult(winnow::token::take_till(::isdigit, 1), Context("abc123"), Succeed<std::string_view>{ "abc" }));
+    using winnow::token::take_till;
+
+    REQUIRE(CheckResult(take_till(::isdigit, 1), Context("abc123"), Succeed<std::string_view>{ "abc" }, "123"));
 }
 
 TEST_CASE("take", "[token]")
 {
-    REQUIRE(CheckResult(winnow::token::take(3), Context("abcdef"), Succeed<std::string_view>{ "abc" }));
+    using winnow::token::take; 
+    
+    REQUIRE(CheckResult(winnow::token::take(3), Context("abcdef"), Succeed<std::string_view>{ "abc" }, "def"));
     REQUIRE(CheckResult(winnow::token::take(10), Context("abcdef"), Backtrack()));
 }
 
 TEST_CASE("take_until", "[token]")
 {
-    REQUIRE(CheckResult(winnow::token::take_until("123"), Context("abc123def"), Succeed<std::string_view>{ "abc" }));
-    REQUIRE(CheckResult(winnow::token::take_until("xyz"), Context("abcdef"), Backtrack()));
-    REQUIRE(CheckResult(winnow::token::take_until("eof", 0), Context("hello, worldeof"), Succeed<std::string_view>{ "hello, world" }));
-    REQUIRE(CheckResult(winnow::token::take_until("eof", 0), Context("hello, world"), Backtrack()));
-    REQUIRE(CheckResult(winnow::token::take_until("eof", 1), Context("1eof2eof"), Succeed<std::string_view>{ "1" }));
+    using winnow::token::take_until;
+
+    REQUIRE(CheckResult(take_until("123"), Context("abc123def"), Succeed<std::string_view>{ "abc" }, "123def"));
+    REQUIRE(CheckResult(take_until("xyz"), Context("abcdef"), Backtrack()));
+    REQUIRE(CheckResult(take_until("eof", 0), Context("hello, worldeof"), Succeed<std::string_view>{ "hello, world" }, "eof"));
+    REQUIRE(CheckResult(take_until("eof", 0), Context("hello, world"), Backtrack()));
+    REQUIRE(CheckResult(take_until("eof", 1), Context("1eof2eof"), Succeed<std::string_view>{ "1" }, "eof2eof"));
 }
 
 TEST_CASE("rest", "[token]")
 {
-    REQUIRE(CheckResult(winnow::token::rest, Context("abcdef"), Succeed<std::string_view>{ "abcdef" }));
-    REQUIRE(CheckResult(winnow::token::rest, Context(""), Succeed<std::string_view>{ "" }));
+    using winnow::token::rest;
+
+    REQUIRE(CheckResult(rest, Context("abcdef"), Succeed<std::string_view>{ "abcdef" }, ""));
+    REQUIRE(CheckResult(rest, Context(""), Succeed<std::string_view>{ "" }, ""));
 }
 
 TEST_CASE("rest_len", "[token]")
 {
-    REQUIRE(CheckResult(winnow::token::rest_len, Context("abcdef"), Succeed<size_t>{ 6 }));
-    REQUIRE(CheckResult(winnow::token::rest_len, Context(""), Succeed<size_t>{ 0 }));
+    using winnow::token::rest_len;
+
+    REQUIRE(CheckResult(rest_len, Context("abcdef"), Succeed<size_t>{ 6 }, "abcdef"));
+    REQUIRE(CheckResult(rest_len, Context(""), Succeed<size_t>{ 0 }, ""));
 }
 
 TEST_CASE("any", "[token]")
 {
-    REQUIRE(CheckResult(winnow::token::any, Context("abcdef"), Succeed<std::string_view>{ "a" }));
-    REQUIRE(CheckResult(winnow::token::any, Context(""), Backtrack())); 
+    using winnow::token::any;
+
+    REQUIRE(CheckResult(any, Context("abcdef"), Succeed<std::string_view>{ "a" }, "bcdef"));
+    REQUIRE(CheckResult(any, Context(""), Backtrack())); 
 }
 
 TEST_CASE("none_of", "[token]")
 {
-    REQUIRE(CheckResult(winnow::token::none_of("abc"), Context("def"), Succeed<std::string_view>{ "d" }));
-    REQUIRE(CheckResult(winnow::token::none_of("abc"), Context("abc"), Backtrack()));
-    REQUIRE(CheckResult(winnow::token::none_of("abc"), Context(""), Backtrack()));
+    using winnow::token::none_of;
+
+    REQUIRE(CheckResult(none_of("abc"), Context("def"), Succeed<std::string_view>{ "d" }, "ef"));
+    REQUIRE(CheckResult(none_of("abc"), Context("abc"), Backtrack()));
+    REQUIRE(CheckResult(none_of("abc"), Context(""), Backtrack()));
 }
 
 
 TEST_CASE("one_of", "[token]")
 {
-    REQUIRE(CheckResult(winnow::token::one_of("abc"), Context("abc"), Succeed<std::string_view>{ "a" }));
-    REQUIRE(CheckResult(winnow::token::one_of("abc"), Context("def"), Backtrack()));
-    REQUIRE(CheckResult(winnow::token::one_of("abc"), Context(""), Backtrack()));
+    using winnow::token::one_of;
+
+    REQUIRE(CheckResult(one_of("abc"), Context("abc"), Succeed<std::string_view>{ "a" }, "bc"));
+    REQUIRE(CheckResult(one_of("abc"), Context("def"), Backtrack()));
+    REQUIRE(CheckResult(one_of("abc"), Context(""), Backtrack()));
 }
 
 TEST_CASE("preceded", "[sequence][combinator]")
@@ -144,7 +175,7 @@ TEST_CASE("terminated", "[sequence][combinator]")
     auto parser = winnow::combinator::terminated(
         winnow::token::literal("hello"), winnow::token::literal("world")
     );
-    REQUIRE(CheckResult(parser, Context("helloworld"), Succeed<std::string_view>{ "hello" }));
+    REQUIRE(CheckResult(parser, Context("helloworld"), Succeed<std::string_view>{ "hello" }, ""));
     REQUIRE(CheckResult(parser, Context("helloabc"), Backtrack()));
     REQUIRE(CheckResult(parser, Context("abcworld"), Backtrack()));
 }
@@ -157,7 +188,7 @@ TEST_CASE("delimited", "[sequence][combinator]")
         winnow::token::literal("]")
     );
     
-    REQUIRE(CheckResult(parser, Context("[content]"), Succeed<std::string_view>{ "content" }));
+    REQUIRE(CheckResult(parser, Context("[content]"), Succeed<std::string_view>{ "content" }, ""));
     REQUIRE(CheckResult(parser, Context("[content"), Backtrack()));
     REQUIRE(CheckResult(parser, Context("content]"), Backtrack()));
     REQUIRE(CheckResult(parser, Context("[]"), Backtrack()));
@@ -171,7 +202,7 @@ TEST_CASE("separated_pair", "[sequence][combinator]")
         winnow::token::literal("second")
     );
 
-    REQUIRE(CheckResult(parser, Context("first,second"), Succeed<std::pair<std::string_view, std::string_view>>{ {"first", "second"} }));
+    REQUIRE(CheckResult(parser, Context("first,second"), Succeed<std::pair<std::string_view, std::string_view>>{ {"first", "second"} }, ""));
     REQUIRE(CheckResult(parser, Context("first;second"), Backtrack()));
     REQUIRE(CheckResult(parser, Context("first,"), Backtrack()));
     REQUIRE(CheckResult(parser, Context(",second"), Backtrack()));
@@ -241,4 +272,40 @@ TEST_CASE("cut_err", "[sequence][combinator]")
     REQUIRE(CheckResult(parser, Context("hello"), Succeed<std::string_view>{ "hello" }));
     REQUIRE(CheckResult(parser, Context("world"), Cut()));
 }
+
+TEST_CASE("peek", "[sequence][combinator]")
+{
+    // assert_eq!(parser.parse_peek("abcd;"), Ok(("abcd;", "abcd")));
+    // assert!(parser.parse_peek("123;").is_err());
+
+    auto parser = winnow::combinator::peek(
+        winnow::ascii::alpha1
+    );
+    REQUIRE(CheckResult(parser, Context("abcd;"), Succeed<std::string_view>{ "abcd" }, "abcd;"));
+    REQUIRE(CheckResult(parser, Context("123;"), Backtrack()));
+}
+
+TEST_CASE("opt", "[sequence][combinator]")
+{
+    auto parser = winnow::combinator::opt(
+        winnow::ascii::alpha1
+    );
+
+    REQUIRE(CheckResult(parser, Context("abcd"), Succeed<std::optional<std::string_view>>{ std::make_optional("abcd") }, ""));
+    REQUIRE(CheckResult(parser, Context("123"), Succeed<std::optional<std::string_view>>{ std::nullopt }, "123"));
+}
+
+TEST_CASE("not", "[sequence][combinator]")
+{
+    auto parser = winnow::combinator::not_(
+        winnow::ascii::alpha1
+    );
+
+    REQUIRE(CheckResult(parser, Context("123"), Succeed<std::tuple<>>{}, "123"));
+    REQUIRE(CheckResult(parser, Context("abcd"), Backtrack()));
+}
+
+
+
+
 

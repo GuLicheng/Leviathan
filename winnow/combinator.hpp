@@ -14,7 +14,7 @@
     - [x] iterator
     - [x] not
     - [x] opt
-    - [x] peek
+    - peek
     - preceded
     - [x] repeat
     - [x] repeat_till
@@ -89,5 +89,32 @@ inline constexpr struct
         return detail::cut_err_parser<Parser>(std::move(parser));
     }
 } cut_err;
+
+inline constexpr struct
+{
+    template <typename Parser>
+    static constexpr auto operator()(Parser parser)
+    {
+        return detail::peek_parser<Parser>(std::move(parser));
+    }
+} peek;
+
+inline constexpr struct
+{
+    template <typename Parser>
+    static constexpr auto operator()(Parser parser)
+    {
+        return detail::opt_parser<Parser>(std::move(parser));
+    }
+} opt;
+
+inline constexpr struct
+{
+    template <typename Parser>
+    static constexpr auto operator()(Parser parser)
+    {
+        return detail::not_parser<Parser>(std::move(parser));
+    }
+} not_;
 
 }  // namespace winnow::combinator

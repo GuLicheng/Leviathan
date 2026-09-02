@@ -1,7 +1,6 @@
 /*
     https://docs.rs/winnow/latest/winnow/token/index.html
 
-    [Basic elements]
     - literal
     - take_while
     - take_till

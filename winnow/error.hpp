@@ -75,6 +75,7 @@ class err_mode
 public:
 
     using incomplete_type = Incomplete;
+    using error_type = Error;
     using backtrack_type = Error;
     using cut_type = Error;
 
@@ -130,6 +131,7 @@ public:
 
 private:
 
+    // This implementation may not perfectly, since the Backtrack and Cut errors share the same type (Error).
     std::variant<Incomplete, Error, Error> value;
 
 };
