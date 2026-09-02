@@ -489,9 +489,11 @@ struct opt_parser : parser_interface
         auto result = parser(stream);
 
         using inner_type = typename decltype(result)::value_type;
-        using error_type = typename decltype(result)::error_type;
+        using error_type = typename Stream::error_type;
         using result_type = modal_result<std::optional<inner_type>, error_type>;
         
+        std::println("type is {}", display_string_of(^^result_type));
+
         if (result)
         {
             return result_type::make_ok(std::make_optional(std::move(result.unwrap_ok())));
@@ -504,8 +506,9 @@ struct opt_parser : parser_interface
         }
         else
         {
+            // throw 1;
             return result_type::make_err(
-                err_mode<error_type>::make_cut(result.unwrap_err())
+                err_mode<error_type>::make_cut(result.unwrap_err().as_cut())
             );
         }
     }
@@ -525,7 +528,7 @@ struct not_parser : parser_interface
         auto result = parser(clone);
 
         using value_type = std::tuple<>;
-        using error_type = typename decltype(result)::error_type::error_type;
+        using error_type = typename Stream::error_type;
         using result_type = modal_result<value_type, error_type>;
 
         if (result)

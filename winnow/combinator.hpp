@@ -12,8 +12,8 @@
     - [x] fail
     - [x] fill
     - [x] iterator
-    - [x] not
-    - [x] opt
+    - not
+    - opt
     - peek
     - preceded
     - [x] repeat
