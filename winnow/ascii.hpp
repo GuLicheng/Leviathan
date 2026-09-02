@@ -1,7 +1,32 @@
 /*
     https://docs.rs/winnow/latest/winnow/ascii/index.html
 
+    - alpha0
+    - alpha1
+    - digit0
+    - digit1
+    - alphanumeric0
+    - alphanumeric1
+    - space0
+    - space1
+    - hex_digit0
+    - hex_digit1
+    - oct_digit0
+    - oct_digit1
+    - multispace0
+    - multispace1
+    - newline
+    - tab
+    - crlf
     
+    - [x] dec_int
+    - [x] dec_uint
+    - [x] escaped
+    - [x] float
+    - [x] hex_uint
+    - [x] line_ending
+    - [x] take_escaped
+    - [x] till_line_ending
 */
 
 #pragma once

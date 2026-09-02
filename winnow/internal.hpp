@@ -28,7 +28,7 @@ struct parser_interface
 };
 
 template <typename Parser, typename P>
-struct verify_parser
+struct verify_parser : parser_interface
 {
     Parser parser;
     P predicate;
@@ -504,7 +504,6 @@ struct opt_parser : parser_interface
         }
         else
         {
-            // throw 1;
             return result_type::make_err(
                 err_mode<error_type>::make_cut(result.unwrap_err().as_cut())
             );
