@@ -73,33 +73,6 @@ private:
 template <typename O, typename E>
 using modal_result = result<O, err_mode<E>>;
 
-template <typename E1, typename E2> 
-struct replace_error;
-
-template <typename O, typename E1, typename E2>
-struct replace_error<modal_result<O, E1>, E2>
-{
-    using type = modal_result<O, E2>;
-};
-
-template <typename O1, typename O2>
-struct replace_value;
-
-template <typename O1, typename O2, typename E>
-struct replace_value<modal_result<O1, E>, O2>
-{
-    using type = modal_result<O2, E>;
-};
-
-template <typename Result>
-struct inner_error;
-
-template <typename O, typename E>
-struct inner_error<modal_result<O, E>>
-{
-    using type = E;
-};
-
 }  // namespace winnow
 
 template <typename O, typename E>

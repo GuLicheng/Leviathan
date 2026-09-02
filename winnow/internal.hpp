@@ -491,8 +491,6 @@ struct opt_parser : parser_interface
         using inner_type = typename decltype(result)::value_type;
         using error_type = typename Stream::error_type;
         using result_type = modal_result<std::optional<inner_type>, error_type>;
-        
-        std::println("type is {}", display_string_of(^^result_type));
 
         if (result)
         {
