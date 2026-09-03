@@ -1,7 +1,7 @@
 /*
     https://docs.rs/winnow/latest/winnow/combinator/index.html
 
-    - [x] alt
+    - alt
     - backtrack_err
     - [x] cond
     - cut_err
@@ -116,5 +116,14 @@ inline constexpr struct
         return detail::not_parser<Parser>(std::move(parser));
     }
 } not_;
+
+inline constexpr struct
+{
+    template <typename... Parsers>
+    static constexpr auto operator()(Parsers... parsers)
+    {
+        return detail::choice_parser<Parsers...>(std::move(parsers)...);
+    }
+} alt;
 
 }  // namespace winnow::combinator

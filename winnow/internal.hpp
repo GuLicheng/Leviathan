@@ -88,7 +88,49 @@ struct map_parser : parser_interface
     }
 };
 
+template <typename... Parsers>
+struct choice_parser : parser_interface
+{
+    static_assert(sizeof...(Parsers) > 0, "choice_parser requires at least one parser.");
 
+    std::tuple<Parsers...> parsers;
+
+    constexpr choice_parser(Parsers... ps) : parsers(std::move(ps)...) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using result_type = std::invoke_result_t<Parsers...[0], Stream&>;
+
+        static_assert((std::is_same_v<result_type, std::invoke_result_t<Parsers, Stream&>> && ...),
+                      "All parsers in choice_parser must return the same result type.");
+
+        using error_type = typename Stream::error_type;
+
+        template for (const auto& parser : parsers)
+        {
+            auto clone = stream;
+            auto result = parser(clone);
+
+            if (result)
+            {
+                stream = std::move(clone);
+                return result;
+            }
+            else if (result.unwrap_err().is_cut())
+            {
+                return result;
+            }
+        }
+
+        return result_type::make_err(
+            err_mode<error_type>::make_backtrack(
+                error_traits<error_type>::from_input(stream)
+            )
+        );
+    }
+
+};
 
 
 
@@ -119,7 +161,7 @@ struct literal_parser : parser_interface
         if (stream.match(value, false))
         {
             auto [left, right] = stream.split_at(value.size());
-            stream = right;
+            stream = std::move(right);
             return result_type::make_ok(std::move(left));
         }
         else
@@ -172,7 +214,7 @@ struct take_while_parser : parser_interface
         else
         {
             auto [left, right] = stream.split_at(count);
-            stream = right;
+            stream = std::move(right);
             return result_type::make_ok(std::move(left));
         }
     }
@@ -202,7 +244,7 @@ struct take_parser : parser_interface
         else
         {
             auto [left, right] = stream.split_at(count);
-            stream = right;
+            stream = std::move(right);
             return result_type::make_ok(std::move(left));
         }
     }
@@ -241,7 +283,7 @@ struct take_until_parser : parser_interface
             );
         }
         auto [left_part, right_part] = stream.split_at(left + pos);
-        stream = right_part;
+        stream = std::move(right_part);
         return result_type::make_ok(std::move(left_part));
     }
 };
@@ -413,7 +455,7 @@ struct check_next_character_parser : parser_interface
             );
         }
         auto [left, right] = stream.split_at(1);
-        stream = right;
+        stream = std::move(right);
         return result_type::make_ok(std::move(left));
     }
 };
@@ -499,7 +541,7 @@ struct opt_parser : parser_interface
         else if (result.unwrap_err().is_backtrack())
         {
             // Only backtrack errors should reset the stream to the clone.
-            stream = clone;
+            stream = std::move(clone);
             return result_type::make_ok(std::nullopt);
         }
         else

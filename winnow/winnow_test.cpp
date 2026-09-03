@@ -304,8 +304,20 @@ TEST_CASE("not", "[sequence][combinator]")
     REQUIRE(CheckResult(parser, Context("123"), Succeed<std::tuple<>>{}, "123"));
     REQUIRE(CheckResult(parser, Context("abcd"), Backtrack()));
 }
+ 
+TEST_CASE("alt", "[sequence][combinator]")
+{
+    auto parser = winnow::combinator::alt(
+        winnow::token::literal("true"),
+        winnow::token::literal("false"),
+        winnow::token::literal("null")
+    );
 
-
+    REQUIRE(CheckResult(parser, Context("true"), Succeed<std::string_view>{ "true" }, ""));
+    REQUIRE(CheckResult(parser, Context("false"), Succeed<std::string_view>{ "false" }, ""));
+    REQUIRE(CheckResult(parser, Context("null"), Succeed<std::string_view>{ "null" }, ""));
+    REQUIRE(CheckResult(parser, Context("unknown"), Backtrack()));
+}
 
 
 
