@@ -3,6 +3,7 @@
 
 #include <iterator>
 
+#include "utils.hpp"
 #include "error.hpp"
 
 namespace winnow::detail
@@ -132,7 +133,50 @@ struct choice_parser : parser_interface
 
 };
 
+template <typename Parser, typename Sep>
+struct separated_parser : parser_interface
+{
+    Parser parser;
+    Sep separator;
+    occurrences<size_t> range; 
 
+    constexpr separated_parser(Parser p, Sep s, size_t lower_count, std::optional<size_t> upper_count)
+        : parser(std::move(p)), separator(std::move(s)), range(lower_count, upper_count) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using result_type = std::invoke_result_t<Parser, Stream&>;
+        using error_type = typename Stream::error_type;
+
+        std::vector<typename result_type::value_type> results;
+
+        auto first_result = parser(stream);
+        if (!first_result)
+        {
+            return result_type::make_err(std::move(first_result.unwrap_err()));
+        }
+        results.push_back(std::move(first_result.unwrap_ok()));
+
+        while (true)
+        {
+            auto sep_result = separator(stream);
+            if (!sep_result)
+            {
+                break;
+            }
+
+            auto item_result = parser(stream);
+            if (!item_result)
+            {
+                break;
+            }
+            results.push_back(std::move(item_result.unwrap_ok()));
+        }
+
+        return result_type::make_ok(std::move(results));
+    }
+};
 
 
 
@@ -593,85 +637,66 @@ struct not_parser : parser_interface
     }
 };
 
-// template <typename Accumulator, typename Parser>
-// struct repeat_parser : parser_interface
-// {
-//     Parser parser;
-//     size_t lower;
-//     std::optional<size_t> upper;
+template <typename Accumulator, typename Parser>
+struct repeat_parser : parser_interface
+{
+    Parser parser;
+    Accumulator accumulator;
+    occurrences<size_t> range;
 
-//     constexpr repeat_parser(Parser p, size_t lower, std::optional<size_t> upper)
-//         : parser(std::move(p)), lower(lower), upper(upper) {}
+    constexpr repeat_parser(Parser p, Accumulator o, occurrences<size_t> r)
+        : parser(std::move(p)), accumulator(std::move(o)), range(std::move(r)) {}
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using inner = std::invoke_result_t<Parser, Stream&>;
+        using value_type = typename inner::value_type;
+        using error_type = typename Stream::error_type;
+
+        auto collector = accumulator.initial();
+        size_t count = 0;
+        
+        using result_type = modal_result<decltype(collector), error_type>;
+
+        while (stream.size())
+        {
+            auto result = parser(stream);
+
+            if (!result) 
+            {
+                if (result.unwrap_err().is_cut())
+                {
+                    return result_type::make_err(
+                        err_mode<error_type>::make_cut(result.unwrap_err().as_cut())
+                    );
+                }
+                break;
+            }
+
+            accumulator.accumulate(collector, std::move(result.unwrap_ok()));
+            ++count;
+
+            if (range.is_over(count))
+            {
+                break;
+            }
+        }
+
+        if (range.is_under(count))
+        {
+            return result_type::make_err(
+                err_mode<error_type>::make_backtrack(
+                    error_traits<error_type>::from_input(stream)
+                )
+            );
+        }
+
+        return result_type::make_ok(std::move(collector));
+    }
+};
 
 
-//     constexpr bool check_upper(size_t size) const
-//     {
-//         return upper ? size < *upper : true;
-//     }
-
-//     constexpr bool check_lower(size_t size) const
-//     {
-//         return size >= lower;
-//     }
-
-//     template <typename Stream>
-//     constexpr auto operator()(Stream& stream) const
-//     {
-//         using inner = std::invoke_result_t<Parser, Stream&>;
-//         using value_type = typename inner::value_type;
-//         using error_type = typename inner::error_type;
-//         using result_type = modal_result<Accumulator, error_type>;
-
-//         Accumulator values;
-
-//         while (stream.size())
-//         {
-//             auto result = parser(stream);
-
-//             if (!result) 
-//             {
-//                 if (result.unwrap_err().is_cut())
-//                 {
-//                     return result_type::make_err(
-//                         err_mode<error_type>::make_cut(result.unwrap_err())
-//                     );
-//                 }
-//                 break;
-//             }
-
-//             values.emplace_back(std::move(result.unwrap_ok()));
-
-//             if (!check_upper(values.size()))
-//             {
-//                 break;
-//             }
-//         }
-
-//         if (!check_lower(values.size()))
-//         {
-//             return result_type::make_err(
-//                 err_mode<error_type>::make_backtrack(
-//                     error_traits<error_type>::from_input(stream)
-//                 )
-//             );
-//         }
-
-//         return result_type::make_ok(std::move(values));
-//     }
-// };
-
-// template <typename Accumulator>
-// struct repeat_fn
-// {
-//     template <typename Parser>
-//     static constexpr auto operator()(Parser parser, size_t lower, std::optional<size_t> upper)
-//     {
-//         return repeat_parser<Accumulator, Parser>(std::move(parser), lower, upper);
-//     }
-// };
-
-// template <typename Accumulator>
-// inline constexpr repeat_fn<Accumulator> repeat;
 
 }  // namespace winnow::detail
 

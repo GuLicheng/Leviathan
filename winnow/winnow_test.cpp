@@ -2,6 +2,7 @@
 
 #include <meta>
 #include <print>
+#include <string>
 
 #include "all.hpp"
 
@@ -319,5 +320,16 @@ TEST_CASE("alt", "[sequence][combinator]")
     REQUIRE(CheckResult(parser, Context("unknown"), Backtrack()));
 }
 
+TEST_CASE("repeat", "[sequence][combinator]")
+{
+    auto parser1 = winnow::combinator::repeat(
+        winnow::token::literal("abc"),
+        winnow::accumulate_traits<std::vector<std::string>>()
+    );
+
+    REQUIRE(CheckResult(parser1, Context("abcabc"), Succeed<std::vector<std::string>>{ std::vector<std::string>{ "abc", "abc" } }, ""));
+    
 
 
+
+}

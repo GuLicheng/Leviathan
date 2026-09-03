@@ -1,51 +1,12 @@
 #pragma once
 
+#include "utils.hpp"
 #include <leviathan/extc++/variant.hpp>
 #include <any>
 #include <optional>
 
 namespace winnow
 {
-
-/**
- * @brief Traits for parse error type, corresponds to winnow ParserError / AddContext / FromExternalError.
- * https://docs.rs/winnow/1.0.0/winnow/trait.ParserError.html
- *
- * @tparam E The concrete error payload type.
- */
-template <typename E>
-struct error_traits
-{
-    /**
-     * @brief Create a base empty error from input stream.
-     * @tparam Stream Stream type satisfying stream concept.
-     * @param stream Current parse input stream.
-     */
-    template <typename Stream>
-    static constexpr E from_input(const Stream& stream);
-
-    /**
-     * @brief Append context description to existing error.
-     * @tparam Stream Stream type satisfying stream concept.
-     * @tparam Item Context metadata type (like StrContext in winnow).
-     * @param stream Current parse input stream.
-     * @param err Existing error instance.
-     * @param item Additional context information.
-     */
-    template <typename Stream, typename Item>
-    static constexpr E add_context(const Stream& stream, E err, Item&& item);
-
-    /**
-     * @brief Convert external error (e.g. numeric parse fail) into parse error.
-     * @tparam Stream Stream type satisfying stream concept.
-     * @tparam Ext External error type.
-     * @param stream Current parse input stream.
-     * @param ext Original external error.
-     */
-    template <typename Stream, typename Ext>
-    static constexpr E from_external(const Stream& stream, Ext&& ext);
-};
-
 
 /**
  * @brief The error structure for winnow parsers.
