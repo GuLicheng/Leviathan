@@ -18,7 +18,7 @@
     - preceded
     - repeat
     - [x] repeat_till
-    - [x] separated
+    - separated
     - [x] separated_foldl1
     - [x] separated_foldr1
     - separated_pair
