@@ -41,7 +41,7 @@ inline constexpr struct
     template <typename Pred>
     static constexpr auto operator()(Pred pred, size_t min = 0, std::optional<size_t> max = std::nullopt)
     {
-        return detail::take_while_parser<Pred>(std::move(pred), min, max);
+        return detail::take_while_parser<Pred>(std::move(pred), occurrences<size_t>{min, max});
     }
 } take_while;
     
@@ -51,7 +51,7 @@ inline constexpr struct
     static constexpr auto operator()(Pred pred, size_t min = 0, std::optional<size_t> max = std::nullopt)
     {
         auto fn = std::not_fn(std::move(pred));
-        return detail::take_while_parser<decltype(fn)>(std::move(fn), min, max);
+        return detail::take_while_parser<decltype(fn)>(std::move(fn), occurrences<size_t>{min, max});
     }
 } take_till;
 
@@ -74,7 +74,7 @@ inline constexpr struct
     template <typename CharT>
     static constexpr auto operator()(std::basic_string_view<CharT> str, size_t min = 0, std::optional<size_t> max = std::nullopt)
     {
-        return detail::take_until_parser<CharT>(str, min, max);
+        return detail::take_until_parser<CharT>(str, occurrences<size_t>{min, max});
     }
 } take_until;
 

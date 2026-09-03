@@ -85,18 +85,39 @@ TEST_CASE("take_while", "[token]")
 {
     using winnow::token::take_while;
 
-    REQUIRE(CheckResult(take_while(::isalpha, 1), Context("abc123"), Succeed<std::string_view>{ "abc" }, "123"));
-    REQUIRE(CheckResult(take_while(::isalpha, 1, 2), Context("abc123"), Succeed<std::string_view>{ "ab" }, "c123"));
-    REQUIRE(CheckResult(take_while(::isalpha, 1, 2), Context("a123"), Succeed<std::string_view>{ "a" }, "123"));
-    REQUIRE(CheckResult(take_while(::isalpha, 1, 2), Context("123"), Backtrack()));
-    REQUIRE(CheckResult(take_while(::isalpha, 1, 2), Context(""), Backtrack()));
+    auto parser1 = take_while(::isalpha);
+
+    REQUIRE(CheckResult(parser1, Context("abc123"), Succeed<std::string_view>{ "abc" }, "123"));
+    REQUIRE(CheckResult(parser1, Context("12345"), Succeed<std::string_view>{ "" }, "12345"));
+    REQUIRE(CheckResult(parser1, Context("latin"), Succeed<std::string_view>{ "latin" }, ""));
+    REQUIRE(CheckResult(parser1, Context(""), Succeed<std::string_view>{ "" }, ""));
+
+    auto parser2 = take_while(::isalpha, 3, 7);
+
+    REQUIRE(CheckResult(parser2, Context("latin123"), Succeed<std::string_view>{ "latin" }, "123"));
+    REQUIRE(CheckResult(parser2, Context("lengthy"), Succeed<std::string_view>{ "length" }, "y"));
+    REQUIRE(CheckResult(parser2, Context("latin"), Succeed<std::string_view>{ "latin" }, ""));
+    REQUIRE(CheckResult(parser2, Context("ed"), Backtrack()));
+    REQUIRE(CheckResult(parser2, Context("12345"), Backtrack()));
+
+    auto parser3 = take_while(::isalpha, 1);
+
+    REQUIRE(CheckResult(parser3, Context("latin123"), Succeed<std::string_view>{ "latin" }, "123"));
+    REQUIRE(CheckResult(parser3, Context("latin"), Succeed<std::string_view>{ "latin" }, ""));
+    REQUIRE(CheckResult(parser3, Context("12345"), Backtrack()));
+    REQUIRE(CheckResult(parser3, Context(""), Backtrack()));
 }
 
 TEST_CASE("take_till", "[token]")
 {
     using winnow::token::take_till;
 
-    REQUIRE(CheckResult(take_till(::isdigit, 1), Context("abc123"), Succeed<std::string_view>{ "abc" }, "123"));
+    auto parser = take_till([](char c) { return c == ':'; });
+
+    REQUIRE(CheckResult(parser, Context("latin:123"), Succeed<std::string_view>{ "latin" }, ":123"));
+    REQUIRE(CheckResult(parser, Context(":empty matched"), Succeed<std::string_view>{ "" }, ":empty matched"));
+    REQUIRE(CheckResult(parser, Context("12345"), Succeed<std::string_view>{ "12345" }, ""));
+    REQUIRE(CheckResult(parser, Context(""), Succeed<std::string_view>{ "" }, ""));
 }
 
 TEST_CASE("take", "[token]")
@@ -111,11 +132,28 @@ TEST_CASE("take_until", "[token]")
 {
     using winnow::token::take_until;
 
-    REQUIRE(CheckResult(take_until("123"), Context("abc123def"), Succeed<std::string_view>{ "abc" }, "123def"));
-    REQUIRE(CheckResult(take_until("xyz"), Context("abcdef"), Backtrack()));
-    REQUIRE(CheckResult(take_until("eof", 0), Context("hello, worldeof"), Succeed<std::string_view>{ "hello, world" }, "eof"));
-    REQUIRE(CheckResult(take_until("eof", 0), Context("hello, world"), Backtrack()));
-    REQUIRE(CheckResult(take_until("eof", 1), Context("1eof2eof"), Succeed<std::string_view>{ "1" }, "eof2eof"));
+    auto parser = take_until("eof");
+
+    REQUIRE(CheckResult(parser, Context("hello, worldeof"), Succeed<std::string_view>{ "hello, world" }, "eof"));
+    REQUIRE(CheckResult(parser, Context("hello, world"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context(""), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("1eof2eof"), Succeed<std::string_view>{ "1" }, "eof2eof"));
+
+    auto parser2 = take_until("eof", 1);
+
+    REQUIRE(CheckResult(parser2, Context("hello, worldeof"), Succeed<std::string_view>{ "hello, world" }, "eof"));
+    REQUIRE(CheckResult(parser2, Context("hello, world"), Backtrack()));
+    REQUIRE(CheckResult(parser2, Context(""), Backtrack()));
+    REQUIRE(CheckResult(parser2, Context("1eof2eof"), Succeed<std::string_view>{ "1" }, "eof2eof"));
+    REQUIRE(CheckResult(parser2, Context("eof"), Backtrack()));
+
+    auto parser3 = take_until("|", 0, 3);
+
+    REQUIRE(CheckResult(parser3, Context("ab|xyz"), Succeed<std::string_view>{ "ab" }, "|xyz"));
+    REQUIRE(CheckResult(parser3, Context("abcd"), Backtrack()));
+    REQUIRE(CheckResult(parser3, Context("|abc"), Succeed<std::string_view>{ "" }, "|abc"));
+    REQUIRE(CheckResult(parser3, Context("abcdef|"), Backtrack()));
+    REQUIRE(CheckResult(parser3, Context(""), Backtrack()));
 }
 
 TEST_CASE("rest", "[token]")

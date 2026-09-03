@@ -179,11 +179,10 @@ template <typename Pred>
 struct take_while_parser : parser_interface
 {
     Pred pred;
-    size_t lower;
-    std::optional<size_t> upper;
+    occurrences<size_t> range;
 
-    constexpr take_while_parser(Pred p, size_t lower_count, std::optional<size_t> upper_count)
-        : pred(p), lower(lower_count), upper(upper_count) { }
+    constexpr take_while_parser(Pred p, occurrences<size_t> r)
+        : pred(p), range(r) { }
     
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
@@ -196,14 +195,14 @@ struct take_while_parser : parser_interface
 
         while (count < stream.size() && std::invoke(pred, stream[count]))
         {
-            if (upper && count >= *upper)
+            if (range.is_upper_bound(count))
             {
                 break;
             }
             ++count;
         }
 
-        if (count < lower)
+        if (range.is_under(count))
         {
             return result_type::make_err(
                 err_mode<error_type>::make_backtrack(
@@ -256,35 +255,31 @@ struct take_until_parser : parser_interface
     using literal_type = std::basic_string_view<CharT>;
     
     literal_type value;
-    size_t lower;
-    std::optional<size_t> upper;
+    occurrences<size_t> range;
 
-    constexpr take_until_parser(literal_type v, size_t lower_count, std::optional<size_t> upper_count)
-        : value(v), lower(lower_count), upper(upper_count) { }
+    constexpr take_until_parser(literal_type v, occurrences<size_t> r)
+        : value(v), range(r) { }
 
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
         using error_type = typename Stream::error_type;
         using result_type = modal_result<literal_type, error_type>;
-        
-        const auto left = lower;
-        const auto right = upper.value_or(stream.size());
-        const auto slice = stream.to_string_view().substr(left, right);
 
-        const auto pos = slice.find(value);
+        const auto idx = stream.to_string_view().find(value);
 
-        if (pos == literal_type::npos)
-        {   
+        if (idx == literal_type::npos || !range.contains(idx))
+        {
             return result_type::make_err(
                 err_mode<error_type>::make_backtrack(
                     error_traits<error_type>::from_input(stream)
                 )
             );
         }
-        auto [left_part, right_part] = stream.split_at(left + pos);
-        stream = std::move(right_part);
-        return result_type::make_ok(std::move(left_part));
+
+        auto [left, right] = stream.split_at(idx);
+        stream = std::move(right);
+        return result_type::make_ok(std::move(left));
     }
 };
 
