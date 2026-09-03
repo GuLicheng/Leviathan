@@ -133,50 +133,6 @@ struct choice_parser : parser_interface
 
 };
 
-template <typename Parser, typename Sep>
-struct separated_parser : parser_interface
-{
-    Parser parser;
-    Sep separator;
-    occurrences<size_t> range; 
-
-    constexpr separated_parser(Parser p, Sep s, size_t lower_count, std::optional<size_t> upper_count)
-        : parser(std::move(p)), separator(std::move(s)), range(lower_count, upper_count) { }
-
-    template <typename Stream>
-    constexpr auto operator()(Stream& stream) const
-    {
-        using result_type = std::invoke_result_t<Parser, Stream&>;
-        using error_type = typename Stream::error_type;
-
-        std::vector<typename result_type::value_type> results;
-
-        auto first_result = parser(stream);
-        if (!first_result)
-        {
-            return result_type::make_err(std::move(first_result.unwrap_err()));
-        }
-        results.push_back(std::move(first_result.unwrap_ok()));
-
-        while (true)
-        {
-            auto sep_result = separator(stream);
-            if (!sep_result)
-            {
-                break;
-            }
-
-            auto item_result = parser(stream);
-            if (!item_result)
-            {
-                break;
-            }
-            results.push_back(std::move(item_result.unwrap_ok()));
-        }
-
-        return result_type::make_ok(std::move(results));
-    }
-};
 
 
 
@@ -641,7 +597,7 @@ template <typename Accumulator, typename Parser>
 struct repeat_parser : parser_interface
 {
     Parser parser;
-    Accumulator accumulator;
+    [[no_unique_address]] Accumulator accumulator;
     occurrences<size_t> range;
 
     constexpr repeat_parser(Parser p, Accumulator o, occurrences<size_t> r)
@@ -696,6 +652,122 @@ struct repeat_parser : parser_interface
     }
 };
 
+template <typename Parser, typename Sep, typename Accumulator>
+struct separated_parser : parser_interface
+{
+    Parser parser;
+    [[no_unique_address]] Sep separator;
+    [[no_unique_address]] Accumulator accumulator;
+    occurrences<size_t> range; 
+
+    constexpr separated_parser(Parser p, Sep s, Accumulator acc, occurrences<size_t> r)
+        : parser(std::move(p)), separator(std::move(s)), accumulator(std::move(acc)), range(r) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using error_type = typename Stream::error_type;
+
+        auto results = accumulator.initial();
+
+        using result_type = modal_result<decltype(results), error_type>;
+
+        // For empty stream, return empty list
+        if (stream.size())
+        {   
+            auto clone = stream;
+            auto first = parser(clone);
+
+            // If the first item cannot be parsed, handle the error or 
+            // return an empty result if allowed by the range
+            if (!first)
+            {
+                if (first.unwrap_err().is_cut())
+                {
+                    return result_type::make_err(
+                        err_mode<error_type>::make_cut(first.unwrap_err().as_cut())
+                    );
+                }
+
+                if (range.contains(results.size()))
+                {
+                    return result_type::make_ok(std::move(results));
+                }
+                else
+                {
+                    return result_type::make_err(
+                        err_mode<error_type>::make_backtrack(
+                            error_traits<error_type>::from_input(stream)
+                        )
+                    );
+                }
+            }
+
+            accumulator.accumulate(results, std::move(first.unwrap_ok()));
+            stream = std::move(clone);
+
+            if (range.is_upper_bound(results.size()))
+            {
+                return result_type::make_ok(std::move(results));
+            }
+
+            while (stream.size())
+            {
+                auto clone = stream;
+                auto sep = separator(clone);
+
+                if (!sep)
+                {
+                    if (sep.unwrap_err().is_cut())
+                    {
+                        return result_type::make_err(
+                            err_mode<error_type>::make_cut(sep.unwrap_err().as_cut())
+                        );
+                    }
+                    // Stop parsing if the separator is not found
+                    stream = std::move(clone);
+                    break;
+                }
+
+                auto item = parser(clone);
+
+                if (!item)
+                {
+                    if (item.unwrap_err().is_cut())
+                    {
+                        return result_type::make_err(
+                            err_mode<error_type>::make_cut(item.unwrap_err().as_cut())
+                        );
+                    }
+                    // Stop parsing if the item is not found
+                    // stream = std::move(clone);
+                    break;
+                }
+
+                accumulator.accumulate(results, std::move(item.unwrap_ok()));
+                stream = std::move(clone);
+
+                if (range.is_upper_bound(results.size()))
+                {
+                    return result_type::make_ok(std::move(results));
+                }
+
+            }
+        }
+
+        if (!range.contains(results.size()))
+        // if (!range.is_under(results.size()))
+        {
+            return result_type::make_err(
+                err_mode<error_type>::make_backtrack(
+                    error_traits<error_type>::from_input(stream)
+                )
+            );
+        }
+
+        return result_type::make_ok(std::move(results));
+    }
+};
 
 
 }  // namespace winnow::detail

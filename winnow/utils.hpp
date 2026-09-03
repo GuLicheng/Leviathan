@@ -98,18 +98,25 @@ struct occurrences
 
     constexpr occurrences(T l, std::optional<T> u) : lower(l), upper(u) { }
 
-    constexpr bool contains(const T& value) const
+    constexpr bool contains(T value) const
     {
         // Check whether the value is within the range [lower, upper)
         return value >= lower && (!upper || value < *upper);
     }
 
-    constexpr bool is_over(const T& value) const
+    constexpr bool is_over(T value) const
     {
         return upper && value >= *upper;
     }
 
-    constexpr bool is_under(const T& value) const
+    // For [lower, upper), when size count reaches the upper bound(upper - 1)
+    // we may stop accumulating further elements and parse the next part of the input.
+    constexpr bool is_upper_bound(T value) const
+    {
+        return upper && (value + 1 == *upper);
+    }
+
+    constexpr bool is_under(T value) const
     {
         return value < lower;
     }

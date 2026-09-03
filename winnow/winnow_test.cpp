@@ -161,7 +161,7 @@ TEST_CASE("one_of", "[token]")
     REQUIRE(CheckResult(one_of("abc"), Context(""), Backtrack()));
 }
 
-TEST_CASE("preceded", "[sequence][combinator]")
+TEST_CASE("preceded", "[combinator]")
 {
     auto parser = winnow::combinator::preceded(
         winnow::token::literal("hello"), winnow::token::literal("world")
@@ -171,7 +171,7 @@ TEST_CASE("preceded", "[sequence][combinator]")
     REQUIRE(CheckResult(parser, Context("abcworld"), Backtrack()));
 }
 
-TEST_CASE("terminated", "[sequence][combinator]")
+TEST_CASE("terminated", "[combinator]")
 {
     auto parser = winnow::combinator::terminated(
         winnow::token::literal("hello"), winnow::token::literal("world")
@@ -181,7 +181,7 @@ TEST_CASE("terminated", "[sequence][combinator]")
     REQUIRE(CheckResult(parser, Context("abcworld"), Backtrack()));
 }
 
-TEST_CASE("delimited", "[sequence][combinator]")
+TEST_CASE("delimited", "[combinator]")
 {
     auto parser = winnow::combinator::delimited(
         winnow::token::literal("["), 
@@ -195,7 +195,7 @@ TEST_CASE("delimited", "[sequence][combinator]")
     REQUIRE(CheckResult(parser, Context("[]"), Backtrack()));
 }
 
-TEST_CASE("separated_pair", "[sequence][combinator]")
+TEST_CASE("separated_pair", "[combinator]")
 {
     auto parser = winnow::combinator::separated_pair(
         winnow::token::literal("first"), 
@@ -209,7 +209,7 @@ TEST_CASE("separated_pair", "[sequence][combinator]")
     REQUIRE(CheckResult(parser, Context(",second"), Backtrack()));
 }
 
-TEST_CASE("map", "[sequence][combinator]")
+TEST_CASE("map", "[combinator]")
 {
     // auto parser = winnow::combinator::map(
     //     winnow::token::literal("hello"), 
@@ -234,7 +234,7 @@ TEST_CASE("map", "[sequence][combinator]")
     REQUIRE(CheckResult(parser3, Context("!!!"), Succeed<std::string>{ "HelloWorld!" }));
 }
 
-TEST_CASE("verify", "[sequence][combinator]")
+TEST_CASE("verify", "[combinator]")
 {
     // auto parser = winnow::combinator::verify(
     //     winnow::ascii::alpha1,
@@ -254,7 +254,7 @@ TEST_CASE("verify", "[sequence][combinator]")
     REQUIRE(CheckResult(parser2, Context("123abcd"), Backtrack()));
 }
 
-TEST_CASE("backtrack_err", "[sequence][combinator]")
+TEST_CASE("backtrack_err", "[combinator]")
 {
     auto parser = winnow::combinator::backtrack_err(
         winnow::token::literal("hello")
@@ -264,7 +264,7 @@ TEST_CASE("backtrack_err", "[sequence][combinator]")
     REQUIRE(CheckResult(parser, Context("world"), Backtrack()));
 }
 
-TEST_CASE("cut_err", "[sequence][combinator]")
+TEST_CASE("cut_err", "[combinator]")
 {
     auto parser = winnow::combinator::cut_err(
         winnow::token::literal("hello")
@@ -274,7 +274,7 @@ TEST_CASE("cut_err", "[sequence][combinator]")
     REQUIRE(CheckResult(parser, Context("world"), Cut()));
 }
 
-TEST_CASE("peek", "[sequence][combinator]")
+TEST_CASE("peek", "[combinator]")
 {
     // assert_eq!(parser.parse_peek("abcd;"), Ok(("abcd;", "abcd")));
     // assert!(parser.parse_peek("123;").is_err());
@@ -286,7 +286,7 @@ TEST_CASE("peek", "[sequence][combinator]")
     REQUIRE(CheckResult(parser, Context("123;"), Backtrack()));
 }
 
-TEST_CASE("opt", "[sequence][combinator]")
+TEST_CASE("opt", "[combinator]")
 {
     auto parser = winnow::combinator::opt(
         winnow::ascii::alpha1
@@ -296,7 +296,7 @@ TEST_CASE("opt", "[sequence][combinator]")
     REQUIRE(CheckResult(parser, Context("123"), Succeed<std::optional<std::string_view>>{ std::nullopt }, "123"));
 }
 
-TEST_CASE("not", "[sequence][combinator]")
+TEST_CASE("not", "[combinator]")
 {
     auto parser = winnow::combinator::not_(
         winnow::ascii::alpha1
@@ -306,7 +306,7 @@ TEST_CASE("not", "[sequence][combinator]")
     REQUIRE(CheckResult(parser, Context("abcd"), Backtrack()));
 }
  
-TEST_CASE("alt", "[sequence][combinator]")
+TEST_CASE("alt", "[choice][combinator]")
 {
     auto parser = winnow::combinator::alt(
         winnow::token::literal("true"),
@@ -320,16 +320,101 @@ TEST_CASE("alt", "[sequence][combinator]")
     REQUIRE(CheckResult(parser, Context("unknown"), Backtrack()));
 }
 
-TEST_CASE("repeat", "[sequence][combinator]")
+TEST_CASE("repeat", "[combinator]")
 {
+    using StrVec = std::vector<std::string>;
+
     auto parser1 = winnow::combinator::repeat(
         winnow::token::literal("abc"),
-        winnow::accumulate_traits<std::vector<std::string>>()
+        winnow::accumulate_traits<StrVec>()
     );
 
-    REQUIRE(CheckResult(parser1, Context("abcabc"), Succeed<std::vector<std::string>>{ std::vector<std::string>{ "abc", "abc" } }, ""));
-    
+    REQUIRE(CheckResult(parser1, Context("abcabc"), Succeed<StrVec>{ StrVec{ "abc", "abc" } }, ""));
+    REQUIRE(CheckResult(parser1, Context("abc123"), Succeed<StrVec>{ StrVec{ "abc" } }, "123"));
+    REQUIRE(CheckResult(parser1, Context("123123"), Succeed<StrVec>{ StrVec{} }, "123123"));
+    REQUIRE(CheckResult(parser1, Context(""), Succeed<StrVec>{ StrVec{} }, ""));
+
+    auto parser2 = winnow::combinator::repeat(
+        winnow::token::literal("abc"),
+        winnow::accumulate_traits<StrVec>(),
+        1
+    );
 
 
+    REQUIRE(CheckResult(parser2, Context("abcabc"), Succeed<StrVec>{ StrVec{ "abc", "abc" } }, ""));
+    REQUIRE(CheckResult(parser2, Context("abc123"), Succeed<StrVec>{ StrVec{ "abc" } }, "123"));
+    REQUIRE(CheckResult(parser2, Context("123123"), Backtrack()));
+    REQUIRE(CheckResult(parser2, Context(""), Backtrack()));
+
+    auto parser3 = winnow::combinator::repeat(
+        winnow::token::literal("abc"),
+        winnow::accumulate_traits<StrVec>(),
+        0, 2
+    );
+
+    REQUIRE(CheckResult(parser3, Context("abcabc"), Succeed<StrVec>{ StrVec{ "abc", "abc" } }, ""));
+    REQUIRE(CheckResult(parser3, Context("abc123"), Succeed<StrVec>{ StrVec{ "abc" } }, "123"));
+    REQUIRE(CheckResult(parser3, Context("123123"), Succeed<StrVec>{ StrVec{} }, "123123"));
+    REQUIRE(CheckResult(parser3, Context(""), Succeed<StrVec>{ StrVec{} }, ""));
+    REQUIRE(CheckResult(parser3, Context("abcabcabc"), Succeed<StrVec>{ StrVec{ "abc", "abc" } }, "abc"));
+}
+
+TEST_CASE("separated", "[combinator]")
+{
+    using StrVec = std::vector<std::string>;
+
+    auto parser1 = winnow::combinator::separated(
+        winnow::token::literal("abc"),
+        winnow::token::literal("|"),
+        winnow::accumulate_traits<StrVec>(),
+        0
+    );
+
+    REQUIRE(CheckResult(parser1, Context("abc|abc|abc"), Succeed<StrVec>{ StrVec{ "abc", "abc", "abc" } }, ""));
+    REQUIRE(CheckResult(parser1, Context("abc123abc"), Succeed<StrVec>{ StrVec{ "abc" } }, "123abc"));
+    REQUIRE(CheckResult(parser1, Context("abc|def"), Succeed<StrVec>{ StrVec{ "abc" } }, "|def"));
+    REQUIRE(CheckResult(parser1, Context(""), Succeed<StrVec>{ StrVec{} }, ""));
+    REQUIRE(CheckResult(parser1, Context("def|abc"), Succeed<StrVec>{ StrVec{} }, "def|abc"));
+
+    auto parser2 = winnow::combinator::separated(
+        winnow::token::literal("abc"),
+        winnow::token::literal("|"),
+        winnow::accumulate_traits<StrVec>(),
+        1
+    );
+
+    REQUIRE(CheckResult(parser2, Context("abc|abc|abc"), Succeed<StrVec>{ StrVec{ "abc", "abc", "abc" } }, ""));
+    REQUIRE(CheckResult(parser2, Context("abc123abc"), Succeed<StrVec>{ StrVec{ "abc" } }, "123abc"));
+    REQUIRE(CheckResult(parser2, Context("abc|def"), Succeed<StrVec>{ StrVec{ "abc" } }, "|def"));
+    REQUIRE(CheckResult(parser2, Context(""), Backtrack()));
+    REQUIRE(CheckResult(parser2, Context("def|abc"), Backtrack()));
+
+    // For Rust, 0..=2 means [0, 2] -> in C++ we use [0, 3) to represent the same range
+    auto parser3 = winnow::combinator::separated(
+        winnow::token::literal("abc"),
+        winnow::token::literal("|"),
+        winnow::accumulate_traits<StrVec>(),
+        0, 3
+    );
+
+    REQUIRE(CheckResult(parser3, Context("abc|abc|abc"), Succeed<StrVec>{ StrVec{ "abc", "abc" } }, "|abc"));
+    REQUIRE(CheckResult(parser3, Context("abc123abc"), Succeed<StrVec>{ StrVec{ "abc" } }, "123abc"));
+    REQUIRE(CheckResult(parser3, Context("abc|def"), Succeed<StrVec>{ StrVec{ "abc" } }, "|def"));
+    REQUIRE(CheckResult(parser3, Context(""), Succeed<StrVec>{ StrVec{} }, ""));
+    REQUIRE(CheckResult(parser3, Context("def|abc"), Succeed<StrVec>{ StrVec{} }, "def|abc"));
+
+    // For Rust::winnow, just 2 means exactly 2 occurrences, which in C++ we represent as [2, 3)
+    auto parser4 = winnow::combinator::separated(
+        winnow::token::literal("abc"),
+        winnow::token::literal("|"),
+        winnow::accumulate_traits<StrVec>(),
+        2, 3
+    );
+
+    REQUIRE(CheckResult(parser4, Context("abc|abc|abc"), Succeed<StrVec>{ StrVec{ "abc", "abc" } }, "|abc"));
+    REQUIRE(CheckResult(parser4, Context("abc123abc"), Backtrack()));
+    REQUIRE(CheckResult(parser4, Context("abc|def"), Backtrack()));
+    REQUIRE(CheckResult(parser4, Context(""), Backtrack()));
+    REQUIRE(CheckResult(parser4, Context("def|abc"), Backtrack()));
 
 }

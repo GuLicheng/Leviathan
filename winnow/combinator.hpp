@@ -16,7 +16,7 @@
     - opt
     - peek
     - preceded
-    - [x] repeat
+    - repeat
     - [x] repeat_till
     - [x] separated
     - [x] separated_foldl1
@@ -134,5 +134,14 @@ inline constexpr struct
         return detail::repeat_parser<Accumulator, Parser>(std::move(parser), std::move(accumulator), occurrences<size_t>(lower, upper));
     }
 } repeat;
+
+inline constexpr struct
+{
+    template <typename Parser, typename Sep, typename Accumulator>
+    static constexpr auto operator()(Parser parser, Sep separator, Accumulator accumulator, size_t lower = 0, std::optional<size_t> upper = std::nullopt)
+    {
+        return detail::separated_parser<Parser, Sep, Accumulator>(std::move(parser), std::move(separator), std::move(accumulator), occurrences<size_t>(lower, upper));
+    }
+} separated;
 
 }  // namespace winnow::combinator

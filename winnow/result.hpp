@@ -73,6 +73,15 @@ private:
 template <typename O, typename E>
 using modal_result = result<O, err_mode<E>>;
 
+template <typename R, typename O, typename E, typename Stream>
+auto make_error(const modal_result<O, E>& e, Stream& stream)
+{
+    assert(e.is_err());
+    return e.unwrap_err().is_cut()
+         ? R::make_err(err_mode<E>::make_cut(e.unwrap_err().as_cut()))
+         : R::make_err(err_mode<E>::make_backtrack(error_traits<E>::from_input(stream)));
+}
+
 }  // namespace winnow
 
 template <typename O, typename E>
