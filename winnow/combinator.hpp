@@ -6,10 +6,10 @@
     - [x] cond
     - cut_err
     - delimited
-    - [x] empty
-    - [x] eof
+    - empty
+    - eof
     - [x] expression
-    - [x] fail
+    - fail
     - [x] fill
     - [x] iterator
     - not
@@ -157,5 +157,7 @@ inline constexpr detail::empty_parser empty;
 
 template <typename Output>
 inline constexpr detail::fail_fn<Output> fail;
+
+inline constexpr detail::eof_parser eof;
 
 }  // namespace winnow::combinator

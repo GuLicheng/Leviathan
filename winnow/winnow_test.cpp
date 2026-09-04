@@ -407,6 +407,16 @@ TEST_CASE("repeat", "[combinator]")
     REQUIRE(CheckResult(parser3, Context("123123"), Succeed<StrVec>{ StrVec{} }, "123123"));
     REQUIRE(CheckResult(parser3, Context(""), Succeed<StrVec>{ StrVec{} }, ""));
     REQUIRE(CheckResult(parser3, Context("abcabcabc"), Succeed<StrVec>{ StrVec{ "abc", "abc" } }, "abc"));
+
+
+    auto parser4 = winnow::combinator::repeat(
+        winnow::ascii::alpha0,
+        winnow::accumulate_traits<StrVec>()
+    );
+
+    // Avoid infinite loop on non-matching input
+    REQUIRE(CheckResult(parser4, Context("123"), Backtrack()));
+
 }
 
 TEST_CASE("separated", "[combinator]")
@@ -530,5 +540,13 @@ TEST_CASE("fail", "[combinator]")
 
     REQUIRE(CheckResult(parser2, Context("abc"), Succeed<std::string_view>{ "a" }, "bc"));
     REQUIRE(CheckResult(parser2, Context("def"), Backtrack()));
+}
+
+TEST_CASE("eof", "[combinator]")
+{
+    auto parser = winnow::combinator::eof;
+
+    REQUIRE(CheckResult(parser, Context(""), Succeed<std::string_view>{ "" }, ""));
+    REQUIRE(CheckResult(parser, Context("abc"), Backtrack()));
 }
 

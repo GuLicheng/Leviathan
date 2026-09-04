@@ -634,6 +634,7 @@ struct repeat_parser : parser_interface
 
         auto collector = accumulator.initial();
         size_t count = 0;
+        size_t size = stream.size();
         
         using result_type = modal_result<decltype(collector), error_type>;
 
@@ -654,6 +655,16 @@ struct repeat_parser : parser_interface
 
             accumulator.accumulate(collector, std::move(result.unwrap_ok()));
             ++count;
+
+            if (size == stream.size())
+            {
+                // Current loop will not consume any input, avoid infinite loop
+                return result_type::make_err(
+                    err_mode<error_type>::make_backtrack(
+                        error_traits<error_type>::from_input(stream)
+                    )
+                );
+            }
 
             if (range.is_over(count))
             {
@@ -855,6 +866,30 @@ struct fail_fn
     static constexpr auto operator()(const Message&)
     {
         return fail_parser<Output>();
+    }
+};
+
+struct eof_parser : parser_interface
+{
+    template <typename Stream>
+    static constexpr auto operator()(Stream& stream)
+    {
+        using error_type = typename Stream::error_type;
+        using value_type = typename Stream::value_type;
+        using result_type = modal_result<std::basic_string_view<value_type>, error_type>;
+
+        if (stream.empty())
+        {
+            return result_type::make_ok("");
+        }
+        else
+        {
+            return result_type::make_err(
+                err_mode<error_type>::make_backtrack(
+                    error_traits<error_type>::from_input(stream)
+                )
+            );
+        }
     }
 };
 
