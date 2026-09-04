@@ -3,7 +3,6 @@
 #include <meta>
 #include <print>
 #include <string>
-
 #include "all.hpp"
 
 using Context = winnow::stream<winnow::context_error>;
@@ -11,6 +10,7 @@ using Context = winnow::stream<winnow::context_error>;
 struct AutoCompare
 {
     template <typename L, typename R>
+        requires std::equality_comparable_with<L, R>
     static constexpr bool operator()(const L& lhs, const R& rhs)
     {
         return lhs == rhs;
@@ -28,14 +28,26 @@ struct Succeed
 {
     T value;
 
-    template <typename Result>
-    constexpr bool operator()(const Result& result)
+    template <typename O, typename E>
+    constexpr bool operator()(const winnow::modal_result<O, E>& result)
     {
         if (!result.is_ok())
         {
             return false;
         }
         return AutoCompare()(result.unwrap_ok(), value);
+    }
+};
+
+template <typename T>
+struct SimpleValue
+{
+    T value;
+
+    template <typename Result>
+    constexpr bool operator()(const Result& result)
+    {
+        return AutoCompare()(result, value);
     }
 };
 
@@ -456,3 +468,67 @@ TEST_CASE("separated", "[combinator]")
     REQUIRE(CheckResult(parser4, Context("def|abc"), Backtrack()));
 
 }
+
+// TEST_CASE("cond", "[combinator]")
+// {
+//     struct SimpleParser
+//     {
+//         auto operator()(Context& ctx)
+//         {
+//             using namespace winnow::combinator;
+//             using namespace winnow::ascii;
+//             using namespace winnow::token;
+//             auto prefix = opt(literal("-"));
+//             auto result = prefix(ctx);
+//             auto cond_result = cond(result.is_ok(), alpha1)(ctx);
+//             return cond_result;
+//         }
+//     };
+
+//     auto ctx1 = Context("-abcd;");
+//     auto res1 = SimpleParser()(ctx1);
+//     REQUIRE(ctx1.to_string_view() == ";");
+//     REQUIRE(res1.value().unwrap_ok() == "abcd");
+
+//     auto ctx2 = Context("efgh;");
+//     auto res2 = SimpleParser()(ctx2);
+
+//     REQUIRE(ctx2.to_string_view() == "efgh;");
+//     REQUIRE(res2.is_err());
+
+//     auto ctx3 = Context("-123");
+//     auto res3 = SimpleParser()(ctx3);
+
+//     REQUIRE(res3.is_err());
+// }
+
+TEST_CASE("empty", "[combinator]")
+{
+    auto sign = winnow::combinator::alt(
+        winnow::token::literal("+").value(1),
+        winnow::token::literal("-").value(-1),
+        winnow::combinator::empty.value(1)
+    );
+
+    REQUIRE(CheckResult(sign, Context("+123"), Succeed<int>{ 1 }, "123"));
+    REQUIRE(CheckResult(sign, Context("-123"), Succeed<int>{ -1 }, "123"));
+    REQUIRE(CheckResult(sign, Context("123"), Succeed<int>{ 1 }, "123"));
+}
+
+TEST_CASE("fail", "[combinator]")
+{
+    auto parser = winnow::combinator::fail<int>("");
+
+    REQUIRE(CheckResult(parser, Context("abc"), Backtrack()));
+
+
+    auto parser2 = winnow::combinator::alt(
+        winnow::token::literal("a"),
+        winnow::token::literal("b"),
+        winnow::combinator::fail<std::string_view>("Expected 'a' or 'b'")
+    );
+
+    REQUIRE(CheckResult(parser2, Context("abc"), Succeed<std::string_view>{ "a" }, "bc"));
+    REQUIRE(CheckResult(parser2, Context("def"), Backtrack()));
+}
+

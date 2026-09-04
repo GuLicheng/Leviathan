@@ -144,4 +144,18 @@ inline constexpr struct
     }
 } separated;
 
+inline constexpr struct
+{
+    template <typename Parser>
+    static constexpr auto operator()(bool condition, Parser parser)
+    {
+        return detail::cond_parser<Parser>(condition, std::move(parser));
+    }
+} cond;
+
+inline constexpr detail::empty_parser empty;
+
+template <typename Output>
+inline constexpr detail::fail_fn<Output> fail;
+
 }  // namespace winnow::combinator

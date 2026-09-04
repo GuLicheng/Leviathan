@@ -1,10 +1,15 @@
 #include <iostream>
 #include <functional>
 #include <ranges>
-
-template <typename Adaptor, typename... Args> struct partial;
+#include <print>
+#include <winnow/all.hpp>
 
 template <typename Lhs, typename Rhs> struct pipe;
+
+struct adaptor_closure;
+
+template <typename T>
+concept parser = std::derived_from<std::decay_t<T>, winnow::detail::parser_interface>;
 
 template <typename Adaptor, typename... Args>
 concept adaptor_invocable = requires 
@@ -12,144 +17,65 @@ concept adaptor_invocable = requires
     std::declval<Adaptor>()(std::declval<Args>()...);
 };
 
-template <typename Derived, typename Base>
-concept remove_cvref_derived_from = std::derived_from<std::remove_cvref_t<Derived>, Base>;
+template <typename T>
+concept parser_adaptor_closure = std::derived_from<std::decay_t<T>, adaptor_closure>
+                              && std::move_constructible<std::decay_t<T>>
+                              && std::constructible_from<std::decay_t<T>, T>;
 
-// simple pipeline
-struct range_adaptor_closure
-{
-    template <remove_cvref_derived_from Self, typename Range>
-        requires adaptor_invocable<Self, Range>
-    friend constexpr auto operator|(Range&& r, Self&& self)
+struct adaptor_closure
+{   
+    template <parser_adaptor_closure Self, typename Stream>
+        requires adaptor_invocable<Self, Stream>
+    friend constexpr auto operator|(Stream&& p, Self&& self)
     { 
-        return std::forward<Self>(self)(std::forward<Range>(r)); 
+        return static_cast<Self&&>(self)(static_cast<Stream&&>(p));
     }
 
-    template <remove_cvref_derived_from<range_adaptor_closure> Lhs, remove_cvref_derived_from<range_adaptor_closure> Rhs>
+    template <parser_adaptor_closure Lhs, parser_adaptor_closure Rhs>
     friend constexpr auto operator|(Lhs&& lhs, Rhs&& rhs)
     { 
-        return pipe<std::decay_t<Lhs>, std::decay_t<Rhs>>{ std::forward<Lhs>(lhs), std::forward<Rhs>(rhs)}; 
+        return pipe<std::decay_t<Lhs>, std::decay_t<Rhs>>(static_cast<Lhs&&>(lhs), static_cast<Rhs&&>(rhs)); 
     }
 };
 
-template <typename Derived>
-struct range_adaptor
-{
-    template <typename... Args> 
-        requires adaptor_invocable<Derived, Args...>
-    constexpr auto operator()(Args&&... args) const 
-    { return partial<Derived, std::decay_t<Args>...>{ 0, std::forward<Args>(args)... }; }
-};
-
-template <typename Adaptor, typename... Args>
-struct partial : range_adaptor_closure
-{
-    std::tuple<Args...> m_args;
-
-    template <typename... Ts>
-    constexpr partial(int, Ts&&... args) : m_args(std::forward<Ts>(args)...) { }
-
-    template <typename Self, typename Range>
-        requires adaptor_invocable<Adaptor, Range, const Args&...>
-    constexpr auto operator()(this Self&& self, Range&& r) const
-    {
-        auto forwarder = [&r]<typename... Ts>(Ts&&... args) {
-            return Adaptor{}(std::forward<Range>(r), std::forward<Ts>(args)...);
-        };
-        return std::apply(forwarder, std::forward_like<Self>(self.m_args));
-    }
-
-    // template <typename Range>
-    // requires adaptor_invocable<Adaptor, Range, const Args&...>
-    // constexpr auto operator()(Range&& r) const&
-    // {
-    //     auto forwarder = [&r](const auto&... args) {
-    //         return Adaptor{}(std::forward<Range>(r), args...);
-    //     };
-    //     return std::apply(forwarder, m_args);
-    // }
-
-    // template <typename Range>
-    // requires adaptor_invocable<Adaptor, Range, Args...>
-    // constexpr auto operator()(Range&& r) &&
-    // {
-    //     auto forwarder = [&r](auto&... args) {
-    //         return Adaptor{}(std::forward<Range>(r), std::move(args)...);
-    //     };
-    //     return std::apply(forwarder, m_args);
-    // }
-
-    // template <typename Range>
-    // constexpr auto operator()(Range&& r) const&& = delete;
-};
-
-template <typename Lhs, typename Rhs, typename Range>
-concept pipe_invocable = requires 
-{
-    std::declval<Rhs>()(std::forward<Lhs>()(std::declval<Range>()));
-};
-
+// R | (A | B), the A and B and (A | B) are all adaptor_closure instances
 template <typename Lhs, typename Rhs>
-struct pipe : range_adaptor_closure
+struct pipe : adaptor_closure
 {
-    [[no_unique_address]] Lhs m_lhs;
-    [[no_unique_address]] Rhs m_rhs;
+    [[no_unique_address]] Lhs lhs;
+    [[no_unique_address]] Rhs rhs;
 
-    constexpr pipe(Lhs lhs, Rhs rhs) : m_lhs(std::move(lhs)), m_rhs(std::move(rhs)) { }
+    template <typename L, typename R>
+    constexpr pipe(L&& lhs, R&& rhs) : lhs((L&&)lhs), rhs((R&&)rhs) { }
 
-    template <typename Range>
-    requires pipe_invocable<const Lhs&, const Rhs&, Range>
-    constexpr auto operator()(Range&& r) const&
-    { return m_rhs(m_lhs(std::forward<Range>(r))); }
-
-    template <typename Range>
-    requires pipe_invocable<Lhs, Rhs, Range>
-    constexpr auto operator()(Range&& r) &&
-    { return std::move(m_rhs)(std::move(m_lhs)(std::forward<Range>(r))); }
-
-    template <typename Range>
-    constexpr auto operator()(Range&& r) const&& = delete;
-
-};
-
-template <typename F>
-class closure : public range_adaptor_closure<closure<F>>
-{
-    F f;
-
-public:
-    constexpr closure(F f) : f(f) {}
-
-    template <std::ranges::viewable_range R>
-        requires std::invocable<F const &, R>
-    auto constexpr operator()(R &&r) const
+    template <typename Self, typename Other>
+    constexpr auto operator()(this Self&& self, Other&& other) 
     {
-        return f(std::forward<R>(r));
+        return static_cast<Self&&>(self).rhs(
+            static_cast<Self&&>(self).lhs(
+                static_cast<Other&&>(other)
+            )
+        );
     }
 };
 
 template <typename F>
-class adaptor
+class closure : public adaptor_closure
 {
     F f;
 
 public:
-    constexpr adaptor(F f) : f(f) {}
 
-    template <typename... Args>
-    constexpr auto operator()(Args &&...args) const
+    template <typename F2>
+    constexpr closure(F2&& f) : f(static_cast<F2&&>(f)) { }
+
+    template <typename Self, typename R>
+    auto constexpr operator()(this Self&& self, R&& r)
     {
-        if constexpr (std::invocable<F const &, Args...>)
-        {
-            return f(std::forward<Args>(args)...);
-            // return std::invoke(f, std::forward<Args>(args)...);
-        }
-        else
-        {
-            return closure(std::bind_back(f, std::forward<Args>(args)...));
-        }
+        return static_cast<Self&&>(self).f(static_cast<R&&>(r));
     }
 };
+
 
 // inline constexpr closure join
 //     = []<viewable_range R> requires /* ... */
@@ -166,5 +92,6 @@ public:
 
 int main(int argc, char const *argv[])
 {
+    std::println("Hello, World!");
     return 0;
 }
