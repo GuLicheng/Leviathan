@@ -22,6 +22,9 @@ public:
     // constexpr result() = default;
     constexpr result(const result&) = default;
     constexpr result(result&&) = default;
+    constexpr result& operator=(const result&) = default;
+    constexpr result& operator=(result&&) = default;
+
 
     template <typename... Args>
     static constexpr result make_ok(Args&&... args) { return result(std::in_place, std::forward<Args>(args)...); }

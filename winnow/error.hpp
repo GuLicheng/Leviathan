@@ -40,6 +40,8 @@ public:
     using backtrack_type = Error;
     using cut_type = Error;
 
+    constexpr err_mode& operator=(const err_mode&) = default;
+    constexpr err_mode& operator=(err_mode&&) = default;
     constexpr err_mode(const err_mode&) = default;
     constexpr err_mode(err_mode&&) = default;
 

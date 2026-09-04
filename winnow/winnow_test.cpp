@@ -3,6 +3,7 @@
 #include <meta>
 #include <print>
 #include <string>
+#include <iostream>
 #include "all.hpp"
 
 using Context = winnow::stream<winnow::context_error>;
@@ -550,3 +551,22 @@ TEST_CASE("eof", "[combinator]")
     REQUIRE(CheckResult(parser, Context("abc"), Backtrack()));
 }
 
+TEST_CASE("iterator", "[combinator]")
+{
+    auto ctx = Context("abc|defg|hijkl|mnopqr|123");
+    auto parser = winnow::combinator::terminated(winnow::ascii::alpha1, winnow::token::literal("|"));
+
+    auto rg = winnow::combinator::iterator(ctx, parser);
+
+    static_assert(std::ranges::input_range<decltype(rg)>);
+
+    std::vector<std::string_view> results;
+
+    results.append_range(rg);
+
+    REQUIRE(results.size() == 4);
+    REQUIRE(results[0] == "abc");
+    REQUIRE(results[1] == "defg");
+    REQUIRE(results[2] == "hijkl");
+    REQUIRE(results[3] == "mnopqr");
+}

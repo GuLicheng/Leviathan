@@ -893,6 +893,73 @@ struct eof_parser : parser_interface
     }
 };
 
+template <typename Stream, typename Parser>
+struct iterator_parser
+{
+    using input_type = Stream;
+    using result_type = std::invoke_result_t<Parser, Stream&>;  // modal_result<O, E>
+
+    struct iterator
+    {
+        using value_type = typename result_type::value_type;
+        using difference_type = std::ptrdiff_t;
+        using iterator_category = std::input_iterator_tag;
+        using reference = const value_type&;
+
+        iterator_parser* base;
+        result_type cached_value;
+
+        constexpr iterator(iterator_parser* b, result_type result) : base(b), cached_value(std::move(result)) {  }
+
+        constexpr iterator(const iterator& other) = default;
+
+        constexpr iterator& operator=(const iterator& other) = default;
+
+        constexpr bool operator==(std::default_sentinel_t) const 
+        { 
+            return !cached_value.is_ok(); 
+        }
+
+        constexpr reference operator*() const 
+        { 
+            return cached_value.unwrap_ok();
+        }
+        
+        constexpr iterator& operator++() 
+        { 
+            if (cached_value.is_ok())
+            {
+                cached_value = std::invoke(base->parser, base->stream);
+            }
+            return *this; 
+        }
+
+        constexpr iterator operator++(int) 
+        { 
+            auto temp = *this; 
+            ++*this; 
+            return temp; 
+        }
+    };
+
+    using sentinel = std::default_sentinel_t;
+
+    constexpr iterator begin() 
+    {
+        auto result = parser(stream);
+        return iterator(this, std::move(result));        
+    }
+
+    constexpr sentinel end() { return sentinel(); }
+
+    constexpr iterator_parser(Stream& c, Parser p) : stream(c), parser(std::move(p)) { }
+
+    Stream& stream;
+    Parser parser;
+};
+
+
+
 }  // namespace winnow::detail
 
 

@@ -160,4 +160,13 @@ inline constexpr detail::fail_fn<Output> fail;
 
 inline constexpr detail::eof_parser eof;
 
+inline constexpr struct
+{
+    template <typename Stream, typename Parser>
+    static constexpr auto operator()(Stream& stream, Parser parser)
+    {
+        return detail::iterator_parser<Stream, Parser>(stream, std::move(parser));
+    }
+} iterator;
+
 }  // namespace winnow::combinator
