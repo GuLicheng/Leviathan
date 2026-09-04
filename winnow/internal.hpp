@@ -893,6 +893,11 @@ struct eof_parser : parser_interface
     }
 };
 
+// How to raise an error when the result is Cut<E>?
+// This iterator contains a field `cached_value` which 
+// stores the most recent result of the parser.
+// If the parser meets a Cut<E> result, user can access
+// it through the `cached_value` field.
 template <typename Stream, typename Parser>
 struct iterator_parser
 {

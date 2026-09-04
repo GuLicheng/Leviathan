@@ -569,4 +569,6 @@ TEST_CASE("iterator", "[combinator]")
     REQUIRE(results[1] == "defg");
     REQUIRE(results[2] == "hijkl");
     REQUIRE(results[3] == "mnopqr");
+    REQUIRE(ctx.to_string_view() == "123");
+
 }
