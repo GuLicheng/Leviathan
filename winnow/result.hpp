@@ -25,7 +25,6 @@ public:
     constexpr result& operator=(const result&) = default;
     constexpr result& operator=(result&&) = default;
 
-
     template <typename... Args>
     static constexpr result make_ok(Args&&... args) { return result(std::in_place, std::forward<Args>(args)...); }
 
@@ -50,22 +49,6 @@ public:
         return std::forward_like<Self>(self.value.error());
     }
 
-    template <typename Self, typename F>
-    constexpr auto map_err(this Self&& self, F&& f)
-    {
-        using E2 = std::invoke_result_t<F, E>;
-        using R = result<T, E2>;
-
-        if (self.is_ok())
-        {
-            return R::make_ok(std::forward_like<Self>(self).unwrap_ok());
-        }
-        else
-        {
-            return R::make_err(std::invoke(std::forward<F>(f), std::forward_like<Self>(self).unwrap_err()));
-        }
-    }
-
 private:
 
     std::expected<T, E> value;
@@ -73,8 +56,11 @@ private:
 };
 
 // https://docs.rs/winnow/1.0.0/winnow/error/type.ModalResult.html
+// template <typename O, typename E>
+// using modal_result = result<O, err_mode<E>>;
+
 template <typename O, typename E>
-using modal_result = result<O, err_mode<E>>;
+using modal_result = std::expected<O, err_mode<E>>;
 
 template <typename R, typename O, typename E, typename Stream>
 auto make_error(const modal_result<O, E>& e, Stream& stream)
@@ -101,11 +87,11 @@ struct std::formatter<winnow::modal_result<O, E>>
     {
         if (r.is_ok())
         {
-            return std::format_to(ctx.out(), "Ok({:n})", r.unwrap_ok());
+            return std::format_to(ctx.out(), "Ok({:n})", r.value());
         }
         else
         {
-            return std::format_to(ctx.out(), "Err({})", r.unwrap_err());
+            return std::format_to(ctx.out(), "Err({})", r.error());
         }
     }
 };
