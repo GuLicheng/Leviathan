@@ -3,7 +3,7 @@
 
     - alt
     - backtrack_err
-    - [x] cond
+    - cond
     - cut_err
     - delimited
     - empty
@@ -11,7 +11,7 @@
     - [x] expression
     - fail
     - [x] fill
-    - [x] iterator
+    - iterator
     - not
     - opt
     - peek
@@ -149,7 +149,7 @@ inline constexpr struct
     template <typename Parser>
     static constexpr auto operator()(bool condition, Parser parser)
     {
-        // return detail::cond_parser<Parser>(condition, std::move(parser));
+        return detail::cond_parser<Parser>(condition, std::move(parser));
     }
 } cond;
 

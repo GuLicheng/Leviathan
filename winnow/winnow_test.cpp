@@ -482,35 +482,35 @@ TEST_CASE("separated", "[combinator]")
 
 TEST_CASE("cond", "[combinator]")
 {
-    // struct SimpleParser
-    // {
-    //     auto operator()(Context& ctx)
-    //     {
-    //         using namespace winnow::combinator;
-    //         using namespace winnow::ascii;
-    //         using namespace winnow::token;
-    //         auto prefix = opt(literal("-"));
-    //         auto result = prefix(ctx);
-    //         auto cond_result = cond(result.is_ok(), alpha1)(ctx);
-    //         return cond_result;
-    //     }
-    // };
+    struct SimpleParser
+    {
+        auto operator()(Context& ctx)
+        {
+            using namespace winnow::combinator;
+            using namespace winnow::ascii;
+            using namespace winnow::token;
+            auto prefix = opt(literal("-"));
+            auto result = prefix(ctx);
+            bool condition = result ? result.value().has_value() : false;
+            auto cond_result = cond(condition, alpha1)(ctx);
+            return cond_result;
+        }
+    };
 
-    // auto ctx1 = Context("-abcd;");
-    // auto res1 = SimpleParser()(ctx1);
-    // REQUIRE(ctx1.to_string_view() == ";");
-    // REQUIRE(res1.unwrap_ok().value() == "abcd");
+    auto ctx1 = Context("-abcd;");
+    auto res1 = SimpleParser()(ctx1);
+    REQUIRE(ctx1.to_string_view() == ";");
+    REQUIRE(**res1 == "abcd");
 
-    // auto ctx2 = Context("efgh;");
-    // auto res2 = SimpleParser()(ctx2);
+    auto ctx2 = Context("efgh;");
+    auto res2 = SimpleParser()(ctx2);
 
-    // REQUIRE(ctx2.to_string_view() == "efgh;");
-    // REQUIRE(res2.is_err());
+    REQUIRE(ctx2.to_string_view() == "efgh;");
+    REQUIRE(!res2.value().has_value());
 
-    // auto ctx3 = Context("-123");
-    // auto res3 = SimpleParser()(ctx3);
-
-    // REQUIRE(res3.is_err());
+    auto ctx3 = Context("-123");
+    auto res3 = SimpleParser()(ctx3);
+    REQUIRE(!res3.has_value());
 }
 
 TEST_CASE("empty", "[combinator]")

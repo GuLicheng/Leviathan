@@ -778,34 +778,30 @@ struct separated_parser : parser_interface
     }
 };
 
-// template <typename Parser>
-// struct cond_parser : parser_interface
-// {
-//     bool condition;
-//     Parser parser;
+template <typename Parser>
+struct cond_parser : parser_interface
+{
+    bool condition;
+    Parser parser;
 
-//     constexpr cond_parser(bool condition, Parser parser)
-//         : condition(condition), parser(std::move(parser)) { }
+    constexpr cond_parser(bool condition, Parser parser)
+        : condition(condition), parser(std::move(parser)) { }
 
-//     template <typename Stream>
-//     constexpr auto operator()(Stream& stream) -> modal_result<std::optional<std::invoke_result_t<Parser, Stream&>>, typename Stream::error_type> 
-//     {
-//         using invoke_type = std::invoke_result_t<Parser, Stream&>;
-//         using error_type = typename Stream::error_type;
-//         using result_type = modal_result<std::optional<invoke_type>, error_type>;
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream)
+    {
+        using E = typename Stream::error_type;
+        using O = std::optional<std::invoke_result_t<Parser, Stream&>>;
+        using R = modal_result<O, E>;
 
-//         if (condition)
-//         {
-//             auto result = parser(stream).map([](auto x) -> std::optional<invoke_type> { return std::make_optional(std::move(x)); });
-//             return result;
-//             // return result 
-//                 //  ? result_type::make_ok(std::move(result.unwrap_ok()))
-//                 //  : result_type::make_err(std::move(result.unwrap_err()));
-//         }
+        if (condition)
+        {
+            return parser(stream).transform([](auto x) -> O { return std::make_optional(std::move(x)); });
+        }
 
-//         return result_type::make_ok(std::nullopt); 
-//     }
-// };
+        return R(std::in_place, std::nullopt);
+    }
+};
 
 struct empty_parser : parser_interface
 {
@@ -930,7 +926,37 @@ struct iterator_parser
     Parser parser;
 };
 
+// Accumulate the output of parser f into a container until the 
+// parser g produces a result (bound by occurrences).
+template <typename Parser, typename TerminatorParser, typename Accumulator>
+struct repeat_till_parser
+{
+    Parser parser;
+    TerminatorParser terminator_parser;
+    [[no_unique_address]] Accumulator accumulator;
+    occurrences<size_t> range;
 
+    constexpr repeat_till_parser(Parser p, TerminatorParser tp, Accumulator acc, occurrences<size_t> r)
+        : parser(std::move(p)), terminator_parser(std::move(tp)), accumulator(std::move(acc)), range(r) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& s) const
+    {
+        auto results = accumulator.initial();
+
+        using E = typename Stream::error_type;
+        using O = decltype(results);
+        using R = modal_result<decltype(results), E>;
+
+        
+
+
+
+
+
+    }
+
+};
 
 }  // namespace winnow::detail
 
