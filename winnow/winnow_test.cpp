@@ -32,11 +32,11 @@ struct Succeed
     template <typename O, typename E>
     constexpr bool operator()(const winnow::modal_result<O, E>& result)
     {
-        if (!result.is_ok())
+        if (!result.has_value())
         {
             return false;
         }
-        return AutoCompare()(result.unwrap_ok(), value);
+        return AutoCompare()(result.value(), value); 
     }
 };
 
@@ -57,7 +57,7 @@ struct Backtrack
     template <typename Result>
     static constexpr bool operator()(const Result& result)
     {
-        return result.is_err() && result.unwrap_err().is_backtrack();
+        return !result.has_value() && result.error().is_backtrack();
     }
 };
 
@@ -66,7 +66,7 @@ struct Cut
     template <typename Result>
     static constexpr bool operator()(const Result& result)
     {
-        return result.is_err() && result.unwrap_err().is_cut();
+        return !result.has_value() && result.error().is_cut();
     }
 };
 

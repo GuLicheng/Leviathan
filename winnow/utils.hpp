@@ -3,6 +3,7 @@
 #include <optional>
 #include <ranges>
 #include <iterator>
+#include <contracts>
 
 namespace winnow
 {
@@ -92,11 +93,16 @@ struct occurrences
     T lower;
     std::optional<T> upper;
 
-    constexpr occurrences(T l, T u) : lower(l), upper(u) { }
+    constexpr occurrences(T l, std::optional<T> u) : lower(l), upper(u) 
+    {
+        // All offset ranges follow C++ half‑open convention 
+        // [lower, upper): lower is included, upper is excluded.
+        // contract_assert(lower < (upper ? *upper : lower));
+    }
 
-    constexpr occurrences(T l) : lower(l), upper(std::nullopt) { }
+    constexpr occurrences(T l, T u) : occurrences(l, std::optional<T>(u)) { }
 
-    constexpr occurrences(T l, std::optional<T> u) : lower(l), upper(u) { }
+    constexpr occurrences(T l) : occurrences(l, std::nullopt) { }
 
     constexpr bool contains(T value) const
     {
@@ -123,10 +129,7 @@ struct occurrences
 };
 
 
-
-
-
-
+using unit = std::tuple<>;
 
 
 }  // namespace winnow

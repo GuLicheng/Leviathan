@@ -20,22 +20,23 @@ struct parser_interface
     template <typename Self, typename F>
     constexpr auto map(this Self&& self, F&& f)
     {
-        return map_parser<std::decay_t<Self>, F>{std::forward<Self>(self), std::forward<F>(f)};
+        return map_parser<std::decay_t<Self>, F>{(Self&&)self, (F&&)f};
     }
 
     template <typename Self, typename P>
     constexpr auto verify(this Self&& self, P&& p)
     {
-        return verify_parser<std::decay_t<Self>, P>{std::forward<Self>(self), std::forward<P>(p)};
+        return verify_parser<std::decay_t<Self>, P>{(Self&&)self, (P&&)p};
     }
 
     template <typename Self, typename Value>
     constexpr auto value(this Self&& self, Value&& value)
     {
-        return value_parser<std::decay_t<Self>, Value>{std::forward<Self>(self), std::forward<Value>(value)};
+        return value_parser<std::decay_t<Self>, Value>{(Self&&)self, (Value&&)value};
     }
 };
 
+// Returns the output of the child parser if it satisfies a verification function.
 template <typename Parser, typename P>
 struct verify_parser : parser_interface
 {
@@ -47,29 +48,27 @@ struct verify_parser : parser_interface
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        using error_type = typename Stream::error_type;
-        using result_type = std::invoke_result_t<Parser, Stream&>;
+        using E = typename Stream::error_type;
+        using O = typename std::invoke_result_t<Parser, Stream&>::value_type;
+        using R = modal_result<O, E>;
 
         auto result = parser(stream);
 
         if (!result)
         {
-            return result_type::make_err(std::move(result.unwrap_err()));
+            return R(std::unexpect, std::move(result.error()));
         }
 
-        if (!std::invoke(predicate, result.unwrap_ok()))
+        if (!std::invoke(predicate, result.value()))
         {
-            return result_type::make_err(
-                err_mode<error_type>::make_backtrack(
-                    error_traits<error_type>::from_input(stream)
-                )
-            );
+            return make_backtrack_from_input<O>(stream);
         }
 
-        return result_type::make_ok(std::move(result.unwrap_ok()));
+        return R(std::in_place, std::move(result.value()));
     }
 };
 
+// Maps a function over the output of a parser
 template <typename Parser, typename F>
 struct map_parser : parser_interface
 {
@@ -81,22 +80,23 @@ struct map_parser : parser_interface
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        using result_type1 = std::invoke_result_t<Parser, Stream&>;
-        using output_type1 = typename result_type1::value_type;
-        using error_type = typename Stream::error_type;
-        using output_type = std::invoke_result_t<F, output_type1>;
-        using result_type = modal_result<output_type, error_type>;
+        using E = typename Stream::error_type;
+        using R1 = std::invoke_result_t<Parser, Stream&>;
+        using O1 = typename R1::value_type;
+        using O2 = std::invoke_result_t<F, O1>;
+        using R = modal_result<O2, E>;
 
         auto result = parser(stream);
 
         if (!result)
         {
-            return result_type::make_err(std::move(result.unwrap_err()));
+            return R(std::unexpect, std::move(result.error()));
         }
-        return result_type::make_ok(std::invoke(func, std::move(result.unwrap_ok())));
+        return R(std::in_place, std::invoke(func, std::move(result.value())));
     }
 };
 
+// Produce the provided value
 template <typename Parser, typename Value>
 struct value_parser : parser_interface
 {
@@ -108,22 +108,21 @@ struct value_parser : parser_interface
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        using result_type1 = std::invoke_result_t<Parser, Stream&>;
-        using output_type1 = typename result_type1::value_type;
-        using error_type = typename Stream::error_type;
-        using result_type = modal_result<Value, error_type>;
+        using E = typename Stream::error_type;
+        using R = modal_result<Value, E>;
 
         auto result = parser(stream);
 
         if (!result)
         {
-            return result_type::make_err(std::move(result.unwrap_err()));
+            return R(std::unexpect, std::move(result.error()));
         }
 
-        return result_type::make_ok(value);
+        return R(std::in_place, value);
     }
 };
 
+// Pick the first successful parser
 template <typename... Parsers>
 struct choice_parser : parser_interface
 {
@@ -136,15 +135,18 @@ struct choice_parser : parser_interface
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        using result_type = std::invoke_result_t<Parsers...[0], Stream&>;
+        using E = typename Stream::error_type;
+        using R = std::invoke_result_t<Parsers...[0], Stream&>;
+        using ErrMode = err_mode<E>;
 
-        static_assert((std::is_same_v<result_type, std::invoke_result_t<Parsers, Stream&>> && ...),
+        static_assert((std::is_same_v<R, std::invoke_result_t<Parsers, Stream&>> && ...),
                       "All parsers in choice_parser must return the same result type.");
 
-        using error_type = typename Stream::error_type;
+        // Just save the last error of parser.
+        // For tight control over the error when no match is found, add a final case using fail.
+        std::optional<ErrMode> e;  
 
-        std::optional<err_mode<error_type>> e;
-
+        // C++26 support Expansion Statements P1306R5.
         template for (const auto& parser : parsers)
         {
             auto clone = stream;
@@ -155,24 +157,25 @@ struct choice_parser : parser_interface
                 stream = std::move(clone);
                 return result;
             }
-            else if (result.unwrap_err().is_cut())
+            else if (result.error().is_cut())
             {
+                // Stop parsing further as a cut has been encountered.
                 return result;
             }
             
-            e.emplace(std::move(result.unwrap_err()));
+            e.emplace(std::move(result.error()));
         }
 
         // The e must have value since we require at least one parser in choice_parser.
-        return result_type::make_err(std::move(e.value()));
+        return R(std::unexpect, std::move(e.value()));
     }
 
 };
 
+// Recognizes a literal
 template <typename CharT>
 struct literal_parser : parser_interface
 {
-
     using literal_type = std::basic_string_view<CharT>;
 
     literal_type constant;
@@ -182,26 +185,26 @@ struct literal_parser : parser_interface
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        using error_type = typename Stream::error_type;
-        using result_type = modal_result<literal_type, error_type>;
+        // Rust winnow return a part of input/stream. 
+        // We just return slices of the input stream.
+        using E = typename Stream::error_type;
+        using O = literal_type;
+        using R = modal_result<literal_type, E>;
 
         if (stream.match(constant, false))
         {
             auto [left, right] = stream.split_at(constant.size());
             stream = std::move(right);
-            return result_type::make_ok(std::move(left));
+            return R(std::in_place, std::move(left));
         }
         else
         {
-            return result_type::make_err(
-                err_mode<error_type>::make_backtrack(
-                    error_traits<error_type>::from_input(stream)
-                )
-            );
+            return make_backtrack_from_input<O>(stream);
         }
     }
 };
 
+// Recognize the longest input slice 
 template <typename Pred>
 struct take_while_parser : parser_interface
 {
@@ -214,8 +217,9 @@ struct take_while_parser : parser_interface
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        using error_type = typename Stream::error_type;
-        using result_type = modal_result<std::basic_string_view<typename Stream::value_type>, error_type>;
+        using E = typename Stream::error_type;
+        using O = std::basic_string_view<typename Stream::value_type>;
+        using R = modal_result<O, E>;
         
         // User should ensure that the upper is not less than lower.
         size_t count = 0;
@@ -231,22 +235,21 @@ struct take_while_parser : parser_interface
 
         if (range.is_under(count))
         {
-            return result_type::make_err(
-                err_mode<error_type>::make_backtrack(
-                    error_traits<error_type>::from_input(stream)
-                )
-            );
+            // It will return an ErrMode::Backtrack(_) if the 
+            // set of tokens wasn’t met or is out of occurrences range.
+            return make_backtrack_from_input<O>(stream);
         }
         else
         {
             auto [left, right] = stream.split_at(count);
             stream = std::move(right);
-            return result_type::make_ok(std::move(left));
+            return R(std::in_place, std::move(left));
         }
     }
         
 };
 
+// Recognize an input slice containing the first N input elements (I[..N]).
 struct take_parser : parser_interface
 {
     size_t count;
@@ -256,26 +259,25 @@ struct take_parser : parser_interface
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        using error_type = typename Stream::error_type;
-        using result_type = modal_result<std::basic_string_view<typename Stream::value_type>, error_type>;
+        using E = typename Stream::error_type;
+        using O = std::basic_string_view<typename Stream::value_type>;
+        using R = modal_result<O, E>;
 
         if (stream.size() < count)
         {
-            return result_type::make_err(
-                err_mode<error_type>::make_backtrack(
-                    error_traits<error_type>::from_input(stream)
-                )
-            );
+            // It will return Err(ErrMode::Backtrack(_)) if the input is shorter than the argument
+            return make_backtrack_from_input<O>(stream);
         }
         else
         {
             auto [left, right] = stream.split_at(count);
             stream = std::move(right);
-            return result_type::make_ok(std::move(left));
+            return R(std::in_place, std::move(left));
         }
     }
 };
 
+// Recognize the longest input slice (bound by occurrences) till a member of a set of tokens is found.
 template <typename CharT>
 struct take_until_parser : parser_interface
 {
@@ -290,26 +292,26 @@ struct take_until_parser : parser_interface
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        using error_type = typename Stream::error_type;
-        using result_type = modal_result<literal_type, error_type>;
+        using E = typename Stream::error_type;
+        using O = std::basic_string_view<typename Stream::value_type>;
+        using R = modal_result<O, E>;
 
         const auto idx = stream.to_string_view().find(value);
 
+        // It will return an ErrMode::Backtrack(_) if the set of 
+        // tokens wasn’t met or is out of occurrences range.
         if (idx == literal_type::npos || !range.contains(idx))
         {
-            return result_type::make_err(
-                err_mode<error_type>::make_backtrack(
-                    error_traits<error_type>::from_input(stream)
-                )
-            );
+            return make_backtrack_from_input<O>(stream);
         }
 
         auto [left, right] = stream.split_at(idx);
         stream = std::move(right);
-        return result_type::make_ok(std::move(left));
+        return R(std::in_place, std::move(left));
     }
 };
 
+// Sequence two parsers, only returning the output from the second.
 template <typename IgnoredParser, typename Parser>
 struct preceded_parser : parser_interface
 {
@@ -322,26 +324,25 @@ struct preceded_parser : parser_interface
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        using result_type1 = std::invoke_result_t<IgnoredParser, Stream&>;
-        using result_type2 = std::invoke_result_t<Parser, Stream&>;    
-        
-        using error_type1 = typename result_type1::error_type;
-        using error_type2 = typename result_type2::error_type;
-
-        using error_type = typename Stream::error_type;
-        using result_type = result_type2;
+        using E = typename Stream::error_type;
+        using R1 = std::invoke_result_t<IgnoredParser, Stream&>;
+        using R2 = std::invoke_result_t<Parser, Stream&>;
+        using R = R2;
+        static_assert(std::is_same_v<R1, R2>, "The result types of the main parser and the ignored parser must be the same.");
 
         auto ignored_result = ignored_parser(stream);
 
         if (!ignored_result)
         {
-            return result_type::make_err(std::move(ignored_result.unwrap_err()));
+            // If the ignored parser fails, we return an unexpected result for the main parser.
+            return R(std::unexpect, std::move(ignored_result.error()));
         }
-        return parser(stream);
+        return R(parser(stream));
     }
 
 };
 
+// Sequence two parsers, only returning the output of the first.
 template <typename Parser, typename IgnoredParser>
 struct terminated_parser : parser_interface
 {
@@ -354,31 +355,32 @@ struct terminated_parser : parser_interface
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        using result_type1 = std::invoke_result_t<Parser, Stream&>;
-        using result_type2 = std::invoke_result_t<IgnoredParser, Stream&>;    
-        
-        using error_type1 = typename result_type1::error_type;
-        using error_type2 = typename result_type2::error_type;
-
-        using error_type = typename Stream::error_type;
-        using result_type = result_type1;
+        using E = typename Stream::error_type;
+        using R1 = std::invoke_result_t<Parser, Stream&>;
+        using R2 = std::invoke_result_t<IgnoredParser, Stream&>;
+        using R = R1;
+        static_assert(std::is_same_v<R1, R2>, "The result types of the main parser and the ignored parser must be the same.");
 
         auto result = parser(stream);
 
         if (!result)
         {
-            return result_type::make_err(std::move(result.unwrap_err()));
+            // If the main parser fails, we return an unexpected result.
+            return R(std::unexpect, std::move(result.error()));
         }
         auto ignored_result = ignored_parser(stream);
 
         if (!ignored_result)
         {
-            return result_type::make_err(std::move(ignored_result.unwrap_err()));
+            // If the ignored parser fails, we return an unexpected result for the main parser.
+            return R(std::unexpect, std::move(ignored_result.error()));
         }
-        return result;
+
+        return R(std::in_place, std::move(result.value()));
     }
 };
 
+// Sequence three parsers, only returning the values of the first and third.
 template <typename Parser1, typename SepParser, typename Parser2>
 struct separated_pair_parser : parser_interface
 {
@@ -392,32 +394,37 @@ struct separated_pair_parser : parser_interface
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        using result_type1 = std::invoke_result_t<Parser1, Stream&>;
-        using result_type2 = std::invoke_result_t<Parser2, Stream&>;
+        using R1 = std::invoke_result_t<Parser1, Stream&>;
+        using R2 = std::invoke_result_t<SepParser, Stream&>;
+        using R3 = std::invoke_result_t<Parser2, Stream&>;
+        using E = typename Stream::error_type;
 
-        using error_type = typename Stream::error_type;
-        using output_type = std::pair<typename result_type1::value_type, typename result_type2::value_type>;
-        using result_type = modal_result<output_type, error_type>;
+        using O1 = typename R1::value_type;
+        using O2 = typename R2::value_type;
+        using O = std::pair<O1, O2>;
+        using R = modal_result<O, E>;
 
         auto result1 = parser1(stream);
 
         if (!result1)
         {
-            return result_type::make_err(std::move(result1.unwrap_err()));
+            return R(std::unexpect, std::move(result1.error()));
         }
         auto sep_result = sep_parser(stream);
 
         if (!sep_result)
         {
-            return result_type::make_err(std::move(sep_result.unwrap_err()));
+            return R(std::unexpect, std::move(sep_result.error()));
         }
         auto result2 = parser2(stream);
 
         if (!result2)
         {
-            return result_type::make_err(std::move(result2.unwrap_err()));
+            return R(std::unexpect, std::move(result2.error()));
         }
-        return result_type::make_ok(std::make_pair(std::move(result1.unwrap_ok()), std::move(result2.unwrap_ok())));
+
+        // Only all parsers succeed do we return a successful result.
+        return R(std::in_place, std::make_pair(std::move(result1.value()), std::move(result2.value())));
     }
 };
 
@@ -426,13 +433,13 @@ struct rest_parser : parser_interface
     template <typename Stream>
     static constexpr auto operator()(Stream& stream)
     {
-        using literal_type = std::basic_string_view<typename Stream::value_type>;
-        using error_type = typename Stream::error_type;
-        using result_type = modal_result<literal_type, error_type>;
+        using E = typename Stream::error_type;
+        using O = std::basic_string_view<typename Stream::value_type>;
+        using R = modal_result<O, E>;
 
         auto left = stream.to_string_view();
         stream.advance(stream.size());
-        return result_type::make_ok(left);
+        return R(std::in_place, std::move(left));
     }
 };
 
@@ -441,9 +448,10 @@ struct rest_len_parser : parser_interface
     template <typename Stream>
     static constexpr auto operator()(Stream& stream)
     {
-        using error_type = typename Stream::error_type;
-        using result_type = modal_result<size_t, error_type>;
-        return result_type::make_ok(stream.size());
+        using E = typename Stream::error_type;
+        using O = size_t;
+        using R = modal_result<O, E>;
+        return R(std::in_place, stream.size());
     }
 };
 
@@ -463,22 +471,21 @@ struct check_next_character_parser : parser_interface
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        using literal_type = std::basic_string_view<typename Stream::value_type>;
-        using error_type = typename Stream::error_type;
-        using result_type = modal_result<literal_type, error_type>;
+        using E = typename Stream::error_type;
+        using O = std::basic_string_view<typename Stream::value_type>;
+        using R = modal_result<O, E>;
 
-        // if (stream.size() == 0 || !std::ranges::contains(tokens, stream[0]))
         if (stream.size() == 0 || std::invoke(pred, stream[0]))
         {
-            return result_type::make_err(
-                err_mode<error_type>::make_backtrack(
-                    error_traits<error_type>::from_input(stream)
+            return R(std::unexpect,
+                err_mode<E>::make_backtrack(
+                    error_traits<E>::from_input(stream)
                 )
             );
         }
         auto [left, right] = stream.split_at(1);
         stream = std::move(right);
-        return result_type::make_ok(std::move(left));
+        return R(std::in_place, std::move(left));
     }
 };
 
@@ -496,7 +503,7 @@ struct backtrack_err_parser : parser_interface
 
         if (!result) 
         {
-            result.unwrap_err().switch_to_backtrack();
+            result.error().switch_to_backtrack();
         }
 
         return result;
@@ -517,7 +524,7 @@ struct cut_err_parser : parser_interface
 
         if (!result) 
         {
-            result.unwrap_err().switch_to_cut();
+            result.error().switch_to_cut();
         }
 
         return result;
@@ -552,25 +559,25 @@ struct opt_parser : parser_interface
         auto clone = stream;
         auto result = parser(stream);
 
-        using inner_type = typename decltype(result)::value_type;
-        using error_type = typename Stream::error_type;
-        using result_type = modal_result<std::optional<inner_type>, error_type>;
+        using R1 = std::invoke_result_t<Parser, Stream&>;
+        using E = typename Stream::error_type;
+        using O = std::optional<typename R1::value_type>;
+        using R = modal_result<O, E>;
 
         if (result)
         {
-            return result_type::make_ok(std::make_optional(std::move(result.unwrap_ok())));
+            return R(std::in_place, std::make_optional(std::move(result.value())));
         }
-        else if (result.unwrap_err().is_backtrack())
+        else if (result.error().is_backtrack())
         {
             // Only backtrack errors should reset the stream to the clone.
             stream = std::move(clone);
-            return result_type::make_ok(std::nullopt);
+            return R(std::in_place, std::nullopt);
         }
         else
         {
-            return result_type::make_err(
-                err_mode<error_type>::make_cut(result.unwrap_err().as_cut())
-            );
+            // For cut, just stop and propagate the error.
+            return R(std::unexpect, result.error());
         }
     }
 };
@@ -588,28 +595,23 @@ struct not_parser : parser_interface
         auto clone = stream;
         auto result = parser(clone);
 
-        using value_type = std::tuple<>;
-        using error_type = typename Stream::error_type;
-        using result_type = modal_result<value_type, error_type>;
+        using O = unit;
+        using E = typename Stream::error_type;
+        using R = modal_result<O, E>;
 
         if (result)
         {
-            return result_type::make_err(
-                err_mode<error_type>::make_backtrack(
-                    error_traits<error_type>::from_input(stream)
-                )
-            );
+            return make_backtrack_from_input<O>(stream);
         }
 
-        if (result.unwrap_err().is_backtrack())
+        if (result.error().is_backtrack())
         {
-            return result_type::make_ok();
+            return R(std::in_place, unit{});
         }
         else
         {
-            return result_type::make_err(
-                err_mode<error_type>::make_cut(result.unwrap_err().as_cut())
-            );
+            // For cut errors, just propagate the error without backtracking.
+            return R(std::unexpect, result.error());
         }
 
     }
@@ -628,15 +630,13 @@ struct repeat_parser : parser_interface
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        using inner = std::invoke_result_t<Parser, Stream&>;
-        using value_type = typename inner::value_type;
-        using error_type = typename Stream::error_type;
-
         auto collector = accumulator.initial();
         size_t count = 0;
         size_t size = stream.size();
         
-        using result_type = modal_result<decltype(collector), error_type>;
+        using E = typename Stream::error_type;
+        using O = decltype(collector);
+        using R = modal_result<O, E>;
 
         while (stream.size())
         {
@@ -644,26 +644,20 @@ struct repeat_parser : parser_interface
 
             if (!result) 
             {
-                if (result.unwrap_err().is_cut())
+                if (result.error().is_cut())
                 {
-                    return result_type::make_err(
-                        err_mode<error_type>::make_cut(result.unwrap_err().as_cut())
-                    );
+                    return R(std::unexpect, result.error());
                 }
                 break;
             }
 
-            accumulator.accumulate(collector, std::move(result.unwrap_ok()));
+            accumulator.accumulate(collector, std::move(result.value()));
             ++count;
 
             if (size == stream.size())
             {
                 // Current loop will not consume any input, avoid infinite loop
-                return result_type::make_err(
-                    err_mode<error_type>::make_backtrack(
-                        error_traits<error_type>::from_input(stream)
-                    )
-                );
+                return make_backtrack_from_input<O>(stream);
             }
 
             if (range.is_over(count))
@@ -674,14 +668,10 @@ struct repeat_parser : parser_interface
 
         if (range.is_under(count))
         {
-            return result_type::make_err(
-                err_mode<error_type>::make_backtrack(
-                    error_traits<error_type>::from_input(stream)
-                )
-            );
+            return make_backtrack_from_input<O>(stream);
         }
 
-        return result_type::make_ok(std::move(collector));
+        return R(std::in_place, std::move(collector));
     }
 };
 
@@ -699,11 +689,11 @@ struct separated_parser : parser_interface
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        using error_type = typename Stream::error_type;
-
         auto results = accumulator.initial();
 
-        using result_type = modal_result<decltype(results), error_type>;
+        using E = typename Stream::error_type;
+        using O = decltype(results);
+        using R = modal_result<decltype(results), E>;
 
         // For empty stream, return empty list
         if (stream.size())
@@ -715,33 +705,27 @@ struct separated_parser : parser_interface
             // return an empty result if allowed by the range
             if (!first)
             {
-                if (first.unwrap_err().is_cut())
+                if (first.error().is_cut())
                 {
-                    return result_type::make_err(
-                        err_mode<error_type>::make_cut(first.unwrap_err().as_cut())
-                    );
+                    return R(std::unexpect, first.error());
                 }
 
                 if (range.contains(results.size()))
                 {
-                    return result_type::make_ok(std::move(results));
+                    return R(std::in_place, std::move(results));
                 }
                 else
                 {
-                    return result_type::make_err(
-                        err_mode<error_type>::make_backtrack(
-                            error_traits<error_type>::from_input(stream)
-                        )
-                    );
+                    return make_backtrack_from_input<O>(stream);
                 }
             }
 
-            accumulator.accumulate(results, std::move(first.unwrap_ok()));
+            accumulator.accumulate(results, std::move(first.value()));
             stream = std::move(clone);
 
             if (range.is_upper_bound(results.size()))
             {
-                return result_type::make_ok(std::move(results));
+                return R(std::in_place, std::move(results));
             }
 
             while (stream.size())
@@ -751,11 +735,9 @@ struct separated_parser : parser_interface
 
                 if (!sep)
                 {
-                    if (sep.unwrap_err().is_cut())
+                    if (sep.error().is_cut())
                     {
-                        return result_type::make_err(
-                            err_mode<error_type>::make_cut(sep.unwrap_err().as_cut())
-                        );
+                        return R(std::unexpect, sep.error());
                     }
                     // Stop parsing if the separator is not found
                     stream = std::move(clone);
@@ -766,23 +748,21 @@ struct separated_parser : parser_interface
 
                 if (!item)
                 {
-                    if (item.unwrap_err().is_cut())
+                    if (item.error().is_cut())
                     {
-                        return result_type::make_err(
-                            err_mode<error_type>::make_cut(item.unwrap_err().as_cut())
-                        );
+                        return R(std::unexpect, item.error());
                     }
                     // Stop parsing if the item is not found
                     // stream = std::move(clone);
                     break;
                 }
 
-                accumulator.accumulate(results, std::move(item.unwrap_ok()));
+                accumulator.accumulate(results, std::move(item.value()));
                 stream = std::move(clone);
 
                 if (range.is_upper_bound(results.size()))
                 {
-                    return result_type::make_ok(std::move(results));
+                    return R(std::in_place, std::move(results));
                 }
 
             }
@@ -791,14 +771,10 @@ struct separated_parser : parser_interface
         if (!range.contains(results.size()))
         // if (!range.is_under(results.size()))
         {
-            return result_type::make_err(
-                err_mode<error_type>::make_backtrack(
-                    error_traits<error_type>::from_input(stream)
-                )
-            );
+            return make_backtrack_from_input<O>(stream);
         }
 
-        return result_type::make_ok(std::move(results));
+        return R(std::in_place, std::move(results));
     }
 };
 
@@ -836,9 +812,9 @@ struct empty_parser : parser_interface
     template <typename Stream>
     static constexpr auto operator()(Stream& stream)
     {
-        using error_type = typename Stream::error_type;
-        using result_type = modal_result<std::tuple<>, error_type>;
-        return result_type::make_ok(std::tuple<>());
+        using E = typename Stream::error_type;
+        using R = modal_result<unit, E>;
+        return R(std::in_place, unit{});
     }
 };
 
@@ -848,14 +824,9 @@ struct fail_parser : parser_interface
     template <typename Stream>
     static constexpr auto operator()(Stream& stream)
     {
-        using error_type = typename Stream::error_type;
-        using result_type = modal_result<O, error_type>;
-
-        return result_type::make_err(
-            err_mode<error_type>::make_backtrack(
-                error_traits<error_type>::from_input(stream)
-            )
-        );
+        using E = typename Stream::error_type;
+        using R = modal_result<O, E>;
+        return make_backtrack_from_input<O>(stream);
     }
 };
 
@@ -874,21 +845,17 @@ struct eof_parser : parser_interface
     template <typename Stream>
     static constexpr auto operator()(Stream& stream)
     {
-        using error_type = typename Stream::error_type;
-        using value_type = typename Stream::value_type;
-        using result_type = modal_result<std::basic_string_view<value_type>, error_type>;
+        using E = typename Stream::error_type;
+        using O = std::basic_string_view<typename Stream::value_type>;
+        using R = modal_result<O, E>;
 
         if (stream.empty())
         {
-            return result_type::make_ok("");
+            return R(std::in_place, "");
         }
         else
         {
-            return result_type::make_err(
-                err_mode<error_type>::make_backtrack(
-                    error_traits<error_type>::from_input(stream)
-                )
-            );
+            return make_backtrack_from_input<O>(stream);
         }
     }
 };
@@ -922,17 +889,17 @@ struct iterator_parser
 
         constexpr bool operator==(std::default_sentinel_t) const 
         { 
-            return !cached_value.is_ok(); 
+            return !cached_value.has_value(); 
         }
 
         constexpr reference operator*() const 
         { 
-            return cached_value.unwrap_ok();
+            return cached_value.value();
         }
         
         constexpr iterator& operator++() 
         { 
-            if (cached_value.is_ok())
+            if (cached_value.has_value())
             {
                 cached_value = std::invoke(base->parser, base->stream);
             }
