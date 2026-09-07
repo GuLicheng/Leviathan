@@ -169,4 +169,13 @@ inline constexpr struct
     }
 } iterator;
 
+inline constexpr struct
+{
+    template <typename Parser, typename Iterator, typename Sentinel>
+    static constexpr auto operator()(Parser parser, Iterator iter, Sentinel sent)
+    {
+        return detail::fill_parser<Parser, Iterator, Sentinel>(std::move(parser), std::move(iter), std::move(sent));
+    }
+} fill;
+
 }  // namespace winnow::combinator

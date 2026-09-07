@@ -45,6 +45,11 @@ struct error_traits
      */
     template <typename Stream, typename Ext>
     static constexpr E from_external(const Stream& stream, Ext&& ext);
+
+
+    // fn append(self, _input: &I, _token_start: &<I as Stream>::Checkpoint) -> Self
+    template <typename Stream, typename Checkpoint>
+    static constexpr E append(E err, Stream& stream, const Checkpoint& checkpoint);
 };
 
 /**

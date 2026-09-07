@@ -573,7 +573,42 @@ TEST_CASE("iterator", "[combinator]")
 
 }
 
+TEST_CASE("fill", "[combinator]")
+{
+    auto fn = [](const char* s, int n) -> std::optional<std::vector<std::string_view>> {
+        Context ctx(s);
+        std::vector<std::string_view> results(n);
 
+        auto parser = winnow::combinator::fill(
+            winnow::token::literal("abc"),   
+            results.begin(),
+            results.end()
+        );
+        auto _ = parser(ctx);
+        if (!_.has_value())
+        {
+            return std::nullopt;
+        }
+
+        return std::make_optional(std::move(results));
+    };
+
+    auto result1 = fn("abcabcabc", 3);
+    REQUIRE(result1.has_value());
+    REQUIRE(result1->size() == 3);
+    REQUIRE((*result1)[0] == "abc");
+    REQUIRE((*result1)[1] == "abc");
+    REQUIRE((*result1)[2] == "abc");
+
+    auto result2 = fn("abc123", 2);
+    REQUIRE(!result2.has_value());
+
+    auto result3 = fn("123123", 2);
+    REQUIRE(!result3.has_value());
+
+    auto result4 = fn("", 2);
+    REQUIRE(!result4.has_value());
+}
 
 
 

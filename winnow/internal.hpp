@@ -5,36 +5,10 @@
 
 #include "utils.hpp"
 #include "error.hpp"
+#include "interface.hpp"
 
 namespace winnow::detail
 {
-
-template <typename Parser, typename F> struct map_parser;
-
-template <typename Parser, typename P> struct verify_parser;
-
-template <typename Parser, typename Value> struct value_parser;
-
-struct parser_interface
-{
-    template <typename Self, typename F>
-    constexpr auto map(this Self&& self, F&& f)
-    {
-        return map_parser<std::decay_t<Self>, F>{(Self&&)self, (F&&)f};
-    }
-
-    template <typename Self, typename P>
-    constexpr auto verify(this Self&& self, P&& p)
-    {
-        return verify_parser<std::decay_t<Self>, P>{(Self&&)self, (P&&)p};
-    }
-
-    template <typename Self, typename Value>
-    constexpr auto value(this Self&& self, Value&& value)
-    {
-        return value_parser<std::decay_t<Self>, Value>{(Self&&)self, (Value&&)value};
-    }
-};
 
 // Returns the output of the child parser if it satisfies a verification function.
 template <typename Parser, typename P>
@@ -121,6 +95,7 @@ struct value_parser : parser_interface
         return R(std::in_place, value);
     }
 };
+
 
 // Pick the first successful parser
 template <typename... Parsers>
@@ -940,7 +915,7 @@ struct repeat_till_parser
         : parser(std::move(p)), terminator_parser(std::move(tp)), accumulator(std::move(acc)), range(r) { }
 
     template <typename Stream>
-    constexpr auto operator()(Stream& s) const
+    constexpr auto operator()(Stream& stream) const
     {
         auto results = accumulator.initial();
 
@@ -948,12 +923,9 @@ struct repeat_till_parser
         using O = decltype(results);
         using R = modal_result<decltype(results), E>;
 
-        
+        size_t count = 0;
 
-
-
-
-
+        throw std::logic_error("Not implemented error.");
     }
 
 };
