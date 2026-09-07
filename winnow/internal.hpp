@@ -901,6 +901,46 @@ struct iterator_parser
     Parser parser;
 };
 
+// Runs the embedded parser repeatedly, filling the given slice with results.
+// This parser fails if the input runs out before the given slice is full.
+// Since we use an output iterator, the output container must be pre-sized.
+// So we cannot check whether the given slice is full or not, we add
+// another param `sentinel`, which used for indicating whether the
+// parse should be stopped.
+template <typename Parser, typename Iterator, typename Sentinel>
+struct fill_parser
+{
+    Parser parser;
+    [[no_unique_address]] Iterator iter;
+    [[no_unique_address]] Sentinel sent;
+
+    constexpr fill_parser(Parser p, Iterator i, Sentinel s) 
+        : parser(std::move(p)), iter(std::move(i)), sent(std::move(s)) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) /* non-const */
+    {
+        using E = typename Stream::error_type;
+        using R = modal_result<Iterator, E>;  // Just return end 
+
+        // Repeats the embedded parser, filling the given slice with results.
+        // This parser fails if the input runs out before the given slice is full.
+        for (; iter != sent; )
+        {
+            auto item_result = parser(stream);
+
+            if (!item_result)
+            {
+                return R(std::unexpect, std::move(item_result.error()));
+            }
+
+            *iter++ = std::move(item_result.value());
+        }
+
+        return R(std::in_place, std::move(iter));
+    }
+};
+
 // Accumulate the output of parser f into a container until the 
 // parser g produces a result (bound by occurrences).
 template <typename Parser, typename TerminatorParser, typename Accumulator>

@@ -586,9 +586,8 @@ TEST_CASE("fill", "[combinator]")
             rg.begin(),
             rg.end()
         );
-        auto _ = parser(ctx);
-
-        if (!_.has_value())
+        
+        if (!parser(ctx).has_value())
         {
             return std::nullopt;
         }
