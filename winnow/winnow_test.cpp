@@ -577,14 +577,17 @@ TEST_CASE("fill", "[combinator]")
 {
     auto fn = [](const char* s, int n) -> std::optional<std::vector<std::string_view>> {
         Context ctx(s);
-        std::vector<std::string_view> results(n);
+        std::vector<std::string_view> results;
+
+        auto rg = std::ranges::subrange(std::back_inserter(results), std::unreachable_sentinel) | std::views::take(n);
 
         auto parser = winnow::combinator::fill(
             winnow::token::literal("abc"),   
-            results.begin(),
-            results.end()
+            rg.begin(),
+            rg.end()
         );
         auto _ = parser(ctx);
+
         if (!_.has_value())
         {
             return std::nullopt;
