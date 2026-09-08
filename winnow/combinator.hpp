@@ -178,4 +178,13 @@ inline constexpr struct
     }
 } fill;
 
+inline constexpr struct
+{
+    template <typename Parser, typename TerminatorParser, typename Accumulator>
+    static constexpr auto operator()(Parser parser, TerminatorParser terminator_parser, Accumulator accumulator, size_t lower = 0, std::optional<size_t> upper = std::nullopt)
+    {
+        return detail::repeat_till_parser<Parser, TerminatorParser, Accumulator>(std::move(parser), std::move(terminator_parser), std::move(accumulator), occurrences<size_t>(lower, upper));
+    }
+} repeat_till;
+
 }  // namespace winnow::combinator

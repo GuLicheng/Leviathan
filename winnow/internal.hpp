@@ -960,12 +960,52 @@ struct repeat_till_parser
         auto results = accumulator.initial();
 
         using E = typename Stream::error_type;
-        using O = decltype(results);
-        using R = modal_result<decltype(results), E>;
+        using O1 = decltype(results);
+        using O2 = typename std::invoke_result_t<TerminatorParser, Stream&>::value_type;
+        using O = std::pair<O1, O2>;
+        using R = modal_result<O, E>;
 
         size_t count = 0;
 
-        throw std::logic_error("Not implemented error.");
+        if (stream.size() == 0)
+        {
+            return make_backtrack_from_input<O>(stream);
+        }
+
+        std::optional<O2> terminator_result;
+
+        while (stream.size())
+        {
+            terminator_result.emplace(terminator_parser(stream));
+        
+            if (terminator_result->has_value())
+            {
+                break;
+            }
+            
+            auto item_result = parser(stream);
+
+            if (!item_result)
+            {
+                // Unknown error occurred while parsing the item.
+                return R(std::unexpect, std::move(item_result.error()));
+            }
+
+            accumulator.accumulate(results, std::move(item_result.value()));
+            ++count;
+            if (range.is_upper_bound(count))
+            {
+                break;
+            }
+        }
+
+        if (range.is_under(results.size()))
+        {
+            return make_backtrack_from_input<O>(stream);
+        }
+
+        return R(std::in_place, std::make_pair(std::move(results), std::move(terminator_result.value())));
+
     }
 
 };
