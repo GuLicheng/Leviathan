@@ -632,7 +632,7 @@ struct repeat_parser : parser_interface
             if (size == stream.size())
             {
                 // Current loop will not consume any input, avoid infinite loop
-                return make_backtrack_from_input<O>(stream);
+                return make_backtrack_from_input<O>(stream, "`repeat` parsers must always consume");
             }
 
             if (range.is_over(count))
@@ -961,7 +961,8 @@ struct repeat_till_parser
 
         using E = typename Stream::error_type;
         using O1 = decltype(results);
-        using O2 = typename std::invoke_result_t<TerminatorParser, Stream&>::value_type;
+        using R2 = std::invoke_result_t<TerminatorParser, Stream&>;
+        using O2 = typename R2::value_type;
         using O = std::pair<O1, O2>;
         using R = modal_result<O, E>;
 
@@ -972,16 +973,33 @@ struct repeat_till_parser
             return make_backtrack_from_input<O>(stream);
         }
 
-        std::optional<O2> terminator_result;
+        std::optional<R2> terminator_result;
 
         while (stream.size())
         {
-            terminator_result.emplace(terminator_parser(stream));
+            size_t prev_size = stream.size();
+
+            // The terminator_parser may break the input stream
+            // when it fails, so we use a clone of the stream to avoid 
+            // consuming input prematurely.
+            auto clone = stream;
+
+            terminator_result.emplace(terminator_parser(clone));
         
             if (terminator_result->has_value())
             {
+                // Stop parsing when the terminator parser succeeds.
+                stream = std::move(clone);
                 break;
             }
+
+            if (terminator_result->error().is_cut())
+            {
+                // Terminator parser encountered a cut error.
+                return R(std::unexpect, std::move(terminator_result->error()));
+            }
+            
+            // Backtrack branch
             
             auto item_result = parser(stream);
 
@@ -989,6 +1007,14 @@ struct repeat_till_parser
             {
                 // Unknown error occurred while parsing the item.
                 return R(std::unexpect, std::move(item_result.error()));
+            }
+
+            // Check stream size for avoiding infinite loops.
+
+            if (stream.size() == prev_size)
+            {
+                // No progress was made, avoid infinite loop.
+                return make_backtrack_from_input<O>(stream, "`repeat` parsers must always consume");
             }
 
             accumulator.accumulate(results, std::move(item_result.value()));
@@ -1004,7 +1030,12 @@ struct repeat_till_parser
             return make_backtrack_from_input<O>(stream);
         }
 
-        return R(std::in_place, std::make_pair(std::move(results), std::move(terminator_result.value())));
+        if (!terminator_result.has_value())
+        {
+            return make_backtrack_from_input<O>(stream);
+        }
+
+        return R(std::in_place, std::make_pair(std::move(results), std::move(terminator_result->value())));
 
     }
 

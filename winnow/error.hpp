@@ -129,7 +129,7 @@ template <>
 struct error_traits<context_error>
 {
     template <typename Stream>
-    static constexpr context_error from_input(const Stream& /*stream*/)
+    static constexpr context_error from_input(const Stream& /*stream*/, const char* message = nullptr)
     {
         return context_error {
             .context_stack = {},
@@ -151,6 +151,8 @@ struct error_traits<context_error>
         e.cause = std::forward<Ext>(ext);
         return e;
     }
+
+    
 };
 
 

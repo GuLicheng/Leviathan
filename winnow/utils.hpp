@@ -18,12 +18,15 @@ template <typename E>
 struct error_traits
 {
     /**
-     * @brief Create a base empty error from input stream.
-     * @tparam Stream Stream type satisfying stream concept.
+     * @brief Create a base empty error from input stream. We remove the
+     *   Rust::winnow::ParserError::assert and add another parameter 
+     *   `message` for the error message.
+     * 
      * @param stream Current parse input stream.
+     * @param message Error message describing the context of the error.
      */
     template <typename Stream>
-    static constexpr E from_input(const Stream& stream);
+    static constexpr E from_input(const Stream& stream, const char* message);
 
     /**
      * @brief Append context description to existing error.
@@ -50,6 +53,7 @@ struct error_traits
     // fn append(self, _input: &I, _token_start: &<I as Stream>::Checkpoint) -> Self
     template <typename Stream, typename Checkpoint>
     static constexpr E append(E err, Stream& stream, const Checkpoint& checkpoint);
+
 };
 
 /**

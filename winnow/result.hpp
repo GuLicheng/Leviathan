@@ -63,12 +63,12 @@ template <typename O, typename E>
 using modal_result = std::expected<O, err_mode<E>>;
 
 template <typename O, typename Stream>
-constexpr auto make_backtrack_from_input(Stream& stream)
+constexpr auto make_backtrack_from_input(Stream& stream, const char* message = nullptr)
 {
     using E = typename Stream::error_type;
     using ErrMode = err_mode<E>;
     return modal_result<O, E>(
-        std::unexpect, ErrMode::make_backtrack(error_traits<E>::from_input(stream))
+        std::unexpect, ErrMode::make_backtrack(error_traits<E>::from_input(stream, message))
     );
 }
 

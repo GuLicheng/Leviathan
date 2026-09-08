@@ -614,27 +614,22 @@ TEST_CASE("fill", "[combinator]")
 
 TEST_CASE("repeat_till", "[combinator]")
 {
-    // using StrVec = std::vector<std::string_view>;
+    using StrVec = std::vector<std::string_view>;
     
-    // auto parser = winnow::combinator::repeat_till(
-    //     winnow::token::literal("abc"),
-    //     winnow::token::literal("end"),
-    //     winnow::accumulate_traits<StrVec>{}
-    // );
+    using R = std::pair<StrVec, std::string_view>;
 
-    // REQUIRE(CheckResult(parser, Context("endabc"), Succeed<StrVec>{}, "abc"));
-    // // REQUIRE(CheckResult(parser, Context("abcabcend"), Succeed<StrVec>{ StrVec{"abc", "abc"} }, "end"));
-    // REQUIRE(CheckResult(parser, Context("abc123end"), Backtrack()));
-    // REQUIRE(CheckResult(parser, Context("123123end"), Backtrack()));
-    // REQUIRE(CheckResult(parser, Context(""), Backtrack()));
-    // REQUIRE(CheckResult(parser, Context("abcendefg"), Succeed<StrVec>{ StrVec{"abc"} }, "efg"));
+    auto parser = winnow::combinator::repeat_till(
+        winnow::token::literal("abc"),
+        winnow::token::literal("end"),
+        winnow::accumulate_traits<StrVec>{}
+    );
 
-        // assert_eq!(parser.parse_peek("endabc"), Ok(("", (vec![], "end"))));
-        // assert_eq!(parser.parse_peek("abcabcend"), Ok(("", (vec!["abc", "abc"], "end"))));
-        // assert!(parser.parse_peek("abc123end").is_err());
-        // assert!(parser.parse_peek("123123end").is_err());
-        // assert!(parser.parse_peek("").is_err());
-        // assert_eq!(parser.parse_peek("abcendefg"), Ok(("efg", (vec!["abc"], "end"))));
+    REQUIRE(CheckResult(parser, Context("endabc"), Succeed<R>{ std::make_pair(StrVec{}, "end") }, "abc"));
+    REQUIRE(CheckResult(parser, Context("abcabcend"), Succeed<R>{ std::make_pair(StrVec{"abc", "abc"}, "end") }, ""));
+    REQUIRE(CheckResult(parser, Context("abc123end"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("123123end"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context(""), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("abcendefg"), Succeed<R>{ std::make_pair(StrVec{"abc"}, "end") }, "efg"));
 }
 
 
