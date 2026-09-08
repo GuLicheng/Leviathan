@@ -60,7 +60,7 @@ inline constexpr auto multispace1 = token::take_while([](char c) { return c == '
 inline constexpr auto newline = token::literal("\n");
 inline constexpr auto tab = token::literal("\t");
 inline constexpr auto crlf = token::literal("\r\n");
-
-
+inline constexpr auto line_ending = combinator::alt(crlf, newline);
+inline constexpr auto till_line_ending = detail::till_line_ending_parser<char>();
 
 } // namespace winnow::ascii

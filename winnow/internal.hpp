@@ -35,7 +35,7 @@ struct verify_parser : parser_interface
 
         if (!std::invoke(predicate, result.value()))
         {
-            return make_backtrack_from_input<O>(stream);
+            return make_backtrack_from_input<R>(stream);
         }
 
         return R(std::in_place, std::move(result.value()));
@@ -174,7 +174,7 @@ struct literal_parser : parser_interface
         }
         else
         {
-            return make_backtrack_from_input<O>(stream);
+            return make_backtrack_from_input<R>(stream);
         }
     }
 };
@@ -212,7 +212,7 @@ struct take_while_parser : parser_interface
         {
             // It will return an ErrMode::Backtrack(_) if the 
             // set of tokens wasn’t met or is out of occurrences range.
-            return make_backtrack_from_input<O>(stream);
+            return make_backtrack_from_input<R>(stream);
         }
         else
         {
@@ -241,7 +241,7 @@ struct take_parser : parser_interface
         if (stream.size() < count)
         {
             // It will return Err(ErrMode::Backtrack(_)) if the input is shorter than the argument
-            return make_backtrack_from_input<O>(stream);
+            return make_backtrack_from_input<R>(stream);
         }
         else
         {
@@ -277,7 +277,7 @@ struct take_until_parser : parser_interface
         // tokens wasn’t met or is out of occurrences range.
         if (idx == literal_type::npos || !range.contains(idx))
         {
-            return make_backtrack_from_input<O>(stream);
+            return make_backtrack_from_input<R>(stream);
         }
 
         auto [left, right] = stream.split_at(idx);
@@ -576,7 +576,7 @@ struct not_parser : parser_interface
 
         if (result)
         {
-            return make_backtrack_from_input<O>(stream);
+            return make_backtrack_from_input<R>(stream);
         }
 
         if (result.error().is_backtrack())
@@ -632,7 +632,7 @@ struct repeat_parser : parser_interface
             if (size == stream.size())
             {
                 // Current loop will not consume any input, avoid infinite loop
-                return make_backtrack_from_input<O>(stream, "`repeat` parsers must always consume");
+                return make_backtrack_from_input<R>(stream, "`repeat` parsers must always consume");
             }
 
             if (range.is_over(count))
@@ -643,7 +643,7 @@ struct repeat_parser : parser_interface
 
         if (range.is_under(count))
         {
-            return make_backtrack_from_input<O>(stream);
+            return make_backtrack_from_input<R>(stream);
         }
 
         return R(std::in_place, std::move(collector));
@@ -691,7 +691,7 @@ struct separated_parser : parser_interface
                 }
                 else
                 {
-                    return make_backtrack_from_input<O>(stream);
+                    return make_backtrack_from_input<R>(stream);
                 }
             }
 
@@ -746,7 +746,7 @@ struct separated_parser : parser_interface
         if (!range.contains(results.size()))
         // if (!range.is_under(results.size()))
         {
-            return make_backtrack_from_input<O>(stream);
+            return make_backtrack_from_input<R>(stream);
         }
 
         return R(std::in_place, std::move(results));
@@ -797,7 +797,7 @@ struct fail_parser : parser_interface
     {
         using E = typename Stream::error_type;
         using R = modal_result<O, E>;
-        return make_backtrack_from_input<O>(stream);
+        return make_backtrack_from_input<R>(stream);
     }
 };
 
@@ -826,7 +826,7 @@ struct eof_parser : parser_interface
         }
         else
         {
-            return make_backtrack_from_input<O>(stream);
+            return make_backtrack_from_input<R>(stream);
         }
     }
 };
@@ -837,7 +837,7 @@ struct eof_parser : parser_interface
 // If the parser meets a Cut<E> result, user can access
 // it through the `cached_value` field.
 template <typename Stream, typename Parser>
-struct iterator_parser
+struct iterator_parser : parser_interface
 {
     using input_type = Stream;
     using result_type = std::invoke_result_t<Parser, Stream&>;  // modal_result<O, E>
@@ -908,7 +908,7 @@ struct iterator_parser
 // another param `sentinel`, which used for indicating whether the
 // parse should be stopped.
 template <typename Parser, typename Iterator, typename Sentinel>
-struct fill_parser
+struct fill_parser : parser_interface
 {
     Parser parser;
     [[no_unique_address]] Iterator iter;
@@ -944,7 +944,7 @@ struct fill_parser
 // Accumulate the output of parser f into a container until the 
 // parser g produces a result (bound by occurrences).
 template <typename Parser, typename TerminatorParser, typename Accumulator>
-struct repeat_till_parser
+struct repeat_till_parser : parser_interface
 {
     Parser parser;
     TerminatorParser terminator_parser;
@@ -970,7 +970,7 @@ struct repeat_till_parser
 
         if (stream.size() == 0)
         {
-            return make_backtrack_from_input<O>(stream);
+            return make_backtrack_from_input<R>(stream);
         }
 
         std::optional<R2> terminator_result;
@@ -1014,7 +1014,7 @@ struct repeat_till_parser
             if (stream.size() == prev_size)
             {
                 // No progress was made, avoid infinite loop.
-                return make_backtrack_from_input<O>(stream, "`repeat` parsers must always consume");
+                return make_backtrack_from_input<R>(stream, "`repeat` parsers must always consume");
             }
 
             accumulator.accumulate(results, std::move(item_result.value()));
@@ -1027,18 +1027,53 @@ struct repeat_till_parser
 
         if (range.is_under(results.size()))
         {
-            return make_backtrack_from_input<O>(stream);
+            return make_backtrack_from_input<R>(stream);
         }
 
         if (!terminator_result.has_value())
         {
-            return make_backtrack_from_input<O>(stream);
+            return make_backtrack_from_input<R>(stream);
         }
 
         return R(std::in_place, std::make_pair(std::move(results), std::move(terminator_result->value())));
 
     }
 
+};
+
+// Recognizes a string of 0+ characters until "\r\n", "\n", or eof.
+template <typename CharT>
+struct till_line_ending_parser : parser_interface
+{
+    static constexpr std::basic_string_view<CharT> line1 = "\n";
+    static constexpr std::basic_string_view<CharT> line2 = "\r\n";
+
+    template <typename Stream>
+    constexpr auto operator()(Stream stream) const
+    {
+        using E = typename Stream::error_type;
+        using O = std::basic_string_view<CharT>;
+        using R = modal_result<O, E>;
+        static_assert(std::is_same_v<typename Stream::char_type, CharT>, "Stream character type must match CharT");
+
+        // We can just find '\n' to determine the end of the line since
+        // '\r\n' will be handled as part of the line ending.
+        auto pos = stream.find_first_of(line1);
+
+        if (pos == line1.npos)
+        {
+            return make_backtrack_from_input<R>(stream);
+        }
+
+        if (pos > 0 && stream[pos - 1] == CharT('\r'))
+        {
+            --pos;
+        }
+
+        auto [left, right] = stream.split_at(pos);
+        stream = std::move(right);
+        return R(std::in_place, left);
+    }
 };
 
 }  // namespace winnow::detail

@@ -637,3 +637,32 @@ TEST_CASE("repeat_till", "[combinator]")
 
 
 
+TEST_CASE("some_new_test", "[combinator]")
+{
+
+    auto left = winnow::combinator::delimited(
+        winnow::ascii::alphanumeric0,
+        winnow::token::literal("["),
+        winnow::ascii::alphanumeric0
+    );
+
+    auto comment = winnow::combinator::delimited(
+        winnow::ascii::alphanumeric0,
+        winnow::token::literal("#"),
+        winnow::ascii::till_line_ending
+    );
+
+    auto right = winnow::combinator::delimited(
+        winnow::ascii::alphanumeric0,
+        winnow::token::literal("]"),
+        winnow::ascii::alphanumeric0
+    );
+
+}
+
+
+
+
+
+
+
