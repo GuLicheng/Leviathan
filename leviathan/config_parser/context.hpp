@@ -107,6 +107,13 @@ struct context_interface
         return !self.to_string_view().empty();
     }
 
+    /**
+     * @brief Peek at the character at the specified offset without consuming it.
+     * 
+     * @param self The input context.
+     * @param offset The offset from the current position.
+     * @return The character at the specified offset, or CharT(0) if out of bounds.
+     */
     template <typename Self>
     constexpr CharT peek(this const Self& self, size_type offset) 
     {   
@@ -114,18 +121,36 @@ struct context_interface
         return offset < sv.size() ? sv[offset] : CharT(0);
     }
 
+    /**
+     * @brief Get the current character without consuming it.
+     * 
+     * @param self The input context.
+     * @return The current character, or CharT(0) if at the end of the input.
+     */
     template <typename Self>
     constexpr CharT current(this const Self& self) 
     {   
         return self.peek(0);
     }
 
+    /**
+     * @brief Get the next character without consuming it.
+     * 
+     * @param self The input context.
+     * @return The next character, or CharT(0) if at the end of the input.
+     */
     template <typename Self>
     constexpr CharT next(this const Self& self)
     {   
         return self.peek(1);
     }
 
+    /**
+     * @brief Test if the input has reached the end.
+     * 
+     * @param self The input context.
+     * @return true if the input is at the end, false otherwise.
+     */
     template <typename Self>
     constexpr bool eof(this const Self& self) 
     {   
@@ -149,6 +174,14 @@ struct context_interface
         return true; 
     }
 
+    /**
+     * @brief Test if the input starts with the specified string and optionally consume it.
+     * 
+     * @param self The input context.
+     * @param str The string to match at the beginning of the input.
+     * @param consume Whether to consume the matched string.
+     * @return true if the input starts with the specified string, false otherwise.
+     */
     template <typename Self>
     constexpr bool match(this Self& self, std::basic_string_view<CharT> str, bool consume) 
     {   
@@ -164,6 +197,14 @@ struct context_interface
         return true;
     }
 
+    /**
+     * @brief Test if the input starts with the specified character and optionally consume it.
+     * 
+     * @param self The input context.
+     * @param ch The character to match at the beginning of the input.
+     * @param consume Whether to consume the matched character.
+     * @return true if the input starts with the specified character, false otherwise.
+     */
     template <typename Self>
     constexpr bool match(this Self& self, CharT ch, bool consume) 
     {   
@@ -180,6 +221,14 @@ struct context_interface
         return true;
     }
 
+    /**
+     * @brief Splits the input at the specified position.
+     * 
+     * @param self The input context.
+     * @param n The position at which to split.
+     * @return A pair of contexts representing the left and right parts after the split.
+     *  The left part is [0, n) and the right part is [n, size()).
+     */
     template <typename Self>
     constexpr std::pair<Self, Self> split_at(this const Self& self, size_type n) 
     {

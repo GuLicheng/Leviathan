@@ -632,28 +632,18 @@ TEST_CASE("repeat_till", "[combinator]")
     REQUIRE(CheckResult(parser, Context("abcendefg"), Succeed<R>{ std::make_pair(StrVec{"abc"}, "end") }, "efg"));
 }
 
-TEST_CASE("ascii", "[ascii]")
+TEST_CASE("till_line_ending", "[combinator]")
 {
-    REQUIRE(CheckResult(winnow::ascii::alphanumeric1, Context("abc123"), Succeed<std::string_view>{ "abc123" }, ""));
-    REQUIRE(CheckResult(winnow::ascii::alphanumeric1, Context("0!@#"), Succeed<std::string_view>{ "0" }, "!@#"));
+    auto parser = winnow::ascii::till_line_ending;
 
-    REQUIRE(CheckResult(winnow::ascii::alphanumeric0, Context("!@#"), Succeed<std::string_view>{ "" }, "!@#"));
-    REQUIRE(CheckResult(winnow::ascii::alphanumeric0, Context("abc123"), Succeed<std::string_view>{ "abc123" }, ""));
-    REQUIRE(CheckResult(winnow::ascii::alphanumeric0, Context("123abc"), Succeed<std::string_view>{ "123abc" }, ""));
-    REQUIRE(CheckResult(winnow::ascii::alphanumeric0, Context(""), Succeed<std::string_view>{ "" }, ""));
+    REQUIRE(CheckResult(parser, Context("ab\r\nc"), Succeed<std::string_view>{ "ab" }, "\r\nc"));
+    REQUIRE(CheckResult(parser, Context("ab\nc"), Succeed<std::string_view>{ "ab" }, "\nc"));
+    REQUIRE(CheckResult(parser, Context("abc"), Succeed<std::string_view>{ "abc" }, ""));
+    REQUIRE(CheckResult(parser, Context(""), Succeed<std::string_view>{ "" }, ""));
+    REQUIRE(CheckResult(parser, Context("a\rb\nc"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("a\rbc"), Backtrack()));
 }
 
-TEST_CASE("multi-parsers", "[combinator|token|ascii]")
-{
-    auto left = winnow::combinator::delimited(
-        winnow::ascii::alphanumeric0,
-        winnow::token::literal("Value"),
-        winnow::ascii::alphanumeric0
-    );
-
-    REQUIRE(CheckResult(left, Context(" Value "), Succeed<std::string_view>{ "Value" }, " "));
-
-}
 
 
 

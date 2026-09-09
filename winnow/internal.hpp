@@ -1049,25 +1049,27 @@ struct till_line_ending_parser : parser_interface
     static constexpr std::basic_string_view<CharT> line2 = "\r\n";
 
     template <typename Stream>
-    constexpr auto operator()(Stream stream) const
+    constexpr auto operator()(Stream& stream) const
     {
         using E = typename Stream::error_type;
         using O = std::basic_string_view<CharT>;
         using R = modal_result<O, E>;
         static_assert(std::is_same_v<typename Stream::char_type, CharT>, "Stream character type must match CharT");
 
-        // We can just find '\n' to determine the end of the line since
-        // '\r\n' will be handled as part of the line ending.
-        auto pos = stream.find_first_of(line1);
+        auto pos = stream.find_first_of(line2);
 
-        if (pos == line1.npos)
+        if (pos == line2.npos)
         {
-            return make_backtrack_from_input<R>(stream);
+            // EOF reached, return an empty string as the line content.
+            auto [left, right] = stream.split_at(stream.size());
+            stream = std::move(right);
+            return R(std::in_place, left);
         }
 
-        if (pos > 0 && stream[pos - 1] == CharT('\r'))
+        if (stream[pos] == '\r' && stream.peek(pos + 1) != '\n')
         {
-            --pos;
+            // '\r' must be followed by '\n' to be considered a valid line ending.
+            return make_backtrack_from_input<R>(stream);
         }
 
         auto [left, right] = stream.split_at(pos);
