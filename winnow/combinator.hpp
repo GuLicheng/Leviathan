@@ -17,7 +17,7 @@
     - peek
     - preceded
     - repeat
-    - [x] repeat_till
+    - repeat_till
     - separated
     - [x] separated_foldl1
     - [x] separated_foldr1

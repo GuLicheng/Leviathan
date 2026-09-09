@@ -632,33 +632,30 @@ TEST_CASE("repeat_till", "[combinator]")
     REQUIRE(CheckResult(parser, Context("abcendefg"), Succeed<R>{ std::make_pair(StrVec{"abc"}, "end") }, "efg"));
 }
 
-
-
-
-
-
-TEST_CASE("some_new_test", "[combinator]")
+TEST_CASE("ascii", "[ascii]")
 {
+    REQUIRE(CheckResult(winnow::ascii::alphanumeric1, Context("abc123"), Succeed<std::string_view>{ "abc123" }, ""));
+    REQUIRE(CheckResult(winnow::ascii::alphanumeric1, Context("0!@#"), Succeed<std::string_view>{ "0" }, "!@#"));
 
+    REQUIRE(CheckResult(winnow::ascii::alphanumeric0, Context("!@#"), Succeed<std::string_view>{ "" }, "!@#"));
+    REQUIRE(CheckResult(winnow::ascii::alphanumeric0, Context("abc123"), Succeed<std::string_view>{ "abc123" }, ""));
+    REQUIRE(CheckResult(winnow::ascii::alphanumeric0, Context("123abc"), Succeed<std::string_view>{ "123abc" }, ""));
+    REQUIRE(CheckResult(winnow::ascii::alphanumeric0, Context(""), Succeed<std::string_view>{ "" }, ""));
+}
+
+TEST_CASE("multi-parsers", "[combinator|token|ascii]")
+{
     auto left = winnow::combinator::delimited(
         winnow::ascii::alphanumeric0,
-        winnow::token::literal("["),
+        winnow::token::literal("Value"),
         winnow::ascii::alphanumeric0
     );
 
-    auto comment = winnow::combinator::delimited(
-        winnow::ascii::alphanumeric0,
-        winnow::token::literal("#"),
-        winnow::ascii::till_line_ending
-    );
-
-    auto right = winnow::combinator::delimited(
-        winnow::ascii::alphanumeric0,
-        winnow::token::literal("]"),
-        winnow::ascii::alphanumeric0
-    );
+    REQUIRE(CheckResult(left, Context(" Value "), Succeed<std::string_view>{ "Value" }, " "));
 
 }
+
+
 
 
 
