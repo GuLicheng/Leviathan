@@ -11,9 +11,8 @@ int main()
     auto alloc = std::pmr::polymorphic_allocator<std::string_view>{};
 
     auto parser1 = winnow::combinator::repeat2<^^std::vector>(
-        winnow::token::literal("123"),
-        winnow::from(0),
-        alloc
+        winnow::token::literal("123").map([](auto&& s){ return std::stoi(std::string(s)); }),
+        winnow::from(0)
     );
 
     auto vec = parser1(context);

@@ -733,7 +733,8 @@ struct repeat_container_parser : parser_interface
             }
 
             // Both std::vector and std::set support insert with position 
-            collector.insert(collector.end(), std::move(result.value()));
+            // collector.insert(collector.end(), std::move(result.value()));
+            collector.emplace(collector.end(), std::move(result.value()));
             ++count;
 
             if (size == stream.size())
