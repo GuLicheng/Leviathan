@@ -30,14 +30,13 @@ struct error_traits
 
     /**
      * @brief Append context description to existing error.
-     * @tparam Stream Stream type satisfying stream concept.
-     * @tparam Item Context metadata type (like StrContext in winnow).
+     * @param e The error object to which the context is being added.
      * @param stream Current parse input stream.
-     * @param err Existing error instance.
-     * @param item Additional context information.
+     * @param token_start The checkpoint in the input stream where the context is being added.
+     * @param ctx Additional context information.
      */
-    template <typename Stream, typename Item>
-    static constexpr E add_context(const Stream& stream, E err, Item&& item);
+    template <typename Stream, typename Context>
+    static constexpr void add_context(E& e, Stream& stream, Context ctx);
 
     /**
      * @brief Convert external error (e.g. numeric parse fail) into parse error.
@@ -46,13 +45,13 @@ struct error_traits
      * @param stream Current parse input stream.
      * @param ext Original external error.
      */
-    template <typename Stream, typename Ext>
-    static constexpr E from_external(const Stream& stream, Ext&& ext);
+    // template <typename Stream, typename Ext>
+    // static constexpr E from_external(const Stream& stream, Ext&& ext);
 
 
     // fn append(self, _input: &I, _token_start: &<I as Stream>::Checkpoint) -> Self
-    template <typename Stream, typename Checkpoint>
-    static constexpr E append(E err, Stream& stream, const Checkpoint& checkpoint);
+    // template <typename Stream, typename Checkpoint>
+    // static constexpr E append(E err, Stream& stream, const Checkpoint& checkpoint);
 
 };
 

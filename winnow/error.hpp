@@ -67,14 +67,23 @@ public:
     constexpr bool is_backtrack() const { return value.index() == 1; }
     constexpr bool is_cut() const { return value.index() == 2; }
 
-    constexpr auto& as_incomplete() const { return std::get<0>(value); }
-    constexpr auto& as_incomplete() { return std::get<0>(value); }
-    
-    constexpr auto& as_backtrack() { return std::get<1>(value); }
-    constexpr auto& as_backtrack() const { return std::get<1>(value); }
+    template <typename Self>
+    constexpr auto&& as_incomplete(this Self&& self)
+    {
+        return std::get<0>(((Self&&)self).value);
+    }
 
-    constexpr auto& as_cut() { return std::get<2>(value); }
-    constexpr auto& as_cut() const { return std::get<2>(value); }
+    template <typename Self>
+    constexpr auto&& as_backtrack(this Self&& self)
+    {
+        return std::get<1>(((Self&&)self).value);
+    }
+
+    template <typename Self>
+    constexpr auto&& as_cut(this Self&& self)
+    {
+        return std::get<2>(((Self&&)self).value);
+    }
 
     constexpr void switch_to_cut()
     {
@@ -92,10 +101,41 @@ public:
         }
     }
 
+    template <typename Self>
+    constexpr auto& inner_error(this Self&& self) 
+    {
+        if (self.is_backtrack())
+        {
+            return ((Self&&)self).as_backtrack();
+        }
+        else if (self.is_cut())
+        {
+            return ((Self&&)self).as_cut();
+        }
+        else
+        {
+            throw std::runtime_error("inner_error called on an incomplete error");
+        }
+    }
+
 private:
 
     // This implementation may not perfectly, since the Backtrack and Cut errors share the same type (Error).
     std::variant<Incomplete, Error, Error> value;
+
+    /*
+        Maybe a better implementation:
+        
+        class
+        {
+            union
+            {
+                Incomplete incomplete;
+                Error error;
+            };
+            enum class State { Incomplete, Backtrack, Cut, Unknown } state;
+        }
+    */
 
 };
 
@@ -137,21 +177,19 @@ struct error_traits<context_error>
         };
     }
 
-    template <typename Stream, typename Item>
-    static constexpr context_error add_context(const Stream& /*stream*/, context_error err, Item&& item)
+    template <typename Stream, typename Context>
+    static constexpr void add_context(context_error& e, Stream& stream, Context ctx)
     {
-        err.context_stack.push_back(std::forward<Item>(item));
-        return err;
+        e.context_stack.push_back(std::move(ctx));
     }
 
-    template <typename Stream, typename Ext>
-    static constexpr context_error from_external(const Stream& /*stream*/, Ext&& ext)
-    {
-        context_error e{};
-        e.cause = std::forward<Ext>(ext);
-        return e;
-    }
-
+    // template <typename Stream, typename Ext>
+    // static constexpr context_error from_external(const Stream& /*stream*/, Ext&& ext)
+    // {
+    //     context_error e{};
+    //     e.cause = std::forward<Ext>(ext);
+    //     return e;
+    // }
     
 };
 

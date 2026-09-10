@@ -18,6 +18,7 @@
     - newline
     - tab
     - crlf
+    - till_line_ending
     
     - [x] dec_int
     - [x] dec_uint
@@ -26,7 +27,6 @@
     - [x] hex_uint
     - [x] line_ending
     - [x] take_escaped
-    - [x] till_line_ending
 */
 
 #pragma once

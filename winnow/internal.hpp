@@ -10,6 +10,34 @@
 namespace winnow::detail
 {
 
+template <typename Parser, typename Context>
+struct context_parser
+{
+    Parser parser;
+    Context context;
+
+    context_parser(Parser p, Context c) : parser(std::move(p)), context(std::move(c)) {}
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using ErrTraits = error_traits<E>;
+
+        auto clone = stream;
+        auto result = parser(stream);
+        
+        if (!result)
+        {
+            // Use origin stream to generator error information
+            ErrTraits::add_context(result.error().inner_error(), clone, context);
+        }
+
+        return result;
+    }
+
+};
+
 // Returns the output of the child parser if it satisfies a verification function.
 template <typename Parser, typename P>
 struct verify_parser : parser_interface

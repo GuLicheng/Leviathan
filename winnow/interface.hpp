@@ -9,6 +9,10 @@ template <typename Parser, typename P> struct verify_parser;
 
 template <typename Parser, typename Value> struct value_parser;
 
+template <typename Parser> struct cut_err_parser;
+
+template <typename Parser, typename Context> struct context_parser;
+
 struct parser_interface
 {
     template <typename Self, typename F>
@@ -27,6 +31,18 @@ struct parser_interface
     constexpr auto value(this Self&& self, Value&& value)
     {
         return value_parser<std::decay_t<Self>, Value>{(Self&&)self, (Value&&)value};
+    }
+
+    template <typename Self>
+    constexpr auto cut(this Self&& self)
+    {
+        return cut_err_parser<std::decay_t<Self>>{(Self&&)self};
+    }
+
+    template <typename Self, typename Context>
+    constexpr auto context(this Self&& self, Context&& context)
+    {
+        return context_parser<std::decay_t<Self>, Context>{(Self&&)self, (Context&&)context};
     }
 };
 
