@@ -1,27 +1,22 @@
-#include <winnow/error.hpp>
-#include <winnow/utils.hpp>
-#include <winnow/result.hpp>
+#include <winnow/all.hpp>
 #include <print>
-
-template <template <typename...> typename Container>
-struct Example
-{
-    template <typename T>
-    static constexpr auto DoSomething(T value) 
-    {
-        Container<T> container{value};
-        return container;
-    }
-};
-
-template <template <typename...> typename Container>
-inline constexpr Example<Container> Instance;
+#include <meta>
 
 int main()
 {
-    auto vec = Instance<std::vector>.DoSomething(40);
+    using StrVec = std::vector<std::string>;
 
+    auto context = winnow::stream<winnow::context_error>("123123123!");
 
+    auto alloc = std::pmr::polymorphic_allocator<std::string_view>{};
 
-    std::println("vec = {}", vec);
+    auto parser1 = winnow::combinator::repeat2<^^std::vector>(
+        winnow::token::literal("123"),
+        winnow::from(0),
+        alloc
+    );
+
+    auto vec = parser1(context);
+    std::println("vec = {}", vec.value());
+
 }

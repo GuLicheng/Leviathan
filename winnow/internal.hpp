@@ -694,12 +694,12 @@ struct repeat_parser : parser_interface
     }
 };
 
-template <typename Parser, template <typename...> typename Container, typename... Args>
+template <typename Parser, std::meta::info Info, typename... Args>
 struct repeat_container_parser : parser_interface
 {
     Parser parser;
-    [[no_unique_address]] std::tuple<Args...> args;
     occurrences<size_t> range;
+    [[no_unique_address]] std::tuple<Args...> args;
 
     constexpr repeat_container_parser(Parser p, occurrences<size_t> r, Args... a)
         : parser(std::move(p)), range(std::move(r)), args(std::move(a)...) { }
@@ -709,7 +709,7 @@ struct repeat_container_parser : parser_interface
     {
         using E = typename Stream::error_type;
         using O1 = typename std::invoke_result_t<Parser, Stream&>::value_type;
-        using C = Container<O1, Args...>;
+        using C = typename [:try_substitute<Info, O1, Args...>():];
 
         auto collector = std::make_from_tuple<C>(args);
 
@@ -757,7 +757,7 @@ struct repeat_container_parser : parser_interface
     }
 };
 
-template <template <typename...> typename Container>
+template <std::meta::info Container>
 struct repeat_fn
 {
     template <typename Parser, typename... Args>
