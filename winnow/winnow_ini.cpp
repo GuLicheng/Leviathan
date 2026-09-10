@@ -7,60 +7,93 @@ class InIParser
 {
 public:
 
-    static auto Parse(Context& ctx)
-    {
-        auto SectionLeftparenthesis = winnow::combinator::delimited(
+    static auto Parse(Context& ctx) {
+
+        auto comment_consumer = winnow::combinator::delimited(
+            winnow::combinator::preceded(
+                winnow::ascii::multispace0,  // consume leading whitespace
+                winnow::token::literal(";")  // comment indicator
+            ),
+            winnow::ascii::till_line_ending,
+            winnow::ascii::line_ending
+        );
+
+        auto left_parenthesis = winnow::combinator::delimited(
             winnow::ascii::multispace0,
-            winnow::token::literal("[").context(winnow::str_context(winnow::str_context_kind::expected, "Expected '['")),
+            winnow::token::literal("["),
             winnow::ascii::multispace0
         );
 
-        auto SectionRightparenthesis = winnow::combinator::delimited(
+        auto right_parenthesis = winnow::combinator::delimited(
             winnow::ascii::multispace0,
             winnow::token::literal("]"),
+            winnow::combinator::terminated(
+                winnow::ascii::multispace0,
+                winnow::combinator::opt(comment_consumer)
+            )
+        );
+
+        auto identifier = winnow::token::take_while([](char c) {
+            return std::isalnum(c) || c == '.';
+        }, 1);
+
+        auto section_parser = winnow::combinator::delimited(
+            left_parenthesis,
+            identifier,
+            right_parenthesis
+        );
+
+        // key = value
+
+        auto key_parser = winnow::combinator::delimited(
+            winnow::ascii::multispace0,
+            identifier,
             winnow::ascii::multispace0
         );
 
-        auto parser = winnow::combinator::delimited(
-            SectionLeftparenthesis,
-            winnow::ascii::alphanumeric1,
-            SectionRightparenthesis
+        auto value_parser = winnow::combinator::delimited(
+            winnow::ascii::multispace0,
+            winnow::token::take_while([](char c) {
+                return ValidCharacters.contains(c);
+            }, 1),
+            winnow::combinator::terminated(
+                winnow::ascii::multispace0,
+                winnow::combinator::opt(comment_consumer)
+            )
         );
 
-        return parser(ctx);
+        auto entry_parser = winnow::combinator::repeat(
+            winnow::combinator::separated_pair(
+                key_parser,
+                winnow::token::literal("="),
+                value_parser
+            )
+        );
+
+        auto line_parser = winnow::combinator::repeat(
+            winnow::combinator::sequence(
+                section_parser,
+                winnow::combinator::opt(entry_parser)
+            )
+        );
+
+        auto parser = winnow::combinator::preceded(
+            winnow::combinator::repeat()
+        )
     }
 
-    static auto InICommit(Context& ctx)
-    {
-        return winnow::combinator::delimited(
-            winnow::ascii::multispace0,
-            winnow::token::literal(";"),
-            winnow::ascii::till_line_ending
-        )(ctx);
-    }
-};
+    static constexpr std::string_view ValidCharacters = 
+            "abcdefghijklmnopqrstuvwxyz"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "0123456789"
+            "`~!@#$%^&*()-_=+[{]}\\|:'\",<.>/? ";
 
-template <typename Error, typename Need = size_t>
-class ErrorMode
-{
-    union
-    {
-        Need need;
-        Error error;
-    };
-
-    enum class State { Incomplete, Backtrack, Cut, Unknown } state;
-
-    Error backtrack()
-    {
-        return this->error;
-    }
 };
 
 
 int main()
 {
-    auto ctx = Context("[ section ]");
+    auto ctx = Context("[ section ] ; This is commit");
 
     auto result = InIParser::Parse(ctx);
     std::print("Result: {}\n", result.value());

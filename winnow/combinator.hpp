@@ -187,4 +187,19 @@ inline constexpr struct
     }
 } repeat_till;
 
+inline constexpr struct
+{
+    template <typename... Parsers>
+    static constexpr auto operator()(Parsers... parsers)
+    {
+        return detail::sequence_parser<Parsers...>(std::move(parsers)...);
+    }
+} sequence;
+
+
+
+template <template <typename...> typename Container>
+inline constexpr detail::repeat_fn<Container> repeat2;
+
+
 }  // namespace winnow::combinator

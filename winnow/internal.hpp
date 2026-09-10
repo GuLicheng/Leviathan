@@ -1,3 +1,19 @@
+/*
+    Something may be better:
+
+    1. Add [[no_unique_address]] to parser members to potentially optimize empty base class storage since some parser
+        such as rest_parsers or just a function/class-method may not hold any state.
+
+    2. Use forwarding references instead of by-value parameters in constructors to avoid unnecessary copies or moves.
+        We just use by-value parameters for simplicity in this implementation which behaviour as Rust, but
+        for C++ style, forwarding references would be more appropriate.
+
+    3. This library is just a toy library and may not cover all edge cases or be fully optimized for performance.
+
+    https://github.com/Qqwy/cpp-parser_combinators/blob/main/simple/main.cc#L391
+
+
+*/
 
 #pragma once
 
@@ -678,10 +694,84 @@ struct repeat_parser : parser_interface
     }
 };
 
+template <typename Parser, template <typename...> typename Container, typename... Args>
+struct repeat_container_parser : parser_interface
+{
+    Parser parser;
+    [[no_unique_address]] std::tuple<Args...> args;
+    occurrences<size_t> range;
+
+    constexpr repeat_container_parser(Parser p, occurrences<size_t> r, Args... a)
+        : parser(std::move(p)), range(std::move(r)), args(std::move(a)...) { }
+    
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using O1 = typename std::invoke_result_t<Parser, Stream&>::value_type;
+        using C = Container<O1, Args...>;
+
+        auto collector = std::make_from_tuple<C>(args);
+
+        using O = decltype(collector);
+        using R = modal_result<O, E>;
+
+        size_t count = 0;
+        size_t size = stream.size();
+
+        while (stream.size())
+        {
+            auto result = parser(stream);
+
+            if (!result) 
+            {
+                if (result.error().is_cut())
+                {
+                    return R(std::unexpect, result.error());
+                }
+                break;
+            }
+
+            // Both std::vector and std::set support insert with position 
+            collector.insert(collector.end(), std::move(result.value()));
+            ++count;
+
+            if (size == stream.size())
+            {
+                // Current loop will not consume any input, avoid infinite loop
+                return make_backtrack_from_input<R>(stream, "`repeat` parsers must always consume");
+            }
+
+            if (range.is_over(count))
+            {
+                break;
+            }
+        }
+
+        if (range.is_under(count))
+        {
+            return make_backtrack_from_input<R>(stream);
+        }
+
+        return R(std::in_place, std::move(collector));
+    }
+};
+
+template <template <typename...> typename Container>
+struct repeat_fn
+{
+    template <typename Parser, typename... Args>
+    static constexpr auto operator()(Parser parser, occurrences<size_t> r, Args&&... args)
+    {
+        return detail::repeat_container_parser<Parser, Container, std::decay_t<Args>...>(
+            std::move(parser), r, (Args&&)args...);
+    }
+};
+
 template <typename Parser, typename Sep, typename Accumulator>
 struct separated_parser : parser_interface
 {
-    Parser parser;
+    [[no_unique_address]] Parser parser;
     [[no_unique_address]] Sep separator;
     [[no_unique_address]] Accumulator accumulator;
     occurrences<size_t> range; 
@@ -791,7 +881,7 @@ struct cond_parser : parser_interface
         : condition(condition), parser(std::move(parser)) { }
 
     template <typename Stream>
-    constexpr auto operator()(Stream& stream)
+    constexpr auto operator()(Stream& stream) const
     {
         using E = typename Stream::error_type;
         using O = std::optional<std::invoke_result_t<Parser, Stream&>>;
@@ -1105,6 +1195,52 @@ struct till_line_ending_parser : parser_interface
         return R(std::in_place, left);
     }
 };
+
+template <typename... Parsers>
+struct sequence_parser : parser_interface
+{
+    std::tuple<Parsers...> parsers;
+
+    static constexpr auto indices = std::make_index_sequence<sizeof...(Parsers)>{};
+
+    constexpr sequence_parser(Parsers... ps) : parsers(std::move(ps)...) { } 
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using OptOs = std::tuple<std::optional<typename std::invoke_result_t<Parsers, Stream&>::value_type>...>;
+        using Os = std::tuple<typename std::invoke_result_t<Parsers, Stream&>::value_type...>;
+        using R = modal_result<Os, E>;
+
+        OptOs opt_results;
+        std::optional<err_mode<E>> err;
+        
+        template for (constexpr auto idx : indices)
+        {
+            auto& parser = std::get<idx>(parsers);
+            auto result = parser(stream);
+
+            if (!result.has_value())
+            {
+                err.emplace(std::move(result.error()));
+                break;
+            }
+
+            std::get<idx>(opt_results).emplace(std::move(result.value()));
+        }
+
+        if (err.has_value())
+        {
+            return make_backtrack_from_input<R>(stream);
+        }
+
+        constexpr auto [...idx] = indices; 
+
+        return R(std::in_place, Os(std::move(std::get<idx>(opt_results).value())...));
+    }
+};
+
 
 }  // namespace winnow::detail
 

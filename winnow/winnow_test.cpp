@@ -644,7 +644,18 @@ TEST_CASE("till_line_ending", "[combinator]")
     REQUIRE(CheckResult(parser, Context("a\rbc"), Backtrack()));
 }
 
+TEST_CASE("sequence_parser", "[combinator]")
+{
+    auto parser = winnow::combinator::sequence(
+        winnow::token::literal("abc"),
+        winnow::token::literal("123")
+    );
 
+    REQUIRE(CheckResult(parser, Context("abc123"), Succeed<std::tuple<std::string_view, std::string_view>>{ std::make_tuple("abc", "123") }, ""));
+    REQUIRE(CheckResult(parser, Context("abc"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("123"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context(""), Backtrack()));
+}
 
 
 

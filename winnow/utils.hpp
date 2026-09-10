@@ -136,6 +136,20 @@ struct occurrences
     }
 };
 
+constexpr occurrences<size_t> range(size_t lower, size_t upper)
+{
+    return occurrences<size_t>(lower, upper);
+}
+
+constexpr occurrences<size_t> from(size_t lower)
+{
+    return occurrences<size_t>(lower, std::nullopt);
+}
+
+constexpr occurrences<size_t> upto(size_t upper)
+{
+    return range(0, upper);
+}
 
 using unit = std::tuple<>;
 
