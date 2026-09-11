@@ -373,11 +373,10 @@ TEST_CASE("alt", "[choice][combinator]")
 
 TEST_CASE("repeat", "[combinator]")
 {
-    using StrVec = std::vector<std::string>;
+    using StrVec = std::vector<std::string_view>;
 
-    auto parser1 = winnow::combinator::repeat(
-        winnow::token::literal("abc"),
-        winnow::accumulate_traits<StrVec>()
+    auto parser1 = winnow::combinator::repeat<std::vector>(
+        winnow::token::literal("abc")
     );
 
     REQUIRE(CheckResult(parser1, Context("abcabc"), Succeed<StrVec>{ StrVec{ "abc", "abc" } }, ""));
@@ -385,10 +384,9 @@ TEST_CASE("repeat", "[combinator]")
     REQUIRE(CheckResult(parser1, Context("123123"), Succeed<StrVec>{ StrVec{} }, "123123"));
     REQUIRE(CheckResult(parser1, Context(""), Succeed<StrVec>{ StrVec{} }, ""));
 
-    auto parser2 = winnow::combinator::repeat(
+    auto parser2 = winnow::combinator::repeat<std::vector>(
         winnow::token::literal("abc"),
-        winnow::accumulate_traits<StrVec>(),
-        1
+        winnow::from(1)
     );
 
 
@@ -397,10 +395,9 @@ TEST_CASE("repeat", "[combinator]")
     REQUIRE(CheckResult(parser2, Context("123123"), Backtrack()));
     REQUIRE(CheckResult(parser2, Context(""), Backtrack()));
 
-    auto parser3 = winnow::combinator::repeat(
+    auto parser3 = winnow::combinator::repeat<std::vector>(
         winnow::token::literal("abc"),
-        winnow::accumulate_traits<StrVec>(),
-        0, 2
+        winnow::range(0, 2)
     );
 
     REQUIRE(CheckResult(parser3, Context("abcabc"), Succeed<StrVec>{ StrVec{ "abc", "abc" } }, ""));
@@ -410,9 +407,8 @@ TEST_CASE("repeat", "[combinator]")
     REQUIRE(CheckResult(parser3, Context("abcabcabc"), Succeed<StrVec>{ StrVec{ "abc", "abc" } }, "abc"));
 
 
-    auto parser4 = winnow::combinator::repeat(
-        winnow::ascii::alpha0,
-        winnow::accumulate_traits<StrVec>()
+    auto parser4 = winnow::combinator::repeat<std::vector>(
+        winnow::ascii::alpha0
     );
 
     // Avoid infinite loop on non-matching input

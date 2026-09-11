@@ -347,7 +347,8 @@ struct preceded_parser : parser_interface
         using R1 = std::invoke_result_t<IgnoredParser, Stream&>;
         using R2 = std::invoke_result_t<Parser, Stream&>;
         using R = R2;
-        static_assert(std::is_same_v<R1, R2>, "The result types of the main parser and the ignored parser must be the same.");
+
+        // We do not care about the result type of the ignored parser.
 
         auto ignored_result = ignored_parser(stream);
 
@@ -378,7 +379,8 @@ struct terminated_parser : parser_interface
         using R1 = std::invoke_result_t<Parser, Stream&>;
         using R2 = std::invoke_result_t<IgnoredParser, Stream&>;
         using R = R1;
-        static_assert(std::is_same_v<R1, R2>, "The result types of the main parser and the ignored parser must be the same.");
+
+        // We donot care about the result type of the ignored parser.
 
         auto result = parser(stream);
 
@@ -636,8 +638,9 @@ struct not_parser : parser_interface
     }
 };
 
+
 template <typename Accumulator, typename Parser>
-struct repeat_parser : parser_interface
+struct [[deprecated("use repeat_container_parser instead")]] repeat_parser : parser_interface
 {
     Parser parser;
     [[no_unique_address]] Accumulator accumulator;
@@ -766,6 +769,12 @@ struct repeat_fn
     {
         return detail::repeat_container_parser<Parser, Container, std::decay_t<Args>...>(
             std::move(parser), r, (Args&&)args...);
+    }
+
+    template <typename Parser>
+    static constexpr auto operator()(Parser parser)
+    {
+        return operator()(std::move(parser), { 0, std::nullopt });
     }
 };
 
