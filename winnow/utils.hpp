@@ -4,7 +4,6 @@
 #include <ranges>
 #include <iterator>
 #include <contracts>
-#include <meta>
 
 namespace winnow
 {
@@ -154,22 +153,6 @@ constexpr occurrences<size_t> upto(size_t upper)
 
 using unit = std::tuple<>;
 
-template <std::meta::info C, typename T, typename... Args>
-consteval std::meta::info try_substitute()
-{
-    if (std::meta::is_template(C))
-    {
-        return std::meta::substitute(C, { ^^T, ^^Args... });
-    }
-    else if (std::meta::is_class_type(C))
-    {
-        return C;
-    }
-    else
-    {
-        throw std::runtime_error("Expected type of template class such as std::vector or std::string.");
-    }
-}
 
 }  // namespace winnow
 

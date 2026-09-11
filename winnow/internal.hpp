@@ -694,7 +694,7 @@ struct repeat_parser : parser_interface
     }
 };
 
-template <typename Parser, std::meta::info Info, typename... Args>
+template <typename Parser, template <typename...> class Container, typename... Args>
 struct repeat_container_parser : parser_interface
 {
     Parser parser;
@@ -709,7 +709,7 @@ struct repeat_container_parser : parser_interface
     {
         using E = typename Stream::error_type;
         using O1 = typename std::invoke_result_t<Parser, Stream&>::value_type;
-        using C = typename [:try_substitute<Info, O1, Args...>():];
+        using C = Container<O1, Args...>;
 
         auto collector = std::make_from_tuple<C>(args);
 
@@ -758,7 +758,7 @@ struct repeat_container_parser : parser_interface
     }
 };
 
-template <std::meta::info Container>
+template <template <typename...> class Container>
 struct repeat_fn
 {
     template <typename Parser, typename... Args>

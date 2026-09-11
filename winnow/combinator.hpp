@@ -196,7 +196,7 @@ inline constexpr struct
     }
 } sequence;
 
-template <std::meta::info Container>
+template <template <typename...> class Container>
 inline constexpr detail::repeat_fn<Container> repeat2;
 
 
