@@ -1,5 +1,5 @@
-#include "all.hpp"
 #include <print>
+#include <winnow/winnow.hpp>
 #include <leviathan/extc++/all.hpp>
 
 using Context = winnow::stream<winnow::context_error>;

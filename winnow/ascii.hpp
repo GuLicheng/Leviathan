@@ -19,13 +19,13 @@
     - tab
     - crlf
     - till_line_ending
+    - line_ending
     
     - [x] dec_int
     - [x] dec_uint
     - [x] escaped
     - [x] float
     - [x] hex_uint
-    - [x] line_ending
     - [x] take_escaped
 */
 
@@ -62,5 +62,7 @@ inline constexpr auto tab = token::literal("\t");
 inline constexpr auto crlf = token::literal("\r\n");
 inline constexpr auto line_ending = combinator::alt(crlf, newline);
 inline constexpr auto till_line_ending = detail::till_line_ending_parser<char>();
+
+
 
 } // namespace winnow::ascii

@@ -4,7 +4,7 @@
 #include <print>
 #include <string>
 #include <iostream>
-#include "all.hpp"
+#include <winnow/winnow.hpp>
 
 using Context = winnow::stream<winnow::context_error>;
 
