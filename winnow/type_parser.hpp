@@ -141,13 +141,20 @@ struct range_parser
         // [] [ ]
         // [1, 2, 3]
 
-        auto left = combinator::preceded(token::literal("["), ascii::multispace0);
-        auto right = combinator::terminated(ascii::multispace0, token::literal("]"));
-        auto separator = combinator::delimited(ascii::multispace0, token::literal(","), ascii::multispace0);
-        auto middle = combinator::separated<std::vector>(universal_parser<V>(), separator);
-        
-        auto parser = combinator::delimited(left, middle, right);
-        // std::ranges::copy
+        auto parser = combinator::delimited(
+            combinator::preceded(
+                token::literal("["), 
+                ascii::multispace0),
+            combinator::separated<std::vector>(
+                universal_parser<V>(), 
+                combinator::delimited(
+                    ascii::multispace0, 
+                    token::literal(","), 
+                    ascii::multispace0)),
+            combinator::terminated(
+                ascii::multispace0, 
+                token::literal("]"))
+        );
 
         auto result = parser(stream);
 
@@ -159,6 +166,9 @@ struct range_parser
         return R(std::in_place, Range(std::from_range, std::move(result.value())));
     }
 };
+
+template <typename Enum>
+struct enum_parser;
 
 template <typename T>
 struct universal_parser

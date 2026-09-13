@@ -669,7 +669,18 @@ TEST_CASE("comment", "[ascii]")
 
 TEST_CASE("universal_parser", "[combinator]")
 {
+    REQUIRE(CheckResult(winnow::universal<int>, Context("123"), Succeed<int>{ 123 }, ""));
+    REQUIRE(CheckResult(winnow::universal<bool>, Context("true"), Succeed<bool>{ true }, ""));
+    REQUIRE(CheckResult(winnow::universal<bool>, Context("false"), Succeed<bool>{ false }, ""));
+    REQUIRE(CheckResult(winnow::universal<bool>, Context("True"), Succeed<bool>{ true }, ""));
+    REQUIRE(CheckResult(winnow::universal<bool>, Context("False"), Succeed<bool>{ false }, ""));
+    REQUIRE(CheckResult(winnow::universal<float>, Context("123.456"), Succeed<float>{ 123.456f }, ""));
+    REQUIRE(CheckResult(winnow::universal<double>, Context("123.456"), Succeed<double>{ 123.456 }, ""));
+
+
     REQUIRE(CheckResult(winnow::universal<std::vector<int>>, Context("[1, 2, 3, 4, 5]"), Succeed<std::vector<int>>{ std::vector<int>{1, 2, 3, 4, 5} }, ""));
     REQUIRE(CheckResult(winnow::universal<std::vector<int>>, Context("[ ]"), Succeed<std::vector<int>>{ std::vector<int>{} }, ""));
+
+
 }
 
