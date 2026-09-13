@@ -141,7 +141,7 @@ struct range_parser
         // [] [ ]
         // [1, 2, 3]
 
-        auto parser = combinator::delimited(
+        auto parser = combinator::sequence(
             combinator::preceded(
                 token::literal("["), 
                 ascii::multispace0
@@ -163,7 +163,9 @@ struct range_parser
 
         auto result = parser(stream);
 
-        return !result ? make_backtrack_from_input<R>(stream) : R(std::in_place, std::move(result.value()));
+        return !result 
+             ? make_backtrack_from_input<R>(stream) 
+             : R(std::in_place, std::move(std::get<1>(result.value())));
     }
 };
 
