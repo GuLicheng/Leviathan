@@ -40,6 +40,15 @@ struct Succeed
     }
 };
 
+struct Ignore 
+{
+    template <typename Result>
+    static constexpr bool operator()(const Result& result)
+    {
+        return true;
+    }
+};
+
 template <typename T>
 struct SimpleValue
 {
@@ -653,7 +662,14 @@ TEST_CASE("sequence_parser", "[combinator]")
     REQUIRE(CheckResult(parser, Context(""), Backtrack()));
 }
 
+TEST_CASE("comment", "[ascii]")
+{
+    auto line = winnow::ascii::line_comment("//");
+    auto block = winnow::ascii::block_comment("/*", "*/");
 
+    REQUIRE(CheckResult(line, Context("// this is a comment\nabc"), Ignore(), "\nabc"));
+    REQUIRE(CheckResult(block, Context("/* this is a block comment */abc"), Ignore(), "abc"));
+}
 
 
 

@@ -32,6 +32,7 @@
 #pragma once
 
 #include "token.hpp"
+#include "combinator.hpp"
 
 namespace winnow::ascii
 {
@@ -63,6 +64,42 @@ inline constexpr auto crlf = token::literal("\r\n");
 inline constexpr auto line_ending = combinator::alt(crlf, newline);
 inline constexpr auto till_line_ending = detail::till_line_ending_parser<char>();
 
+inline constexpr struct
+{
+    template <typename CharT>
+    static constexpr auto operator()(const CharT* start) 
+    {
+        return operator()(std::basic_string_view<CharT>(start));
+    }
+
+    template <typename CharT>
+    static constexpr auto operator()(std::basic_string_view<CharT> sv) 
+    {
+        return combinator::sequence(token::literal(sv), till_line_ending);
+    }
+} line_comment; 
+
+inline constexpr struct
+{
+    template <typename CharT>
+    static constexpr auto operator()(const CharT* start, const CharT* finish) 
+    {
+        return operator()(
+            std::basic_string_view<CharT>(start),
+            std::basic_string_view<CharT>(finish)
+        );
+    }
+
+    template <typename CharT>
+    static constexpr auto operator()(std::basic_string_view<CharT> start, std::basic_string_view<CharT> finish) 
+    {
+        return combinator::sequence(
+            token::literal(start), 
+            token::take_until(finish), 
+            token::literal(finish)
+        );
+    }
+} block_comment;
 
 
 } // namespace winnow::ascii

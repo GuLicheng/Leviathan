@@ -1251,7 +1251,6 @@ struct sequence_parser : parser_interface
     }
 };
 
-
 }  // namespace winnow::detail
 
 

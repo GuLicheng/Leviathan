@@ -51,7 +51,14 @@ inline constexpr struct
     static constexpr auto operator()(Pred pred, size_t min = 0, std::optional<size_t> max = std::nullopt)
     {
         auto fn = std::not_fn(std::move(pred));
-        return detail::take_while_parser<decltype(fn)>(std::move(fn), occurrences<size_t>{min, max});
+        return detail::take_while_parser<decltype(fn)>(std::move(fn), occurrences<size_t>{ min, max });
+    }
+
+    template <typename Pred>
+    static constexpr auto operator()(Pred pred, occurrences<size_t> occ)
+    {
+        auto fn = std::not_fn(std::move(pred));
+        return detail::take_while_parser<decltype(fn)>(std::move(fn), occ);
     }
 } take_till;
 
