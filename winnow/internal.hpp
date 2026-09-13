@@ -779,7 +779,7 @@ struct repeat_fn
 };
 
 template <typename Parser, typename Sep, typename Accumulator>
-struct [[deprecated("use repeat_container_parser instead")]] separated_parser : parser_interface
+struct separated_parser : parser_interface
 {
     [[no_unique_address]] Parser parser;
     [[no_unique_address]] Sep separator;
@@ -986,7 +986,6 @@ struct separated_container_parser : parser_interface
         return R(std::in_place, std::move(collector));
     }
 };
-
 
 template <typename Parser>
 struct cond_parser : parser_interface
