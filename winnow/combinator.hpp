@@ -126,14 +126,25 @@ inline constexpr struct
     }
 } alt;
 
-inline constexpr struct
+template <template <typename...> class Container>
+struct separated_fn
 {
-    template <typename Parser, typename Sep, typename Accumulator>
-    static constexpr auto operator()(Parser parser, Sep separator, Accumulator accumulator, size_t lower = 0, std::optional<size_t> upper = std::nullopt)
+    template <typename Parser, typename Sep, typename... Args>
+    static constexpr auto operator()(Parser parser, Sep separator, occurrences<size_t> range, Args&&... args)
     {
-        return detail::separated_parser<Parser, Sep, Accumulator>(std::move(parser), std::move(separator), std::move(accumulator), occurrences<size_t>(lower, upper));
+        return detail::separated_container_parser<Parser, Sep, Container, std::decay_t<Args>...>
+            ((Parser&&)parser, (Sep&&)separator, range, (Args&&)args...);
     }
-} separated;
+
+    template <typename Parser, typename Sep>
+    static constexpr auto operator()(Parser parser, Sep separator)
+    {
+        return operator()(std::move(parser), std::move(separator), occurrences<size_t>(0, std::nullopt));
+    }
+};
+
+template <template <typename...> class Container>
+inline constexpr separated_fn<Container> separated;
 
 inline constexpr struct
 {

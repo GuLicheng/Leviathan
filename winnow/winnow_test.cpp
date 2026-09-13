@@ -427,13 +427,12 @@ TEST_CASE("repeat", "[combinator]")
 
 TEST_CASE("separated", "[combinator]")
 {
-    using StrVec = std::vector<std::string>;
+    using StrVec = std::vector<std::string_view>;
 
-    auto parser1 = winnow::combinator::separated(
+    auto parser1 = winnow::combinator::separated<std::vector>(
         winnow::token::literal("abc"),
         winnow::token::literal("|"),
-        winnow::accumulate_traits<StrVec>(),
-        0
+        winnow::from(0)
     );
 
     REQUIRE(CheckResult(parser1, Context("abc|abc|abc"), Succeed<StrVec>{ StrVec{ "abc", "abc", "abc" } }, ""));
@@ -442,11 +441,10 @@ TEST_CASE("separated", "[combinator]")
     REQUIRE(CheckResult(parser1, Context(""), Succeed<StrVec>{ StrVec{} }, ""));
     REQUIRE(CheckResult(parser1, Context("def|abc"), Succeed<StrVec>{ StrVec{} }, "def|abc"));
 
-    auto parser2 = winnow::combinator::separated(
+    auto parser2 = winnow::combinator::separated<std::vector>(
         winnow::token::literal("abc"),
         winnow::token::literal("|"),
-        winnow::accumulate_traits<StrVec>(),
-        1
+        winnow::from(1)
     );
 
     REQUIRE(CheckResult(parser2, Context("abc|abc|abc"), Succeed<StrVec>{ StrVec{ "abc", "abc", "abc" } }, ""));
@@ -456,11 +454,10 @@ TEST_CASE("separated", "[combinator]")
     REQUIRE(CheckResult(parser2, Context("def|abc"), Backtrack()));
 
     // For Rust, 0..=2 means [0, 2] -> in C++ we use [0, 3) to represent the same range
-    auto parser3 = winnow::combinator::separated(
+    auto parser3 = winnow::combinator::separated<std::vector>(
         winnow::token::literal("abc"),
         winnow::token::literal("|"),
-        winnow::accumulate_traits<StrVec>(),
-        0, 3
+        winnow::upto(3)
     );
 
     REQUIRE(CheckResult(parser3, Context("abc|abc|abc"), Succeed<StrVec>{ StrVec{ "abc", "abc" } }, "|abc"));
@@ -470,11 +467,10 @@ TEST_CASE("separated", "[combinator]")
     REQUIRE(CheckResult(parser3, Context("def|abc"), Succeed<StrVec>{ StrVec{} }, "def|abc"));
 
     // For Rust::winnow, just 2 means exactly 2 occurrences, which in C++ we represent as [2, 3)
-    auto parser4 = winnow::combinator::separated(
+    auto parser4 = winnow::combinator::separated<std::vector>(
         winnow::token::literal("abc"),
         winnow::token::literal("|"),
-        winnow::accumulate_traits<StrVec>(),
-        2, 3
+        winnow::range(2, 3)
     );
 
     REQUIRE(CheckResult(parser4, Context("abc|abc|abc"), Succeed<StrVec>{ StrVec{ "abc", "abc" } }, "|abc"));
@@ -671,7 +667,15 @@ TEST_CASE("comment", "[ascii]")
     REQUIRE(CheckResult(block, Context("/* this is a block comment */abc"), Ignore(), "abc"));
 }
 
+TEST_CASE("dec_number", "[ascii]")
+{
+    // auto parser = winnow::ascii::dec_number<int>;
 
+    // REQUIRE(CheckResult(parser, Context("123"), Succeed<int>{ 123 }, ""));
+    // REQUIRE(CheckResult(parser, Context("0"), Succeed<int>{ 0 }, ""));
+    // REQUIRE(CheckResult(parser, Context(""), Backtrack()));
+    // REQUIRE(CheckResult(parser, Context("abc"), Backtrack()));
+}
 
 
 

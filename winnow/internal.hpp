@@ -779,7 +779,7 @@ struct repeat_fn
 };
 
 template <typename Parser, typename Sep, typename Accumulator>
-struct separated_parser : parser_interface
+struct [[deprecated("use repeat_container_parser instead")]] separated_parser : parser_interface
 {
     [[no_unique_address]] Parser parser;
     [[no_unique_address]] Sep separator;
@@ -880,6 +880,113 @@ struct separated_parser : parser_interface
         return R(std::in_place, std::move(results));
     }
 };
+
+template <typename Parser, typename Sep, template <typename...> class Container, typename... Args>
+struct separated_container_parser : parser_interface
+{
+    [[no_unique_address]] Parser parser;
+    [[no_unique_address]] Sep separator;
+    [[no_unique_address]] std::tuple<Args...> args;
+    occurrences<size_t> range; 
+
+    constexpr separated_container_parser(Parser p, Sep s, occurrences<size_t> r, Args&&... a)
+        : parser(std::move(p)), separator(std::move(s)), args(std::forward<Args>(a)...), range(r) { }
+    
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using O1 = typename std::invoke_result_t<Parser, Stream&>::value_type;
+        using C = Container<O1, Args...>;
+
+        auto collector = std::make_from_tuple<C>(args);
+
+        using O = decltype(collector);
+        using R = modal_result<O, E>;
+
+        // For empty stream, return empty list
+        if (stream.size())
+        {   
+            auto clone = stream;
+            auto first = parser(clone);
+
+            // If the first item cannot be parsed, handle the error or 
+            // return an empty result if allowed by the range
+            if (!first)
+            {
+                if (first.error().is_cut())
+                {
+                    return R(std::unexpect, first.error());
+                }
+
+                if (range.contains(collector.size()))
+                {
+                    return R(std::in_place, std::move(collector));
+                }
+                else
+                {
+                    return make_backtrack_from_input<R>(stream);
+                }
+            }
+
+            collector.insert(collector.end(), std::move(first.value()));
+            stream = std::move(clone);
+
+            if (range.is_upper_bound(collector.size()))
+            {
+                return R(std::in_place, std::move(collector));
+            }
+
+            while (stream.size())
+            {
+                auto clone = stream;
+                auto sep = separator(clone);
+
+                if (!sep)
+                {
+                    if (sep.error().is_cut())
+                    {
+                        return R(std::unexpect, sep.error());
+                    }
+                    // Stop parsing if the separator is not found
+                    stream = std::move(clone);
+                    break;
+                }
+
+                auto item = parser(clone);
+
+                if (!item)
+                {
+                    if (item.error().is_cut())
+                    {
+                        return R(std::unexpect, item.error());
+                    }
+                    // Stop parsing if the item is not found
+                    // stream = std::move(clone);
+                    break;
+                }
+
+                collector.insert(collector.end(), std::move(item.value()));
+                stream = std::move(clone);
+
+                if (range.is_upper_bound(collector.size()))
+                {
+                    return R(std::in_place, std::move(collector));
+                }
+
+            }
+        }
+
+        if (!range.contains(collector.size()))
+        // if (!range.is_under(collector.size()))
+        {
+            return make_backtrack_from_input<R>(stream);
+        }
+
+        return R(std::in_place, std::move(collector));
+    }
+};
+
 
 template <typename Parser>
 struct cond_parser : parser_interface

@@ -5,6 +5,9 @@
 
 struct [[=cpp::derive::debug]] Color { int r, g, b; };
 
+
+
+
 int main()
 {
     auto t = std::make_tuple(1, 2, 3, 4, 5);
