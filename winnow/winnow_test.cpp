@@ -667,15 +667,9 @@ TEST_CASE("comment", "[ascii]")
     REQUIRE(CheckResult(block, Context("/* this is a block comment */abc"), Ignore(), "abc"));
 }
 
-TEST_CASE("dec_number", "[ascii]")
+TEST_CASE("universal_parser", "[combinator]")
 {
-    // auto parser = winnow::ascii::dec_number<int>;
-
-    // REQUIRE(CheckResult(parser, Context("123"), Succeed<int>{ 123 }, ""));
-    // REQUIRE(CheckResult(parser, Context("0"), Succeed<int>{ 0 }, ""));
-    // REQUIRE(CheckResult(parser, Context(""), Backtrack()));
-    // REQUIRE(CheckResult(parser, Context("abc"), Backtrack()));
+    REQUIRE(CheckResult(winnow::universal<std::vector<int>>, Context("[1, 2, 3, 4, 5]"), Succeed<std::vector<int>>{ std::vector<int>{1, 2, 3, 4, 5} }, ""));
+    REQUIRE(CheckResult(winnow::universal<std::vector<int>>, Context("[ ]"), Succeed<std::vector<int>>{ std::vector<int>{} }, ""));
 }
-
-
 

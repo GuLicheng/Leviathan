@@ -9,9 +9,13 @@
 #include "result.hpp"
 #include "token.hpp"
 #include "combinator.hpp"
+#include "ascii.hpp"
 
 namespace winnow
 {
+
+template <typename T>
+struct universal_parser;
 
 template <std::integral Integral>
 struct int_parser
@@ -82,7 +86,7 @@ struct float_parser
     }
 };
 
-struct boolean_parser<bool>
+struct boolean_parser
 {
     template <typename Stream>
     static constexpr auto operator()(Stream& stream)
@@ -105,7 +109,7 @@ struct boolean_parser<bool>
 };
 
 template <cpp::meta::tuple_like TupleLike>
-struct tuple_parser<TupleLike>
+struct tuple_parser
 {
     template <typename Stream>
     static constexpr auto operator()(Stream& stream)
@@ -124,7 +128,7 @@ struct tuple_parser<TupleLike>
 };
 
 template <std::ranges::range Range>
-struct range_parser<Range>
+struct range_parser
 {
     template <typename Stream>
     static constexpr auto operator()(Stream& stream)
@@ -134,10 +138,25 @@ struct range_parser<Range>
         using V = std::ranges::range_value_t<Range>;
         using R = modal_result<O, E>;
 
-        auto left = token::literal("[");
-        auto right = token::literal("]");
-        // auto middle = combinator::separated();
-        throw std::runtime_error("range_parser not implemented");
+        // [] [ ]
+        // [1, 2, 3]
+
+        auto left = combinator::preceded(token::literal("["), ascii::multispace0);
+        auto right = combinator::terminated(ascii::multispace0, token::literal("]"));
+        auto separator = combinator::delimited(ascii::multispace0, token::literal(","), ascii::multispace0);
+        auto middle = combinator::separated<std::vector>(universal_parser<V>(), separator);
+        
+        auto parser = combinator::delimited(left, middle, right);
+        // std::ranges::copy
+
+        auto result = parser(stream);
+
+        if (!result)
+        {
+            return make_backtrack_from_input<R>(stream);
+        }
+
+        return R(std::in_place, Range(std::from_range, std::move(result.value())));
     }
 };
 
@@ -157,18 +176,25 @@ struct universal_parser
         }
         else if constexpr (std::integral<T>)
         {
-            return int_parser{}(stream);
+            return int_parser<T>{}(stream);
         }
         else if constexpr (std::floating_point<T>)
         {
-            return float_parser{}(stream);
+            return float_parser<T>{}(stream);
+        }
+        else if constexpr (std::ranges::range<T>)
+        {
+            return range_parser<T>{}(stream);
         }
         else
         {
-            return universal_parser<T>{}(stream);
+            static_assert(false, "No parser available for this type");
+            // return universal_parser<T>{}(stream);
         }
     }
 };
 
+template <typename T>
+inline constexpr universal_parser<T> universal{};
 
 }  // namespace winnow

@@ -13,7 +13,7 @@
 #include "token.hpp"
 #include "combinator.hpp"
 #include "ascii.hpp"
-
+#include "type_parser.hpp"
 
 namespace winnow
 {

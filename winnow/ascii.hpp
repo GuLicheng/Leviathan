@@ -22,11 +22,15 @@
     - line_ending
     - line_comment
     - block_comment
-    - dec_number(dec_int, dec_uint, float)
     
+    - [x] dec_int
+    - [x] dec_uint
+    - [x] float
     - [x] hex_uint
     - [x] escaped
     - [x] take_escaped
+
+    We offer universal parsers for various types, such as integers, floating-point numbers, and ranges.
 */
 
 #pragma once
@@ -100,8 +104,5 @@ inline constexpr struct
         );
     }
 } block_comment;
-
-// template <typename Arithmetic>
-// inline constexpr auto dec_number = detail::number_parser<Arithmetic>();
 
 } // namespace winnow::ascii
