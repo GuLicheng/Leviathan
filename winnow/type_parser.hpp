@@ -144,26 +144,26 @@ struct range_parser
         auto parser = combinator::delimited(
             combinator::preceded(
                 token::literal("["), 
-                ascii::multispace0),
-            combinator::separated<std::vector>(
+                ascii::multispace0
+            ),
+            combinator::separated<Range>(
                 universal_parser<V>(), 
                 combinator::delimited(
                     ascii::multispace0, 
                     token::literal(","), 
-                    ascii::multispace0)),
+                    ascii::multispace0
+                ),
+                from(0)        
+            ),
             combinator::terminated(
-                ascii::multispace0, 
-                token::literal("]"))
+                ascii::multispace0,
+                token::literal("]")
+            )
         );
 
         auto result = parser(stream);
 
-        if (!result)
-        {
-            return make_backtrack_from_input<R>(stream);
-        }
-
-        return R(std::in_place, Range(std::from_range, std::move(result.value())));
+        return !result ? make_backtrack_from_input<R>(stream) : R(std::in_place, std::move(result.value()));
     }
 };
 
@@ -171,7 +171,7 @@ template <typename Enum>
 struct enum_parser;
 
 template <typename T>
-struct universal_parser
+struct universal_parser : detail::parser_interface
 {
     template <typename Stream>
     static constexpr auto operator()(Stream& stream)

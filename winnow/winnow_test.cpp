@@ -678,8 +678,9 @@ TEST_CASE("universal_parser", "[combinator]")
     REQUIRE(CheckResult(winnow::universal<double>, Context("123.456"), Succeed<double>{ 123.456 }, ""));
 
 
-    // REQUIRE(CheckResult(winnow::universal<std::vector<int>>, Context("[1, 2, 3, 4, 5]"), Succeed<std::vector<int>>{ std::vector<int>{1, 2, 3, 4, 5} }, ""));
-    // REQUIRE(CheckResult(winnow::universal<std::vector<int>>, Context("[ ]"), Succeed<std::vector<int>>{ std::vector<int>{} }, ""));
+    REQUIRE(CheckResult(winnow::universal<std::vector<int>>, Context("[1, 2, 3, 4, 5]"), Succeed<std::vector<int>>{ std::vector<int>{1, 2, 3, 4, 5} }, ""));
+    REQUIRE(CheckResult(winnow::universal<std::vector<int>>, Context("[ ]"), Succeed<std::vector<int>>{ std::vector<int>{} }, ""));
+    REQUIRE(CheckResult(winnow::universal<std::vector<int>>, Context("[,]"), Backtrack()));
 
 
 }

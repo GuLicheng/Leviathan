@@ -16,4 +16,6 @@ int main()
 
     auto result = winnow::universal_parser<std::vector<int>>{}(c);
     std::println("result = {}", result.value());
+
+    auto arr = {1, 2, 3, 4, 5,};
 }
