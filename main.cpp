@@ -1,21 +1,13 @@
-#include <winnow/all.hpp>
+#include <winnow/winnow.hpp>
+#include <leviathan/extc++/all.hpp>
 #include <print>
 #include <meta>
 
+struct [[=cpp::derive::debug]] Color { int r, g, b; };
+
 int main()
 {
-    using StrVec = std::vector<std::string>;
-
-    auto context = winnow::stream<winnow::context_error>("123123123!");
-
-    auto alloc = std::pmr::polymorphic_allocator<std::string_view>{};
-
-    auto parser1 = winnow::combinator::repeat2<std::vector>(
-        winnow::token::literal("123").map([](auto&& s){ return std::stoi(std::string(s)); }),
-        winnow::from(0)
-    );
-
-    auto vec = parser1(context);
-    std::println("vec = {}", vec.value());
-
+    auto t = std::make_tuple(1, 2, 3, 4, 5);
+    auto color = cpp::make_from_tuple<Color>(cpp::select_tuple_element<1, 2, 3>(t));
+    std::println("color = {}", color);
 }

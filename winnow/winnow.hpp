@@ -15,4 +15,13 @@
 #include "ascii.hpp"
 
 
+namespace winnow
+{
+
+using namespace combinator;
+using namespace ascii;
+using namespace token;
+
+}  // namespace winnow
+
 

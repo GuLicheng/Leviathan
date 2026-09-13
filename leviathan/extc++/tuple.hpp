@@ -60,6 +60,26 @@ consteval std::meta::info define_basic_tuple()
 template <typename... Ts>
 using basic_tuple = typename [:define_basic_tuple<Ts...>():];
 
+template <typename T>
+struct from_tuple_fn
+{
+    template <typename Tuple>
+    static constexpr T operator()(Tuple&& tuple)
+    {
+        return std::make_from_tuple<T>((Tuple&&)tuple);
+    }
+};
+
+template <size_t... Indices>
+struct select_tuple_element_fn
+{
+    template <typename Tuple>
+    static constexpr auto operator()(Tuple&& tuple)
+    {
+        return std::make_tuple(std::get<Indices>((Tuple&&)tuple)...);
+    }
+};
+
 }  // namespace detail
   
 /**
@@ -125,6 +145,12 @@ constexpr auto make_tuple(Args&&... args)
 // and it may not be available in all compilers or standard library implementations.
 template <typename T>
 concept tuple_like = std::__tuple_like<T> || refl::instance_of_template(^^T, ^^cpp::tuple);
+
+template <typename T>
+inline constexpr detail::from_tuple_fn<T> make_from_tuple{};
+
+template <size_t... Indices>
+inline constexpr detail::select_tuple_element_fn<Indices...> select_tuple_element{};
 
 } // namespace cpp
 

@@ -153,7 +153,6 @@ constexpr occurrences<size_t> upto(size_t upper)
 
 using unit = std::tuple<>;
 
-
 }  // namespace winnow
 
 
