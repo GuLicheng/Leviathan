@@ -133,7 +133,7 @@ private:
                 Incomplete incomplete;
                 Error error;
             };
-            enum class State { Incomplete, Backtrack, Cut, Unknown } state;
+            enum class State { Incomplete, Backtrack, Cut, Uninitialized } state;
         }
     */
 

@@ -30,6 +30,7 @@
 
 #pragma once
 
+#include <leviathan/extc++/tuple.hpp>
 #include "internal.hpp"
 
 namespace winnow::combinator
@@ -37,10 +38,22 @@ namespace winnow::combinator
 
 inline constexpr struct
 {
+    template <typename... Parsers>
+    static constexpr auto operator()(Parsers... parsers)
+    {
+        return detail::sequence_parser<Parsers...>(std::move(parsers)...);
+    }
+} sequence;
+    
+inline constexpr struct
+{
     template <typename F1, typename F2>
     static constexpr auto operator()(F1 f1, F2 f2)
     {
-        return detail::preceded_parser<F1, F2>(std::move(f1), std::move(f2));
+        auto second_element = []<typename Tuple>(Tuple&& tuple) static {
+            return std::get<1>((Tuple&&)tuple);
+        };
+        return sequence(std::move(f1), std::move(f2)).map(second_element);
     }
 } preceded;
 
@@ -49,7 +62,10 @@ inline constexpr struct
     template <typename F1, typename F2>
     static constexpr auto operator()(F1 f1, F2 f2)
     {
-        return detail::terminated_parser<F1, F2>(std::move(f1), std::move(f2));
+        auto first_element = []<typename Tuple>(Tuple&& tuple) static {
+            return std::get<0>((Tuple&&)tuple);
+        };
+        return sequence(std::move(f1), std::move(f2)).map(first_element);
     }
 } terminated;
 
@@ -58,8 +74,10 @@ inline constexpr struct
     template <typename F1, typename F2, typename F3>
     static constexpr auto operator()(F1 f1, F2 f2, F3 f3)
     {
-        auto parser1 = preceded(std::move(f1), std::move(f2));
-        return terminated(std::move(parser1), std::move(f3));
+        auto second_element = []<typename Tuple>(Tuple&& tuple) static {
+            return std::get<1>((Tuple&&)tuple);
+        };
+        return sequence(std::move(f1), std::move(f2), std::move(f3)).map(second_element);
     }
 } delimited;
 
@@ -184,15 +202,6 @@ inline constexpr struct
         return detail::repeat_till_parser<Parser, TerminatorParser, Accumulator>(std::move(parser), std::move(terminator_parser), std::move(accumulator), occurrences<size_t>(lower, upper));
     }
 } repeat_till;
-
-inline constexpr struct
-{
-    template <typename... Parsers>
-    static constexpr auto operator()(Parsers... parsers)
-    {
-        return detail::sequence_parser<Parsers...>(std::move(parsers)...);
-    }
-} sequence;
 
 template <template <typename...> class Container>
 inline constexpr detail::repeat_fn<Container> repeat;

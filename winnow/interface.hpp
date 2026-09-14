@@ -18,19 +18,19 @@ struct parser_interface
     template <typename Self, typename F>
     constexpr auto map(this Self&& self, F&& f)
     {
-        return map_parser<std::decay_t<Self>, F>{(Self&&)self, (F&&)f};
+        return map_parser<std::decay_t<Self>, std::decay_t<F>>{(Self&&)self, (F&&)f};
     }
 
     template <typename Self, typename P>
     constexpr auto verify(this Self&& self, P&& p)
     {
-        return verify_parser<std::decay_t<Self>, P>{(Self&&)self, (P&&)p};
+        return verify_parser<std::decay_t<Self>, std::decay_t<P>>{(Self&&)self, (P&&)p};
     }
 
     template <typename Self, typename Value>
     constexpr auto value(this Self&& self, Value&& value)
     {
-        return value_parser<std::decay_t<Self>, Value>{(Self&&)self, (Value&&)value};
+        return value_parser<std::decay_t<Self>, std::decay_t<Value>>{(Self&&)self, (Value&&)value};
     }
 
     template <typename Self>
@@ -42,7 +42,7 @@ struct parser_interface
     template <typename Self, typename Context>
     constexpr auto context(this Self&& self, Context&& context)
     {
-        return context_parser<std::decay_t<Self>, Context>{(Self&&)self, (Context&&)context};
+        return context_parser<std::decay_t<Self>, std::decay_t<Context>>{(Self&&)self, (Context&&)context};
     }
 };
 

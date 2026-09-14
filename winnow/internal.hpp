@@ -332,7 +332,7 @@ struct take_until_parser : parser_interface
 
 // Sequence two parsers, only returning the output from the second.
 template <typename IgnoredParser, typename Parser>
-struct preceded_parser : parser_interface
+struct [[deprecated("preceded can be implemented by sequence and map")]] preceded_parser : parser_interface
 {
     IgnoredParser ignored_parser;
     Parser parser;
@@ -364,7 +364,7 @@ struct preceded_parser : parser_interface
 
 // Sequence two parsers, only returning the output of the first.
 template <typename Parser, typename IgnoredParser>
-struct terminated_parser : parser_interface
+struct [[deprecated("terminated can be implemented by sequence and map")]] terminated_parser : parser_interface
 {
     Parser parser;
     IgnoredParser ignored_parser;
