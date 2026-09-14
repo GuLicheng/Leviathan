@@ -1005,7 +1005,7 @@ struct cond_parser : parser_interface
 
         if (condition)
         {
-            return parser(stream).transform([](auto x) -> O { return std::make_optional(std::move(x)); });
+            return parser(stream).transform([](auto&& x) -> O { return std::make_optional((decltype(x)&&) x); });
         }
 
         return R(std::in_place, std::nullopt);

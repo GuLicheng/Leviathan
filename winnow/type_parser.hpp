@@ -145,7 +145,7 @@ struct tuple_parser
 
             auto allow_trailing = combinator::terminated(
                 middle,
-                combinator::opt(separator)
+                combinator::cond(true, combinator::opt(separator))
             );
 
             auto parser = combinator::delimited(
@@ -187,7 +187,7 @@ struct range_parser
 
         auto allow_trailing = combinator::terminated(
             values, 
-            combinator::opt(seperator)
+            combinator::cond(true, combinator::opt(seperator))
         );
 
         auto parser = combinator::sequence(

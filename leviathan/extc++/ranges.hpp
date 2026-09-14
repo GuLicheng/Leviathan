@@ -218,12 +218,11 @@ namespace cpp::ranges::views
 // we need to transform it to std::pair<Key, T> to make it work with std::apply.
 inline constexpr auto pair_transform = []<typename F1, typename F2>(F1&& f1, F2&& f2) static
 {
-    auto fn = [f1 = (F1&&)f1, f2 = (F2&&)f2](auto&& pair) 
+    auto fn = [f1 = (F1&&)f1, f2 = (F2&&)f2]<typename PairLike>(PairLike&& pairlike) 
     {
-        auto&& [key, value] = (decltype(pair)&&) pair;
         return std::make_pair(
-            std::invoke(f1, key),
-            std::invoke(f2, value)
+            std::invoke(f1, std::get<0>((PairLike&&)pairlike)),
+            std::invoke(f2, std::get<1>((PairLike&&)pairlike))
         );
     };
     return transform(std::move(fn));

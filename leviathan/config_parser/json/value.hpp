@@ -278,7 +278,7 @@ public:
         {
             return json::make_json<json::null>();
         }
-        else if constexpr (std::meta::is_arithmetic(^^Source))
+        else if constexpr (std::meta::is_arithmetic_type(^^Source))
         {
             return json::make_json<json::number>(source);
         }
