@@ -1,5 +1,7 @@
 #pragma once
 
+#include <leviathan/extc++/meta.hpp>
+
 #include <ranges>
 #include <type_traits>
 #include <concepts>
@@ -36,10 +38,6 @@ struct int_parser
         else if (stream.match("0x", true))
         {
             base = 16;
-        }
-        else if (stream.match("0", true))
-        {
-            base = 8;
         }
 
         Integral result;
@@ -111,6 +109,8 @@ struct boolean_parser
 template <cpp::meta::tuple_like TupleLike>
 struct tuple_parser
 {
+    static constexpr auto size = std::tuple_size_v<TupleLike>;
+
     template <typename Stream>
     static constexpr auto operator()(Stream& stream)
     {
@@ -120,10 +120,42 @@ struct tuple_parser
         using O = TupleLike;
         using R = modal_result<O, E>;
 
-        auto left = token::literal("(");
-        auto right = token::literal(")");
-        
-        throw std::runtime_error("tuple_parser not implemented");
+        auto left = combinator::sequence(token::literal("("), ascii::multispace0);
+        auto right = combinator::sequence(ascii::multispace0, token::literal(")"));
+
+        if constexpr (size == 0)
+        {
+            auto result = combinator::sequence(left, right);
+            return result ? R(std::in_place) : make_backtrack_from_input<R>(stream);
+        }
+        else
+        {
+            auto separator = combinator::delimited(
+                ascii::multispace0,
+                token::literal(","),
+                ascii::multispace0
+            );
+
+            constexpr auto [...idx] = std::make_index_sequence<size - 1>();
+
+            auto middle = combinator::sequence(
+                universal_parser<std::tuple_element_t<0, TupleLike>>(),
+                combinator::preceded(separator, universal_parser<std::tuple_element_t<idx + 1, TupleLike>>())...
+            );
+
+            auto allow_trailing = combinator::terminated(
+                middle,
+                combinator::opt(separator)
+            );
+
+            auto parser = combinator::delimited(
+                left,
+                allow_trailing,
+                right
+            );
+
+            return parser(stream);
+        }
     }
 };
 
@@ -182,6 +214,9 @@ template <typename Enum>
 struct enum_parser;
 
 template <typename T>
+struct aggregate_parser;
+
+template <typename T>
 struct universal_parser : detail::parser_interface
 {
     template <typename Stream>
@@ -206,6 +241,10 @@ struct universal_parser : detail::parser_interface
         else if constexpr (std::ranges::range<T>)
         {
             return range_parser<T>{}(stream);
+        }
+        else if constexpr (cpp::tuple_like<T>)
+        {
+            return tuple_parser<T>{}(stream);
         }
         else
         {
