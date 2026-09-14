@@ -1,3 +1,7 @@
+/*
+    https://docs.rs/winnow/latest/winnow/trait.Parser.html#provided-methods
+*/
+
 #pragma once
 
 namespace winnow::detail

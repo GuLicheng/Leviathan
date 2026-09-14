@@ -227,7 +227,7 @@ struct literal_parser : parser_interface
 template <typename Pred>
 struct take_while_parser : parser_interface
 {
-    Pred pred;
+    [[no_unique_address]] Pred pred;
     occurrences<size_t> range;
 
     constexpr take_while_parser(Pred p, occurrences<size_t> r)

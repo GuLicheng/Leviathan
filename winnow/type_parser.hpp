@@ -141,20 +141,29 @@ struct range_parser
         // [] [ ]
         // [1, 2, 3]
 
+        auto seperator = combinator::delimited(
+            ascii::multispace0, 
+            token::literal(","), 
+            ascii::multispace0
+        );
+
+        auto values = combinator::separated<Range>(
+            universal_parser<V>(), 
+            seperator,
+            from(0)        
+        );
+
+        auto allow_trailing = combinator::terminated(
+            values, 
+            combinator::opt(seperator)
+        );
+
         auto parser = combinator::sequence(
             combinator::preceded(
                 token::literal("["), 
                 ascii::multispace0
             ),
-            combinator::separated<Range>(
-                universal_parser<V>(), 
-                combinator::delimited(
-                    ascii::multispace0, 
-                    token::literal(","), 
-                    ascii::multispace0
-                ),
-                from(0)        
-            ),
+            allow_trailing,
             combinator::terminated(
                 ascii::multispace0,
                 token::literal("]")
