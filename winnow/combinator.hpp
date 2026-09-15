@@ -206,17 +206,5 @@ inline constexpr struct
 template <template <typename...> class Container>
 inline constexpr detail::repeat_fn<Container> repeat;
 
-inline constexpr struct
-{
-    template <typename Parser, typename Separator>
-    static constexpr auto operator()(Parser parser, Separator separator)
-    {
-        return terminated(
-            separated(std::move(parser), std::move(separator)),
-            opt(separator)
-        );
-    }
-} separated_allow_trailing;
-
 
 }  // namespace winnow::combinator
