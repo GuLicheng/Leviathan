@@ -187,7 +187,7 @@ struct range_parser
 
         auto allow_trailing = combinator::terminated(
             values, 
-            combinator::cond(true, combinator::opt(seperator))
+            combinator::cond(false, combinator::opt(seperator))
         );
 
         auto parser = combinator::sequence(

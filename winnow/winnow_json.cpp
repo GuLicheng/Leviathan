@@ -5,6 +5,7 @@
 #include <meta>
 
 using JsonString = cpp::json::string;
+using JsonArray = cpp::json::array;
 using JsonValue = cpp::json::value;
 using Stream = winnow::stream<winnow::context_error>;
 using Result = winnow::modal_result<JsonValue, winnow::context_error>;
@@ -48,6 +49,98 @@ struct JsonParser
             return winnow::make_backtrack_from_input<Result>(stream);
         }
         
+    }
+
+    static Result ParseArray(Stream& stream)
+    {
+        auto left = winnow::sequence(
+            winnow::literal("["),
+            winnow::multispace0
+        );
+
+        auto right = winnow::sequence(
+            winnow::multispace0,
+            winnow::literal("]")
+        );
+
+        auto middle = winnow::separated<JsonArray>(
+            &JsonParser::ParseValue,
+            winnow::delimited(
+                winnow::multispace0,
+                winnow::literal(","),
+                winnow::multispace0
+            ),
+            winnow::from(0)
+        );
+        
+        return winnow::delimited(
+            left,
+            middle,
+            right
+        ).map([](auto elements) { return JsonValue(std::move(elements)); }).operator()(stream);
+    }
+
+    static Result ParseString(Stream& stream)
+    {
+        try
+        {
+            auto result = StringDecoder()(stream);
+            return Result(std::in_place, JsonValue(std::move(result)));
+        }
+        catch(const std::exception& e)
+        {
+            return winnow::make_backtrack_from_input<Result>(stream);
+        }
+    }
+
+    static Result ParseObject(Stream& stream)
+    {
+        auto left = winnow::sequence(
+            winnow::literal("{"),
+            winnow::multispace0
+        );
+
+        auto right = winnow::sequence(
+            winnow::multispace0,
+            winnow::literal("}")
+        );
+
+
+        // FIXME
+        auto middle = winnow::separated<JsonObject>(
+            [](Stream& stream) -> Result {
+                auto key = StringDecoder()(stream);
+                winnow::multispace0(stream);
+                winnow::literal(":")(stream);
+                winnow::multispace0(stream);
+                auto value = JsonParser::ParseValue(stream);
+                return Result(std::in_place, std::make_pair(std::move(key), std::move(value)));
+            },
+            winnow::delimited(
+                winnow::multispace0,
+                winnow::literal(","),
+                winnow::multispace0
+            ),
+            winnow::from(0)
+        );
+
+        return winnow::delimited(
+            left,
+            middle,
+            right
+        ).map([](auto members) { return JsonValue(std::move(members)); }).operator()(stream);
+    }
+
+    static Result ParseValue(Stream& stream)
+    {
+        return winnow::alt(
+            &JsonParser::ParseNull,
+            &JsonParser::ParseBoolean,
+            &JsonParser::ParseNumber,
+            &JsonParser::ParseString,
+            &JsonParser::ParseArray,
+            &JsonParser::ParseObject
+        ).operator()(stream);
     }
 };
 

@@ -86,7 +86,12 @@ inline constexpr struct
     template <typename F1, typename F2, typename F3>
     static constexpr auto operator()(F1 f1, F2 f2, F3 f3)
     {
+        auto first_and_third = []<typename Tuple>(Tuple&& tuple) static {
+            return std::make_pair(std::get<0>((Tuple&&)tuple), std::get<2>((Tuple&&)tuple));
+        };
+
         return detail::separated_pair_parser<F1, F2, F3>(std::move(f1), std::move(f2), std::move(f3));
+        // return sequence(std::move(f1), std::move(f2), std::move(f3)).map(first_and_third);
     }
 } separated_pair;
 

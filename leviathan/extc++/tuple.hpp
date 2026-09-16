@@ -73,10 +73,11 @@ struct from_tuple_fn
 template <size_t... Indices>
 struct select_tuple_element_fn
 {
-    template <typename Tuple>
-    static constexpr auto operator()(Tuple&& tuple)
+    template <typename TupleLike>
+    static constexpr auto operator()(TupleLike&& tuple)
     {
-        return std::make_tuple(std::get<Indices>((Tuple&&)tuple)...);
+        using Tuple = std::tuple<std::tuple_element_t<Indices, std::remove_cvref_t<TupleLike>>...>;
+        return Tuple((std::get<Indices>((TupleLike&&)tuple))...);
     }
 };
 
