@@ -61,10 +61,7 @@ inline constexpr struct
     template <typename F1, typename F2>
     static constexpr auto operator()(F1 f1, F2 f2)
     {
-        auto second_element = []<typename Tuple>(Tuple&& tuple) static {
-            return std::get<1>((Tuple&&)tuple);
-        };
-        return sequence(std::move(f1), std::move(f2)).map(second_element);
+        return sequence(std::move(f1), std::move(f2)).map(cpp::elements<1>);
     }
 } preceded;
 
@@ -73,10 +70,7 @@ inline constexpr struct
     template <typename F1, typename F2>
     static constexpr auto operator()(F1 f1, F2 f2)
     {
-        auto first_element = []<typename Tuple>(Tuple&& tuple) static {
-            return std::get<0>((Tuple&&)tuple);
-        };
-        return sequence(std::move(f1), std::move(f2)).map(first_element);
+        return sequence(std::move(f1), std::move(f2)).map(cpp::elements<0>);
     }
 } terminated;
 
@@ -85,10 +79,7 @@ inline constexpr struct
     template <typename F1, typename F2, typename F3>
     static constexpr auto operator()(F1 f1, F2 f2, F3 f3)
     {
-        auto second_element = []<typename Tuple>(Tuple&& tuple) static {
-            return std::get<1>((Tuple&&)tuple);
-        };
-        return sequence(std::move(f1), std::move(f2), std::move(f3)).map(second_element);
+        return sequence(std::move(f1), std::move(f2), std::move(f3)).map(cpp::elements<1>);
     }
 } delimited;
 
@@ -97,10 +88,7 @@ inline constexpr struct
     template <typename F1, typename F2, typename F3>
     static constexpr auto operator()(F1 f1, F2 f2, F3 f3)
     {
-        auto first_and_third = []<typename Tuple>(Tuple&& tuple) static {
-            return std::make_pair(std::get<0>((Tuple&&)tuple), std::get<2>((Tuple&&)tuple));
-        };
-        return sequence(std::move(f1), std::move(f2), std::move(f3)).map(first_and_third);
+        return sequence(std::move(f1), std::move(f2), std::move(f3)).map(cpp::select_tuple_elements<0, 2>);
     }
 } separated_pair;
 

@@ -102,7 +102,11 @@ struct map_parser : parser_interface
         using R1 = std::invoke_result_t<Parser, Stream&>;
         using O1 = typename R1::value_type;
         using O2 = std::invoke_result_t<F, O1>;
-        using R = modal_result<O2, E>;
+        // We decay the output type to handle cases where the 
+        // function returns a reference or a non-decayed type.
+        // Rust adopts move semantics together with value semantics,
+        // and our design aligns with that.
+        using R = modal_result<std::decay_t<O2>, E>;
 
         auto result = parser(stream);
 
