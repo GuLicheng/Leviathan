@@ -106,7 +106,7 @@ struct boolean_parser
     }
 };
 
-template <cpp::meta::tuple_like TupleLike>
+template <typename TupleLike>
 struct tuple_parser
 {
     static constexpr auto size = std::tuple_size_v<TupleLike>;

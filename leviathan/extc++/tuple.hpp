@@ -71,13 +71,23 @@ struct from_tuple_fn
 };
 
 template <size_t... Indices>
-struct select_tuple_element_fn
+struct select_tuple_elements_fn
 {
     template <typename TupleLike>
     static constexpr auto operator()(TupleLike&& tuple)
     {
         using Tuple = std::tuple<std::tuple_element_t<Indices, std::remove_cvref_t<TupleLike>>...>;
         return Tuple((std::get<Indices>((TupleLike&&)tuple))...);
+    }
+};
+
+template <size_t I>
+struct elements_fn
+{
+    template <typename TupleLike>
+    static constexpr decltype(auto) operator()(TupleLike&& tuple)
+    {
+        return std::get<I>((TupleLike&&)tuple);
     }
 };
 
@@ -109,11 +119,11 @@ struct select_tuple_element_fn
 struct tuple_get_interface
 {
     template <size_t N, typename Self>
-    constexpr decltype(auto) get(this Self&& tl)
+    constexpr decltype(auto) get(this Self&& self)
     {
         using DTuple = std::remove_cvref_t<Self>;
         constexpr auto member = cpp::detail::nth_element_type<DTuple, N>();
-        return std::forward_like<Self>(tl.[:member:]);
+        return std::forward_like<Self>(self.[:member:]);
     }
 };
 
@@ -129,18 +139,24 @@ struct tuple : detail::basic_tuple<Ts...>
 template <typename... Ts>
 tuple(Ts&&...) -> tuple<Ts...>;
 
-template <typename Fn, typename TupleLike>
-constexpr auto apply(Fn&& fn, TupleLike&& tl)
+inline constexpr struct
 {
-    auto&& [...elements] = (TupleLike&&)tl;
-    return std::invoke((Fn&&)fn, (decltype(elements)&&)elements...);
-}
+    template <typename Fn, typename TupleLike>
+    static constexpr auto operator()(Fn&& fn, TupleLike&& tl)
+    {
+        auto&& [...elements] = (TupleLike&&)tl;
+        return std::invoke((Fn&&)fn, (decltype(elements)&&)elements...);
+    }
+} apply;
 
-template <typename... Args>
-constexpr auto make_tuple(Args&&... args)
+inline constexpr struct
 {
-    return tuple<std::unwrap_ref_decay_t<Args>...>((Args&&)args...);
-}
+    template <typename... Args>
+    static constexpr auto operator()(Args&&... args)
+    {
+        return tuple<std::unwrap_ref_decay_t<Args>...>((Args&&)args...);
+    }
+} make_tuple;
 
 // FIXME: std::__tuple_like is an implementation detail of the standard library, 
 // and it may not be available in all compilers or standard library implementations.
@@ -151,7 +167,10 @@ template <typename T>
 inline constexpr detail::from_tuple_fn<T> make_from_tuple{};
 
 template <size_t... Indices>
-inline constexpr detail::select_tuple_element_fn<Indices...> select_tuple_element{};
+inline constexpr detail::select_tuple_elements_fn<Indices...> select_tuple_elements{};
+
+template <size_t I>
+inline constexpr detail::elements_fn<I> elements{};
 
 } // namespace cpp
 

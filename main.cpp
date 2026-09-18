@@ -3,13 +3,20 @@
 #include <print>
 #include <meta>
 
+struct Color
+{
+    int r;
+    int g;
+    int b;
+
+    Color(int r, int g, int b) : r(r), g(g), b(b) {}
+    Color() : r(0), g(0), b(0) {}
+    Color(const Color&) { std::println("Color copy constructor called"); }
+    Color(Color&&) { std::println("Color move constructor called"); }
+};
 
 int main()
 {
+    std::optional<std::tuple<int, double>> opt = std::make_tuple(42, 3.14);
 
-    auto fn = cpp::select_tuple_element<>;
-
-    auto t1 = std::make_tuple(1, 2, 3);
-    auto t2 = fn(t1);
-    std::println("t2 = {}", t2);
 }

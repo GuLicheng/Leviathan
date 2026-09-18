@@ -36,6 +36,17 @@
 namespace winnow::combinator
 {
 
+// If we want to use the combinators in a more functional style, 
+// we can use these functions instead of the parser_interface methods.
+inline constexpr struct
+{
+    template <typename Parser, typename F>
+    static constexpr auto operator()(Parser parser, F f)
+    {
+        return detail::map_parser<Parser, F>(std::move(parser), std::move(f));
+    }
+} map;
+
 inline constexpr struct
 {
     template <typename... Parsers>
@@ -89,9 +100,7 @@ inline constexpr struct
         auto first_and_third = []<typename Tuple>(Tuple&& tuple) static {
             return std::make_pair(std::get<0>((Tuple&&)tuple), std::get<2>((Tuple&&)tuple));
         };
-
-        return detail::separated_pair_parser<F1, F2, F3>(std::move(f1), std::move(f2), std::move(f3));
-        // return sequence(std::move(f1), std::move(f2), std::move(f3)).map(first_and_third);
+        return sequence(std::move(f1), std::move(f2), std::move(f3)).map(first_and_third);
     }
 } separated_pair;
 

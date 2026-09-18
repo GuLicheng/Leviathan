@@ -403,7 +403,7 @@ struct [[deprecated("terminated can be implemented by sequence and map")]] termi
 
 // Sequence three parsers, only returning the values of the first and third.
 template <typename Parser1, typename SepParser, typename Parser2>
-struct separated_pair_parser : parser_interface
+struct [[deprecated("separated_pair can be implemented by sequence and map")]] separated_pair_parser : parser_interface
 {
     Parser1 parser1;
     SepParser sep_parser;

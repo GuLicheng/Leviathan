@@ -106,29 +106,43 @@ struct JsonParser
         );
 
 
-        // FIXME
-        auto middle = winnow::separated<JsonObject>(
-            [](Stream& stream) -> Result {
-                auto key = StringDecoder()(stream);
-                winnow::multispace0(stream);
-                winnow::literal(":")(stream);
-                winnow::multispace0(stream);
-                auto value = JsonParser::ParseValue(stream);
-                return Result(std::in_place, std::make_pair(std::move(key), std::move(value)));
-            },
+        // { key1: value1, key2: value2, ... }
+
+        auto kv_parser = winnow::separated_pair(
+            // winnow::map(&JsonParser::ParseString, [](auto str) { return JsonString(std::move(str)); }),
+            &JsonParser::ParseString,
+            winnow::delimited(
+                winnow::multispace0,
+                winnow::literal(":"),
+                winnow::multispace0
+            ),
+            &JsonParser::ParseValue
+        );
+
+        auto middle = winnow::separated<std::vector>(
+            kv_parser,
             winnow::delimited(
                 winnow::multispace0,
                 winnow::literal(","),
                 winnow::multispace0
             ),
             winnow::from(0)
-        );
+        );  // -> std::vector<std::pair<JsonString, JsonValue>>
+
+        auto AsJsonObject = [](auto&& vec) {
+            cpp::json::object obj;
+            for (auto&& [key, value] : vec)
+            {
+                obj.insert(std::move(key), std::move(value));
+            }
+            return obj;
+        };
 
         return winnow::delimited(
             left,
             middle,
             right
-        ).map([](auto members) { return JsonValue(std::move(members)); }).operator()(stream);
+        ).map(AsJsonObject).operator()(stream);
     }
 
     static Result ParseValue(Stream& stream)
