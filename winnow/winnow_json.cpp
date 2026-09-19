@@ -7,6 +7,7 @@
 using JsonString = cpp::json::string;
 using JsonArray = cpp::json::array;
 using JsonValue = cpp::json::value;
+using JsonObject = cpp::json::object;
 using Stream = winnow::stream<winnow::context_error>;
 using Result = winnow::modal_result<JsonValue, winnow::context_error>;
 using StringDecoder = cpp::config::json::detail::string_decoder<Stream>;
@@ -16,7 +17,13 @@ struct JsonParser
 {
     static Result Parse(Stream& stream)
     {
-        throw std::runtime_error("Not implemented yet");
+        // FIXME: Object or Array
+        return winnow::sequence(
+            winnow::multispace0,
+            winnow::alt(&JsonParser::ParseObject, &JsonParser::ParseArray),
+            winnow::multispace0,
+            winnow::eof
+        ).map(cpp::elements<1>).operator()(stream); 
     }
 
     static Result ParseNull(Stream& stream)
@@ -43,7 +50,7 @@ struct JsonParser
             auto result = NumberDecoder()(stream);
             return Result(std::in_place, JsonValue(std::move(result)));
         }
-        catch(const std::exception& e)
+        catch (const std::exception& e)
         {
             stream = clone;
             return winnow::make_backtrack_from_input<Result>(stream);
@@ -73,11 +80,9 @@ struct JsonParser
             winnow::from(0)
         );
         
-        return winnow::delimited(
-            left,
-            middle,
-            right
-        ).map([](auto elements) { return JsonValue(std::move(elements)); }).operator()(stream);
+        return winnow::delimited(left, middle, right)
+                .map([](auto elements) { return JsonValue(std::move(elements)); })
+                .operator()(stream);
     }
 
     static Result ParseString(Stream& stream)
@@ -109,9 +114,8 @@ struct JsonParser
         // { key1: value1, key2: value2, ... }
 
         auto kv_parser = winnow::separated_pair(
-            // winnow::map(&JsonParser::ParseString, [](auto str) { return JsonString(std::move(str)); }),
-            &JsonParser::ParseString,
-            winnow::delimited(
+            winnow::map(&JsonParser::ParseString, [](auto str) { return std::move(str).template as<JsonString>(); }),
+            winnow::sequence(
                 winnow::multispace0,
                 winnow::literal(":"),
                 winnow::multispace0
@@ -129,20 +133,13 @@ struct JsonParser
             winnow::from(0)
         );  // -> std::vector<std::pair<JsonString, JsonValue>>
 
-        auto AsJsonObject = [](auto&& vec) {
-            cpp::json::object obj;
-            for (auto&& [key, value] : vec)
-            {
-                obj.insert(std::move(key), std::move(value));
-            }
-            return obj;
+        auto AsJsonObject = [](auto vec) { 
+            return JsonValue(vec | cpp::views::as_rvalue | std::ranges::to<JsonObject>()); 
         };
 
-        return winnow::delimited(
-            left,
-            middle,
-            right
-        ).map(AsJsonObject).operator()(stream);
+        return winnow::delimited(left, middle, right)
+            .map(AsJsonObject)
+            .operator()(stream);
     }
 
     static Result ParseValue(Stream& stream)
@@ -158,7 +155,30 @@ struct JsonParser
     }
 };
 
+constexpr const char* JSON_CONTEXT = R"(
+
+{
+    "name": "Alice",
+    "age": 18,
+    "isStudent": true,
+    "address": { "street": "123 Main St", "city": "Wonderland", "zip": "12345" },
+    "rank": null,
+    "hobbies": ["reading", "swimming"]
+}
+
+)";
 
 int main()
 {
+    auto stream = Stream(JSON_CONTEXT);
+    auto result = JsonParser::Parse(stream);
+
+    if(result)
+    {
+        std::println("{:4}", result.value());
+    }
+    else
+    {
+        std::println("Failed to parse JSON.");
+    }
 }

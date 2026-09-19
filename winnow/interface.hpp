@@ -1,8 +1,19 @@
 /*
     https://docs.rs/winnow/latest/winnow/trait.Parser.html#provided-methods
+
+    - void
+    - map
+    - value
+    - cut
+    - and_then
+    - context
+    - verify
+
 */
 
 #pragma once
+
+#include "utils.hpp"
 
 namespace winnow::detail
 {
@@ -37,6 +48,12 @@ struct parser_interface
     constexpr auto value(this Self&& self, Value&& value)
     {
         return value_parser<std::decay_t<Self>, std::decay_t<Value>>{(Self&&)self, (Value&&)value};
+    }
+
+    template <typename Self, typename F>
+    constexpr auto void_(this Self&& self, F&& f)
+    {
+        return ((Self&&)self).value(unit());
     }
 
     template <typename Self>
