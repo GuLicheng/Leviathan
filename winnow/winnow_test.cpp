@@ -269,7 +269,7 @@ TEST_CASE("separated_pair", "[combinator]")
     REQUIRE(CheckResult(parser, Context(",second"), Backtrack()));
 }
 
-TEST_CASE("map", "[combinator]")
+TEST_CASE("map", "[interface]")
 {
     // auto parser = winnow::combinator::map(
     //     winnow::token::literal("hello"), 
@@ -294,7 +294,7 @@ TEST_CASE("map", "[combinator]")
     REQUIRE(CheckResult(parser3, Context("!!!"), Succeed<std::string>{ "HelloWorld!" }));
 }
 
-TEST_CASE("verify", "[combinator]")
+TEST_CASE("verify", "[interface]")
 {
     // auto parser = winnow::combinator::verify(
     //     winnow::ascii::alpha1,
@@ -683,3 +683,11 @@ TEST_CASE("universal_parser", "[combinator]")
     REQUIRE(CheckResult(winnow::universal<std::vector<int>>, Context("[,]"), Backtrack()));
 }
 
+TEST_CASE("and_then_parser", "[interface]")
+{
+    auto parser = winnow::token::take(5).and_then(winnow::ascii::digit1);
+
+    REQUIRE(CheckResult(parser, Context("12345"), Succeed<std::string_view>{ "12345" }, ""));
+    REQUIRE(CheckResult(parser, Context("123ab"), Succeed<std::string_view>{ "123" }, ""));
+    REQUIRE(CheckResult(parser, Context("123"), Backtrack()));
+}

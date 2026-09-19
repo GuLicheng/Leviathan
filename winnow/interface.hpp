@@ -17,6 +17,8 @@ template <typename Parser> struct cut_err_parser;
 
 template <typename Parser, typename Context> struct context_parser;
 
+template <typename Parser, typename F> struct and_then_parser;
+
 struct parser_interface
 {
     template <typename Self, typename F>
@@ -47,6 +49,12 @@ struct parser_interface
     constexpr auto context(this Self&& self, Context&& context)
     {
         return context_parser<std::decay_t<Self>, std::decay_t<Context>>{(Self&&)self, (Context&&)context};
+    }
+
+    template <typename Self, typename F>
+    constexpr auto and_then(this Self&& self, F&& f)
+    {
+        return and_then_parser<std::decay_t<Self>, std::decay_t<F>>{(Self&&)self, (F&&)f};
     }
 };
 

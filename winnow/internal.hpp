@@ -26,10 +26,46 @@
 namespace winnow::detail
 {
 
+template <typename Parser, typename F>
+struct and_then_parser : parser_interface
+{
+    [[no_unique_address]] Parser parser;
+    [[no_unique_address]] F func;
+
+    constexpr and_then_parser(Parser p, F f) : parser(std::move(p)), func(std::move(f)) {}
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using O = typename std::invoke_result_t<Parser, Stream&>::value_type;
+        using R = modal_result<O, E>;
+
+        auto result1 = parser(stream);
+
+        if (!result1)
+        {
+            return make_backtrack_from_input<R>(stream);
+        }
+
+        // The output produced by a parser must be constructible into a Stream.
+        Stream stream2(result1.value());
+        auto result2 = func(stream2);
+
+        if (!result2)
+        {
+            return make_backtrack_from_input<R>(stream);
+        }
+
+        return R(std::in_place, std::move(result2.value()));
+    }
+
+};
+
 template <typename Parser, typename Context>
 struct context_parser
 {
-    Parser parser;
+    [[no_unique_address]] Parser parser;
     Context context;
 
     context_parser(Parser p, Context c) : parser(std::move(p)), context(std::move(c)) {}
@@ -58,8 +94,8 @@ struct context_parser
 template <typename Parser, typename P>
 struct verify_parser : parser_interface
 {
-    Parser parser;
-    P predicate;
+    [[no_unique_address]] Parser parser;
+    [[no_unique_address]] P predicate;
 
     constexpr verify_parser(Parser p, P pred) : parser(std::move(p)), predicate(std::move(pred)) { }
 
@@ -90,8 +126,8 @@ struct verify_parser : parser_interface
 template <typename Parser, typename F>
 struct map_parser : parser_interface
 {
-    Parser parser;
-    F func;
+    [[no_unique_address]] Parser parser;
+    [[no_unique_address]] F func;
 
     constexpr map_parser(Parser p, F f) : parser(std::move(p)), func(std::move(f)) { }
 
@@ -122,8 +158,8 @@ struct map_parser : parser_interface
 template <typename Parser, typename Value>
 struct value_parser : parser_interface
 {
-    Parser parser;
-    Value value;
+    [[no_unique_address]] Parser parser;
+    [[no_unique_address]] Value value;
 
     constexpr value_parser(Parser p, Value v) : parser(std::move(p)), value(std::move(v)) { }
 
@@ -338,8 +374,8 @@ struct take_until_parser : parser_interface
 template <typename IgnoredParser, typename Parser>
 struct [[deprecated("preceded can be implemented by sequence and map")]] preceded_parser : parser_interface
 {
-    IgnoredParser ignored_parser;
-    Parser parser;
+    [[no_unique_address]] IgnoredParser ignored_parser;
+    [[no_unique_address]] Parser parser;
 
     constexpr preceded_parser(IgnoredParser ip, Parser p) 
         : ignored_parser(std::move(ip)), parser(std::move(p)) { }
@@ -364,93 +400,6 @@ struct [[deprecated("preceded can be implemented by sequence and map")]] precede
         return R(parser(stream));
     }
 
-};
-
-// Sequence two parsers, only returning the output of the first.
-template <typename Parser, typename IgnoredParser>
-struct [[deprecated("terminated can be implemented by sequence and map")]] terminated_parser : parser_interface
-{
-    Parser parser;
-    IgnoredParser ignored_parser;
-
-    constexpr terminated_parser(Parser p, IgnoredParser ip) 
-        : parser(std::move(p)), ignored_parser(std::move(ip)) { }
-
-    template <typename Stream>
-    constexpr auto operator()(Stream& stream) const
-    {
-        using E = typename Stream::error_type;
-        using R1 = std::invoke_result_t<Parser, Stream&>;
-        using R2 = std::invoke_result_t<IgnoredParser, Stream&>;
-        using R = R1;
-
-        // We donot care about the result type of the ignored parser.
-
-        auto result = parser(stream);
-
-        if (!result)
-        {
-            // If the main parser fails, we return an unexpected result.
-            return R(std::unexpect, std::move(result.error()));
-        }
-        auto ignored_result = ignored_parser(stream);
-
-        if (!ignored_result)
-        {
-            // If the ignored parser fails, we return an unexpected result for the main parser.
-            return R(std::unexpect, std::move(ignored_result.error()));
-        }
-
-        return R(std::in_place, std::move(result.value()));
-    }
-};
-
-// Sequence three parsers, only returning the values of the first and third.
-template <typename Parser1, typename SepParser, typename Parser2>
-struct [[deprecated("separated_pair can be implemented by sequence and map")]] separated_pair_parser : parser_interface
-{
-    Parser1 parser1;
-    SepParser sep_parser;
-    Parser2 parser2;
-
-    constexpr separated_pair_parser(Parser1 p1, SepParser sp, Parser2 p2) 
-        : parser1(std::move(p1)), sep_parser(std::move(sp)), parser2(std::move(p2)) { }
-
-    template <typename Stream>
-    constexpr auto operator()(Stream& stream) const
-    {
-        using R1 = std::invoke_result_t<Parser1, Stream&>;
-        using R2 = std::invoke_result_t<SepParser, Stream&>;
-        using R3 = std::invoke_result_t<Parser2, Stream&>;
-        using E = typename Stream::error_type;
-
-        using O1 = typename R1::value_type;
-        using O2 = typename R2::value_type;
-        using O = std::pair<O1, O2>;
-        using R = modal_result<O, E>;
-
-        auto result1 = parser1(stream);
-
-        if (!result1)
-        {
-            return R(std::unexpect, std::move(result1.error()));
-        }
-        auto sep_result = sep_parser(stream);
-
-        if (!sep_result)
-        {
-            return R(std::unexpect, std::move(sep_result.error()));
-        }
-        auto result2 = parser2(stream);
-
-        if (!result2)
-        {
-            return R(std::unexpect, std::move(result2.error()));
-        }
-
-        // Only all parsers succeed do we return a successful result.
-        return R(std::in_place, std::make_pair(std::move(result1.value()), std::move(result2.value())));
-    }
 };
 
 struct rest_parser : parser_interface
@@ -517,7 +466,7 @@ struct check_next_character_parser : parser_interface
 template <typename Parser>
 struct backtrack_err_parser : parser_interface
 {
-    Parser parser;
+    [[no_unique_address]] Parser parser;
 
     constexpr backtrack_err_parser(Parser p) : parser(std::move(p)) {}
 
@@ -538,7 +487,7 @@ struct backtrack_err_parser : parser_interface
 template <typename Parser>
 struct cut_err_parser : parser_interface
 {
-    Parser parser;
+    [[no_unique_address]] Parser parser;
 
     constexpr cut_err_parser(Parser p) : parser(std::move(p)) {}
 
@@ -559,7 +508,7 @@ struct cut_err_parser : parser_interface
 template <typename Parser>
 struct peek_parser : parser_interface
 {
-    Parser parser;
+    [[no_unique_address]] Parser parser;
 
     constexpr peek_parser(Parser p) : parser(std::move(p)) { }
 
@@ -574,7 +523,7 @@ struct peek_parser : parser_interface
 template <typename Parser>
 struct opt_parser : parser_interface
 {
-    Parser parser;
+    [[no_unique_address]] Parser parser;
 
     constexpr opt_parser(Parser p) : parser(std::move(p)) { }
 
@@ -610,7 +559,7 @@ struct opt_parser : parser_interface
 template <typename Parser>
 struct not_parser : parser_interface
 {
-    Parser parser;
+    [[no_unique_address]] Parser parser;
 
     constexpr not_parser(Parser p) : parser(std::move(p)) { }
 
@@ -646,7 +595,7 @@ struct not_parser : parser_interface
 template <typename Accumulator, typename Parser>
 struct [[deprecated("use repeat_container_parser instead")]] repeat_parser : parser_interface
 {
-    Parser parser;
+    [[no_unique_address]] Parser parser;
     [[no_unique_address]] Accumulator accumulator;
     occurrences<size_t> range;
 
@@ -704,7 +653,7 @@ struct [[deprecated("use repeat_container_parser instead")]] repeat_parser : par
 template <typename Parser, template <typename...> class Container, typename... Args>
 struct repeat_container_parser : parser_interface
 {
-    Parser parser;
+    [[no_unique_address]] Parser parser;
     occurrences<size_t> range;
     [[no_unique_address]] std::tuple<Args...> args;
 
@@ -995,7 +944,7 @@ template <typename Parser>
 struct cond_parser : parser_interface
 {
     bool condition;
-    Parser parser;
+    [[no_unique_address]] Parser parser;
 
     constexpr cond_parser(bool condition, Parser parser)
         : condition(condition), parser(std::move(parser)) { }
@@ -1136,7 +1085,7 @@ struct iterator_parser : parser_interface
     constexpr iterator_parser(Stream& c, Parser p) : stream(c), parser(std::move(p)) { }
 
     Stream& stream;
-    Parser parser;
+    [[no_unique_address]] Parser parser;
 };
 
 // Runs the embedded parser repeatedly, filling the given slice with results.
@@ -1148,9 +1097,9 @@ struct iterator_parser : parser_interface
 template <typename Parser, typename Iterator, typename Sentinel>
 struct fill_parser : parser_interface
 {
-    Parser parser;
-    [[no_unique_address]] Iterator iter;
-    [[no_unique_address]] Sentinel sent;
+    [[no_unique_address]] Parser parser;
+    Iterator iter;
+    Sentinel sent;
 
     constexpr fill_parser(Parser p, Iterator i, Sentinel s) 
         : parser(std::move(p)), iter(std::move(i)), sent(std::move(s)) { }
@@ -1184,8 +1133,8 @@ struct fill_parser : parser_interface
 template <typename Parser, typename TerminatorParser, typename Accumulator>
 struct repeat_till_parser : parser_interface
 {
-    Parser parser;
-    TerminatorParser terminator_parser;
+    [[no_unique_address]] Parser parser;
+    [[no_unique_address]] TerminatorParser terminator_parser;
     [[no_unique_address]] Accumulator accumulator;
     occurrences<size_t> range;
 
