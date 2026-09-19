@@ -26,20 +26,18 @@
 namespace winnow::detail
 {
 
-template <typename Parser, typename F>
+template <typename Parser, typename AndThenParser>
 struct and_then_parser : parser_interface
 {
     [[no_unique_address]] Parser parser;
-    [[no_unique_address]] F func;
+    [[no_unique_address]] AndThenParser func;
 
-    constexpr and_then_parser(Parser p, F f) : parser(std::move(p)), func(std::move(f)) {}
+    constexpr and_then_parser(Parser p, AndThenParser f) : parser(std::move(p)), func(std::move(f)) {}
 
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        using E = typename Stream::error_type;
-        using O = typename std::invoke_result_t<Parser, Stream&>::value_type;
-        using R = modal_result<O, E>;
+        using R = std::invoke_result_t<AndThenParser, Stream&>;
 
         auto result1 = parser(stream);
 

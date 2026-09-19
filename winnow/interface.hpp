@@ -9,6 +9,29 @@
     - context
     - verify
 
+
+    - parse : operator()
+    - [x] parse_iter
+    - [x] parse_peek
+    - [x] by_ref
+    - [x] default_value
+    - [x] output_into
+    - [x] take
+    - [x] with_take
+    - [x] span
+    - [x] span
+    - [x] with_span
+    - [x] try_map
+    - [x] verify_map
+    - [x] flat_map
+    - [x] parse_to
+    - [x] context_with
+    - [x] map_err
+    - [x] complete_err
+    - [x] err_into
+    - [x] retry_after
+    - [x] resume_after
+
 */
 
 #pragma once
@@ -28,7 +51,7 @@ template <typename Parser> struct cut_err_parser;
 
 template <typename Parser, typename Context> struct context_parser;
 
-template <typename Parser, typename F> struct and_then_parser;
+template <typename Parser, typename AndThenParser> struct and_then_parser;
 
 struct parser_interface
 {
@@ -68,10 +91,10 @@ struct parser_interface
         return context_parser<std::decay_t<Self>, std::decay_t<Context>>{(Self&&)self, (Context&&)context};
     }
 
-    template <typename Self, typename F>
-    constexpr auto and_then(this Self&& self, F&& f)
+    template <typename Self, typename AndThenParser>
+    constexpr auto and_then(this Self&& self, AndThenParser&& f)
     {
-        return and_then_parser<std::decay_t<Self>, std::decay_t<F>>{(Self&&)self, (F&&)f};
+        return and_then_parser<std::decay_t<Self>, std::decay_t<AndThenParser>>{(Self&&)self, (AndThenParser&&)f};
     }
 };
 
