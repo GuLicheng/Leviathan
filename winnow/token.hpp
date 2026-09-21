@@ -11,7 +11,6 @@
     - any
     - none_of
     - one_of
-
 */
 
 #pragma once

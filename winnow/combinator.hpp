@@ -19,7 +19,7 @@
     - repeat
     - repeat_till
     - separated
-    - [x] separated_foldl1
+    - separated_foldl1
     - [x] separated_foldr1
     - separated_pair
     - terminated

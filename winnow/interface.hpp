@@ -13,8 +13,8 @@
     - parse : operator()
     - [x] parse_iter
     - [x] parse_peek
-    - [x] by_ref
-    - [x] default_value
+    - [x] by_ref           -> std::ref/std::cref is OK
+    - [x] default_value    -> <T>.map([](auto&&) { return T(); })
     - [x] output_into
     - [x] take
     - [x] with_take
@@ -24,7 +24,7 @@
     - [x] try_map
     - [x] verify_map
     - [x] flat_map
-    - [x] parse_to
+    - [x] parse_to         -> .map(std::str::FromStr)
     - [x] context_with
     - [x] map_err
     - [x] complete_err
