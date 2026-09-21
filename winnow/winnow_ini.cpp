@@ -10,12 +10,9 @@ public:
 
     static auto Parse(Context& ctx) {
 
-        auto comment_consumer = winnow::combinator::delimited(
-            winnow::combinator::preceded(
-                winnow::ascii::multispace0,  // consume leading whitespace
-                winnow::token::literal(";")  // comment indicator
-            ),
-            winnow::ascii::till_line_ending,
+        auto comment_consumer = winnow::sequence(
+            winnow::ascii::multispace0,
+            winnow::line_comment(";"),
             winnow::ascii::line_ending
         );
 

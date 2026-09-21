@@ -208,5 +208,13 @@ inline constexpr struct
 template <template <typename...> class Container>
 inline constexpr detail::repeat_fn<Container> repeat;
 
+inline constexpr struct
+{
+    template <typename Parser, typename Seperator, typename BinaryOp>
+    static constexpr auto operator()(Parser parser, Seperator seperator, BinaryOp binary_op)
+    {
+        return detail::separated_foldl1_parser<Parser, Seperator, BinaryOp>(std::move(parser), std::move(seperator), std::move(binary_op));
+    }
+} separated_foldl1;
 
 }  // namespace winnow::combinator

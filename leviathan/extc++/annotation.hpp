@@ -110,9 +110,8 @@ inline constexpr struct { } flatten;
 // when initializing the field, we will check if the field is present in the input data.
 inline constexpr struct { } required;
 
-// Any field annotated with [[=constructor]] will be treated as a constructor field, which means that
-// when initializing the field, we will use the constructor to initialize it.
-// There must be only one constructor field in a struct, and it must be a non-static data member.
+// When a struct has a constructor tagged with [[=constructor]], it 
+// will be used to initialize the struct from the input data.
 inline constexpr struct { } constructor;
 
 // Any field annotated with [[=deny_unknown_fields]] will be treated as a deny unknown fields, which means that

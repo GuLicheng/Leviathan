@@ -1340,6 +1340,77 @@ struct escaped_parser : parser_interface
     }
 };
 
+template <typename Parser, typename Seperator, typename BinaryOp>
+struct separated_foldl1_parser : parser_interface
+{
+    [[no_unique_address]] Parser parser;
+    [[no_unique_address]] Seperator seperator;
+    [[no_unique_address]] BinaryOp binary_op;
+
+    constexpr separated_foldl1_parser(Parser p, Seperator s, BinaryOp b)
+        : parser(std::move(p)), seperator(std::move(s)), binary_op(std::move(b)) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using R = std::invoke_result_t<Parser, Stream&>;
+
+        auto result = parser(stream);
+
+        if (!result) 
+        {
+            return R(std::unexpect, std::move(result.error()));
+        }
+
+        auto val = result.value();
+
+        for (auto rest = stream.size(); ; rest = stream.size())
+        {
+            auto clone = stream;
+
+            if (auto sep_result = seperator(stream); !sep_result)
+            {
+                if (sep_result.error().is_cut())
+                {
+                    return R(std::unexpect, std::move(sep_result.error()));
+                }
+                else
+                {
+                    stream = std::move(clone);
+                    return R(std::in_place, std::move(val));
+                }
+            }
+            else
+            {
+                if (rest == stream.size())
+                {
+                    // Infinity loop 
+                    return R(std::unexpect, std::move(sep_result.error()));
+                }
+
+                if (auto next_result = parser(stream); !next_result)
+                {
+                    return R(std::unexpect, std::move(next_result.error()));
+                }
+                else
+                {
+                    val = binary_op(std::move(val), std::move(next_result.value()));
+                }
+            }
+        }
+
+        // For empty stream, the sep_parser will return an invalid result and return the result.
+        std::unreachable();
+    }
+};
+
+
+
+
+
+
+
 }  // namespace winnow::detail
 
 
