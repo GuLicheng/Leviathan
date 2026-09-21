@@ -1,6 +1,7 @@
 #pragma once
 
 #include <leviathan/extc++/expected.hpp>
+#include <leviathan/extc++/meta.hpp>
 
 #include "error.hpp"
 
