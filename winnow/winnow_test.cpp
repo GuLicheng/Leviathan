@@ -691,3 +691,19 @@ TEST_CASE("and_then_parser", "[interface]")
     REQUIRE(CheckResult(parser, Context("123ab"), Succeed<std::string_view>{ "123" }, ""));
     REQUIRE(CheckResult(parser, Context("123"), Backtrack()));
 }
+
+TEST_CASE("escaped_parser", "[ascii]")
+{
+    auto parser1 = winnow::escaped(
+        winnow::alpha1,
+        winnow::literal("\\"),
+        winnow::alt(
+            winnow::literal("\\").value(R"(\)"),
+            winnow::literal("\"").value(R"(")"),
+            winnow::literal("n").value("\n")
+        )
+    );
+
+    REQUIRE(CheckResult(parser1, Context("ab\\\"cd"), Succeed<std::string>{ "ab\"cd" }, ""));
+    REQUIRE(CheckResult(parser1, Context("ab\\ncd"), Succeed<std::string>{ "ab\ncd" }, ""));
+}

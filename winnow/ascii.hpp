@@ -22,12 +22,12 @@
     - line_ending
     - line_comment
     - block_comment
+    - escaped
     
     - [x] dec_int
     - [x] dec_uint
     - [x] float
     - [x] hex_uint
-    - [x] escaped
     - [x] take_escaped
 
     We offer universal parsers for various types, such as integers, floating-point numbers, and ranges.
@@ -104,5 +104,14 @@ inline constexpr struct
         );
     }
 } block_comment;
+
+inline constexpr struct
+{
+    template <typename Normal, typename ControlChar, typename Escape>
+    static constexpr auto operator()(Normal normal_parser, ControlChar control_char, Escape escape_parser)
+    {
+        return detail::escaped_parser(std::move(normal_parser), std::move(control_char), std::move(escape_parser));
+    }
+} escaped;
 
 } // namespace winnow::ascii

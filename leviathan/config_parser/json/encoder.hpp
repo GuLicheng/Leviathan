@@ -83,6 +83,24 @@ public:
         }
     }
 
+    /**
+     * @brief Constructs an instance of type T using the user-defined constructor.
+     * 
+     * @code
+     * class Example
+     * {
+     *      int a;
+     *      double b;
+     * 
+     *      [[=constructor]]
+     *      Example(int arg1, double arg2) : a(arg1), b(arg2) {}
+     * };
+     * 
+     * json::value root = { arg1: 1, arg2: 2.0 };
+     * Example obj = cast<Example>(root)();
+     * assert(obj.a == 1 and obj.b == 2.0);
+     * @endcode
+     */
     T user_defined_constructor() const
     {
         constexpr auto ctor = constructor();
@@ -105,6 +123,21 @@ public:
         return result;
     }
 
+    /**
+     * @brief Constructs an instance of type T using the aggregate constructor.
+     * 
+     * @code
+     * struct Example
+     * {
+     *      int a;
+     *      double b;
+     * };
+     * 
+     * json::value root = { a: 1, b: 2.0 };
+     * Example obj = cast<Example>(root)();
+     * assert(obj.a == 1 and obj.b == 2.0);
+     * @endcode
+     */
     T aggregate_constructor() const
     {
         constexpr auto ctx = std::meta::access_context::current();

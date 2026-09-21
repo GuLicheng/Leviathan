@@ -23,6 +23,12 @@ struct context_interface
     using const_reversed_iterator = typename std::basic_string_view<CharT>::const_reverse_iterator;
     static constexpr size_type npos = std::basic_string_view<CharT>::npos;
 
+    // template <typename Self, typename Parser>
+    // constexpr decltype(auto) parse_by(this Self& self, Parser&& parser)
+    // {
+    //     return parser(self);
+    // }
+
     template <typename Self>
     constexpr std::basic_string_view<CharT> to_string_view(this Self& self)
     {

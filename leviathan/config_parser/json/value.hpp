@@ -121,6 +121,28 @@ class value : public value_base
         "object",
     };
 
+    // static bool equals(const value& lhs, const value& rhs)
+    // {
+    //     if (lhs.index() == rhs.index())
+    //     {
+    //         // The lhs and rhs have the same type, compare based on the type index.
+    //         switch (lhs.index())
+    //         {
+    //             case 0: return true; // null
+    //             case 1: return lhs.as<boolean>() == rhs.as<boolean>();
+    //             case 2: return lhs.as<number>() == rhs.as<number>();
+    //             case 3: return lhs.as<string>() == rhs.as<string>();
+    //             case 4: return lhs.as<array>() == rhs.as<array>();
+    //             case 5: return lhs.as<object>() == rhs.as<object>();
+    //             default: std::unreachable();
+    //         }
+    //     }
+    //     else
+    //     {
+    //         return false;
+    //     }
+    // }
+
 public:
 
     using base = value_base;
@@ -246,6 +268,27 @@ public:
     {
         return value_type_names[m_data.index()];
     }
+
+    struct equals_visitor
+    {
+        template <typename T, typename U>
+        static bool operator()(const T&, const U&) 
+        {
+            return false;
+        }
+
+        template <typename T>
+        static bool operator()(const T& lhs, const T& rhs) 
+        {
+            return base::accessor()(lhs) == base::accessor()(rhs);
+        }
+    };
+
+    bool operator==(const value& other) const
+    {
+        return std::visit(equals_visitor(), this->data(), other.data());
+    }
+
 };
 
 template <typename Object, typename... Args>

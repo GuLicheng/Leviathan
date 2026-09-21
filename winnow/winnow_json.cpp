@@ -1,6 +1,7 @@
 #include <winnow/winnow.hpp>
 #include <leviathan/extc++/all.hpp>
 #include <leviathan/config_parser/json/json.hpp>
+#include <catch2/catch_all.hpp>
 #include <print>
 #include <meta>
 
@@ -8,6 +9,8 @@ using JsonString = cpp::json::string;
 using JsonArray = cpp::json::array;
 using JsonValue = cpp::json::value;
 using JsonObject = cpp::json::object;
+using JsonNumber = cpp::json::number;
+using JsonBoolean = cpp::json::boolean;
 using Stream = winnow::stream<winnow::context_error>;
 using Result = winnow::modal_result<JsonValue, winnow::context_error>;
 using StringDecoder = cpp::config::json::detail::string_decoder<Stream>;
@@ -168,17 +171,29 @@ constexpr const char* JSON_CONTEXT = R"(
 
 )";
 
-int main()
+TEST_CASE("simple json")
 {
     auto stream = Stream(JSON_CONTEXT);
     auto result = JsonParser::Parse(stream);
 
-    if(result)
-    {
-        std::println("{:4}", result.value());
-    }
-    else
-    {
-        std::println("Failed to parse JSON.");
-    }
+    // Check result
+    REQUIRE(result.has_value());
+    
+    JsonValue expected = {
+        { "name", "Alice" },
+        { "age", 18 },
+        { "isStudent", true },
+        { "address", { 
+            { "street", "123 Main St" },
+            { "city", "Wonderland" },
+            { "zip", "12345" }
+        }},
+        { "rank", nullptr },
+        { "hobbies", {
+            "reading",
+            "swimming"
+        }}
+    };
+
+    REQUIRE(result.value() == expected);
 }

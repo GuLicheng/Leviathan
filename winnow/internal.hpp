@@ -178,7 +178,6 @@ struct value_parser : parser_interface
     }
 };
 
-
 // Pick the first successful parser
 template <typename... Parsers>
 struct choice_parser : parser_interface
@@ -366,38 +365,6 @@ struct take_until_parser : parser_interface
         stream = std::move(right);
         return R(std::in_place, std::move(left));
     }
-};
-
-// Sequence two parsers, only returning the output from the second.
-template <typename IgnoredParser, typename Parser>
-struct [[deprecated("preceded can be implemented by sequence and map")]] preceded_parser : parser_interface
-{
-    [[no_unique_address]] IgnoredParser ignored_parser;
-    [[no_unique_address]] Parser parser;
-
-    constexpr preceded_parser(IgnoredParser ip, Parser p) 
-        : ignored_parser(std::move(ip)), parser(std::move(p)) { }
-
-    template <typename Stream>
-    constexpr auto operator()(Stream& stream) const
-    {
-        using E = typename Stream::error_type;
-        using R1 = std::invoke_result_t<IgnoredParser, Stream&>;
-        using R2 = std::invoke_result_t<Parser, Stream&>;
-        using R = R2;
-
-        // We do not care about the result type of the ignored parser.
-
-        auto ignored_result = ignored_parser(stream);
-
-        if (!ignored_result)
-        {
-            // If the ignored parser fails, we return an unexpected result for the main parser.
-            return R(std::unexpect, std::move(ignored_result.error()));
-        }
-        return R(parser(stream));
-    }
-
 };
 
 struct rest_parser : parser_interface
@@ -588,7 +555,6 @@ struct not_parser : parser_interface
 
     }
 };
-
 
 template <typename Accumulator, typename Parser>
 struct [[deprecated("use repeat_container_parser instead")]] repeat_parser : parser_interface
@@ -1305,6 +1271,72 @@ struct sequence_parser : parser_interface
         constexpr auto [...idx] = indices; 
 
         return R(std::in_place, Os(std::move(std::get<idx>(opt_results).value())...));
+    }
+};
+
+template <typename NormalParser, typename ControlCharParser, typename EscapeParser>
+struct escaped_parser : parser_interface
+{
+    [[no_unique_address]] NormalParser normal_parser;
+    [[no_unique_address]] ControlCharParser control_char;
+    [[no_unique_address]] EscapeParser escape_parser;
+
+    constexpr escaped_parser(NormalParser np, ControlCharParser cp, EscapeParser ep)
+        : normal_parser(std::move(np)), control_char(std::move(cp)), escape_parser(std::move(ep)) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        // Since for most cases, the output of escaped_parser is a string,
+        // we can use std::basic_string as the output type.
+        using O = std::basic_string<typename Stream::value_type>;
+        using R = modal_result<O, E>;
+
+        O result;
+        auto rest = stream.size();
+
+        for (auto rest = stream.size(); rest > 0; rest = stream.size())
+        {
+            auto normal_result = normal_parser(stream);
+        
+            if (!normal_result)
+            {
+                return R(std::unexpect, std::move(normal_result.error()));
+            }
+
+            if (stream.size() == rest)
+            {
+                // Avoid infinite loop if the normal parser does not consume any input.
+                return make_backtrack_from_input<R>(stream);
+            }
+
+            result += std::move(normal_result.value());
+            auto clone = stream;
+            auto control_result = control_char(stream);
+
+            if (!control_result)
+            {
+                if (control_result.error().is_cut())
+                {
+                    return R(std::unexpect, std::move(control_result.error()));
+                }
+                // If the control character parser fails, we stop parsing and return the result.
+                stream = std::move(clone);
+                break;
+            }
+
+            auto escape_result = escape_parser(stream);
+
+            if (!escape_result)
+            {
+                return R(std::unexpect, std::move(escape_result.error()));
+            }
+
+            result += std::move(escape_result.value());
+        }
+
+        return R(std::in_place, std::move(result));
     }
 };
 
