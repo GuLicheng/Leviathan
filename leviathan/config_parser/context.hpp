@@ -3,6 +3,7 @@
 #include <string_view>
 #include <utility>
 #include <bit>
+#include <functional>
 #include <assert.h>
 
 namespace cpp::config
@@ -23,11 +24,17 @@ struct context_interface
     using const_reversed_iterator = typename std::basic_string_view<CharT>::const_reverse_iterator;
     static constexpr size_type npos = std::basic_string_view<CharT>::npos;
 
-    // template <typename Self, typename Parser>
-    // constexpr decltype(auto) parse_by(this Self& self, Parser&& parser)
-    // {
-    //     return parser(self);
-    // }
+    template <typename Self, typename Scanner, typename... Args>
+    constexpr decltype(auto) apply(this Self& self, Scanner&& sc, Args&&... args)
+    {
+        return std::invoke((Scanner&&) sc, self, (Args&&) args...);
+    }
+
+    template <typename Self>
+    constexpr const CharT* data(this const Self& self)
+    {
+        return self.to_string_view().data();
+    }
 
     template <typename Self>
     constexpr std::basic_string_view<CharT> to_string_view(this Self& self)
@@ -273,37 +280,37 @@ struct context_interface
         return self.to_string_view().substr(0, idx);
     }
 
-    template <typename Self>
-    constexpr uint32_t read_four_bytes_as_u32(this Self& self, std::endian endian = std::endian::little)
-    {
-        auto sv = self.to_string_view();
-        assert(sv.size() >= 4);
-        uint32_t result = sv[0] | (sv[1] << 8) | (sv[2] << 16) | (sv[3] << 24);
+    // template <typename Self>
+    // constexpr uint32_t read_four_bytes_as_u32(this Self& self, std::endian endian = std::endian::little)
+    // {
+    //     auto sv = self.to_string_view();
+    //     assert(sv.size() >= 4);
+    //     uint32_t result = sv[0] | (sv[1] << 8) | (sv[2] << 16) | (sv[3] << 24);
 
-        if (endian == std::endian::big)
-        {
-            result = std::byteswap(result);
-        }
+    //     if (endian == std::endian::big)
+    //     {
+    //         result = std::byteswap(result);
+    //     }
 
-        self.advance(4);
-        return result;
-    }
+    //     self.advance(4);
+    //     return result;
+    // }
 
-    template <typename Self>
-    constexpr uint16_t read_two_bytes_as_u16(this Self& self, std::endian endian = std::endian::little)
-    {
-        auto sv = self.to_string_view();
-        assert(sv.size() >= 2);
-        uint16_t result = sv[0] | (sv[1] << 8);
+    // template <typename Self>
+    // constexpr uint16_t read_two_bytes_as_u16(this Self& self, std::endian endian = std::endian::little)
+    // {
+    //     auto sv = self.to_string_view();
+    //     assert(sv.size() >= 2);
+    //     uint16_t result = sv[0] | (sv[1] << 8);
 
-        if (endian == std::endian::big)
-        {
-            result = std::byteswap(result);
-        }
+    //     if (endian == std::endian::big)
+    //     {
+    //         result = std::byteswap(result);
+    //     }
 
-        self.advance(2);
-        return result;
-    }
+    //     self.advance(2);
+    //     return result;
+    // }
 
 };
 
@@ -418,3 +425,5 @@ using cursor_context = basic_cursor_context<char>;
 using wcursor_context = basic_cursor_context<wchar_t>;
 
 } // namespace cpp::config
+
+
