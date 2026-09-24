@@ -1,13 +1,20 @@
 /*
     1. Each scanner should derived from context_interface
-    2. We assume when parsing fails, the state of context is indeterminate.
+    2. We assume that if parsing fails, the context state is indeterminate.
+    3. Users should ensure that all supplied parsers have non-`void` return types.
 */
 
 #pragma once
 
 #include <cctype>
+#include <string_view>
 #include <optional>
 #include <charconv>
+#include <algorithm>
+#include <ranges>
+#include <concepts>
+#include <meta>
+#include <functional>
 
 namespace cpp::config::scanner
 {
@@ -21,38 +28,158 @@ struct conditional_loop
     constexpr conditional_loop(F2&& f2) : func((F2&&) f2) { }
 
     template <typename Context>
-    constexpr size_t operator()(Context& ctx)
+    constexpr auto operator()(Context& ctx) const
     {
+        const auto sv = ctx.to_string_view();
         const size_t rest = ctx.size();
-        for (; !ctx.eof() && func(ctx.current()); ctx.advance(1));
-        return rest - ctx.size();
+        for (; !ctx.eof() && std::invoke(func, ctx.current()); ctx.advance(1));
+        return sv.substr(rest - ctx.size());
     }
 };
 
 template <typename F>
 conditional_loop(F) -> conditional_loop<F>;
 
+template <typename... Parsers>
+struct sequence
+{
+    static constexpr auto indices = std::make_index_sequence<sizeof...(Parsers)>{};
+    
+    [[no_unique_address]] std::tuple<Parsers...> parsers;
+
+    template <typename... Parsers2>
+    constexpr sequence(Parsers2&&... parsers2) : parsers((Parsers2&&) parsers2...) { }
+
+    template <typename Context>
+        requires (std::invocable<Parsers, Context&> && ...)
+    constexpr auto operator()(Context& ctx) const
+    {
+        using T = Context&;
+        using RT = typename [:calculate_return_type(^^T):];
+        constexpr auto [...idx] = indices;
+        return RT(std::invoke(std::get<idx>(parsers), ctx)...);
+    }
+
+private:
+
+    static consteval std::meta::info calculate_return_type(std::meta::info ctx)
+    {
+        auto void_to_null = [=](auto info) { 
+            auto ret = std::meta::invoke_result(info, { ctx });
+            return is_void_type(ret) ? ^^std::nullptr_t : ret; 
+            // return is_void_type(info) ? ^^std::nullptr_t : info; 
+        };
+        auto args = std::vector { dealias(^^Parsers)... }
+                  | std::views::transform(void_to_null)
+                  | std::ranges::to<std::vector>();
+        return std::meta::substitute( ^^std::tuple, args );
+    }
+};
+
+template <typename... Parsers>
+sequence(Parsers&&...) -> sequence<Parsers...>;
+
+// template <typename... Parsers>
+// struct alternative
+// {
+//     static_assert(sizeof...(Parsers) > 0, "alternative requires at least one parser");
+
+//     static constexpr auto indices = std::make_index_sequence<sizeof...(Parsers)>{};
+    
+//     [[no_unique_address]] std::tuple<Parsers...> parsers;
+
+//     template <typename... Parsers2>
+//     constexpr alternative(Parsers2&&... parsers2) : parsers((Parsers2&&) parsers2...) { }
+
+//     template <typename Context>
+//     constexpr auto operator()(Context& ctx) const
+//     {
+//         using R1 = std::invoke_result_t<Parsers...[0], Context&>;
+//         using R = std::optional<R1>;
+//         static_assert(std::is_convertible_v<R, bool>, "The return type of the first parser must be convertible to bool");
+
+//         R result;
+
+//         template for (const auto& parser : parsers)
+//         {
+//             auto result = parser(ctx);
+
+//             if (result)
+//             {
+//                 break;
+//             }
+//         }
+
+//         return result;
+//     }
+// };
+
+// template <typename... Parsers>
+// alternative(Parsers&&...) -> alternative<Parsers...>;
+
 inline constexpr auto skip_whitespace = conditional_loop(::isspace);
 inline constexpr auto alpha = conditional_loop(::isalpha);
 inline constexpr auto digit = conditional_loop(::isdigit);
 inline constexpr auto alphanumeric = conditional_loop(::isalnum);
+
+template <typename CharT> 
+struct literal
+{
+    std::basic_string_view<CharT> value;
+
+    constexpr literal(std::basic_string_view<CharT> value) : value(value) { }
+    
+    constexpr literal(const CharT* value) : value(value) { }
+
+    template <typename Context>
+    constexpr bool operator()(Context& ctx) const
+    {
+        return ctx.match(value, true);
+    }
+};
 
 template <typename T> struct parse;
 
 template <> 
 struct parse<bool>
 {
+    static constexpr std::string_view True = "true";
+
+    static constexpr std::string_view False = "false";
+
+    bool allow_bool_case_insensitive;
+
+    constexpr parse(bool allow_bool_case_insensitive = false) 
+        : allow_bool_case_insensitive(allow_bool_case_insensitive) { }
+
     template <typename Context>
-    static constexpr std::optional<bool> operator()(Context& ctx)
+    constexpr std::optional<bool> operator()(Context& ctx) const
     {
-        if (ctx.match("true", true) || ctx.match("True", true))
+        if (!allow_bool_case_insensitive)
         {
-            return std::make_optional(true);
+            if (ctx.match(True, true))
+            {
+                return std::make_optional(true);
+            }
+
+            if (ctx.match(False, true))
+            {
+                return std::make_optional(false);
+            }
         }
-        
-        if (ctx.match("false", true) || ctx.match("False", true))
+        else
         {
-            return std::make_optional(false);
+            if (std::ranges::equal(ctx.to_string_view().substr(0, 4), True, {}, ::tolower, ::tolower))
+            {
+                ctx.advance(4);
+                return std::make_optional(true);
+            }
+
+            if (std::ranges::equal(ctx.to_string_view().substr(0, 5), False, {}, ::tolower, ::tolower))
+            {
+                ctx.advance(5);
+                return std::make_optional(false);
+            }
         }
         
         return std::nullopt;

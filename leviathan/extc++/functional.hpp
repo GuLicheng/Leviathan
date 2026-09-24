@@ -84,7 +84,7 @@ public:
 
 namespace cpp
 {
-    
+
 inline constexpr struct
 {
     template <typename T>
