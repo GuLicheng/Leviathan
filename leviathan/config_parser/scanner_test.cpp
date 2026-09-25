@@ -76,17 +76,17 @@ TEST_CASE("literal parsing works correctly")
 TEST_CASE("sequence parsing works correctly") 
 {
     auto ps = scanner::sequence(
-        scanner::skip_whitespace,
-        scanner::alphanumeric,
-        scanner::skip_whitespace,
-        scanner::literal("=")
+        scanner::alpha,
+        scanner::literal("="),
+        scanner::digit
     );
 
-    auto ctx = context("key = value");
+    auto ctx = context("age=18");
     auto rs = ctx.apply(ps);
-    // REQUIRE(result)
+    REQUIRE(rs._0 == "age");
+    REQUIRE(rs._2 == "18");
 
-    std::println("{}", display_string_of(^^decltype(rs)));
+    // std::println("{}", display_string_of(^^decltype(rs)));
 }
 
 
