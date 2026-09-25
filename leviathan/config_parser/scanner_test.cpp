@@ -1,8 +1,8 @@
-#include "scanner.hpp"
-#include "context.hpp"
 #include <print>
 #include <format>
 #include <catch2/catch_all.hpp>
+#include "scanner.hpp"
+#include "context.hpp"
 
 using cpp::config::context;
 namespace scanner = cpp::config::scanner;
@@ -18,7 +18,7 @@ TEST_CASE("skip_whitespace works correctly")
     auto scanner2 = scanner::alpha;
     auto idx = ctx2.apply(scanner2);
     REQUIRE(ctx2.to_string_view() == "");
-    REQUIRE(idx == "");
+    REQUIRE(idx == "example");
 }
 
 TEST_CASE("bool parsing works correctly") 
@@ -84,6 +84,7 @@ TEST_CASE("sequence parsing works correctly")
     auto ctx = context("age=18");
     auto rs = ctx.apply(ps);
     REQUIRE(rs._0 == "age");
+    REQUIRE(rs._1 == true);
     REQUIRE(rs._2 == "18");
 
     // std::println("{}", display_string_of(^^decltype(rs)));

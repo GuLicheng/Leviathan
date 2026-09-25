@@ -35,7 +35,7 @@ struct conditional_loop
         const auto sv = ctx.to_string_view();
         const size_t rest = ctx.size();
         for (; !ctx.eof() && std::invoke(func, ctx.current()); ctx.advance(1));
-        return sv.substr(rest - ctx.size());
+        return sv.substr(0, rest - ctx.size());
     }
 };
 
@@ -59,10 +59,31 @@ struct sequence
         using T = Context&;
         using RT = typename [:calculate_return_type(^^T):];
         constexpr auto [...idx] = indices;
-        return RT(std::invoke(std::get<idx>(parsers), ctx)...);
+        // RT(...) is avoided because argument evaluation order 
+        // is unspecified (not guaranteed left-to-right).
+        // Using RT{...} ensures that the parsers are evaluated
+        // in the correct order. [dcl.init.list] §4
+        return RT{ eval_one<RT, idx>(ctx)... };
     }
 
 private:
+
+    template <typename RT, std::size_t I, typename Context>
+    constexpr auto eval_one(Context& ctx) const  
+    {
+        std::println("Evaluating parser at index {}", I);
+        return std::invoke(std::get<I>(parsers), ctx);
+        // using Elem = std::tuple_element_t<I, RT>;
+        // if constexpr (std::same_as<Elem, std::nullptr_t>) 
+        // {
+        //     std::invoke(std::get<I>(parsers), ctx); // void parser
+        //     return nullptr;
+        // } 
+        // else 
+        // {
+        //     return std::invoke(std::get<I>(parsers), ctx);
+        // }
+    }
 
     static consteval std::meta::info calculate_return_type(std::meta::info ctx)
     {

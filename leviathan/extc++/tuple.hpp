@@ -128,17 +128,27 @@ struct tuple_get_interface
     }
 };
 
+// https://en.cppreference.com/cpp/utility/tuple/tuple
 template <typename... Ts>
 struct tuple : detail::basic_tuple<Ts...>
 {
     using base = detail::basic_tuple<Ts...>;
 
-    template <typename... Args>
-    constexpr tuple(Args&&... args) : base((Args&&)args...) {}
+    // The STL `std::tuple` comes with 28 constructors, showing that 
+    // implementing tuple constructors is quite involved. We will defer 
+    // this implementation for the time being. It is possible that 
+    // in the future the standard will expose all tuple members under 
+    // a consistent naming convention like `xxx1`, `xxx2`, etc.
+
+    // template <typename... Args>
+    // constexpr tuple(Args&&... args) : base((Args&&)args...) { }
+
+    // constexpr tuple() = default;
+
 };
 
-template <typename... Ts>
-tuple(Ts&&...) -> tuple<Ts...>;
+// template <typename... Ts>
+// tuple(Ts&&...) -> tuple<Ts...>;
 
 inline constexpr struct
 {
