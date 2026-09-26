@@ -71,7 +71,7 @@ private:
     template <typename RT, std::size_t I, typename Context>
     constexpr auto eval_one(Context& ctx) const  
     {
-        std::println("Evaluating parser at index {}", I);
+        // std::println("Evaluating parser at index {}", I);
         return std::invoke(std::get<I>(parsers), ctx);
         // using Elem = std::tuple_element_t<I, RT>;
         // if constexpr (std::same_as<Elem, std::nullptr_t>) 
@@ -138,11 +138,6 @@ sequence(Parsers&&...) -> sequence<Parsers...>;
 
 // template <typename... Parsers>
 // alternative(Parsers&&...) -> alternative<Parsers...>;
-
-inline constexpr auto skip_whitespace = conditional_loop(::isspace);
-inline constexpr auto alpha = conditional_loop(::isalpha);
-inline constexpr auto digit = conditional_loop(::isdigit);
-inline constexpr auto alphanumeric = conditional_loop(::isalnum);
 
 template <typename CharT> 
 struct literal
@@ -229,7 +224,10 @@ struct parse<Arithmetic>
     }
 };
 
-
+inline constexpr auto skip_whitespace = conditional_loop(::isspace);
+inline constexpr auto alpha = conditional_loop(::isalpha);
+inline constexpr auto digit = conditional_loop(::isdigit);
+inline constexpr auto alphanumeric = conditional_loop(::isalnum);
 
 
 

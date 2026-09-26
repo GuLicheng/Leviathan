@@ -3,11 +3,12 @@
 #include <print>
 #include <meta>
 
+int& func(int a);
 
 int main()
 {
-    constexpr auto info = std::meta::substitute( ^^std::tuple, { ^^int, ^^double } );
-    using T = typename [:info:];
-    T t = { 1, 3.14 };
-    std::println("{}", c);
+    constexpr auto info = std::meta::invoke_result(^^decltype(func), { ^^int });
+    constexpr auto type = display_string_of(info);
+    std::println("{}", type);
+
 }
