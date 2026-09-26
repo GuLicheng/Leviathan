@@ -1,13 +1,147 @@
 #pragma once
 
 #include <string_view>
+#include <span>
 #include <utility>
 #include <bit>
 #include <functional>
+#include <meta>
 #include <assert.h>
 
 namespace cpp::config
 {
+
+/**
+ * @brief Interface for token handling.
+ * @details The underlying storage type should be 
+ * std::basic_string_view or std::span, such as
+ * 
+ * struct TokenStream : token_interface<CharOrToken>
+ * {
+ *     StringViewOrSpan<CharOrToken> value;
+ *     size_t offset;
+ * 
+ *     auto to_string_view_or_span() const;   // as std::basic_string_view or std::span
+ *     TokenStream& operator+=(size_type n);  // advance
+ *     TokenStream& operator-=(size_type n);  // retreat
+ *     int line() const;                      // get the current line number(opt and lazy evaluation)
+ *     int column() const;                    // get the current column number(opt and lazy evaluation)
+ * };
+ */
+template <typename Token>
+struct token_interface
+{
+private:
+
+    static_assert(std::is_same_v<Token, std::remove_cvref_t<Token>>);
+
+    static consteval std::meta::info underlying()
+    {
+        std::meta::info chars[] = { ^^char, ^^wchar_t, ^^char8_t, ^^char16_t, ^^char32_t };
+        return std::ranges::contains(chars, ^^Token)
+             ? ^^std::span<const Token>
+             : ^^std::basic_string_view<Token>;
+    }
+
+public:
+
+    using underlying_type = typename [:underlying():];
+    using value_type = Token;
+
+    template <typename Self>
+    constexpr const Token* data(this Self& self)
+    {
+        return self.to_string_view_or_span().data();
+    }
+
+    template <typename Self>
+    constexpr auto size(this Self& self)
+    {
+        return self.to_string_view_or_span().size();
+    }
+
+    template <typename Self>
+    constexpr auto empty(this Self& self)
+    {
+        return self.size() == 0;
+    }
+
+    template <typename Self>
+    constexpr auto begin(this Self& self)
+    {
+        return self.to_string_view_or_span().begin();
+    }
+
+    template <typename Self>
+    constexpr auto end(this Self& self)
+    {
+        return self.to_string_view_or_span().end();
+    }
+
+    template <typename Self>
+    constexpr auto cbegin(this Self& self)
+    {
+        return self.to_string_view_or_span().cbegin();
+    }
+
+    template <typename Self>
+    constexpr auto cend(this Self& self)
+    {
+        return self.to_string_view_or_span().cend();
+    }
+
+    template <typename Self>
+    constexpr auto crbegin(this Self& self)
+    {
+        return self.to_string_view_or_span().crbegin();
+    }
+    
+    template <typename Self>
+    constexpr auto crend(this Self& self)
+    {
+        return self.to_string_view_or_span().crend();
+    }
+
+    template <typename Self>
+    constexpr auto rbegin(this Self& self)
+    {
+        return self.to_string_view_or_span().rbegin();
+    }
+
+    template <typename Self>
+    constexpr auto rend(this Self& self)
+    {
+        return self.to_string_view_or_span().rend();
+    }
+    
+    template <typename Self>
+    constexpr auto& operator[](this Self& self, size_t index)
+    {
+        return self.to_string_view_or_span()[index];
+    }
+
+    template <typename Self>
+    constexpr auto at(this Self& self, size_t index)
+    {
+        return self.to_string_view_or_span().at(index);
+    }
+
+    template <typename Self>
+    constexpr operator bool(this Self& self)
+    {
+        return !self.empty();
+    }
+
+
+
+
+
+
+
+
+
+
+};
 
 template <typename CharT>
 struct context_interface
@@ -279,39 +413,6 @@ struct context_interface
         for (; idx < self.size() && pred(self[idx]); ++idx);
         return self.to_string_view().substr(0, idx);
     }
-
-    // template <typename Self>
-    // constexpr uint32_t read_four_bytes_as_u32(this Self& self, std::endian endian = std::endian::little)
-    // {
-    //     auto sv = self.to_string_view();
-    //     assert(sv.size() >= 4);
-    //     uint32_t result = sv[0] | (sv[1] << 8) | (sv[2] << 16) | (sv[3] << 24);
-
-    //     if (endian == std::endian::big)
-    //     {
-    //         result = std::byteswap(result);
-    //     }
-
-    //     self.advance(4);
-    //     return result;
-    // }
-
-    // template <typename Self>
-    // constexpr uint16_t read_two_bytes_as_u16(this Self& self, std::endian endian = std::endian::little)
-    // {
-    //     auto sv = self.to_string_view();
-    //     assert(sv.size() >= 2);
-    //     uint16_t result = sv[0] | (sv[1] << 8);
-
-    //     if (endian == std::endian::big)
-    //     {
-    //         result = std::byteswap(result);
-    //     }
-
-    //     self.advance(2);
-    //     return result;
-    // }
-
 };
 
 template <typename CharT>

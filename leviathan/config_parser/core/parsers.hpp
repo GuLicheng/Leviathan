@@ -23,7 +23,9 @@
         - space1
         - hexdigit0
         - hexdigit1
-
+        - newline
+        - tab
+        - crlf
 
     - [x] take_till
     - [x] take
@@ -59,9 +61,7 @@
     - [x] oct_digit1
     - [x] multispace0
     - [x] multispace1
-    - [x] newline
-    - [x] tab
-    - [x] crlf
+
     - [x] till_line_ending
     - [x] line_ending
     - [x] line_comment
@@ -212,5 +212,9 @@ inline constexpr struct
         return detail::literal_parser<CharT>(sv);
     }
 } literal;
+
+inline constexpr auto newline = literal("\n");
+inline constexpr auto tab = literal("\t");
+inline constexpr auto crlf = literal("\r\n");
 
 }  // namespace cpp::config::parser

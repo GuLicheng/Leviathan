@@ -1,4 +1,5 @@
 #include <catch2/catch_all.hpp>
+#include <span>
 #include <leviathan/config_parser/core/parsers.hpp>
 #include <leviathan/config_parser/core/context.hpp>
 
@@ -147,7 +148,7 @@ TEST_CASE("map")
     REQUIRE(CheckResult(parser3, Context("!!!"), Succeed<std::string>{ "HelloWorld!" }, ""));
 }
 
-TEST_CASE("preceded", "[combinator]")
+TEST_CASE("preceded")
 {
     auto parser = cpp::config::parser::preceded(
         cpp::config::parser::literal("hello"), cpp::config::parser::literal("world")
@@ -157,7 +158,7 @@ TEST_CASE("preceded", "[combinator]")
     REQUIRE(CheckResult(parser, Context("abcworld"), Backtrack()));
 }
 
-TEST_CASE("terminated", "[combinator]")
+TEST_CASE("terminated")
 {
     auto parser = cpp::config::parser::terminated(
         cpp::config::parser::literal("hello"), cpp::config::parser::literal("world")
@@ -167,7 +168,7 @@ TEST_CASE("terminated", "[combinator]")
     REQUIRE(CheckResult(parser, Context("abcworld"), Backtrack()));
 }
 
-TEST_CASE("delimited", "[combinator]")
+TEST_CASE("delimited")
 {
     auto parser = cpp::config::parser::delimited(
         cpp::config::parser::literal("["), 
@@ -181,7 +182,7 @@ TEST_CASE("delimited", "[combinator]")
     REQUIRE(CheckResult(parser, Context("[]"), Backtrack()));
 }
 
-TEST_CASE("separated_pair", "[combinator]")
+TEST_CASE("separated_pair")
 {
     auto parser = cpp::config::parser::separated_pair(
         cpp::config::parser::literal("first"), 
@@ -195,7 +196,7 @@ TEST_CASE("separated_pair", "[combinator]")
     REQUIRE(CheckResult(parser, Context(",second"), Backtrack()));
 }
 
-TEST_CASE("literal", "[token]")
+TEST_CASE("literal")
 {
     using cpp::config::parser::literal;
 
@@ -203,5 +204,21 @@ TEST_CASE("literal", "[token]")
     REQUIRE(CheckResult(literal("123"), Context("123456"), Succeed<std::string_view>{"123"}, "456"));
     REQUIRE(CheckResult(literal("abc"), Context("xyz"), Backtrack(), "xyz"));
 }
+
+
+TEST_CASE("token stream")
+{
+
+
+
+
+}
+
+
+
+
+
+
+
 
 
