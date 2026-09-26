@@ -3,6 +3,7 @@
 #include <memory>  
 #include <format>
 #include <expected>
+#include <any>
 
 namespace cpp::config
 {
@@ -135,16 +136,28 @@ struct error_traits<context_error>
     
 };
 
+template <typename R, typename Context>
+constexpr auto make_recoverable_from_input(Context& ctx, const char* message = nullptr)
+{
+    // R is modal_result
+    using ErrMode = typename R::error_type;
+    using O = typename R::value_type;
+    using E = typename ErrMode::error_type;
+    return parse_result<O, E>(
+        std::unexpect, ErrMode::make_recoverable(error_traits<E>::from_input(ctx, message))
+    );
+}
 
-} // namespace winnow
 
-template <typename E, typename I>
-struct std::formatter<cpp::config::err_mode<E, I>> 
+} // namespace cpp::config
+
+template <typename E>
+struct std::formatter<cpp::config::err_mode<E>> 
 {
     constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
     template <typename FormatContext>
-    auto format(const cpp::config::err_mode<E, I>& err, FormatContext& ctx) const
+    auto format(const cpp::config::err_mode<E>& err, FormatContext& ctx) const
     {
         if (err.is_recoverable())
         {

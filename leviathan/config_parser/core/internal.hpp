@@ -2,6 +2,7 @@
 
 #include <leviathan/config_parser/core/parser_interface.hpp>
 #include <leviathan/config_parser/core/utils.hpp>
+#include <leviathan/config_parser/core/error.hpp>
 #include <utility>
 #include <functional>
 
@@ -68,7 +69,7 @@ public:
     {
         using E = typename Stream::error_type;
         using O = std::basic_string_view<typename Stream::value_type>;
-        using R = modal_result<O, E>;
+        using R = parse_result<O, E>;
         
         // User should ensure that the upper is not less than lower.
         size_t count = 0;
@@ -84,9 +85,7 @@ public:
 
         if (m_range.is_less_than_lower(count))
         {
-            // It will return an ErrMode::Backtrack(_) if the 
-            // set of tokens wasn’t met or is out of occurrences range.
-            return make_backtrack_from_input<R>(stream);
+            return make_recoverable_from_input<R>(stream);
         }
         else
         {
