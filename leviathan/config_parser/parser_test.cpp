@@ -95,12 +95,10 @@ bool CheckResult(Parser parser, Context context, Checker checker, Rest rest)
     return checker(result) && context.to_string_view() == rest;
 }
 
-
 TEST_CASE("take_while")
 {
     using cpp::config::parser::take_while;
 
-    // auto parser1 = take_while(::isalpha);
     auto parser1 = cpp::config::parser::alpha0;
 
     REQUIRE(CheckResult(parser1, Context("abc123"), Succeed<std::string_view>{ "abc" }, "123"));
@@ -108,7 +106,6 @@ TEST_CASE("take_while")
     REQUIRE(CheckResult(parser1, Context("latin"), Succeed<std::string_view>{ "latin" }, ""));
     REQUIRE(CheckResult(parser1, Context(""), Succeed<std::string_view>{ "" }, ""));
 
-    // auto parser2 = take_while(::isalpha, 3, 7);
     auto parser2 = take_while(::isalpha, cpp::config::range(3, 7));
 
     REQUIRE(CheckResult(parser2, Context("latin123"), Succeed<std::string_view>{ "latin" }, "123"));
@@ -124,3 +121,87 @@ TEST_CASE("take_while")
     REQUIRE(CheckResult(parser3, Context("12345"), Backtrack()));
     REQUIRE(CheckResult(parser3, Context(""), Backtrack()));
 }
+
+TEST_CASE("map")
+{
+    auto parser = cpp::config::parser::map(
+        cpp::config::parser::literal("hello"), 
+        [](std::string_view str) { return std::string(str) + " world"; }
+    );
+
+    REQUIRE(CheckResult(parser, Context("hello"), Succeed<std::string>{ "hello world" }, ""));
+    REQUIRE(CheckResult(parser, Context("abc"), Backtrack()));
+
+    auto parser2 = cpp::config::parser::literal("123").map(
+        [](std::string_view str) { return std::stoi(std::string(str)); }
+    );
+
+    REQUIRE(CheckResult(parser2, Context("123"), Succeed<int>{ 123 }, ""));
+    REQUIRE(CheckResult(parser2, Context("abc"), Backtrack()));
+
+    auto parser3 = cpp::config::parser::literal("!!!")
+                   .map([](auto x) { return x.substr(0, 1); })
+                   .map([](auto x) { return x.substr(0, 1); })
+                   .map([](auto x) { return std::string("HelloWorld") + x; });
+
+    REQUIRE(CheckResult(parser3, Context("!!!"), Succeed<std::string>{ "HelloWorld!" }, ""));
+}
+
+TEST_CASE("preceded", "[combinator]")
+{
+    auto parser = cpp::config::parser::preceded(
+        cpp::config::parser::literal("hello"), cpp::config::parser::literal("world")
+    );
+    REQUIRE(CheckResult(parser, Context("helloworld"), Succeed<std::string_view>{ "world" }));
+    REQUIRE(CheckResult(parser, Context("helloabc"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("abcworld"), Backtrack()));
+}
+
+TEST_CASE("terminated", "[combinator]")
+{
+    auto parser = cpp::config::parser::terminated(
+        cpp::config::parser::literal("hello"), cpp::config::parser::literal("world")
+    );
+    REQUIRE(CheckResult(parser, Context("helloworld"), Succeed<std::string_view>{ "hello" }, ""));
+    REQUIRE(CheckResult(parser, Context("helloabc"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("abcworld"), Backtrack()));
+}
+
+TEST_CASE("delimited", "[combinator]")
+{
+    auto parser = cpp::config::parser::delimited(
+        cpp::config::parser::literal("["), 
+        cpp::config::parser::literal("content"), 
+        cpp::config::parser::literal("]")
+    );
+    
+    REQUIRE(CheckResult(parser, Context("[content]"), Succeed<std::string_view>{ "content" }, ""));
+    REQUIRE(CheckResult(parser, Context("[content"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("content]"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("[]"), Backtrack()));
+}
+
+TEST_CASE("separated_pair", "[combinator]")
+{
+    auto parser = cpp::config::parser::separated_pair(
+        cpp::config::parser::literal("first"), 
+        cpp::config::parser::literal(","), 
+        cpp::config::parser::literal("second")
+    );
+
+    REQUIRE(CheckResult(parser, Context("first,second"), Succeed<std::pair<std::string_view, std::string_view>>{ {"first", "second"} }, ""));
+    REQUIRE(CheckResult(parser, Context("first;second"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("first,"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context(",second"), Backtrack()));
+}
+
+TEST_CASE("literal", "[token]")
+{
+    using cpp::config::parser::literal;
+
+    REQUIRE(CheckResult(literal("hello"), Context("hello world"), Succeed<std::string_view>{"hello"}, " world"));
+    REQUIRE(CheckResult(literal("123"), Context("123456"), Succeed<std::string_view>{"123"}, "456"));
+    REQUIRE(CheckResult(literal("abc"), Context("xyz"), Backtrack(), "xyz"));
+}
+
+

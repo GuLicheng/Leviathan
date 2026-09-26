@@ -10,7 +10,7 @@ namespace cpp::config::parser::detail
 {
 
 template <typename Parser, typename F> 
-class map_parser : parser_interface
+class map_parser : public parser_interface
 {
     [[no_unique_address]] Parser m_parser;
     [[no_unique_address]] F m_func;
@@ -51,7 +51,7 @@ template <typename Parser, typename F>
 map_parser(Parser&&, F&&) -> map_parser<std::decay_t<Parser>, std::decay_t<F>>;
 
 template <typename Pred>
-struct take_while_parser : parser_interface
+class take_while_parser : public parser_interface
 {
     [[no_unique_address]] Pred m_pred;
     occurrences<size_t> m_range;
@@ -98,6 +98,96 @@ public:
 
 template <typename Pred>
 take_while_parser(Pred&&, occurrences<size_t>) -> take_while_parser<std::decay_t<Pred>>;
+
+template <typename... Parsers>
+class sequence_parser : public parser_interface
+{
+    std::tuple<Parsers...> m_parsers;
+
+    static constexpr auto indices = std::make_index_sequence<sizeof...(Parsers)>{};
+
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    template <typename... Parsers2>
+    constexpr sequence_parser(Parsers2&&... ps) : m_parsers((Parsers2&&) ps...) { } 
+
+    template <typename Context>
+    constexpr auto operator()(Context& ctx) const
+    {
+        using E = typename Context::error_type;
+        using OptOs = std::tuple<std::optional<typename std::invoke_result_t<Parsers, Context&>::value_type>...>;
+        using Os = std::tuple<typename std::invoke_result_t<Parsers, Context&>::value_type...>;
+        using R = parse_result<Os, E>;
+
+        OptOs opt_results;
+        std::optional<err_mode<E>> err;
+        
+        template for (constexpr auto idx : indices)
+        {
+            auto& parser = std::get<idx>(m_parsers);
+            auto result = parser(ctx);
+
+            if (!result.has_value())
+            {
+                err.emplace(std::move(result.error()));
+                break;
+            }
+
+            std::get<idx>(opt_results).emplace(std::move(result.value()));
+        }
+
+        if (err.has_value())
+        {
+            return make_recoverable_from_input<R>(ctx);
+        }
+
+        constexpr auto [...idx] = indices; 
+
+        return R(std::in_place, Os(std::move(std::get<idx>(opt_results).value())...));
+    }
+};
+
+template <typename... Parsers>
+sequence_parser(Parsers&&... ps) -> sequence_parser<std::decay_t<Parsers>...>;
+
+template <typename CharT>
+class literal_parser : public parser_interface
+{
+    using literal_type = std::basic_string_view<CharT>;
+
+    literal_type m_constant;
+
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    constexpr literal_parser(literal_type t) : m_constant(t) { }
+
+    template <typename Context>
+    constexpr auto operator()(Context& ctx) const
+    {
+        // Rust winnow return a part of input/stream. 
+        // We just return slices of the input stream.
+        using E = typename Context::error_type;
+        using O = literal_type;
+        using R = parse_result<literal_type, E>;
+
+        if (ctx.match(m_constant, false))
+        {
+            auto [left, right] = ctx.split_at(m_constant.size());
+            ctx = std::move(right);
+            return R(std::in_place, std::move(left));
+        }
+        else
+        {
+            return make_recoverable_from_input<R>(ctx);
+        }
+    }
+};
+
+
 
 }  // namespace cpp::config::parser::detail
 
