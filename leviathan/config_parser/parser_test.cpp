@@ -221,16 +221,16 @@ TEST_CASE("sequence")
 
 TEST_CASE("alternative")
 {
-    // auto parser = cpp::config::parser::alt(
-    //     cpp::config::parser::literal("true"),
-    //     cpp::config::parser::literal("false"),
-    //     cpp::config::parser::literal("null")
-    // );
+    auto parser = cpp::config::parser::alt(
+        cpp::config::parser::literal("true"),
+        cpp::config::parser::literal("false"),
+        cpp::config::parser::literal("null")
+    );
 
-    // REQUIRE(CheckResult(parser, Context("true"), Succeed<std::string_view>{ "true" }, ""));
-    // REQUIRE(CheckResult(parser, Context("false"), Succeed<std::string_view>{ "false" }, ""));
-    // REQUIRE(CheckResult(parser, Context("null"), Succeed<std::string_view>{ "null" }, ""));
-    // REQUIRE(CheckResult(parser, Context("unknown"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("true"), Succeed<std::string_view>{ "true" }, ""));
+    REQUIRE(CheckResult(parser, Context("false"), Succeed<std::string_view>{ "false" }, ""));
+    REQUIRE(CheckResult(parser, Context("null"), Succeed<std::string_view>{ "null" }, ""));
+    REQUIRE(CheckResult(parser, Context("unknown"), Backtrack()));
 }
 
 

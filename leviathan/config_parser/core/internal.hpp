@@ -135,22 +135,19 @@ public:
     }
 };
 
-#if 0
 template <typename... Parsers>
-class alternative_parser : parser_interface
+class alternative_parser : public parser_interface
 {
     static_assert(sizeof...(Parsers) > 0, "alternative_parser requires at least one parser.");
 
-    [[no_unique_address]] cpp::tuple<Parsers...> m_parsers;
+    [[no_unique_address]] std::tuple<Parsers...> m_parsers;
 
 public:
 
     static constexpr bool is_always_succeed = false;
 
     template <typename... Ps>
-    constexpr alternative_parser(Ps&&... ps) : m_parsers{(Ps&&)ps...} { }
-
-    // constexpr alternative_parser(Parsers... ps) : m_parsers(ps...) { }
+    constexpr alternative_parser(Ps&&... ps) : m_parsers((Ps&&)ps...) { }
 
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
@@ -194,7 +191,6 @@ public:
 
 template <typename... Parsers>
 alternative_parser(Parsers&&... ps) -> alternative_parser<std::decay_t<Parsers>...>;
-#endif
 
 template <typename... Parsers>
 class sequence_parser : public parser_interface

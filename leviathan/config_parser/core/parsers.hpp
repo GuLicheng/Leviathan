@@ -217,13 +217,13 @@ inline constexpr auto newline = literal("\n");
 inline constexpr auto tab = literal("\t");
 inline constexpr auto crlf = literal("\r\n");
 
-// inline constexpr struct
-// {
-//     template <typename... Parsers>
-//     static constexpr auto operator()(Parsers&&... parsers)
-//     {
-//         return detail::alternative_parser<std::decay_t<Parsers>...>((Parsers&&) parsers...);
-//     }
-// } alt;
+inline constexpr struct
+{
+    template <typename... Parsers>
+    static constexpr auto operator()(Parsers&&... parsers)
+    {
+        return detail::alternative_parser<std::decay_t<Parsers>...>((Parsers&&) parsers...);
+    }
+} alt;
 
 }  // namespace cpp::config::parser
