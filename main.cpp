@@ -1,41 +1,33 @@
 #include <leviathan/extc++/all.hpp>
 #include <leviathan/config_parser/core/context.hpp>
+#include <leviathan/config_parser/core/parsers.hpp>
 #include <print>
 #include <meta>
 #include <span>
 
-enum class TokenType
+class Context : public cpp::config::context
 {
-    LeftBracket,
-    RightBracket,
-    Identifier,
-};
-
-struct Token
-{
-    TokenType type;
-    std::string_view value;
-};
-
-struct TokenStream : public cpp::config::token_interface<Token>
-{
-    std::span<Token> tokens;
+public:
+    using cpp::config::context::context;
+    using error_type = cpp::config::context_error;
 };
 
 int main()
 {
-    std::vector<Token> tokens = {
-        { TokenType::LeftBracket, "[" },
-        { TokenType::Identifier, "content" },
-        { TokenType::RightBracket, "]" }
-    };
+    auto p = cpp::config::parser::sequence(
+        cpp::config::parser::literal("Hello"),
+        cpp::config::parser::literal("World"),
+        cpp::config::parser::literal("!")
+    );
+    
 
-    std::span<Token> tokenSpan = tokens;
+    Context ctx("HelloWorld!");  
 
-    using T = typename TokenStream::underlying_type;
+    auto r = ctx.apply(p);
 
-    // tokenSpan.data();
-    // tokenSpan.subspan()
+    std::println("Result: {}", r.has_value());
+    std::println("Result: {}", r.value());
+    std::println("Result: {}", ctx.to_string_view());
 }
 
 

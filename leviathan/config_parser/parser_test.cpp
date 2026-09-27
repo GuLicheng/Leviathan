@@ -83,14 +83,14 @@ struct Cut
 };
 
 template <typename Parser, typename Context, typename Checker>
-bool CheckResult(Parser parser, Context context, Checker checker)
+bool CheckResult(Parser&& parser, Context context, Checker checker)
 {
     auto result = parser(context);
     return checker(result);
 }
 
 template <typename Parser, typename Context, typename Checker, typename Rest>
-bool CheckResult(Parser parser, Context context, Checker checker, Rest rest)
+bool CheckResult(Parser&& parser, Context context, Checker checker, Rest rest)
 {
     auto result = parser(context);
     return checker(result) && context.to_string_view() == rest;
@@ -205,13 +205,40 @@ TEST_CASE("literal")
     REQUIRE(CheckResult(literal("abc"), Context("xyz"), Backtrack(), "xyz"));
 }
 
-TEST_CASE("token stream")
+TEST_CASE("sequence")
 {
-
-
-
-
+    auto parser = cpp::config::parser::sequence(
+        cpp::config::parser::literal("["),
+        cpp::config::parser::literal("section"),
+        cpp::config::parser::literal("]")
+    );
+    
+    REQUIRE(CheckResult(parser, Context("[section]"), Succeed<std::tuple<std::string_view, std::string_view, std::string_view>>{ {"[", "section", "]"} }, ""));
+    REQUIRE(CheckResult(parser, Context("[section"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("section]"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("[]"), Backtrack()));
 }
+
+TEST_CASE("alternative")
+{
+    // auto parser = cpp::config::parser::alt(
+    //     cpp::config::parser::literal("true"),
+    //     cpp::config::parser::literal("false"),
+    //     cpp::config::parser::literal("null")
+    // );
+
+    // REQUIRE(CheckResult(parser, Context("true"), Succeed<std::string_view>{ "true" }, ""));
+    // REQUIRE(CheckResult(parser, Context("false"), Succeed<std::string_view>{ "false" }, ""));
+    // REQUIRE(CheckResult(parser, Context("null"), Succeed<std::string_view>{ "null" }, ""));
+    // REQUIRE(CheckResult(parser, Context("unknown"), Backtrack()));
+}
+
+
+
+
+
+
+
 
 
 

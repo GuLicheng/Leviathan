@@ -50,9 +50,9 @@ inline constexpr struct
 inline constexpr struct
 {
     template <typename... Parsers>
-    static constexpr auto operator()(Parsers... parsers)
+    static constexpr auto operator()(Parsers&&... parsers)
     {
-        return detail::sequence_parser<Parsers...>(std::move(parsers)...);
+        return detail::sequence_parser<std::decay_t<Parsers>...>((Parsers&&) parsers...);
     }
 } sequence;
     

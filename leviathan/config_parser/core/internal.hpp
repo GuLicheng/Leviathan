@@ -4,6 +4,7 @@
 #include <leviathan/config_parser/core/utils.hpp>
 #include <leviathan/config_parser/core/error.hpp>
 #include <utility>
+#include <optional>
 #include <functional>
 
 namespace cpp::config::parser::detail
@@ -99,6 +100,102 @@ public:
 template <typename Pred>
 take_while_parser(Pred&&, occurrences<size_t>) -> take_while_parser<std::decay_t<Pred>>;
 
+template <typename CharT>
+class literal_parser : public parser_interface
+{
+    using literal_type = std::basic_string_view<CharT>;
+
+    literal_type m_constant;
+
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    constexpr literal_parser(literal_type t) : m_constant(t) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        // Rust winnow return a part of input/stream. 
+        // We just return slices of the input stream.
+        using E = typename Stream::error_type;
+        using O = literal_type;
+        using R = parse_result<literal_type, E>;
+
+        if (stream.match(m_constant, false))
+        {
+            auto [left, right] = stream.split_at(m_constant.size());
+            stream = std::move(right);
+            return R(std::in_place, std::move(left));
+        }
+        else
+        {
+            return make_recoverable_from_input<R>(stream);
+        }
+    }
+};
+
+#if 0
+template <typename... Parsers>
+class alternative_parser : parser_interface
+{
+    static_assert(sizeof...(Parsers) > 0, "alternative_parser requires at least one parser.");
+
+    [[no_unique_address]] cpp::tuple<Parsers...> m_parsers;
+
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    template <typename... Ps>
+    constexpr alternative_parser(Ps&&... ps) : m_parsers{(Ps&&)ps...} { }
+
+    // constexpr alternative_parser(Parsers... ps) : m_parsers(ps...) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using R = std::invoke_result_t<Parsers...[0], Stream&>;
+        using ErrMode = err_mode<E>;
+
+        static_assert((std::is_same_v<R, std::invoke_result_t<Parsers, Stream&>> && ...),
+                      "All parsers in alternative_parser must return the same result type.");
+
+        // Just save the last error of parser.
+        // For tight control over the error when no match is found, add a final case using fail.
+        std::optional<ErrMode> e;  
+
+        // C++26 support Expansion Statements P1306R5.
+        template for (const auto& parser : m_parsers)
+        {
+            auto clone = stream;
+            auto result = parser(clone);
+
+            if (result)
+            {
+                stream = std::move(clone);
+                return result;
+            }
+            else if (result.error().is_fatal())
+            {
+                // Stop parsing further as a cut has been encountered.
+                return result;
+            }
+            
+            e.emplace(std::move(result.error()));
+        }
+
+        // The e must have value since we require at least one parser in alternative_parser.
+        return R(std::unexpect, std::move(e.value()));
+    }
+
+};
+
+template <typename... Parsers>
+alternative_parser(Parsers&&... ps) -> alternative_parser<std::decay_t<Parsers>...>;
+#endif
+
 template <typename... Parsers>
 class sequence_parser : public parser_interface
 {
@@ -110,8 +207,11 @@ public:
 
     static constexpr bool is_always_succeed = false;
 
-    template <typename... Parsers2>
-    constexpr sequence_parser(Parsers2&&... ps) : m_parsers((Parsers2&&) ps...) { } 
+
+    // auto p1 = sequence(...)
+    // auto p2 = p1; // error why?
+    template <typename... Parser2>
+    constexpr sequence_parser(Parser2&&... ps) : m_parsers((Parser2&&) ps...) { } 
 
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
@@ -151,43 +251,6 @@ public:
 
 template <typename... Parsers>
 sequence_parser(Parsers&&... ps) -> sequence_parser<std::decay_t<Parsers>...>;
-
-template <typename CharT>
-class literal_parser : public parser_interface
-{
-    using literal_type = std::basic_string_view<CharT>;
-
-    literal_type m_constant;
-
-public:
-
-    static constexpr bool is_always_succeed = false;
-
-    constexpr literal_parser(literal_type t) : m_constant(t) { }
-
-    template <typename Stream>
-    constexpr auto operator()(Stream& stream) const
-    {
-        // Rust winnow return a part of input/stream. 
-        // We just return slices of the input stream.
-        using E = typename Stream::error_type;
-        using O = literal_type;
-        using R = parse_result<literal_type, E>;
-
-        if (stream.match(m_constant, false))
-        {
-            auto [left, right] = stream.split_at(m_constant.size());
-            stream = std::move(right);
-            return R(std::in_place, std::move(left));
-        }
-        else
-        {
-            return make_recoverable_from_input<R>(stream);
-        }
-    }
-};
-
-
 
 }  // namespace cpp::config::parser::detail
 
