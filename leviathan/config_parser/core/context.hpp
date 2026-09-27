@@ -18,14 +18,8 @@ namespace cpp::config
  * 
  * struct TokenStream : token_interface<CharOrToken>
  * {
- *     StringViewOrSpan<CharOrToken> value;
+ *     StringViewOrSpan<CharOrToken> tokens;
  *     size_t offset;
- * 
- *     auto to_string_view_or_span() const;   // as std::basic_string_view or std::span
- *     TokenStream& operator+=(size_type n);  // advance
- *     TokenStream& operator-=(size_type n);  // retreat
- *     int line() const;                      // get the current line number(opt and lazy evaluation)
- *     int column() const;                    // get the current column number(opt and lazy evaluation)
  * };
  */
 template <typename Token>
@@ -33,31 +27,41 @@ struct token_interface
 {
 private:
 
-    static_assert(std::is_same_v<Token, std::remove_cvref_t<Token>>);
-
-    static consteval std::meta::info underlying()
-    {
-        std::meta::info chars[] = { ^^char, ^^wchar_t, ^^char8_t, ^^char16_t, ^^char32_t };
-        return std::ranges::contains(chars, ^^Token)
-             ? ^^std::span<const Token>
-             : ^^std::basic_string_view<Token>;
-    }
+    // const Token is allowed, but references are not.
+    static_assert(std::is_same_v<Token, std::remove_reference_t<Token>>);
 
 public:
 
-    using underlying_type = typename [:underlying():];
+    using underlying_type = std::span<Token>;   
     using value_type = Token;
+    using size_type = typename underlying_type::size_type;
+
+    template <typename Self>
+    constexpr underlying_type to_span(this Self& self)
+    {
+        return { self.tokens.begin() + self.offset, self.tokens.end() };
+    }
+
+    template <typename Self>
+    constexpr underlying_type slice(this Self& self, size_type offset, size_type count = std::numeric_limits<size_type>::max())
+    {
+        auto view = self.to_span();
+        return { 
+            std::ranges::next(view.begin(), offset, view.end()), 
+            std::ranges::next(view.begin(), offset + count, view.end()) 
+        };
+    }   
 
     template <typename Self>
     constexpr const Token* data(this Self& self)
     {
-        return self.to_string_view_or_span().data();
+        return self.to_span().data();
     }
 
     template <typename Self>
     constexpr auto size(this Self& self)
     {
-        return self.to_string_view_or_span().size();
+        return self.to_span().size();
     }
 
     template <typename Self>
@@ -69,61 +73,61 @@ public:
     template <typename Self>
     constexpr auto begin(this Self& self)
     {
-        return self.to_string_view_or_span().begin();
+        return self.to_span().begin();
     }
 
     template <typename Self>
     constexpr auto end(this Self& self)
     {
-        return self.to_string_view_or_span().end();
+        return self.to_span().end();
     }
 
     template <typename Self>
     constexpr auto cbegin(this Self& self)
     {
-        return self.to_string_view_or_span().cbegin();
+        return self.to_span().cbegin();
     }
 
     template <typename Self>
     constexpr auto cend(this Self& self)
     {
-        return self.to_string_view_or_span().cend();
+        return self.to_span().cend();
     }
 
     template <typename Self>
     constexpr auto crbegin(this Self& self)
     {
-        return self.to_string_view_or_span().crbegin();
+        return self.to_span().crbegin();
     }
     
     template <typename Self>
     constexpr auto crend(this Self& self)
     {
-        return self.to_string_view_or_span().crend();
+        return self.to_span().crend();
     }
 
     template <typename Self>
     constexpr auto rbegin(this Self& self)
     {
-        return self.to_string_view_or_span().rbegin();
+        return self.to_span().rbegin();
     }
 
     template <typename Self>
     constexpr auto rend(this Self& self)
     {
-        return self.to_string_view_or_span().rend();
+        return self.to_span().rend();
     }
     
     template <typename Self>
     constexpr auto& operator[](this Self& self, size_t index)
     {
-        return self.to_string_view_or_span()[index];
+        return self.to_span()[index];
     }
 
     template <typename Self>
     constexpr auto at(this Self& self, size_t index)
     {
-        return self.to_string_view_or_span().at(index);
+        return self.to_span().at(index);
     }
 
     template <typename Self>
@@ -132,15 +136,66 @@ public:
         return !self.empty();
     }
 
+    template <typename Self>
+    constexpr bool match(this Self& self, underlying_type pattern, bool consume)
+    {
+        auto view = self.to_span();
 
+        if (!std::ranges::equal(view, pattern))
+        {
+            return false;
+        }
 
+        if (consume)
+        {
+            self.advance(pattern.size());
+        }
 
+        return true;
+    }
 
+    template <typename Self>
+    constexpr bool match(this Self& self, Token token, bool consume)
+    {
+        auto view = self.to_span();
 
+        if (view.empty() || view.front() != token)
+        {
+            return false;
+        }
+        
+        if (consume)
+        {
+            self.advance(1);
+        }
 
+        return true;
+    }
 
+    template <typename Self, typename Scanner, typename... Args>
+    constexpr decltype(auto) apply(this Self& self, Scanner&& sc, Args&&... args)
+    {
+        return std::invoke((Scanner&&) sc, self, (Args&&) args...);
+    }
 
+    template <typename Self>
+    constexpr Token peek(this Self& self, size_type offset) 
+    {   
+        auto view = self.to_span();
+        return offset < view.size() ? view[offset] : Token();
+    }
 
+    template <typename Self>
+    constexpr Token current(this Self& self) 
+    {   
+        return self.peek(0);
+    }
+
+    template <typename Self>
+    constexpr Token next(this Self& self)
+    {   
+        return self.peek(1);
+    }
 };
 
 template <typename CharT>
@@ -173,7 +228,7 @@ struct context_interface
     template <typename Self>
     constexpr std::basic_string_view<CharT> to_string_view(this Self& self)
     {
-        return static_cast<std::basic_string_view<CharT>>(self);
+        return { self.tokens.begin() + self.offset, self.tokens.end() };
     }
 
     template <typename Self>
@@ -307,7 +362,8 @@ struct context_interface
     template <typename Self>
     constexpr void advance(this Self& self, size_type n) 
     {   
-        self += n;
+        assert(n <= self.size());
+        self.offset += n;
     }
 
     template <typename Self>
@@ -381,8 +437,8 @@ struct context_interface
     {
         assert(n <= self.size());
         auto left = self, right = self;
-        left -= (self.size() - n);
-        right += n;
+        left.tokens = left.to_string_view().substr(0, left.offset + n);
+        right.tokens = right.to_string_view().substr(left.offset + n);
         return { left, right };
     }
 
@@ -416,40 +472,22 @@ struct context_interface
 };
 
 template <typename CharT>
-class basic_context : public context_interface<CharT>
+struct basic_context : public context_interface<CharT>
 {
-    std::basic_string_view<CharT> m_data;
+    std::basic_string_view<CharT> tokens;
+    size_t offset;
 
-public:
-
-    using typename context_interface<CharT>::size_type;
-
-    constexpr basic_context(std::basic_string_view<CharT> data) 
-        : m_data(data)
+    explicit constexpr basic_context(std::basic_string_view<CharT> data) 
+        : tokens(data), offset(0)
     {
     }
 
-    constexpr basic_context(const CharT* str)
-        : m_data(str)
+    explicit constexpr basic_context(const CharT* str)
+        : tokens(str), offset(0)
     {
     }
     
-    constexpr basic_context() = default;
-
-    constexpr operator std::basic_string_view<CharT>() const { return m_data; }
-    
-    constexpr basic_context& operator+=(size_type n) 
-    { 
-        assert(n <= m_data.size());
-        m_data.remove_prefix(n); 
-        return *this; 
-    }
-
-    constexpr basic_context& operator-=(size_type n)
-    {
-        m_data.remove_suffix(n);
-        return *this;
-    }
+    constexpr basic_context() : basic_context("") { }
 };
     
 using context = basic_context<char>;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <leviathan/config_parser/context.hpp>
+#include <leviathan/config_parser/core/context.hpp>
 
 namespace winnow
 {

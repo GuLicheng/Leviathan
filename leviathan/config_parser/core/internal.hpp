@@ -24,11 +24,11 @@ public:
         : m_parser((Parser2&&) p), m_func((F2&&) f)
     { }
 
-    template <typename Context>
-    constexpr auto operator()(Context& ctx) const
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
     {
-        using E = typename Context::error_type;
-        using R1 = std::invoke_result_t<Parser, Context&>;
+        using E = typename Stream::error_type;
+        using R1 = std::invoke_result_t<Parser, Stream&>;
         using O1 = typename R1::value_type;
         using O2 = std::invoke_result_t<F, O1>;
         // We decay the output type to handle cases where the 
@@ -37,7 +37,7 @@ public:
         // and our design aligns with that.
         using R = parse_result<std::decay_t<O2>, E>;
 
-        auto result = m_parser(ctx);
+        auto result = m_parser(stream);
 
         if (!result)
         {
@@ -113,12 +113,12 @@ public:
     template <typename... Parsers2>
     constexpr sequence_parser(Parsers2&&... ps) : m_parsers((Parsers2&&) ps...) { } 
 
-    template <typename Context>
-    constexpr auto operator()(Context& ctx) const
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
     {
-        using E = typename Context::error_type;
-        using OptOs = std::tuple<std::optional<typename std::invoke_result_t<Parsers, Context&>::value_type>...>;
-        using Os = std::tuple<typename std::invoke_result_t<Parsers, Context&>::value_type...>;
+        using E = typename Stream::error_type;
+        using OptOs = std::tuple<std::optional<typename std::invoke_result_t<Parsers, Stream&>::value_type>...>;
+        using Os = std::tuple<typename std::invoke_result_t<Parsers, Stream&>::value_type...>;
         using R = parse_result<Os, E>;
 
         OptOs opt_results;
@@ -127,7 +127,7 @@ public:
         template for (constexpr auto idx : indices)
         {
             auto& parser = std::get<idx>(m_parsers);
-            auto result = parser(ctx);
+            auto result = parser(stream);
 
             if (!result.has_value())
             {
@@ -140,7 +140,7 @@ public:
 
         if (err.has_value())
         {
-            return make_recoverable_from_input<R>(ctx);
+            return make_recoverable_from_input<R>(stream);
         }
 
         constexpr auto [...idx] = indices; 
@@ -165,24 +165,24 @@ public:
 
     constexpr literal_parser(literal_type t) : m_constant(t) { }
 
-    template <typename Context>
-    constexpr auto operator()(Context& ctx) const
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
     {
         // Rust winnow return a part of input/stream. 
         // We just return slices of the input stream.
-        using E = typename Context::error_type;
+        using E = typename Stream::error_type;
         using O = literal_type;
         using R = parse_result<literal_type, E>;
 
-        if (ctx.match(m_constant, false))
+        if (stream.match(m_constant, false))
         {
-            auto [left, right] = ctx.split_at(m_constant.size());
-            ctx = std::move(right);
+            auto [left, right] = stream.split_at(m_constant.size());
+            stream = std::move(right);
             return R(std::in_place, std::move(left));
         }
         else
         {
-            return make_recoverable_from_input<R>(ctx);
+            return make_recoverable_from_input<R>(stream);
         }
     }
 };

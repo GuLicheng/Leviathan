@@ -205,7 +205,6 @@ TEST_CASE("literal")
     REQUIRE(CheckResult(literal("abc"), Context("xyz"), Backtrack(), "xyz"));
 }
 
-
 TEST_CASE("token stream")
 {
 
