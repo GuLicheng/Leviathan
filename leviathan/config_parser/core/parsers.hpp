@@ -7,6 +7,7 @@
         - terminated
         - delimited
         - separated_pair
+        - alt
 
     token
         - take_while
@@ -19,8 +20,8 @@
         - digit1
         - alphanumeric0
         - alphanumeric1
-        - space0
-        - space1
+        - multispace0
+        - multispace1
         - hexdigit0
         - hexdigit1
         - newline
@@ -36,7 +37,6 @@
     - [x] none_of
     - [x] one_of
 
-    - [x] alt
     - [x] backtrack_err
     - [x] cond
     - [x] cut_err
@@ -59,8 +59,7 @@
 
     - [x] oct_digit0
     - [x] oct_digit1
-    - [x] multispace0
-    - [x] multispace1
+
 
     - [x] till_line_ending
     - [x] line_ending
@@ -122,9 +121,33 @@ inline constexpr struct
     template <typename Pred>
     static constexpr auto operator()(Pred&& pred, occurrences<size_t> range) 
     {
-        return detail::take_while_parser<std::decay_t<Pred>>((Pred&&) pred, range);
+        // return detail::take_while_parser<std::decay_t<Pred>>((Pred&&) pred, range);
+        auto fn = [pred = (Pred&&) pred](const auto& stream, auto idx) {
+            return idx < stream.size() && std::invoke(pred, stream[idx]);
+        };
+        return detail::conditional_loop_parser<decltype(fn)>(std::move(fn), range);
     }
 } take_while;
+
+inline constexpr struct
+{
+    template <typename Pred>
+    static constexpr auto operator()(Pred&& pred, occurrences<size_t> range) 
+    {
+        return take_while(std::not_fn((Pred&&) pred), range);
+    }
+} take_till;
+
+// inline constexpr struct
+// {
+//     template <typename TokenSpan>
+//     static constexpr auto operator()(TokenSpan&& tokens, occurrences<size_t> range) 
+//     {
+//         auto fn = [tokens = (TokenSpan&&) tokens](const auto& stream, auto idx) {
+//             return idx < stream.size() && std::invoke(tokens, stream[idx]);
+//         };
+//     }
+// } take_until;
 
 inline constexpr auto alpha0 = take_while(::isalpha, { 0, std::nullopt });
 inline constexpr auto alpha1 = take_while(::isalpha, { 1, std::nullopt });
@@ -135,8 +158,8 @@ inline constexpr auto digit1 = take_while(::isdigit, { 1, std::nullopt });
 inline constexpr auto alphanumeric0 = take_while(::isalnum, { 0, std::nullopt });
 inline constexpr auto alphanumeric1 = take_while(::isalnum, { 1, std::nullopt });
 
-inline constexpr auto space0 = take_while(::isspace, { 0, std::nullopt });
-inline constexpr auto space1 = take_while(::isspace, { 1, std::nullopt });
+inline constexpr auto multispace0 = take_while(::isspace, { 0, std::nullopt });
+inline constexpr auto multispace1 = take_while(::isspace, { 1, std::nullopt });
 
 inline constexpr auto hexdigit0 = take_while(::isxdigit, { 0, std::nullopt });
 inline constexpr auto hexdigit1 = take_while(::isxdigit, { 1, std::nullopt });

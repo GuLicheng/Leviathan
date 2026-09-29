@@ -20,11 +20,11 @@ struct AutoCompare
         return lhs == rhs;
     }
 
-    // template <typename L>
-    // static constexpr bool operator()(const L& lhs, const char* rhs)
-    // {
-    //     return lhs == std::string_view(rhs);
-    // }
+    template <typename R>
+    static constexpr bool operator()(const Context& lhs, const R& rhs)
+    {
+        return lhs.to_string_view() == rhs;
+    }
 };
 
 template <typename T>
@@ -233,14 +233,37 @@ TEST_CASE("alternative")
     REQUIRE(CheckResult(parser, Context("unknown"), Backtrack()));
 }
 
+TEST_CASE("take_till", "[token]")
+{
+    auto parser = cpp::config::parser::take_till([](char c) { return c == ':'; }, cpp::config::from(0));
+
+    REQUIRE(CheckResult(parser, Context("latin:123"), Succeed<std::string_view>{ "latin" }, ":123"));
+    REQUIRE(CheckResult(parser, Context(":empty matched"), Succeed<std::string_view>{ "" }, ":empty matched"));
+    REQUIRE(CheckResult(parser, Context("12345"), Succeed<std::string_view>{ "12345" }, ""));
+    REQUIRE(CheckResult(parser, Context(""), Succeed<std::string_view>{ "" }, ""));
+}
 
 
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////                     Examples                               ///////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+TEST_CASE("raw_string", "[example]")
+{
+    using namespace cpp::config;
+    
+    auto raw_string = parser::delimited(
+        parser::literal("'"),
+        parser::take_till([](char c) { return c == '\''; }, cpp::config::from(0)),
+        parser::literal("'")
+    );
 
-
-
-
+    REQUIRE(CheckResult(raw_string, Context("'hello'"), Succeed<std::string_view>{ "hello" }, ""));
+    REQUIRE(CheckResult(raw_string, Context("''"), Succeed<std::string_view>{ "" }, ""));
+    REQUIRE(CheckResult(raw_string, Context(""), Backtrack()));
+    REQUIRE(CheckResult(raw_string, Context("'"), Backtrack()));
+}
 
 
 

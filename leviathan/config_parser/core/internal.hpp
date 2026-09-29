@@ -6,9 +6,19 @@
 #include <utility>
 #include <optional>
 #include <functional>
+#include <meta>
 
 namespace cpp::config::parser::detail
 {
+
+consteval std::meta::info span_or_view(std::meta::info info)
+{
+    std::vector<std::meta::info> chars = { ^^char, ^^wchar_t, ^^char8_t, ^^char16_t, ^^char32_t };
+    return std::ranges::contains(chars, dealias(info)) ? ^^std::basic_string_view : ^^std::span;
+}
+
+template <typename CharOrToken>
+using slice = typename [:span_or_view(^^CharOrToken):]<CharOrToken>;
 
 template <typename Parser, typename F> 
 class map_parser : public parser_interface
@@ -52,14 +62,65 @@ template <typename Parser, typename F>
 map_parser(Parser&&, F&&) -> map_parser<std::decay_t<Parser>, std::decay_t<F>>;
 
 template <typename Pred>
-class take_while_parser : public parser_interface
+class conditional_loop_parser : public parser_interface
 {
     [[no_unique_address]] Pred m_pred;
     occurrences<size_t> m_range;
 
 public:
 
-    static constexpr bool is_always_succeed = true;
+    static constexpr bool is_always_succeed = false;
+
+    template <typename Pred2>
+    constexpr conditional_loop_parser(Pred2&& p, occurrences<size_t> r)
+        : m_pred((Pred2&&) p), m_range(r) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using O = Stream;
+        using R = parse_result<O, E>;
+
+        size_t count = 0;
+        auto clone = stream;
+
+        // The pred should return false to stop iteration
+        // when the rest of stream is not enough.
+        while (std::invoke(m_pred, stream, count))
+        {
+            if (m_range.is_upper_bound(count))
+            {
+                break;
+            }
+            ++count;
+        }
+
+        if (m_range.is_less_than_lower(count))
+        {
+            return make_recoverable_from_input<R>(stream);
+        }
+        else
+        {
+            auto [left, right] = stream.split_at(count);
+            stream = std::move(right);
+            return R(std::in_place, std::move(left));
+        }
+    }
+};
+
+template <typename Pred>
+conditional_loop_parser(Pred&&) -> conditional_loop_parser<std::decay_t<Pred>>;
+
+template <typename Pred>
+class [[deprecated("use conditional_loop_parser instead")]] take_while_parser : public parser_interface
+{
+    [[no_unique_address]] Pred m_pred;
+    occurrences<size_t> m_range;
+
+public:
+
+    static constexpr bool is_always_succeed = false;
 
     template <typename Pred2>
     constexpr take_while_parser(Pred2&& p, occurrences<size_t> r)
