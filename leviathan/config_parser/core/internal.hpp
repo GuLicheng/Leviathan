@@ -85,16 +85,8 @@ public:
         size_t count = 0;
         auto clone = stream;
 
-        // The pred should return false to stop iteration
-        // when the rest of stream is not enough.
-        while (std::invoke(m_pred, stream, count))
-        {
-            if (m_range.is_upper_bound(count))
-            {
-                break;
-            }
-            ++count;
-        }
+        // The pred should return false to stop iteration when the rest of stream is not enough.
+        for (; count < stream.size() && std::invoke(m_pred, stream, count) && !m_range.is_upper_bound(count); ++count); 
 
         if (m_range.is_less_than_lower(count))
         {
@@ -158,8 +150,8 @@ public:
     }
 };
 
-template <typename Pred>
-take_while_parser(Pred&&, occurrences<size_t>) -> take_while_parser<std::decay_t<Pred>>;
+// template <typename Pred>
+// take_while_parser(Pred&&, occurrences<size_t>) -> take_while_parser<std::decay_t<Pred>>;
 
 template <typename CharT>
 class literal_parser : public parser_interface
@@ -326,7 +318,52 @@ public:
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
     {
-        
+        using E = typename Stream::error_type;
+        using O1 = typename std::invoke_result_t<Parser, Stream&>::value_type;
+        using O = std::vector<O1>;
+        using R = parse_result<O, E>;
+
+        auto collector = O{};
+
+        size_t count = 0;
+        auto size = stream.size();
+
+        while (stream.size())
+        {
+            auto result = m_parser(stream);
+
+            if (!result) 
+            {
+                if (result.error().is_fatal())
+                {
+                    return R(std::unexpect, std::move(result.error()));
+                }
+                break;
+            }
+
+            // Both std::vector and std::set support insert with position 
+            // collector.insert(collector.end(), std::move(result.value()));
+            collector.emplace(collector.end(), std::move(result.value()));
+            ++count;
+
+            if (size == stream.size())
+            {
+                // Current loop will not consume any input, avoid infinite loop
+                return make_recoverable_from_input<R>(stream, "`repeat` parsers must always consume");
+            }
+
+            if (m_range.is_greater_or_eq_upper(count))
+            {
+                break;
+            }
+        }
+
+        if (m_range.is_less_than_lower(count))
+        {
+            return make_recoverable_from_input<R>(stream);
+        }
+
+        return R(std::in_place, std::move(collector));
     }
 };
 

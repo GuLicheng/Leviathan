@@ -123,7 +123,7 @@ inline constexpr struct
     {
         // return detail::take_while_parser<std::decay_t<Pred>>((Pred&&) pred, range);
         auto fn = [pred = (Pred&&) pred](const auto& stream, auto idx) {
-            return idx < stream.size() && std::invoke(pred, stream[idx]);
+            return std::invoke(pred, stream[idx]);
         };
         return detail::conditional_loop_parser<decltype(fn)>(std::move(fn), range);
     }
@@ -138,16 +138,25 @@ inline constexpr struct
     }
 } take_till;
 
-// inline constexpr struct
-// {
-//     template <typename TokenSpan>
-//     static constexpr auto operator()(TokenSpan&& tokens, occurrences<size_t> range) 
-//     {
-//         auto fn = [tokens = (TokenSpan&&) tokens](const auto& stream, auto idx) {
-//             return idx < stream.size() && std::invoke(tokens, stream[idx]);
-//         };
-//     }
-// } take_until;
+inline constexpr struct
+{
+    template <typename CharT>
+    static constexpr auto operator()(std::basic_string_view<CharT> value, occurrences<size_t> range)
+    {
+        throw std::logic_error("take_until parser is not implemented yet.");
+        // auto fn = [value](const auto& stream, auto idx) {
+        //     return !stream.to_string_view().substr(idx).starts_with(value);
+        // };
+        // return detail::conditional_loop_parser<decltype(fn)>(std::move(fn), range);
+    }
+    
+    template <typename CharT>
+    static constexpr auto operator()(const CharT* value, occurrences<size_t> range)
+    {
+        std::basic_string_view<CharT> sv(value);
+        return operator()(sv, range);
+    }
+} take_until;
 
 inline constexpr auto alpha0 = take_while(::isalpha, { 0, std::nullopt });
 inline constexpr auto alpha1 = take_while(::isalpha, { 1, std::nullopt });
@@ -248,5 +257,16 @@ inline constexpr struct
         return detail::alternative_parser<std::decay_t<Parsers>...>((Parsers&&) parsers...);
     }
 } alt;
+
+inline constexpr struct
+{
+    template <typename Parser>
+    static constexpr auto operator()(Parser&& parser, occurrences<size_t> range)
+    {
+        return detail::repeat_parser<std::decay_t<Parser>>((Parser&&) parser, range);
+    }
+} repeat;
+
+
 
 }  // namespace cpp::config::parser
