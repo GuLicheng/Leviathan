@@ -309,6 +309,30 @@ public:
 template <typename... Parsers>
 sequence_parser(Parsers&&... ps) -> sequence_parser<std::decay_t<Parsers>...>;
 
+template <typename Parser>
+class repeat_parser : public parser_interface
+{
+    [[no_unique_address]] Parser m_parser;
+    occurrences<size_t> m_range;
+
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    template <typename Parser2>
+    constexpr repeat_parser(Parser2&& parser, occurrences<size_t> range)
+        : m_parser((Parser2&&) parser), m_range(range) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        
+    }
+};
+
+template <typename Parser>
+repeat_parser(Parser&&, occurrences<size_t>) -> repeat_parser<std::decay_t<Parser>>;
+
 }  // namespace cpp::config::parser::detail
 
 
