@@ -362,6 +362,11 @@ TEST_CASE("value")
 
     CHECK(CheckResult(parser, Context("123"), Succeed<int>{ 42 }, ""));
     CHECK(CheckResult(parser, Context("abc"), Backtrack()));
+
+    auto parser2 = cpp::config::parser::digit1.default_value<int>();
+
+    CHECK(CheckResult(parser2, Context("123"), Succeed<int>{ 0 }, ""));
+    CHECK(CheckResult(parser2, Context("abc"), Backtrack()));
 }
 
 TEST_CASE("map_err")

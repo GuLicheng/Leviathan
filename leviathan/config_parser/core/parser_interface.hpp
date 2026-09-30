@@ -12,12 +12,27 @@ template <typename Parser, typename F> struct map_parser;
 
 template <typename Parser, typename F> struct map_err_parser;
 
-template <typename Parser, typename F> struct value_parser;
-
 }  // namespace detail
 
 struct parser_interface
 {
+    /**
+     * @brief Replaces the result of the parser with the default value of type `T`.
+     * @details This function allows chaining a default value to the result of a parser,
+     * similar to the `default_value` function in functional programming languages.
+     * The returned result type will be automatically decayed.
+     * 
+     * @tparam T The type of the default value.
+     * @tparam Self The type of the parser.
+     * @param self The parser instance.
+     * @return A new parser that replaces the result of the original parser with the default value of type `T`.
+     */
+    template <typename T, typename Self>
+    constexpr auto default_value(this Self&& self)
+    {
+        return self.map([](auto&&) static { return T{}; });
+    }
+
     /**
      * @brief Applies a transformation function to the error result of the parser.
      * @details This function allows chaining transformations on the error result of a parser,
@@ -51,7 +66,7 @@ struct parser_interface
     template <typename Self, typename T>
     constexpr auto value(this Self&& self, T&& value)
     {
-        return detail::value_parser<std::decay_t<Self>, std::decay_t<T>>{ (Self&&) self, (T&&) value };
+        return self.map([v = (T&&) value](auto&&) { return v; });
     }
 
     /**

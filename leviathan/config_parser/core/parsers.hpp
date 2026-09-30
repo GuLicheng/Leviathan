@@ -8,6 +8,9 @@
         - delimited
         - separated_pair
         - alt
+        - map_err
+        - value
+        - default_value    
 
     token
         - take_while
@@ -73,9 +76,7 @@
     - [x] hex_uint
     - [x] take_escaped
 
-
     - [x] void
-    - [x] value
     - [x] cut
     - [x] and_then
     - [x] context
@@ -86,7 +87,6 @@
     - [x] parse_iter
     - [x] parse_peek
     - [x] by_ref           -> std::ref/std::cref is OK
-    - [x] default_value    -> <T>.map([](auto&&) { return T(); })
     - [x] output_into
     - [x] take
     - [x] with_take
@@ -98,7 +98,6 @@
     - [x] flat_map
     - [x] parse_to         -> .map(std::str::FromStr)
     - [x] context_with
-    - [x] map_err
     - [x] complete_err
     - [x] err_into
     - [x] retry_after
