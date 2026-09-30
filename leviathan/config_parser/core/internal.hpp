@@ -6,19 +6,81 @@
 #include <utility>
 #include <optional>
 #include <functional>
-#include <meta>
 
 namespace cpp::config::parser::detail
 {
 
-consteval std::meta::info span_or_view(std::meta::info info)
+template <typename Parser, typename F>
+class map_err_parser : public parser_interface
 {
-    std::vector<std::meta::info> chars = { ^^char, ^^wchar_t, ^^char8_t, ^^char16_t, ^^char32_t };
-    return std::ranges::contains(chars, dealias(info)) ? ^^std::basic_string_view : ^^std::span;
-}
+    [[no_unique_address]] Parser m_parser;
+    [[no_unique_address]] F m_func;
 
-template <typename CharOrToken>
-using slice = typename [:span_or_view(^^CharOrToken):]<CharOrToken>;
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    template <typename Parser2, typename F2>
+    constexpr map_err_parser(Parser2&& p, F2&& f)
+        : m_parser((Parser2&&) p), m_func((F2&&) f)
+    { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using E1 = std::invoke_result_t<F, E>;
+        using O = typename std::invoke_result_t<Parser, Stream&>::value_type;
+        using R = parse_result<O, E1>;
+
+        auto result = m_parser(stream);
+
+        if (!result)
+        {
+            return R(std::unexpect, std::invoke(m_func, std::move(result.error())));
+        }
+        return R(std::in_place, std::move(result.value()));
+    }
+};
+
+template <typename Parser, typename F>
+map_err_parser(Parser&&, F&&) -> map_err_parser<std::decay_t<Parser>, std::decay_t<F>>;
+
+template <typename Parser, typename T>
+class value_parser : public parser_interface
+{
+    [[no_unique_address]] Parser m_parser;
+    [[no_unique_address]] T m_value;
+
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    template <typename Parser2, typename T2>
+    constexpr value_parser(Parser2&& p, T2&& t)
+        : m_parser((Parser2&&) p), m_value((T2&&) t)
+    { }
+
+    template <typename Self, typename Stream>
+    constexpr auto operator()(this Self&& self, Stream& stream)
+    {
+        using E = typename Stream::error_type;
+        using R = parse_result<T, E>;
+
+        auto result = std::invoke(self.m_parser, stream);
+
+        if (!result)
+        {
+            return R(std::unexpect, std::move(result.error()));
+        }
+
+        return R(std::in_place, ((Self&&) self).m_value);
+    }
+
+};
+
+template <typename Parser, typename T>
+value_parser(Parser&&, T&&) -> value_parser<std::decay_t<Parser>, std::decay_t<T>>;
 
 template <typename Parser, typename F> 
 class map_parser : public parser_interface

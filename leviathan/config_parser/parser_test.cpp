@@ -69,6 +69,18 @@ struct Succeed
     }
 };
 
+template <typename T>
+struct Failed
+{
+    T value;
+
+    template <typename Result>
+    constexpr bool operator()(const Result& result)
+    {
+        return !result.has_value() && AutoCompare()(result.error().error(), value);
+    }
+};
+
 struct Ignore 
 {
     template <typename Result>
@@ -342,6 +354,22 @@ TEST_CASE("take_until", "[token]")
     CHECK(CheckResult(parser3, Context("|abc"), Succeed<std::string_view>{ "" }, "|abc"));
     CHECK(CheckResult(parser3, Context("abcdef|"), Backtrack()));
     CHECK(CheckResult(parser3, Context(""), Backtrack()));
+}
+
+TEST_CASE("value")
+{
+    auto parser = cpp::config::parser::digit1.value(42);
+
+    CHECK(CheckResult(parser, Context("123"), Succeed<int>{ 42 }, ""));
+    CHECK(CheckResult(parser, Context("abc"), Backtrack()));
+}
+
+TEST_CASE("map_err")
+{
+    auto parser = cpp::config::parser::digit1.map_err([](auto&& err) { return 0; });
+
+    CHECK(CheckResult(parser, Context("123"), Succeed<std::string_view>{ "123" }, ""));
+    CHECK(CheckResult(parser, Context("abc"), Failed<int>{ 0 }));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////

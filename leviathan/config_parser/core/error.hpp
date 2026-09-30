@@ -51,6 +51,12 @@ public:
     }
 
     template <typename Self>
+    constexpr auto&& value(this Self&& self)
+    {
+        return ((Self&&)self).m_error;
+    }
+
+    template <typename Self>
     constexpr auto&& operator*(this Self&& self)
     {
         return ((Self&&)self).error();

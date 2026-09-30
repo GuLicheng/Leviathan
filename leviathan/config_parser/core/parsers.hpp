@@ -27,10 +27,10 @@
         - newline
         - tab
         - crlf
+        - take_until
+        - take_till
 
-    - [x] take_till
     - [x] take
-    - [x] take_until
     - [x] rest
     - [x] rest_len
     - [x] any
