@@ -62,50 +62,7 @@ template <typename Parser, typename F>
 map_parser(Parser&&, F&&) -> map_parser<std::decay_t<Parser>, std::decay_t<F>>;
 
 template <typename Pred>
-class conditional_loop_parser : public parser_interface
-{
-    [[no_unique_address]] Pred m_pred;
-    occurrences<size_t> m_range;
-
-public:
-
-    static constexpr bool is_always_succeed = false;
-
-    template <typename Pred2>
-    constexpr conditional_loop_parser(Pred2&& p, occurrences<size_t> r)
-        : m_pred((Pred2&&) p), m_range(r) { }
-
-    template <typename Stream>
-    constexpr auto operator()(Stream& stream) const
-    {
-        using E = typename Stream::error_type;
-        using O = Stream;
-        using R = parse_result<O, E>;
-
-        size_t count = 0;
-        auto clone = stream;
-
-        // The pred should return false to stop iteration when the rest of stream is not enough.
-        for (; count < stream.size() && std::invoke(m_pred, stream, count) && !m_range.is_upper_bound(count); ++count); 
-
-        if (m_range.is_less_than_lower(count))
-        {
-            return make_recoverable_from_input<R>(stream);
-        }
-        else
-        {
-            auto [left, right] = stream.split_at(count);
-            stream = std::move(right);
-            return R(std::in_place, std::move(left));
-        }
-    }
-};
-
-template <typename Pred>
-conditional_loop_parser(Pred&&) -> conditional_loop_parser<std::decay_t<Pred>>;
-
-template <typename Pred>
-class [[deprecated("use conditional_loop_parser instead")]] take_while_parser : public parser_interface
+class take_while_parser : public parser_interface
 {
     [[no_unique_address]] Pred m_pred;
     occurrences<size_t> m_range;
@@ -150,8 +107,44 @@ public:
     }
 };
 
-// template <typename Pred>
-// take_while_parser(Pred&&, occurrences<size_t>) -> take_while_parser<std::decay_t<Pred>>;
+template <typename Pred>
+take_while_parser(Pred&&, occurrences<size_t>) -> take_while_parser<std::decay_t<Pred>>;
+
+template <typename CharT>
+struct take_until_parser : parser_interface
+{
+    using literal_type = std::basic_string_view<CharT>;
+    
+    literal_type m_value;
+    occurrences<size_t> m_range;
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    constexpr take_until_parser(literal_type v, occurrences<size_t> r)
+        : m_value(v), m_range(r) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using O = std::basic_string_view<typename Stream::value_type>;
+        using R = parse_result<O, E>;
+
+        const auto idx = stream.to_string_view().find(m_value);
+
+        // It will return an ErrMode::Backtrack(_) if the set of 
+        // tokens wasn’t met or is out of occurrences range.
+        if (idx == literal_type::npos || !m_range.is_within(idx))
+        {
+            return make_recoverable_from_input<R>(stream);
+        }
+
+        auto [left, right] = stream.split_at(idx);
+        stream = std::move(right);
+        return R(std::in_place, std::move(left));
+    }
+};
 
 template <typename CharT>
 class literal_parser : public parser_interface

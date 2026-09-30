@@ -121,11 +121,7 @@ inline constexpr struct
     template <typename Pred>
     static constexpr auto operator()(Pred&& pred, occurrences<size_t> range) 
     {
-        // return detail::take_while_parser<std::decay_t<Pred>>((Pred&&) pred, range);
-        auto fn = [pred = (Pred&&) pred](const auto& stream, auto idx) {
-            return std::invoke(pred, stream[idx]);
-        };
-        return detail::conditional_loop_parser<decltype(fn)>(std::move(fn), range);
+        return detail::take_while_parser<std::decay_t<Pred>>((Pred&&) pred, range);
     }
 } take_while;
 
@@ -143,11 +139,7 @@ inline constexpr struct
     template <typename CharT>
     static constexpr auto operator()(std::basic_string_view<CharT> value, occurrences<size_t> range)
     {
-        throw std::logic_error("take_until parser is not implemented yet.");
-        // auto fn = [value](const auto& stream, auto idx) {
-        //     return !stream.to_string_view().substr(idx).starts_with(value);
-        // };
-        // return detail::conditional_loop_parser<decltype(fn)>(std::move(fn), range);
+        return detail::take_until_parser<CharT>(value, range);
     }
     
     template <typename CharT>
