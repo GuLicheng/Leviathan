@@ -115,6 +115,21 @@
 namespace cpp::config::parser
 {
 
+/**
+ * @brief Wraps a callable into a parser interface.
+ * 
+ * @details This parser takes a callable (e.g., a lambda or function object) 
+ * and wraps it into a parser interface, allowing it to be used seamlessly with other parsers.
+ */
+inline constexpr struct
+{
+    template <typename Callable>
+    static constexpr auto operator()(Callable&& parser)
+    {
+        return detail::warpper_parser<std::decay_t<Callable>>((Callable&&) parser);
+    }
+} wrap;
+
 inline constexpr struct
 {
     template <typename Pred>

@@ -10,6 +10,28 @@
 namespace cpp::config::parser::detail
 {
 
+template <typename Parser>
+class warpper_parser : public parser_interface
+{
+    [[no_unique_address]] Parser m_parser;
+public:
+    static constexpr bool is_always_succeed = false;
+
+    template <typename Parser2>
+    constexpr warpper_parser(Parser2&& p)
+        : m_parser((Parser2&&) p)
+    { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        return m_parser(stream);
+    }
+};
+
+template <typename Parser>
+warpper_parser(Parser&&) -> warpper_parser<std::decay_t<Parser>>;
+
 template <typename Parser, typename F>
 class map_err_parser : public parser_interface
 {
