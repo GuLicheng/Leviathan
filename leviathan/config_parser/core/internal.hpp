@@ -11,7 +11,7 @@ namespace cpp::config::parser::detail
 {
 
 template <typename Parser, typename F> 
-class map_result_parser
+class map_result_parser : public parser_interface
 {
     [[no_unique_address]] Parser m_parser;
     [[no_unique_address]] F m_func;
@@ -27,6 +27,11 @@ public:
 
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
+    {
+        return std::invoke(m_func, std::invoke(m_parser, stream));
+    }
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) 
     {
         return std::invoke(m_func, std::invoke(m_parser, stream));
     }
@@ -115,10 +120,6 @@ public:
         using R1 = std::invoke_result_t<Parser, Stream&>;
         using O1 = typename R1::value_type;
         using O2 = std::invoke_result_t<F, O1>;
-        // We decay the output type to handle cases where the 
-        // function returns a reference or a non-decayed type.
-        // Rust adopts move semantics together with value semantics,
-        // and our design aligns with that.
         using R = parse_result<std::decay_t<O2>, E>;
 
         auto result = m_parser(stream);

@@ -89,12 +89,12 @@ struct parser_interface
         {
             using R1 = std::decay_t<T>;
             using E1 = typename R1::error_type;
-            using E = std::invoke_result_t<F, E1>;
+            using E = std::decay_t<std::invoke_result_t<F, E1>>;
             using O = typename R1::value_type;
             using R = parse_result<O, E>;
 
-            return result ? R(std::in_place, ((T&&) result).value())
-                          : R(std::unexpect, std::invoke(func, ((T&&) result).error()));
+            return result ? R(std::in_place, std::move(result.value()))
+                          : R(std::unexpect, std::invoke(func, std::move(result.error())));
         };
         return detail::map_result_parser<std::decay_t<Self>, decltype(fn)>{ (Self&&) self, std::move(fn) };
     }
@@ -133,16 +133,33 @@ struct parser_interface
     constexpr auto map(this Self&& self, F&& func)
     {
         return detail::map_parser<std::decay_t<Self>, std::decay_t<F>>{ (Self&&) self, (F&&) func };
-        // auto fn = [func = (F&&) func](auto&& result)
+
+        // auto fn = [func = (F&&) func]<typename T>(T&& result)
         // {
-        //     using R1 = std::decay_t<decltype(result)>;
-        //     using O1 = typename R1::value_type;
+        //     using R1 = std::decay_t<T>;
         //     using E = typename R1::error_type;
-        //     using O = std::decay_t<std::invoke_result_t<F, O1>>;
+        //     using O1 = typename R1::value_type;
+        //     using O = std::decay_t<std::invoke_result_t<std::decay_t<F>, O1>>;
         //     using R = parse_result<O, E>;
 
-        //     return result ? R(std::in_place, std::invoke(func, std::move(result.value())))
-        //                   : R(std::unexpect, std::move(result.error()));
+        // if (!result)
+        // {
+        //     // return R(std::unexpect, std::move(result.error()));
+        //     E e(std::move(result.error()));
+        //     return R(std::unexpect, std::move(e));
+        //     std::cout << display_string_of(^^E) << std::endl;
+        //     throw 0;
+        // }
+        // return R(std::in_place, std::invoke(func, std::move(result.value())));
+
+            // using R1 = std::decay_t<T>;
+            // using O1 = typename R1::value_type;
+            // using O = std::decay_t<std::invoke_result_t<F, O1>>;
+            // using E = typename R1::error_type;
+            // using R = parse_result<O, E>;
+
+            // return result ? R(std::in_place, std::invoke(func, std::move(result.value())))
+            //               : R(std::unexpect, std::move(result.error()));
         // };
         // return detail::map_result_parser<std::decay_t<Self>, decltype(fn)>{ (Self&&) self, std::move(fn) };
     }
