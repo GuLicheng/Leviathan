@@ -33,6 +33,8 @@
         - take_until
         - take_till
         - number | dec_int | dec_uint | float | hex_uint
+        - recoverable | backtrack_err
+        - fatal | cut_err
 
     - [x] take
     - [x] rest
@@ -41,9 +43,7 @@
     - [x] none_of
     - [x] one_of
 
-    - [x] backtrack_err
     - [x] cond
-    - [x] cut_err
     - [x] empty
     - [x] eof
     - [x] expression
@@ -64,13 +64,11 @@
     - [x] oct_digit0
     - [x] oct_digit1
 
-
     - [x] till_line_ending
     - [x] line_ending
     - [x] line_comment
     - [x] block_comment
     - [x] escaped
-    
 
     - [x] take_escaped
 

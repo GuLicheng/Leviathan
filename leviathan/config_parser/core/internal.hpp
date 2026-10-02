@@ -11,7 +11,7 @@ namespace cpp::config::parser::detail
 {
 
 template <typename Parser, typename F> 
-class adjust_result_parser
+class map_result_parser
 {
     [[no_unique_address]] Parser m_parser;
     [[no_unique_address]] F m_func;
@@ -21,7 +21,7 @@ public:
     static constexpr bool is_always_succeed = false;
 
     template <typename Parser2, typename F2>
-    constexpr adjust_result_parser(Parser2&& p, F2&& f)
+    constexpr map_result_parser(Parser2&& p, F2&& f)
         : m_parser((Parser2&&) p), m_func((F2&&) f)
     { }
 
@@ -33,7 +33,7 @@ public:
 };
 
 template <typename Parser, typename F>
-adjust_result_parser(Parser&&, F&&) -> adjust_result_parser<std::decay_t<Parser>, std::decay_t<F>>;
+map_result_parser(Parser&&, F&&) -> map_result_parser<std::decay_t<Parser>, std::decay_t<F>>;
 
 template <typename Parser>
 class warpper_parser : public parser_interface
