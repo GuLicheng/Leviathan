@@ -32,6 +32,7 @@
         - crlf
         - take_until
         - take_till
+        - number | dec_int | dec_uint | float | hex_uint
 
     - [x] take
     - [x] rest
@@ -70,10 +71,7 @@
     - [x] block_comment
     - [x] escaped
     
-    - [x] dec_int
-    - [x] dec_uint
-    - [x] float
-    - [x] hex_uint
+
     - [x] take_escaped
 
     - [x] void
@@ -278,5 +276,18 @@ inline constexpr auto number = detail::int_parser<T>();
 
 template <std::floating_point T>
 inline constexpr auto number<T> = detail::float_parser<T>();
+
+// inline constexpr struct
+// {
+//     template <typename Parser>
+//     static constexpr auto operator()(Parser&& parser)
+//     {
+//         auto fn = [parser = (Parser&&) parser](auto& stream) static { 
+//             auto clone = stream;
+//             return parser(clone);
+//         };
+//         return as_parser(std::move(fn));
+//     }
+// } peek;
 
 }  // namespace cpp::config::parser

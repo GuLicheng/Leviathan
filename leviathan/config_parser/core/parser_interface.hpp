@@ -8,14 +8,50 @@ namespace cpp::config::parser
 namespace detail
 {
 
-template <typename Parser, typename F> struct map_parser;
+template <typename Parser, typename F> class map_parser;
 
-template <typename Parser, typename F> struct map_err_parser;
+template <typename Parser, typename F> class map_err_parser;
+
+template <typename Parser, typename F> class adjust_result_parser;
 
 }  // namespace detail
 
 struct parser_interface
 {
+    /**
+     * @brief Marks the result as recoverable.
+     */
+    template <typename Self>
+    constexpr auto recoverable(this Self&& self)
+    {
+        auto fn = [](auto&& result) static 
+        {
+            if (!result)
+            {
+                result.error().switch_to_recoverable();
+            }
+            return result;
+        };
+        return detail::adjust_result_parser<std::decay_t<Self>, decltype(fn)>{ (Self&&) self, fn };
+    }
+
+    /**
+     * @brief Marks the result as fatal.
+     */
+    template <typename Self>
+    constexpr auto fatal(this Self&& self)
+    {
+        auto fn = [](auto&& result) static 
+        {
+            if (!result)
+            {
+                result.error().switch_to_fatal();
+            }
+            return result;
+        };
+        return detail::adjust_result_parser<std::decay_t<Self>, decltype(fn)>{ (Self&&) self, fn };
+    }
+
     /**
      * @brief Replaces the result of the parser with the default value of type `T`.
      * @details This function allows chaining a default value to the result of a parser,

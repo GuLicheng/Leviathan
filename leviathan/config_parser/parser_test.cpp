@@ -398,6 +398,17 @@ TEST_CASE("number", "[example]")
     CHECK(CheckResult(f64, Context("abc"), Backtrack()));
 }
 
+TEST_CASE("recoverable and fatal")
+{
+    auto parser1 = cpp::config::parser::digit1.recoverable();
+    auto parser2 = cpp::config::parser::digit1.fatal();
+
+    CHECK(CheckResult(parser1, Context("123"), Succeed<std::string_view>{ "123" }, ""));
+    CHECK(CheckResult(parser2, Context("123"), Succeed<std::string_view>{ "123" }, ""));
+    CHECK(CheckResult(parser1, Context("abc"), Backtrack()));
+    CHECK(CheckResult(parser2, Context("abc"), Cut()));
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////                     Examples                               ///////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////

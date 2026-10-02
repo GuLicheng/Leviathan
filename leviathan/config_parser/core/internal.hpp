@@ -10,6 +10,31 @@
 namespace cpp::config::parser::detail
 {
 
+template <typename Parser, typename F> 
+class adjust_result_parser
+{
+    [[no_unique_address]] Parser m_parser;
+    [[no_unique_address]] F m_func;
+
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    template <typename Parser2, typename F2>
+    constexpr adjust_result_parser(Parser2&& p, F2&& f)
+        : m_parser((Parser2&&) p), m_func((F2&&) f)
+    { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        return std::invoke(m_func, std::invoke(m_parser, stream));
+    }
+};
+
+template <typename Parser, typename F>
+adjust_result_parser(Parser&&, F&&) -> adjust_result_parser<std::decay_t<Parser>, std::decay_t<F>>;
+
 template <typename Parser>
 class warpper_parser : public parser_interface
 {
@@ -109,57 +134,8 @@ public:
 template <typename Parser, typename F>
 map_parser(Parser&&, F&&) -> map_parser<std::decay_t<Parser>, std::decay_t<F>>;
 
-template <typename Pred>
-class take_while_parser : public parser_interface
-{
-    [[no_unique_address]] Pred m_pred;
-    occurrences<size_t> m_range;
-
-public:
-
-    static constexpr bool is_always_succeed = false;
-
-    template <typename Pred2>
-    constexpr take_while_parser(Pred2&& p, occurrences<size_t> r)
-        : m_pred((Pred2&&) p), m_range(r) { }
-    
-    template <typename Stream>
-    constexpr auto operator()(Stream& stream) const
-    {
-        using E = typename Stream::error_type;
-        using O = std::basic_string_view<typename Stream::value_type>;
-        using R = parse_result<O, E>;
-        
-        // User should ensure that the upper is not less than lower.
-        size_t count = 0;
-
-        while (count < stream.size() && std::invoke(m_pred, stream[count]))
-        {
-            if (m_range.is_upper_bound(count))
-            {
-                break;
-            }
-            ++count;
-        }
-
-        if (m_range.is_less_than_lower(count))
-        {
-            return make_recoverable_from_input<R>(stream);
-        }
-        else
-        {
-            auto [left, right] = stream.split_at(count);
-            stream = std::move(right);
-            return R(std::in_place, std::move(left));
-        }
-    }
-};
-
-template <typename Pred>
-take_while_parser(Pred&&, occurrences<size_t>) -> take_while_parser<std::decay_t<Pred>>;
-
 template <typename CharT>
-struct take_until_parser : parser_interface
+class take_until_parser : public parser_interface
 {
     using literal_type = std::basic_string_view<CharT>;
     
@@ -228,6 +204,55 @@ public:
         }
     }
 };
+
+template <typename Pred>
+class take_while_parser : public parser_interface
+{
+    [[no_unique_address]] Pred m_pred;
+    occurrences<size_t> m_range;
+
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    template <typename Pred2>
+    constexpr take_while_parser(Pred2&& p, occurrences<size_t> r)
+        : m_pred((Pred2&&) p), m_range(r) { }
+    
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using O = std::basic_string_view<typename Stream::value_type>;
+        using R = parse_result<O, E>;
+        
+        // User should ensure that the upper is not less than lower.
+        size_t count = 0;
+
+        while (count < stream.size() && std::invoke(m_pred, stream[count]))
+        {
+            if (m_range.is_upper_bound(count))
+            {
+                break;
+            }
+            ++count;
+        }
+
+        if (m_range.is_less_than_lower(count))
+        {
+            return make_recoverable_from_input<R>(stream);
+        }
+        else
+        {
+            auto [left, right] = stream.split_at(count);
+            stream = std::move(right);
+            return R(std::in_place, std::move(left));
+        }
+    }
+};
+
+template <typename Pred>
+take_while_parser(Pred&&, occurrences<size_t>) -> take_while_parser<std::decay_t<Pred>>;
 
 template <typename... Parsers>
 class alternative_parser : public parser_interface
@@ -414,6 +439,8 @@ repeat_parser(Parser&&, occurrences<size_t>) -> repeat_parser<std::decay_t<Parse
 template <std::integral Integral>
 struct int_parser
 {
+    static constexpr bool is_always_succeed = false;
+
     template <typename Stream>
     static constexpr auto operator()(Stream& stream)
     {
@@ -451,6 +478,9 @@ struct int_parser
 template <std::floating_point Floating>
 struct float_parser
 {
+
+    static constexpr bool is_always_succeed = false;
+
     template <typename Stream>
     static constexpr auto operator()(Stream& stream)
     {
