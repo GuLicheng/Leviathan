@@ -411,6 +411,70 @@ public:
 template <typename Parser>
 repeat_parser(Parser&&, occurrences<size_t>) -> repeat_parser<std::decay_t<Parser>>;
 
+template <std::integral Integral>
+struct int_parser
+{
+    template <typename Stream>
+    static constexpr auto operator()(Stream& stream)
+    {
+        using E = typename Stream::error_type;
+        using R = parse_result<Integral, E>;
+
+        int base = 10;
+
+        if (stream.match("0b", true))
+        {
+            base = 2;
+        }
+        else if (stream.match("0x", true))
+        {
+            base = 16;
+        }
+
+        Integral result;
+        auto [ptr, ec] = std::from_chars(stream.begin(), stream.end(), result, base);
+
+        // Check if parsing was successful
+        if (ec == std::errc())
+        {
+            // Successfully parsed the number
+            // Advance stream
+            stream.advance(ptr - stream.begin());
+            return R(std::in_place, result);
+        }
+
+        // Failed to parse the number
+        return make_recoverable_from_input<R>(stream);
+    }
+};
+
+template <std::floating_point Floating>
+struct float_parser
+{
+    template <typename Stream>
+    static constexpr auto operator()(Stream& stream)
+    {
+        using E = typename Stream::error_type;
+        using R = parse_result<Floating, E>;
+
+        Floating result;
+        auto [ptr, ec] = std::from_chars(stream.begin(), stream.end(), result);
+
+        // Check if parsing was successful
+        if (ec == std::errc())
+        {
+            // Successfully parsed the number
+            // Advance stream
+            stream.advance(ptr - stream.begin());
+            return R(std::in_place, result);
+        }
+
+        // Failed to parse the number
+        return make_recoverable_from_input<R>(stream);
+    }
+};
+
+
 }  // namespace cpp::config::parser::detail
 
 

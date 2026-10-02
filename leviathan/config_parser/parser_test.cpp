@@ -377,14 +377,25 @@ TEST_CASE("map_err")
     CHECK(CheckResult(parser, Context("abc"), Failed<int>{ 0 }));
 }
 
-TEST_CASE("wrap")
+TEST_CASE("as_parser")
 {
     auto function = [](auto&& stream) { return cpp::config::parser::digit1(stream); };
 
-    auto parser = cpp::config::parser::wrap(function).map([](auto&& result) { return 0; });
+    auto parser = cpp::config::parser::as_parser(function).map([](auto&& result) { return 0; });
 
     CHECK(CheckResult(parser, Context("123"), Succeed<int>{ 0 }, ""));
     CHECK(CheckResult(parser, Context("abc"), Backtrack()));
+}
+
+TEST_CASE("number", "[example]")
+{
+    auto i32 = cpp::config::parser::number<int>;
+    auto f64 = cpp::config::parser::number<double>;
+
+    CHECK(CheckResult(i32, Context("123"), Succeed<int>{ 123 }, ""));
+    CHECK(CheckResult(i32, Context("abc"), Backtrack()));
+    CHECK(CheckResult(f64, Context("123.45"), Succeed<double>{ 123.45 }, ""));
+    CHECK(CheckResult(f64, Context("abc"), Backtrack()));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////

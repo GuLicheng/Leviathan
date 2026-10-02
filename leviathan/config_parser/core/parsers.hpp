@@ -128,7 +128,7 @@ inline constexpr struct
     {
         return detail::warpper_parser<std::decay_t<Callable>>((Callable&&) parser);
     }
-} wrap;
+} as_parser;
 
 inline constexpr struct
 {
@@ -273,6 +273,10 @@ inline constexpr struct
     }
 } repeat;
 
+template <typename T>
+inline constexpr auto number = detail::int_parser<T>();
 
+template <std::floating_point T>
+inline constexpr auto number<T> = detail::float_parser<T>();
 
 }  // namespace cpp::config::parser
