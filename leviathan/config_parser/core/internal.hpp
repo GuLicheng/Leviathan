@@ -10,6 +10,48 @@
 namespace cpp::config::parser::detail
 {
 
+template <typename Parser, typename F>
+class verify_parser : public parser_interface
+{
+    [[no_unique_address]] Parser m_parser;
+    [[no_unique_address]] F m_func;
+
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    template <typename Parser2, typename F2>
+    constexpr verify_parser(Parser2&& p, F2&& f)
+        : m_parser((Parser2&&) p), m_func((F2&&) f)
+    { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        auto clone = stream;
+        auto result = m_parser(clone);
+
+        using R = decltype(result);
+
+        if (!result)
+        {
+            return R(std::unexpect, std::move(result.error()));
+        }
+
+        if (!std::invoke(m_func, result.value()))
+        {   
+            return make_recoverable_from_input<R>(stream);
+        }
+
+        // Only update the original stream if the verification succeeds.
+        stream = std::move(clone);
+        return R(std::in_place, std::move(result.value()));
+    }
+};
+
+template <typename Parser, typename F>
+verify_parser(Parser&&, F&&) -> verify_parser<std::decay_t<Parser>, std::decay_t<F>>;
+
 template <typename Parser, typename F> 
 class map_result_parser : public parser_interface
 {
@@ -44,7 +86,9 @@ template <typename Parser>
 class warpper_parser : public parser_interface
 {
     [[no_unique_address]] Parser m_parser;
+
 public:
+
     static constexpr bool is_always_succeed = false;
 
     template <typename Parser2>
@@ -445,6 +489,8 @@ class till_line_ending_parser : public parser_interface
     static constexpr std::basic_string_view<CharT> line2 = "\r\n";
 
 public:
+
+    static constexpr bool is_always_succeed = false;
 
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const

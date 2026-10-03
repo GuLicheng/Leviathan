@@ -37,6 +37,7 @@
         - line_ending
         - line_comment
         - block_comment
+        - verify
 
 
 
@@ -75,7 +76,6 @@
     - [x] void
     - [x] and_then
     - [x] context
-    - [x] verify
 
 
     - parse : operator()
@@ -279,10 +279,10 @@ inline constexpr struct
     template <typename CharT>
     static constexpr auto operator()(std::basic_string_view<CharT> start, std::basic_string_view<CharT> finish) 
     {
-        return combinator::sequence(
-            token::literal(start), 
-            token::take_until(finish), 
-            token::literal(finish)
+        return sequence(
+            literal(start), 
+            take_until(finish), 
+            literal(finish)
         );
     }
 } block_comment;
@@ -298,7 +298,7 @@ inline constexpr struct
     template <typename CharT>
     static constexpr auto operator()(std::basic_string_view<CharT> sv) 
     {
-        return combinator::sequence(token::literal(sv), till_line_ending);
+        return sequence(literal(sv), till_line_ending);
     }
 } line_comment; 
 

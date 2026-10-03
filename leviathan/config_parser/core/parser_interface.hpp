@@ -9,16 +9,25 @@ namespace cpp::config::parser
 namespace detail
 {
 
-// template <typename Parser, typename F> class map_parser;
-
-// template <typename Parser, typename F> class map_err_parser;
-
 template <typename Parser, typename F> class map_result_parser;
+
+template <typename Parser, typename F> class verify_parser;
 
 }  // namespace detail
 
 struct parser_interface
 {
+    /**
+     * @brief Applies a verification function to the result of the parser.
+     * @details This function allows chaining a verification step to the result of a parser.
+     * The verification function should return a boolean indicating whether the result is valid.
+     */
+    template <typename Self, typename F>
+    constexpr auto verify(this Self&& self, F&& func)
+    {
+        return detail::verify_parser<std::decay_t<Self>, std::decay_t<F>>{ (Self&&) self, (F&&) func };
+    }
+
     /**
      * @brief Marks the result as recoverable.
      * @details This function marks the result of the parser as recoverable.

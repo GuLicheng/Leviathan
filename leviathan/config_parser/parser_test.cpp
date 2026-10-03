@@ -142,14 +142,6 @@ TEST_CASE("take_while")
 
 TEST_CASE("map")
 {
-    auto parser = cpp::config::parser::map(
-        cpp::config::parser::literal("hello"), 
-        [](std::string_view str) { return std::string(str) + " world"; }
-    );
-
-    CHECK(CheckResult(parser, Context("hello"), Succeed<std::string>{ "hello world" }, ""));
-    CHECK(CheckResult(parser, Context("abc"), Backtrack()));
-
     auto parser2 = cpp::config::parser::literal("123").map(
         [](std::string_view str) { return std::stoi(std::string(str)); }
     );
@@ -410,6 +402,17 @@ TEST_CASE("peek", "[combinator]")
     );
     REQUIRE(CheckResult(parser, Context("abcd;"), Succeed<std::string_view>{ "abcd" }, "abcd;"));
     REQUIRE(CheckResult(parser, Context("123;"), Backtrack()));
+}
+
+TEST_CASE("verify", "[interface]")
+{
+    auto parser2 = cpp::config::parser::alpha1.verify(
+        [](std::string_view str) { return str.size() == 4; }
+    );
+    
+    REQUIRE(CheckResult(parser2, Context("abcd"), Succeed<std::string_view>{ "abcd" }, ""));
+    REQUIRE(CheckResult(parser2, Context("abcde"), Backtrack()));
+    REQUIRE(CheckResult(parser2, Context("123abcd"), Backtrack()));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
