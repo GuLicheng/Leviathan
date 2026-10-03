@@ -15,6 +15,8 @@ template <typename Parser, typename F> class map_err_parser;
 
 template <typename Parser, typename F> class map_result_parser;
 
+template <typename Parser> class warpper_parser;
+
 }  // namespace detail
 
 struct parser_interface
@@ -87,6 +89,7 @@ struct parser_interface
     {
         auto fn = [func = (F&&) func]<typename T>(T&& result)
         {
+            // return result.transform_error(func);
             using R1 = std::decay_t<T>;
             using E1 = typename R1::error_type;
             using E = std::decay_t<std::invoke_result_t<F, E1>>;
@@ -133,35 +136,6 @@ struct parser_interface
     constexpr auto map(this Self&& self, F&& func)
     {
         return detail::map_parser<std::decay_t<Self>, std::decay_t<F>>{ (Self&&) self, (F&&) func };
-
-        // auto fn = [func = (F&&) func]<typename T>(T&& result)
-        // {
-        //     using R1 = std::decay_t<T>;
-        //     using E = typename R1::error_type;
-        //     using O1 = typename R1::value_type;
-        //     using O = std::decay_t<std::invoke_result_t<std::decay_t<F>, O1>>;
-        //     using R = parse_result<O, E>;
-
-        // if (!result)
-        // {
-        //     // return R(std::unexpect, std::move(result.error()));
-        //     E e(std::move(result.error()));
-        //     return R(std::unexpect, std::move(e));
-        //     std::cout << display_string_of(^^E) << std::endl;
-        //     throw 0;
-        // }
-        // return R(std::in_place, std::invoke(func, std::move(result.value())));
-
-            // using R1 = std::decay_t<T>;
-            // using O1 = typename R1::value_type;
-            // using O = std::decay_t<std::invoke_result_t<F, O1>>;
-            // using E = typename R1::error_type;
-            // using R = parse_result<O, E>;
-
-            // return result ? R(std::in_place, std::invoke(func, std::move(result.value())))
-            //               : R(std::unexpect, std::move(result.error()));
-        // };
-        // return detail::map_result_parser<std::decay_t<Self>, decltype(fn)>{ (Self&&) self, std::move(fn) };
     }
 };
 
