@@ -11,7 +11,7 @@ namespace detail
 
 template <typename Parser, typename F> class map_parser;
 
-template <typename Parser, typename F> class map_err_parser;
+// template <typename Parser, typename F> class map_err_parser;
 
 template <typename Parser, typename F> class map_result_parser;
 
@@ -89,7 +89,7 @@ struct parser_interface
     {
         auto fn = [func = (F&&) func]<typename T>(T&& result)
         {
-            // return result.transform_error(func);
+            // return ((T&&) result).error().transform(func);
             using R1 = std::decay_t<T>;
             using E1 = typename R1::error_type;
             using E = std::decay_t<std::invoke_result_t<F, E1>>;
@@ -97,7 +97,7 @@ struct parser_interface
             using R = parse_result<O, E>;
 
             return result ? R(std::in_place, std::move(result.value()))
-                          : R(std::unexpect, std::invoke(func, std::move(result.error())));
+                          : R(std::unexpect, result.error().is_recoverable(), std::invoke(func, std::move(result.error())));
         };
         return detail::map_result_parser<std::decay_t<Self>, decltype(fn)>{ (Self&&) self, std::move(fn) };
     }

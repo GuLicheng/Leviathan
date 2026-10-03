@@ -32,31 +32,6 @@ struct AutoCompare
     }
 };
 
-// enum class TokenType
-// {
-//     Identifier,
-//     Keyword,
-//     Literal,
-//     Operator,
-//     Punctuation,
-//     Comment,
-//     Whitespace,
-//     EndOfFile
-// };
-
-// struct Token
-// {
-//     TokenType type;
-//     std::string_view lexeme;
-//     size_t position;
-//     std::any value;
-// };
-
-// class TokenStream : public cpp::config::token_interface
-// {
-// public:
-// };
-
 template <typename T>
 struct Succeed
 {
@@ -375,10 +350,22 @@ TEST_CASE("value")
 
 TEST_CASE("map_err")
 {
-    auto parser = cpp::config::parser::digit1.map_err([](auto&& err) { return 0; });
+    auto parser = cpp::config::parser::digit1.map_err([](auto&& err) 
+    { 
+        return 0;
+    });
 
     CHECK(CheckResult(parser, Context("123"), Succeed<std::string_view>{ "123" }, ""));
     CHECK(CheckResult(parser, Context("abc"), Failed<int>{ 0 }));
+
+    auto parser2 = cpp::config::parser::digit1.map_err([](auto&& err) 
+    {
+        return std::string("Recoverable");
+    });
+
+    CHECK(CheckResult(parser2, Context("123"), Succeed<std::string>{ "123" }, ""));
+    CHECK(CheckResult(parser2, Context("abc"), Failed<std::string>{ "Recoverable" }));
+
 }
 
 TEST_CASE("as_parser")

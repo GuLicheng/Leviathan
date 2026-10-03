@@ -56,6 +56,15 @@ public:
         return ((Self&&)self).m_error;
     }
 
+    // template <typename Self, typename F>
+    // constexpr auto transform(this Self&& self, F&& func)
+    // {
+    //     using E1 = decltype(((Self&&)self).error());
+    //     using E2 = std::invoke_result_t<F, E1>;
+    //     static_assert(std::is_same_v<E2, std::decay_t<E2>>);
+    //     return err_mode<E2>(self.m_recoverable, std::invoke(func, ((Self&&)self).error()));
+    // }
+
     template <typename Self>
     constexpr auto&& operator*(this Self&& self)
     {

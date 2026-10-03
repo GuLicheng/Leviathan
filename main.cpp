@@ -1,9 +1,19 @@
+
+#include <optional>
+#include <print>
+#include <meta>
+#include <iostream>
+#include <span>
+
+template <typename T>
+consteval std::string_view show_name()
+{
+    return display_string_of(^^T);
+}
+
 #include <leviathan/extc++/all.hpp>
 #include <leviathan/config_parser/core/context.hpp>
 #include <leviathan/config_parser/core/parsers.hpp>
-#include <print>
-#include <meta>
-#include <span>
 
 class Context : public cpp::config::context
 {
@@ -14,20 +24,19 @@ public:
 
 int main()
 {
-    auto p = cpp::config::parser::sequence(
-        cpp::config::parser::literal("Hello"),
-        cpp::config::parser::literal("World"),
-        cpp::config::parser::literal("!")
-    );
-    
+    auto ctx = Context("Hello World!");
 
-    Context ctx("HelloWorld!");  
+    using ErrorType = cpp::config::err_mode<std::string>;
 
-    auto r = ctx.apply(p);
+    auto parser2 = cpp::config::parser::digit1.map_err([](auto&& err) 
+    {
+        return 0;
+    });
 
-    std::println("Result: {}", r.has_value());
-    std::println("Result: {}", r.value());
-    std::println("Result: {}", ctx.to_string_view());
+    auto result = ctx.apply(parser2);
+
+    std::cout << "Result type: " << show_name<decltype(result)>() << std::endl;
+
 }
 
 

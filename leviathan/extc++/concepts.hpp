@@ -10,6 +10,36 @@
 namespace cpp::meta
 {
 
+// template<typename T, typename U>
+// struct like_impl; // T must be a reference and U an lvalue reference
+
+// template<typename T, typename U>
+// struct like_impl<T&, U&>
+// {
+//     using type = U&;
+// };
+
+// template<typename T, typename U>
+// struct like_impl<const T&, U&>
+// {
+//     using type = const U&;
+// };
+
+// template<typename T, typename U>
+// struct like_impl<T&&, U&>
+// {
+//     using type = U&&;
+// };
+
+// template<typename T, typename U>
+// struct like_impl<const T&&, U&>
+// {
+//     using type = const U&&;
+// };
+
+// template<typename T, typename U>
+// using like_t = typename like_impl<T&&, U&>::type;
+
 template <typename T, typename... Ts>
     requires (sizeof...(Ts) > 0)
 consteval size_t index()

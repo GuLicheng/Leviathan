@@ -62,42 +62,6 @@ public:
 template <typename Parser>
 warpper_parser(Parser&&) -> warpper_parser<std::decay_t<Parser>>;
 
-template <typename Parser, typename F>
-class map_err_parser : public parser_interface
-{
-    [[no_unique_address]] Parser m_parser;
-    [[no_unique_address]] F m_func;
-
-public:
-
-    static constexpr bool is_always_succeed = false;
-
-    template <typename Parser2, typename F2>
-    constexpr map_err_parser(Parser2&& p, F2&& f)
-        : m_parser((Parser2&&) p), m_func((F2&&) f)
-    { }
-
-    template <typename Stream>
-    constexpr auto operator()(Stream& stream) const
-    {
-        using E = typename Stream::error_type;
-        using E1 = std::invoke_result_t<F, E>;
-        using O = typename std::invoke_result_t<Parser, Stream&>::value_type;
-        using R = parse_result<O, E1>;
-
-        auto result = m_parser(stream);
-
-        if (!result)
-        {
-            return R(std::unexpect, std::invoke(m_func, std::move(result.error())));
-        }
-        return R(std::in_place, std::move(result.value()));
-    }
-};
-
-template <typename Parser, typename F>
-map_err_parser(Parser&&, F&&) -> map_err_parser<std::decay_t<Parser>, std::decay_t<F>>;
-
 template <typename Parser, typename F> 
 class map_parser : public parser_interface
 {
