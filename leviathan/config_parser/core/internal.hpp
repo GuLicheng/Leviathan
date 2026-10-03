@@ -156,6 +156,7 @@ class take_until_parser : public parser_interface
     
     literal_type m_value;
     occurrences<size_t> m_range;
+
 public:
 
     static constexpr bool is_always_succeed = false;
@@ -575,6 +576,15 @@ public:
 
         return R(std::in_place, stream.advance_and_discard(1));
     }
+};
+
+template <typename Pred>
+check_next_character_parser(Pred&&) -> check_next_character_parser<std::decay_t<Pred>>;
+
+struct always_false
+{
+    template <typename... Ts>
+    static constexpr bool operator()(Ts&&...) { return false; }
 };
 
 

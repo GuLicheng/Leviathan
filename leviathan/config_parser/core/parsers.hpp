@@ -342,4 +342,38 @@ inline constexpr struct
     }
 } take;
 
+inline constexpr auto any = detail::check_next_character_parser<detail::always_false>(detail::always_false());
+
+inline constexpr struct
+{
+    template <typename CharT>
+    static constexpr auto operator()(const CharT* str)
+    {
+        return operator()(std::basic_string_view<CharT>(str));
+    }
+
+    template <typename CharT>
+    static constexpr auto operator()(std::basic_string_view<CharT> str)
+    {
+        auto contains = [=](auto c) { return std::ranges::contains(str, c); };
+        return detail::check_next_character_parser<decltype(contains)>(std::move(contains));
+    }
+} none_of;
+
+inline constexpr struct 
+{
+    template <typename CharT>
+    static constexpr auto operator()(const CharT* str)
+    {
+        return operator()(std::basic_string_view<CharT>(str));
+    }
+
+    template <typename CharT>
+    static constexpr auto operator()(std::basic_string_view<CharT> str)
+    {
+        auto contains = [=](auto c) { return !std::ranges::contains(str, c); };
+        return detail::check_next_character_parser<decltype(contains)>(std::move(contains));
+    }
+} one_of;
+
 }  // namespace cpp::config::parser

@@ -424,6 +424,33 @@ TEST_CASE("and_then_parser", "[interface]")
     REQUIRE(CheckResult(parser, Context("123"), Backtrack()));
 }
 
+TEST_CASE("any", "[token]")
+{
+    using cpp::config::parser::any;
+
+    REQUIRE(CheckResult(any, Context("abcdef"), Succeed<std::string_view>{ "a" }, "bcdef"));
+    REQUIRE(CheckResult(any, Context(""), Backtrack())); 
+}
+
+TEST_CASE("none_of", "[token]")
+{
+    using cpp::config::parser::none_of;
+
+    REQUIRE(CheckResult(none_of("abc"), Context("def"), Succeed<std::string_view>{ "d" }, "ef"));
+    REQUIRE(CheckResult(none_of("abc"), Context("abc"), Backtrack()));
+    REQUIRE(CheckResult(none_of("abc"), Context(""), Backtrack()));
+}
+
+
+TEST_CASE("one_of", "[token]")
+{
+    using cpp::config::parser::one_of;
+
+    REQUIRE(CheckResult(one_of("abc"), Context("abc"), Succeed<std::string_view>{ "a" }, "bc"));
+    REQUIRE(CheckResult(one_of("abc"), Context("def"), Backtrack()));
+    REQUIRE(CheckResult(one_of("abc"), Context(""), Backtrack()));
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////                     Examples                               ///////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
