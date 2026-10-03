@@ -1,4 +1,8 @@
 /*
+    Some people, when confronted with a problem, think “I know, 
+    I’ll use regular expressions.” Now they have two problems.
+    
+                                                -------- Jamie Zawinski
 
         - map
         - sequence
@@ -40,14 +44,14 @@
         - verify
         - and_then
         - take
+        - [x] any
+        - [x] none_of
+        - [x] one_of
 
 
 
     - [x] rest
     - [x] rest_len
-    - [x] any
-    - [x] none_of
-    - [x] one_of
 
     - [x] cond
     - [x] empty
@@ -209,14 +213,26 @@ inline constexpr struct
     template <typename CharT>
     static constexpr auto operator()(std::basic_string_view<CharT> str)
     {
-        return detail::literal_parser<CharT>(str);
+        auto fn = [=]<typename Stream>(Stream& stream)
+        {
+            // Rust winnow return a part of input/stream. 
+            // We just return slices of the input stream.
+            using E = typename Stream::error_type;
+            using O = std::basic_string_view<CharT>;
+            using R = parse_result<O, E>;
+
+            return stream.match(str, false)
+                ? R(std::in_place, stream.advance_and_discard(str.size()))
+                : make_recoverable_from_input<R>(stream);
+        };
+        return as_parser(std::move(fn));
     }
 
     template <typename CharT>
     static constexpr auto operator()(const CharT* c)
     {
         std::basic_string_view<CharT> sv(c);
-        return detail::literal_parser<CharT>(sv);
+        return operator()(sv);
     }
 } literal;
 

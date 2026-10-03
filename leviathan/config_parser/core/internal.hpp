@@ -184,34 +184,6 @@ public:
     }
 };
 
-template <typename CharT>
-class literal_parser : public parser_interface
-{
-    using literal_type = std::basic_string_view<CharT>;
-
-    literal_type m_constant;
-
-public:
-
-    static constexpr bool is_always_succeed = false;
-
-    constexpr literal_parser(literal_type t) : m_constant(t) { }
-
-    template <typename Stream>
-    constexpr auto operator()(Stream& stream) const
-    {
-        // Rust winnow return a part of input/stream. 
-        // We just return slices of the input stream.
-        using E = typename Stream::error_type;
-        using O = literal_type;
-        using R = parse_result<literal_type, E>;
-
-        return stream.match(m_constant, false)
-             ? R(std::in_place, stream.advance_and_discard(m_constant.size()))
-             : make_recoverable_from_input<R>(stream);
-    }
-};
-
 template <typename Pred>
 class take_while_parser : public parser_interface
 {
