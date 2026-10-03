@@ -11,6 +11,7 @@
         - map_err
         - value
         - default_value    
+        - repeat
 
     token
         - take_while
@@ -53,7 +54,6 @@
     - [x] not
     - [x] opt
     - [x] peek
-    - [x] repeat
     - [x] repeat_till
     - [x] separated
     - [x] separated_foldl1
@@ -73,7 +73,6 @@
     - [x] take_escaped
 
     - [x] void
-    - [x] cut
     - [x] and_then
     - [x] context
     - [x] verify
