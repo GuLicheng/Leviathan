@@ -1,6 +1,5 @@
 /*
 
-    combinators
         - map
         - sequence
         - preceded
@@ -13,11 +12,9 @@
         - default_value    
         - repeat
 
-    token
         - take_while
         - literal
     
-    ascii
         - alpha0
         - alpha1
         - digit0
@@ -36,6 +33,12 @@
         - number | dec_int | dec_uint | float | hex_uint
         - recoverable | backtrack_err
         - fatal | cut_err
+        - till_line_ending
+        - line_ending
+        - line_comment
+        - block_comment
+
+
 
     - [x] take
     - [x] rest
@@ -64,10 +67,7 @@
     - [x] oct_digit0
     - [x] oct_digit1
 
-    - [x] till_line_ending
-    - [x] line_ending
-    - [x] line_comment
-    - [x] block_comment
+
     - [x] escaped
 
     - [x] take_escaped
@@ -159,32 +159,6 @@ inline constexpr struct
     }
 } take_until;
 
-inline constexpr auto alpha0 = take_while(::isalpha, { 0, std::nullopt });
-inline constexpr auto alpha1 = take_while(::isalpha, { 1, std::nullopt });
-
-inline constexpr auto digit0 = take_while(::isdigit, { 0, std::nullopt });
-inline constexpr auto digit1 = take_while(::isdigit, { 1, std::nullopt });
-
-inline constexpr auto alphanumeric0 = take_while(::isalnum, { 0, std::nullopt });
-inline constexpr auto alphanumeric1 = take_while(::isalnum, { 1, std::nullopt });
-
-inline constexpr auto multispace0 = take_while(::isspace, { 0, std::nullopt });
-inline constexpr auto multispace1 = take_while(::isspace, { 1, std::nullopt });
-
-inline constexpr auto hexdigit0 = take_while(::isxdigit, { 0, std::nullopt });
-inline constexpr auto hexdigit1 = take_while(::isxdigit, { 1, std::nullopt });
-
-// If we want to use the combinators in a more functional style, 
-// we can use these functions instead of the parser_interface methods.
-inline constexpr struct
-{
-    template <typename Parser, typename F>
-    static constexpr auto operator()(Parser&& parser, F&& f)
-    {
-        return detail::map_parser<std::decay_t<Parser>, std::decay_t<F>>((Parser&&) parser, (F&&) f);
-    }
-} map;
-
 inline constexpr struct
 {
     template <typename... Parsers>
@@ -246,10 +220,6 @@ inline constexpr struct
     }
 } literal;
 
-inline constexpr auto newline = literal("\n");
-inline constexpr auto tab = literal("\t");
-inline constexpr auto crlf = literal("\r\n");
-
 inline constexpr struct
 {
     template <typename... Parsers>
@@ -274,17 +244,76 @@ inline constexpr auto number = detail::int_parser<T>();
 template <std::floating_point T>
 inline constexpr auto number<T> = detail::float_parser<T>();
 
-// inline constexpr struct
-// {
-//     template <typename Parser>
-//     static constexpr auto operator()(Parser&& parser)
-//     {
-//         auto fn = [parser = (Parser&&) parser](auto& stream) static { 
-//             auto clone = stream;
-//             return parser(clone);
-//         };
-//         return as_parser(std::move(fn));
-//     }
-// } peek;
+inline constexpr auto alpha0 = take_while(::isalpha, { 0, std::nullopt });
+inline constexpr auto alpha1 = take_while(::isalpha, { 1, std::nullopt });
+
+inline constexpr auto digit0 = take_while(::isdigit, { 0, std::nullopt });
+inline constexpr auto digit1 = take_while(::isdigit, { 1, std::nullopt });
+
+inline constexpr auto alphanumeric0 = take_while(::isalnum, { 0, std::nullopt });
+inline constexpr auto alphanumeric1 = take_while(::isalnum, { 1, std::nullopt });
+
+inline constexpr auto multispace0 = take_while(::isspace, { 0, std::nullopt });
+inline constexpr auto multispace1 = take_while(::isspace, { 1, std::nullopt });
+
+inline constexpr auto hexdigit0 = take_while(::isxdigit, { 0, std::nullopt });
+inline constexpr auto hexdigit1 = take_while(::isxdigit, { 1, std::nullopt });
+
+inline constexpr auto newline = literal("\n");
+inline constexpr auto tab = literal("\t");
+inline constexpr auto crlf = literal("\r\n");
+inline constexpr auto line_ending = alt(crlf, newline);
+inline constexpr auto till_line_ending = detail::till_line_ending_parser<char>();
+
+inline constexpr struct
+{
+    template <typename CharT>
+    static constexpr auto operator()(const CharT* start, const CharT* finish) 
+    {
+        return operator()(
+            std::basic_string_view<CharT>(start),
+            std::basic_string_view<CharT>(finish)
+        );
+    }
+
+    template <typename CharT>
+    static constexpr auto operator()(std::basic_string_view<CharT> start, std::basic_string_view<CharT> finish) 
+    {
+        return combinator::sequence(
+            token::literal(start), 
+            token::take_until(finish), 
+            token::literal(finish)
+        );
+    }
+} block_comment;
+
+inline constexpr struct
+{
+    template <typename CharT>
+    static constexpr auto operator()(const CharT* start) 
+    {
+        return operator()(std::basic_string_view<CharT>(start));
+    }
+
+    template <typename CharT>
+    static constexpr auto operator()(std::basic_string_view<CharT> sv) 
+    {
+        return combinator::sequence(token::literal(sv), till_line_ending);
+    }
+} line_comment; 
+
+inline constexpr struct
+{
+    template <typename Parser>
+    static constexpr auto operator()(Parser&& parser)
+    {
+        auto fn = [parser = (Parser&&) parser](auto& stream) 
+        { 
+            auto clone = stream;
+            return parser(clone);
+        };
+        return as_parser(std::move(fn));
+    }
+} peek;
 
 }  // namespace cpp::config::parser

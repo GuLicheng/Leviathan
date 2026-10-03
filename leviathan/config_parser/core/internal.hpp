@@ -62,43 +62,6 @@ public:
 template <typename Parser>
 warpper_parser(Parser&&) -> warpper_parser<std::decay_t<Parser>>;
 
-// template <typename Parser, typename F> 
-// class map_parser : public parser_interface
-// {
-//     [[no_unique_address]] Parser m_parser;
-//     [[no_unique_address]] F m_func;
-
-// public:
-
-//     static constexpr bool is_always_succeed = false;
-
-//     template <typename Parser2, typename F2>
-//     constexpr map_parser(Parser2&& p, F2&& f)
-//         : m_parser((Parser2&&) p), m_func((F2&&) f)
-//     { }
-
-//     template <typename Stream>
-//     constexpr auto operator()(Stream& stream) const
-//     {
-//         using E = typename Stream::error_type;
-//         using R1 = std::invoke_result_t<Parser, Stream&>;
-//         using O1 = typename R1::value_type;
-//         using O2 = std::invoke_result_t<F, O1>;
-//         using R = parse_result<std::decay_t<O2>, E>;
-
-//         auto result = m_parser(stream);
-
-//         if (!result)
-//         {
-//             return R(std::unexpect, std::move(result.error()));
-//         }
-//         return R(std::in_place, std::invoke(m_func, std::move(result.value())));
-//     }
-// };
-
-// template <typename Parser, typename F>
-// map_parser(Parser&&, F&&) -> map_parser<std::decay_t<Parser>, std::decay_t<F>>;
-
 template <typename CharT>
 class take_until_parser : public parser_interface
 {
@@ -402,8 +365,10 @@ template <typename Parser>
 repeat_parser(Parser&&, occurrences<size_t>) -> repeat_parser<std::decay_t<Parser>>;
 
 template <std::integral Integral>
-struct int_parser
+class int_parser : public parser_interface
 {
+public:
+
     static constexpr bool is_always_succeed = false;
 
     template <typename Stream>
@@ -441,8 +406,9 @@ struct int_parser
 };
 
 template <std::floating_point Floating>
-struct float_parser
+class float_parser : public parser_interface
 {
+public:
 
     static constexpr bool is_always_succeed = false;
 
@@ -469,6 +435,45 @@ struct float_parser
     }
 };
 
+template <typename CharT>
+class till_line_ending_parser : public parser_interface
+{
+    // Only Linux and MacOS 10+ use LF as newline.
+    // MacOS 9 and earlier use CR as newline.
+    // The Windows use CRLF as newline.
+    static constexpr std::basic_string_view<CharT> line1 = "\n";
+    static constexpr std::basic_string_view<CharT> line2 = "\r\n";
+
+public:
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using O = std::basic_string_view<CharT>;
+        using R = parse_result<O, E>;
+
+        auto pos = stream.find_first_of(line2);
+
+        if (pos == line2.npos)
+        {
+            // EOF reached, return an empty string as the line content.
+            auto [left, right] = stream.split_at(stream.size());
+            stream = std::move(right);
+            return R(std::in_place, left);
+        }
+
+        if (stream[pos] == '\r' && stream.peek(pos + 1) != '\n')
+        {
+            // '\r' must be followed by '\n' to be considered a valid line ending.
+            return make_recoverable_from_input<R>(stream);
+        }
+
+        auto [left, right] = stream.split_at(pos);
+        stream = std::move(right);
+        return R(std::in_place, left);
+    }
+};
 
 }  // namespace cpp::config::parser::detail
 

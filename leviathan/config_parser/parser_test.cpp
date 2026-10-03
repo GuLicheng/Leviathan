@@ -400,6 +400,18 @@ TEST_CASE("recoverable and fatal")
     CHECK(CheckResult(parser2, Context("abc"), Cut()));
 }
 
+TEST_CASE("peek", "[combinator]")
+{
+    // assert_eq!(parser.parse_peek("abcd;"), Ok(("abcd;", "abcd")));
+    // assert!(parser.parse_peek("123;").is_err());
+
+    auto parser = cpp::config::parser::peek(
+        cpp::config::parser::alpha1
+    );
+    REQUIRE(CheckResult(parser, Context("abcd;"), Succeed<std::string_view>{ "abcd" }, "abcd;"));
+    REQUIRE(CheckResult(parser, Context("123;"), Backtrack()));
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////                     Examples                               ///////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////

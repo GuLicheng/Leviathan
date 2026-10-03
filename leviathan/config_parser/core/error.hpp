@@ -86,9 +86,6 @@ private:
     Error m_error;
 };
 
-template <typename T, typename E>
-using parse_result = std::expected<T, err_mode<E>>;
-
 /**
  * @brief Traits for handling errors of type `E` in the configuration parser.
  * @tparam E The type of error to handle.
@@ -122,6 +119,9 @@ struct context_error
     std::vector<str_context> context_stack;
     std::optional<std::any> cause;
 };
+
+template <typename T, typename E = context_error>
+using parse_result = std::expected<T, err_mode<E>>;
 
 template <>
 struct error_traits<context_error>
