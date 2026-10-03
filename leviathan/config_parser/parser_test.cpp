@@ -415,6 +415,15 @@ TEST_CASE("verify", "[interface]")
     REQUIRE(CheckResult(parser2, Context("123abcd"), Backtrack()));
 }
 
+TEST_CASE("and_then_parser", "[interface]")
+{
+    auto parser = cpp::config::parser::take(5).and_then(cpp::config::parser::digit1);
+
+    REQUIRE(CheckResult(parser, Context("12345"), Succeed<std::string_view>{ "12345" }, ""));
+    REQUIRE(CheckResult(parser, Context("123ab"), Succeed<std::string_view>{ "123" }, ""));
+    REQUIRE(CheckResult(parser, Context("123"), Backtrack()));
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////                     Examples                               ///////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////

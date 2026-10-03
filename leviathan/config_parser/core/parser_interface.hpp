@@ -13,10 +13,18 @@ template <typename Parser, typename F> class map_result_parser;
 
 template <typename Parser, typename F> class verify_parser;
 
+template <typename Parser1, typename Parser2> class and_then_parser;
+
 }  // namespace detail
 
 struct parser_interface
 {
+    template <typename Self, typename AndThenParser>
+    constexpr auto and_then(this Self&& self, AndThenParser&& f)
+    {
+        return detail::and_then_parser<std::decay_t<Self>, std::decay_t<AndThenParser>>{(Self&&)self, (AndThenParser&&)f};
+    }
+
     /**
      * @brief Applies a verification function to the result of the parser.
      * @details This function allows chaining a verification step to the result of a parser.

@@ -10,6 +10,49 @@
 namespace cpp::config::parser::detail
 {
 
+template <typename Parser1, typename Parser2> 
+class and_then_parser : public parser_interface
+{
+    [[no_unique_address]] Parser1 m_parser1;
+    [[no_unique_address]] Parser2 m_parser2;
+
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    template <typename P1, typename P2>
+    constexpr and_then_parser(P1&& p1, P2&& p2)
+        : m_parser1((P1&&) p1), m_parser2((P2&&) p2)
+    { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using R = std::invoke_result_t<Parser2, Stream&>;
+
+        auto result1 = m_parser1(stream);
+        
+        if (!result1)
+        {
+            return make_recoverable_from_input<R>(stream);
+        }
+
+        // The output produced by a parser must be constructible into a Stream.
+        Stream stream2(result1.value());
+        auto result2 = m_parser2(stream2);
+
+        if (!result2)
+        {
+            return make_recoverable_from_input<R>(stream);
+        }
+
+        return R(std::in_place, std::move(result2.value()));
+    }
+};
+
+template <typename Parser1, typename Parser2>
+and_then_parser(Parser1&&, Parser2&&) -> and_then_parser<std::decay_t<Parser1>, std::decay_t<Parser2>>;
+
 template <typename Parser, typename F>
 class verify_parser : public parser_interface
 {
@@ -136,9 +179,7 @@ public:
             return make_recoverable_from_input<R>(stream);
         }
 
-        auto [left, right] = stream.split_at(idx);
-        stream = std::move(right);
-        return R(std::in_place, std::move(left));
+        return R(std::in_place, stream.advance_and_discard(idx));
     }
 };
 
@@ -164,16 +205,9 @@ public:
         using O = literal_type;
         using R = parse_result<literal_type, E>;
 
-        if (stream.match(m_constant, false))
-        {
-            auto [left, right] = stream.split_at(m_constant.size());
-            stream = std::move(right);
-            return R(std::in_place, std::move(left));
-        }
-        else
-        {
-            return make_recoverable_from_input<R>(stream);
-        }
+        return stream.match(m_constant, false)
+             ? R(std::in_place, stream.advance_and_discard(m_constant.size()))
+             : make_recoverable_from_input<R>(stream);
     }
 };
 
@@ -216,9 +250,7 @@ public:
         }
         else
         {
-            auto [left, right] = stream.split_at(count);
-            stream = std::move(right);
-            return R(std::in_place, std::move(left));
+            return R(std::in_place, stream.advance_and_discard(count));
         }
     }
 };
@@ -504,9 +536,7 @@ public:
         if (pos == line2.npos)
         {
             // EOF reached, return an empty string as the line content.
-            auto [left, right] = stream.split_at(stream.size());
-            stream = std::move(right);
-            return R(std::in_place, left);
+            return R(std::in_place, stream.advance_and_discard(stream.size()));
         }
 
         if (stream[pos] == '\r' && stream.peek(pos + 1) != '\n')
@@ -515,11 +545,38 @@ public:
             return make_recoverable_from_input<R>(stream);
         }
 
-        auto [left, right] = stream.split_at(pos);
-        stream = std::move(right);
-        return R(std::in_place, left);
+        return R(std::in_place, stream.advance_and_discard(pos));
     }
 };
+
+template <typename Pred>
+struct check_next_character_parser : public parser_interface
+{
+    Pred m_pred;
+
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    template <typename Pred2>
+    constexpr check_next_character_parser(Pred2&& pred) : m_pred((Pred2&&) pred) {}
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using O = std::basic_string_view<typename Stream::value_type>;
+        using R = parse_result<O, E>;
+
+        if (stream.size() == 0 || std::invoke(m_pred, stream[0]))
+        {
+            return make_recoverable_from_input<R>(stream);
+        }
+
+        return R(std::in_place, stream.advance_and_discard(1));
+    }
+};
+
 
 }  // namespace cpp::config::parser::detail
 

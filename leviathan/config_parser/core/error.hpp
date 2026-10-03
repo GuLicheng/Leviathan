@@ -154,7 +154,7 @@ struct error_traits<context_error>
 template <typename R, typename Context>
 constexpr auto make_recoverable_from_input(Context& ctx, const char* message = nullptr)
 {
-    // R is modal_result
+    // R is parse_result
     using ErrMode = typename R::error_type;
     using O = typename R::value_type;
     using E = typename ErrMode::error_type;

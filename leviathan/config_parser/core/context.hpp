@@ -444,6 +444,14 @@ struct context_interface
     }
 
     template <typename Self>
+    constexpr auto advance_and_discard(this Self& self, size_type n)
+    {
+        auto [left, right] = self.split_at(n);
+        self = std::move(right);
+        return left;
+    }
+
+    template <typename Self>
     constexpr size_type find_first_of(this const Self& self, std::basic_string_view<CharT> sv, size_type pos = 0)
     { 
         return self.to_string_view().find_first_of(sv, pos); 

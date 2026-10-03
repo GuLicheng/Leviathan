@@ -38,10 +38,11 @@
         - line_comment
         - block_comment
         - verify
+        - and_then
+        - take
 
 
 
-    - [x] take
     - [x] rest
     - [x] rest_len
     - [x] any
@@ -74,7 +75,6 @@
     - [x] take_escaped
 
     - [x] void
-    - [x] and_then
     - [x] context
 
 
@@ -315,5 +315,31 @@ inline constexpr struct
         return as_parser(std::move(fn));
     }
 } peek;
+
+inline constexpr struct 
+{
+    static constexpr auto operator()(size_t count)
+    {
+        auto fn = [=]<typename Stream>(Stream& stream) 
+        {
+            using E = typename Stream::error_type;
+            using O = std::basic_string_view<typename Stream::value_type>;
+            using R = parse_result<O, E>;
+
+            if (stream.size() < count)
+            {
+                // It will return Err(ErrMode::Backtrack(_)) if the input is shorter than the argument
+                return make_recoverable_from_input<R>(stream);
+            }
+            else
+            {
+                auto [left, right] = stream.split_at(count);
+                stream = std::move(right);
+                return R(std::in_place, std::move(left));
+            }
+        };
+        return as_parser(std::move(fn));
+    }
+} take;
 
 }  // namespace cpp::config::parser
