@@ -15,10 +15,8 @@
         - value
         - default_value    
         - repeat
-
         - take_while
         - literal
-    
         - alpha0
         - alpha1
         - digit0
@@ -44,50 +42,44 @@
         - verify
         - and_then
         - take
-        - [x] any
-        - [x] none_of
-        - [x] one_of
-        - [x] empty
-        - [x] eof
-        - [x] peek
-
+        - any
+        - none_of
+        - one_of
+        - empty
+        - eof
+        - peek
+        - separated_foldl1
+        - take
+        - repeat_till
+        - cond
+        - opt
 
 
     - [x] rest
     - [x] rest_len
 
-    - [x] cond
     - [x] expression
     - [x] fail
     - [x] fill
     - [x] iterator
     - [x] not
-    - [x] opt
-    - [x] repeat_till
     - [x] separated
-    - [x] separated_foldl1
     - [x] separated_foldr1
     - [x] todo
     - [x] trace
 
     - [x] oct_digit0
     - [x] oct_digit1
-
-
     - [x] escaped
-
     - [x] take_escaped
-
     - [x] void
     - [x] context
-
 
     - parse : operator()
     - [x] parse_iter
     - [x] parse_peek
     - [x] by_ref           -> std::ref/std::cref is OK
     - [x] output_into
-    - [x] take
     - [x] with_take
     - [x] span
     - [x] span
@@ -101,7 +93,6 @@
     - [x] err_into
     - [x] retry_after
     - [x] resume_after
-
 */
 
 #pragma once
@@ -285,7 +276,7 @@ inline constexpr struct
     {
         return sequence(
             literal(start), 
-            take_until(finish), 
+            take_until(finish, { 0, std::nullopt }), 
             literal(finish)
         );
     }
@@ -371,5 +362,43 @@ inline constexpr struct
         >((Parser&&) p, (Seperator&&) sep, (BinaryOp&&) binop);
     }
 } separated_foldl1;
+
+inline constexpr struct
+{
+    template <typename Parser, typename TerminatorParser>
+    static constexpr auto operator()(Parser&& parser, TerminatorParser&& terminator_parser, occurrences<size_t> r)
+    {
+        return detail::repeat_till_parser<
+            std::decay_t<Parser>, std::decay_t<TerminatorParser>
+        >((Parser&&) parser, (TerminatorParser&&) terminator_parser, r);
+    }
+} repeat_till;
+
+inline constexpr struct
+{
+    template <typename Parser>
+    static constexpr auto operator()(bool condition, Parser&& parser)
+    {
+        return detail::cond_parser<std::decay_t<Parser>>(condition, (Parser&&) parser);
+    }
+} cond;
+
+inline constexpr struct
+{
+    template <typename Parser>
+    static constexpr auto operator()(Parser&& parser)
+    {
+        return detail::opt_parser<std::decay_t<Parser>>((Parser&&) parser);
+    }
+} opt;
+
+inline constexpr struct
+{
+    template <typename Parser>
+    static constexpr auto operator()(Parser&& parser)
+    {
+        return detail::not_parser<std::decay_t<Parser>>((Parser&&) parser);
+    }
+} not_;
 
 }  // namespace cpp::config::parser

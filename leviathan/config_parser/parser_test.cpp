@@ -415,7 +415,7 @@ TEST_CASE("verify", "[interface]")
     REQUIRE(CheckResult(parser2, Context("123abcd"), Backtrack()));
 }
 
-TEST_CASE("and_then_parser", "[interface]")
+TEST_CASE("and_then_parser")
 {
     auto parser = cpp::config::parser::take(5).and_then(cpp::config::parser::digit1);
 
@@ -424,7 +424,7 @@ TEST_CASE("and_then_parser", "[interface]")
     REQUIRE(CheckResult(parser, Context("123"), Backtrack()));
 }
 
-TEST_CASE("any", "[token]")
+TEST_CASE("any")
 {
     using cpp::config::parser::any;
 
@@ -432,7 +432,7 @@ TEST_CASE("any", "[token]")
     REQUIRE(CheckResult(any, Context(""), Backtrack())); 
 }
 
-TEST_CASE("none_of", "[token]")
+TEST_CASE("none_of")
 {
     using cpp::config::parser::none_of;
 
@@ -442,7 +442,7 @@ TEST_CASE("none_of", "[token]")
 }
 
 
-TEST_CASE("one_of", "[token]")
+TEST_CASE("one_of")
 {
     using cpp::config::parser::one_of;
 
@@ -451,7 +451,7 @@ TEST_CASE("one_of", "[token]")
     REQUIRE(CheckResult(one_of("abc"), Context(""), Backtrack()));
 }
 
-TEST_CASE("eof", "[combinator]")
+TEST_CASE("eof")
 {
     auto parser = cpp::config::parser::eof;
 
@@ -459,7 +459,7 @@ TEST_CASE("eof", "[combinator]")
     REQUIRE(CheckResult(parser, Context("abc"), Backtrack()));
 }
 
-TEST_CASE("empty", "[combinator]")
+TEST_CASE("empty")
 {
     auto sign = cpp::config::parser::alt(
         cpp::config::parser::literal("+").value(1),
@@ -472,7 +472,7 @@ TEST_CASE("empty", "[combinator]")
     REQUIRE(CheckResult(sign, Context("123"), Succeed<int>{ 1 }, "123"));
 }
 
-TEST_CASE("separated_foldl1_parser", "[combinator]")
+TEST_CASE("separated_foldl1_parser")
 {
     auto parser = cpp::config::parser::separated_foldl1(
         cpp::config::parser::digit1.map([](auto sv) { return std::stoi(std::string(sv)); }),
@@ -485,6 +485,67 @@ TEST_CASE("separated_foldl1_parser", "[combinator]")
     REQUIRE(CheckResult(parser, Context("1"), Succeed<int>{ 1 }, ""));
     REQUIRE(CheckResult(parser, Context(""), Backtrack()));
     REQUIRE(CheckResult(parser, Context("def|abc"), Backtrack()));
+}
+
+TEST_CASE("comment")
+{
+    auto line = cpp::config::parser::line_comment("//");
+    auto block = cpp::config::parser::block_comment("/*", "*/");
+
+    REQUIRE(CheckResult(line, Context("// this is a comment\nabc"), Ignore(), "\nabc"));
+    REQUIRE(CheckResult(block, Context("/* this is a block comment */abc"), Ignore(), "abc"));
+}
+
+TEST_CASE("repeat_till")
+{
+    using StrVec = std::vector<std::string_view>;
+    
+    using R = std::pair<StrVec, std::string_view>;
+
+    auto parser = cpp::config::parser::repeat_till(
+        cpp::config::parser::literal("abc"),
+        cpp::config::parser::literal("end"),
+        cpp::config::from(0)
+    );
+
+    REQUIRE(CheckResult(parser, Context("endabc"), Succeed<R>{ std::make_pair(StrVec{}, "end") }, "abc"));
+    REQUIRE(CheckResult(parser, Context("abcabcend"), Succeed<R>{ std::make_pair(StrVec{"abc", "abc"}, "end") }, ""));
+    REQUIRE(CheckResult(parser, Context("abc123end"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("123123end"), Backtrack()));
+    REQUIRE(CheckResult(parser, Context(""), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("abcendefg"), Succeed<R>{ std::make_pair(StrVec{"abc"}, "end") }, "efg"));
+}
+
+TEST_CASE("cond")
+{
+    auto allow_comment = cpp::config::parser::cond(true, cpp::config::parser::line_comment("//"));
+    auto disallow_comment = cpp::config::parser::cond(false, cpp::config::parser::line_comment("//"));
+
+    auto ctx1 = Context("// this is a comment.");
+    auto ctx2 = Context("// this is a comment.");
+
+    REQUIRE(CheckResult(allow_comment, ctx1, Ignore(), ""));
+    REQUIRE(CheckResult(disallow_comment, ctx2, Ignore(), "// this is a comment."));
+}
+
+TEST_CASE("opt", "[combinator]")
+{
+    auto parser = cpp::config::parser::opt(
+        cpp::config::parser::alpha1
+    );
+
+    REQUIRE(CheckResult(parser, Context("abcd"), Succeed<std::optional<std::string_view>>{ std::make_optional("abcd") }, ""));
+    REQUIRE(CheckResult(parser, Context("123"), Succeed<std::optional<std::string_view>>{ std::nullopt }, "123"));
+}
+
+TEST_CASE("not", "[combinator]")
+{
+    auto parser = cpp::config::parser::not_(
+        cpp::config::parser::alpha1
+    );
+
+    REQUIRE(CheckResult(parser, Context("123"), Succeed<cpp::config::unit>{}, "123"));
+    REQUIRE(CheckResult(parser, Context("abcd"), Backtrack()));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////

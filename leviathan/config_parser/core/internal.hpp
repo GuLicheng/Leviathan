@@ -692,6 +692,205 @@ public:
     }
 };
 
+template <typename Parser, typename TerminatorParser>
+class repeat_till_parser : public parser_interface
+{
+    [[no_unique_address]] Parser m_parser;
+    [[no_unique_address]] TerminatorParser m_terminator_parser;
+    occurrences<size_t> m_range;
+
+public:
+
+    template <typename Parser2, typename TerminatorParser2>
+    constexpr repeat_till_parser(Parser2&& p, TerminatorParser2&& tp, occurrences<size_t> r)
+        : m_parser((Parser2&&) p), m_terminator_parser((TerminatorParser2&&) tp), m_range(r) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using O1 = std::vector<typename std::invoke_result_t<Parser, Stream&>::value_type>;
+        using R2 = std::invoke_result_t<TerminatorParser, Stream&>;        
+        using O2 = typename R2::value_type;
+        using O = std::pair<O1, O2>;
+        using R = parse_result<O, E>;
+
+        size_t count = 0;
+        O1 results;
+
+        if (stream.size() == 0)
+        {
+            return make_recoverable_from_input<R>(stream);
+        }
+
+        std::optional<R2> terminator_result;
+
+        while (stream.size())
+        {
+            size_t prev_size = stream.size();
+
+            // The terminator_parser may break the input stream
+            // when it fails, so we use a clone of the stream to avoid 
+            // consuming input prematurely.
+            auto clone = stream;
+
+            terminator_result.emplace(m_terminator_parser(clone));
+        
+            if (terminator_result->has_value())
+            {
+                // Stop parsing when the terminator parser succeeds.
+                stream = std::move(clone);
+                break;
+            }
+
+            if (terminator_result->error().is_fatal())
+            {
+                // Terminator parser encountered a cut error.
+                return R(std::unexpect, std::move(terminator_result->error()));
+            }
+            
+            // Recoverable error branch
+            
+            auto item_result = m_parser(stream);
+
+            if (!item_result)
+            {
+                // Unknown error occurred while parsing the item.
+                return R(std::unexpect, std::move(item_result.error()));
+            }
+
+            // Check stream size for avoiding infinite loops.
+
+            if (stream.size() == prev_size)
+            {
+                // No progress was made, avoid infinite loop.
+                return make_recoverable_from_input<R>(stream, "`repeat` parsers must always consume");
+            }
+
+            // accumulator.accumulate(results, std::move(item_result.value()));
+            results.emplace_back(std::move(item_result.value()));
+            ++count;
+            if (m_range.is_upper_bound(count))
+            {
+                break;
+            }
+        }
+
+        if (m_range.is_less_than_lower(results.size()))
+        {
+            return make_recoverable_from_input<R>(stream);
+        }
+
+        if (!terminator_result.has_value())
+        {
+            return make_recoverable_from_input<R>(stream);
+        }
+
+        return R(std::in_place, std::make_pair(std::move(results), std::move(terminator_result->value())));
+
+    }
+
+};
+
+template <typename Parser>
+class cond_parser : public parser_interface
+{
+    bool m_condition;
+    [[no_unique_address]] Parser m_parser;
+
+public:
+
+    template <typename Parser2>
+    constexpr cond_parser(bool condition, Parser2&& parser)
+        : m_condition(condition), m_parser((Parser2&&) parser) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using O = std::optional<std::invoke_result_t<Parser, Stream&>>;
+        using R = parse_result<O, E>;
+
+        auto fn = [](auto&& x) static -> O { return std::make_optional((decltype(x)&&) x); };
+        return m_condition ? m_parser(stream).transform(fn) : R(std::in_place, std::nullopt);
+    }
+};
+
+template <typename Parser>
+class opt_parser : public parser_interface
+{
+    [[no_unique_address]] Parser m_parser;
+
+public:
+    template <typename Parser2>
+    constexpr opt_parser(Parser2&& p) : m_parser((Parser2&&) p) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        auto clone = stream;
+        auto result = m_parser(stream);
+
+        using R1 = std::invoke_result_t<Parser, Stream&>;
+        using E = typename Stream::error_type;
+        using O = std::optional<typename R1::value_type>;
+        using R = parse_result<O, E>;
+
+        if (result)
+        {
+            return R(std::in_place, std::make_optional(std::move(result.value())));
+        }
+        else if (result.error().is_recoverable())
+        {
+            // Only backtrack errors should reset the stream to the clone.
+            stream = std::move(clone);
+            return R(std::in_place, std::nullopt);
+        }
+        else
+        {
+            // For cut, just stop and propagate the error.
+            return R(std::unexpect, result.error());
+        }
+    }
+};
+
+template <typename Parser>
+class not_parser : public parser_interface
+{
+    [[no_unique_address]] Parser m_parser;
+
+public:
+
+    template <typename Parser2>
+    constexpr not_parser(Parser2&& p) : m_parser((Parser2&&) p) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        auto clone = stream;
+        auto result = m_parser(clone);
+
+        using O = unit;
+        using E = typename Stream::error_type;
+        using R = parse_result<O, E>;
+
+        if (result)
+        {
+            return make_recoverable_from_input<R>(stream);
+        }
+
+        if (result.error().is_recoverable())
+        {
+            return R(std::in_place, unit{});
+        }
+        else
+        {
+            // For cut errors, just propagate the error without backtracking.
+            return R(std::unexpect, result.error());
+        }
+
+    }
+};
 
 }  // namespace cpp::config::parser::detail
 

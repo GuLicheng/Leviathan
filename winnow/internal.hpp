@@ -1406,11 +1406,6 @@ struct separated_foldl1_parser : parser_interface
 };
 
 
-
-
-
-
-
 }  // namespace winnow::detail
 
 
