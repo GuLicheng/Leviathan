@@ -18,8 +18,6 @@ class and_then_parser : public parser_interface
 
 public:
 
-    static constexpr bool is_always_succeed = false;
-
     template <typename P1, typename P2>
     constexpr and_then_parser(P1&& p1, P2&& p2)
         : m_parser1((P1&&) p1), m_parser2((P2&&) p2)
@@ -58,7 +56,7 @@ class verify_parser : public parser_interface
 
 public:
 
-    static constexpr bool is_always_succeed = false;
+    
 
     template <typename Parser2, typename F2>
     constexpr verify_parser(Parser2&& p, F2&& f)
@@ -97,8 +95,6 @@ class map_result_parser : public parser_interface
 
 public:
 
-    static constexpr bool is_always_succeed = false;
-
     template <typename Parser2, typename F2>
     constexpr map_result_parser(Parser2&& p, F2&& f)
         : m_parser((Parser2&&) p), m_func((F2&&) f)
@@ -118,16 +114,9 @@ class warpper_parser : public parser_interface
 
 public:
 
-    static constexpr bool is_always_succeed = false;
-
     explicit constexpr warpper_parser(Parser p)
         : m_parser(std::move(p))
     { }
-
-    // template <typename Parser2>
-    // explicit constexpr warpper_parser(Parser2&& p)
-    //     : m_parser((Parser2&&) p)
-    // { }
 
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
@@ -145,8 +134,6 @@ class take_until_parser : public parser_interface
     occurrences<size_t> m_range;
 
 public:
-
-    static constexpr bool is_always_succeed = false;
 
     constexpr take_until_parser(literal_type v, occurrences<size_t> r)
         : m_value(v), m_range(r) { }
@@ -179,7 +166,7 @@ class take_while_parser : public parser_interface
 
 public:
 
-    static constexpr bool is_always_succeed = false;
+    
 
     template <typename Pred2>
     constexpr take_while_parser(Pred2&& p, occurrences<size_t> r)
@@ -224,7 +211,7 @@ class alternative_parser : public parser_interface
 
 public:
 
-    static constexpr bool is_always_succeed = false;
+    
 
     template <typename... Ps>
     constexpr alternative_parser(Ps&&... ps) : m_parsers((Ps&&)ps...) { }
@@ -278,7 +265,7 @@ class sequence_parser : public parser_interface
 
 public:
 
-    static constexpr bool is_always_succeed = false;
+    
 
 
     // auto p1 = sequence(...)
@@ -330,7 +317,7 @@ class repeat_parser : public parser_interface
 
 public:
 
-    static constexpr bool is_always_succeed = false;
+    
 
     template <typename Parser2>
     constexpr repeat_parser(Parser2&& parser, occurrences<size_t> range)
@@ -393,7 +380,7 @@ class int_parser : public parser_interface
 {
 public:
 
-    static constexpr bool is_always_succeed = false;
+    
 
     template <typename Stream>
     static constexpr auto operator()(Stream& stream)
@@ -434,7 +421,7 @@ class float_parser : public parser_interface
 {
 public:
 
-    static constexpr bool is_always_succeed = false;
+    
 
     template <typename Stream>
     static constexpr auto operator()(Stream& stream)
@@ -470,7 +457,7 @@ class till_line_ending_parser : public parser_interface
 
 public:
 
-    static constexpr bool is_always_succeed = false;
+    
 
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
@@ -504,7 +491,7 @@ class check_next_character_parser : public parser_interface
 
 public:
 
-    static constexpr bool is_always_succeed = false;
+    
 
     template <typename Pred2>
     constexpr check_next_character_parser(Pred2&& pred) : m_pred((Pred2&&) pred) {}
@@ -550,7 +537,7 @@ class eof_parser : public parser_interface
 {
 public:
 
-    static constexpr bool is_always_succeed = false;
+    
 
     template <typename Stream>
     static constexpr auto operator()(Stream& stream) 
@@ -568,7 +555,7 @@ class take_parser : public parser_interface
 
 public:
 
-    static constexpr bool is_always_succeed = false;
+    
 
     constexpr take_parser(size_t count) : m_count(count) {}
 
@@ -592,7 +579,7 @@ class peek_parser : public parser_interface
     
 public:
 
-    static constexpr bool is_always_succeed = false;
+    
 
     template <typename Parser2>
     constexpr peek_parser(Parser2&& parser) : m_parser((Parser2&&) parser) {}
@@ -637,6 +624,74 @@ public:
             : make_recoverable_from_input<R>(stream);
     }
 };
+
+template <typename Parser, typename Seperator, typename BinaryOp>
+class separated_foldl1_parser : public parser_interface
+{
+    [[no_unique_address]] Parser m_parser;
+    [[no_unique_address]] Seperator m_seperator;
+    [[no_unique_address]] BinaryOp m_binary_op;
+
+public:
+
+    template <typename Parser2, typename Seperator2, typename BinaryOp2>
+    constexpr separated_foldl1_parser(Parser2&& p, Seperator2&& s, BinaryOp2&& b)
+        : m_parser((Parser2&&) p), m_seperator((Seperator2&&) s), m_binary_op((BinaryOp2&&) b) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using R = std::invoke_result_t<Parser, Stream&>;
+
+        auto result = m_parser(stream);
+
+        if (!result) 
+        {
+            return R(std::unexpect, std::move(result.error()));
+        }
+
+        auto val = result.value();
+
+        for (auto rest = stream.size(); ; rest = stream.size())
+        {
+            auto clone = stream;
+
+            if (auto sep_result = m_seperator(stream); !sep_result)
+            {
+                if (sep_result.error().is_fatal())
+                {
+                    return R(std::unexpect, std::move(sep_result.error()));
+                }
+                else
+                {
+                    stream = std::move(clone);
+                    return R(std::in_place, std::move(val));
+                }
+            }
+            else
+            {
+                if (rest == stream.size())
+                {
+                    // Infinity loop 
+                    return R(std::unexpect, std::move(sep_result.error()));
+                }
+
+                if (auto next_result = m_parser(stream); !next_result)
+                {
+                    return R(std::unexpect, std::move(next_result.error()));
+                }
+                else
+                {
+                    val = m_binary_op(std::move(val), std::move(next_result.value()));
+                }
+            }
+        }
+
+        // For empty stream, the sep_parser will return an invalid result and return the result.
+        std::unreachable();
+    }
+};
+
 
 }  // namespace cpp::config::parser::detail
 

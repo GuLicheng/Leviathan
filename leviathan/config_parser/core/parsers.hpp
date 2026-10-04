@@ -47,6 +47,9 @@
         - [x] any
         - [x] none_of
         - [x] one_of
+        - [x] empty
+        - [x] eof
+        - [x] peek
 
 
 
@@ -54,15 +57,12 @@
     - [x] rest_len
 
     - [x] cond
-    - [x] empty
-    - [x] eof
     - [x] expression
     - [x] fail
     - [x] fill
     - [x] iterator
     - [x] not
     - [x] opt
-    - [x] peek
     - [x] repeat_till
     - [x] separated
     - [x] separated_foldl1
@@ -360,5 +360,16 @@ inline constexpr struct
 inline constexpr auto eof = detail::eof_parser();
 
 inline constexpr auto empty = detail::empty_parser();
+
+inline constexpr struct
+{
+    template <typename Parser, typename Seperator, typename BinaryOp>
+    static constexpr auto operator()(Parser&& p, Seperator&& sep, BinaryOp&& binop)
+    {
+        return detail::separated_foldl1_parser<
+            std::decay_t<Parser>, std::decay_t<Seperator>, std::decay_t<BinaryOp>
+        >((Parser&&) p, (Seperator&&) sep, (BinaryOp&&) binop);
+    }
+} separated_foldl1;
 
 }  // namespace cpp::config::parser

@@ -472,6 +472,21 @@ TEST_CASE("empty", "[combinator]")
     REQUIRE(CheckResult(sign, Context("123"), Succeed<int>{ 1 }, "123"));
 }
 
+TEST_CASE("separated_foldl1_parser", "[combinator]")
+{
+    auto parser = cpp::config::parser::separated_foldl1(
+        cpp::config::parser::digit1.map([](auto sv) { return std::stoi(std::string(sv)); }),
+        cpp::config::parser::literal("+"),
+        [](auto a, auto b) { return a + b; }
+    );
+
+    REQUIRE(CheckResult(parser, Context("1+2+3+4+5"), Succeed<int>{ 15 }, ""));
+    REQUIRE(CheckResult(parser, Context("1+2+3"), Succeed<int>{ 6 }, ""));
+    REQUIRE(CheckResult(parser, Context("1"), Succeed<int>{ 1 }, ""));
+    REQUIRE(CheckResult(parser, Context(""), Backtrack()));
+    REQUIRE(CheckResult(parser, Context("def|abc"), Backtrack()));
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////                     Examples                               ///////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
