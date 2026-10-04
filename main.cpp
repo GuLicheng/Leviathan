@@ -20,6 +20,11 @@ class Context : public cpp::config::context
 public:
     using cpp::config::context::context;
     using error_type = cpp::config::context_error;
+
+    void SimpleFunction(int thisValue, double thatValue)
+    {
+        this->advance(1);
+    }
 };
 
 int main()
