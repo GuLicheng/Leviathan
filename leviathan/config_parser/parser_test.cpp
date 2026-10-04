@@ -472,7 +472,7 @@ TEST_CASE("empty")
     REQUIRE(CheckResult(sign, Context("123"), Succeed<int>{ 1 }, "123"));
 }
 
-TEST_CASE("separated_foldl1_parser")
+TEST_CASE("separated_foldl1")
 {
     auto parser = cpp::config::parser::separated_foldl1(
         cpp::config::parser::digit1.map([](auto sv) { return std::stoi(std::string(sv)); }),

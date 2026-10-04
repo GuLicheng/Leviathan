@@ -4,6 +4,8 @@
     
                                                 -------- Jamie Zawinski
 
+    Follow parsers are copied from winnow.(See winnow/winnow.hpp)
+
         - map
         - sequence
         - preceded
@@ -53,6 +55,7 @@
         - repeat_till
         - cond
         - opt
+        - not
 
 
     - [x] rest
@@ -62,7 +65,6 @@
     - [x] fail
     - [x] fill
     - [x] iterator
-    - [x] not
     - [x] separated
     - [x] separated_foldr1
     - [x] todo
