@@ -24,19 +24,19 @@ public:
 
 int main()
 {
-    auto ctx = Context("Hello World!");
+    auto sign = cpp::config::parser::alt(
+        // cpp::config::parser::literal("+")
+        cpp::config::parser::literal("-").value(-1)
+        // cpp::config::parser::empty.value(1)
+    );
 
-    using ErrorType = cpp::config::err_mode<std::string>;
+    auto parser2 = cpp::config::parser::literal("123").map(
+        [](std::string_view str) { return std::stoi(std::string(str)); }
+    );
 
-    auto parser2 = cpp::config::parser::digit1.map_err([](auto&& err) 
-    {
-        return 0;
-    });
-
-    auto result = ctx.apply(parser2);
-
-    std::cout << "Result type: " << show_name<decltype(result)>() << std::endl;
-
+    Context ctx("8848");
+    auto r = parser2(ctx);
+    std::cout << show_name<decltype(r)>() << "\n";
 }
 
 

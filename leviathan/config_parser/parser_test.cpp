@@ -451,6 +451,27 @@ TEST_CASE("one_of", "[token]")
     REQUIRE(CheckResult(one_of("abc"), Context(""), Backtrack()));
 }
 
+TEST_CASE("eof", "[combinator]")
+{
+    auto parser = cpp::config::parser::eof;
+
+    REQUIRE(CheckResult(parser, Context(""), Succeed<cpp::config::unit>{ }, ""));
+    REQUIRE(CheckResult(parser, Context("abc"), Backtrack()));
+}
+
+TEST_CASE("empty", "[combinator]")
+{
+    auto sign = cpp::config::parser::alt(
+        cpp::config::parser::literal("+").value(1),
+        cpp::config::parser::literal("-").value(-1),
+        cpp::config::parser::empty.value(1)
+    );
+
+    REQUIRE(CheckResult(sign, Context("+123"), Succeed<int>{ 1 }, "123"));
+    REQUIRE(CheckResult(sign, Context("-123"), Succeed<int>{ -1 }, "123"));
+    REQUIRE(CheckResult(sign, Context("123"), Succeed<int>{ 1 }, "123"));
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////                     Examples                               ///////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////

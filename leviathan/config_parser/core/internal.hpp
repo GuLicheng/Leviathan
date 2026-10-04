@@ -50,9 +50,6 @@ public:
     }
 };
 
-template <typename Parser1, typename Parser2>
-and_then_parser(Parser1&&, Parser2&&) -> and_then_parser<std::decay_t<Parser1>, std::decay_t<Parser2>>;
-
 template <typename Parser, typename F>
 class verify_parser : public parser_interface
 {
@@ -92,9 +89,6 @@ public:
     }
 };
 
-template <typename Parser, typename F>
-verify_parser(Parser&&, F&&) -> verify_parser<std::decay_t<Parser>, std::decay_t<F>>;
-
 template <typename Parser, typename F> 
 class map_result_parser : public parser_interface
 {
@@ -115,15 +109,7 @@ public:
     {
         return std::invoke(m_func, std::invoke(m_parser, stream));
     }
-    template <typename Stream>
-    constexpr auto operator()(Stream& stream) 
-    {
-        return std::invoke(m_func, std::invoke(m_parser, stream));
-    }
 };
-
-template <typename Parser, typename F>
-map_result_parser(Parser&&, F&&) -> map_result_parser<std::decay_t<Parser>, std::decay_t<F>>;
 
 template <typename Parser>
 class warpper_parser : public parser_interface
@@ -134,10 +120,14 @@ public:
 
     static constexpr bool is_always_succeed = false;
 
-    template <typename Parser2>
-    constexpr warpper_parser(Parser2&& p)
-        : m_parser((Parser2&&) p)
+    explicit constexpr warpper_parser(Parser p)
+        : m_parser(std::move(p))
     { }
+
+    // template <typename Parser2>
+    // explicit constexpr warpper_parser(Parser2&& p)
+    //     : m_parser((Parser2&&) p)
+    // { }
 
     template <typename Stream>
     constexpr auto operator()(Stream& stream) const
@@ -145,9 +135,6 @@ public:
         return m_parser(stream);
     }
 };
-
-template <typename Parser>
-warpper_parser(Parser&&) -> warpper_parser<std::decay_t<Parser>>;
 
 template <typename CharT>
 class take_until_parser : public parser_interface
@@ -228,9 +215,6 @@ public:
     }
 };
 
-template <typename Pred>
-take_while_parser(Pred&&, occurrences<size_t>) -> take_while_parser<std::decay_t<Pred>>;
-
 template <typename... Parsers>
 class alternative_parser : public parser_interface
 {
@@ -286,9 +270,6 @@ public:
 };
 
 template <typename... Parsers>
-alternative_parser(Parsers&&... ps) -> alternative_parser<std::decay_t<Parsers>...>;
-
-template <typename... Parsers>
 class sequence_parser : public parser_interface
 {
     std::tuple<Parsers...> m_parsers;
@@ -340,9 +321,6 @@ public:
         return R(std::in_place, Os(std::move(std::get<idx>(opt_results).value())...));
     }
 };
-
-template <typename... Parsers>
-sequence_parser(Parsers&&... ps) -> sequence_parser<std::decay_t<Parsers>...>;
 
 template <typename Parser>
 class repeat_parser : public parser_interface
@@ -409,9 +387,6 @@ public:
         return R(std::in_place, std::move(collector));
     }
 };
-
-template <typename Parser>
-repeat_parser(Parser&&, occurrences<size_t>) -> repeat_parser<std::decay_t<Parser>>;
 
 template <std::integral Integral>
 class int_parser : public parser_interface
@@ -523,7 +498,7 @@ public:
 };
 
 template <typename Pred>
-struct check_next_character_parser : public parser_interface
+class check_next_character_parser : public parser_interface
 {
     Pred m_pred;
 
@@ -550,15 +525,118 @@ public:
     }
 };
 
-template <typename Pred>
-check_next_character_parser(Pred&&) -> check_next_character_parser<std::decay_t<Pred>>;
-
 struct always_false
 {
     template <typename... Ts>
     static constexpr bool operator()(Ts&&...) { return false; }
 };
 
+class empty_parser : public parser_interface
+{
+public:
+
+    static constexpr bool is_always_succeed = true;
+
+    template <typename Stream>
+    static constexpr auto operator()(Stream& stream)
+    {
+        using E = typename Stream::error_type;
+        using R = parse_result<unit, E>;
+        return R(std::in_place, unit{});
+    }
+};
+
+class eof_parser : public parser_interface
+{
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    template <typename Stream>
+    static constexpr auto operator()(Stream& stream) 
+    {
+        using R = parse_result<unit, typename Stream::error_type>;
+        return stream.empty() 
+            ? R(std::in_place, unit()) 
+            : make_recoverable_from_input<R>(stream);
+    }
+};
+
+class take_parser : public parser_interface
+{
+    size_t m_count;
+
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    constexpr take_parser(size_t count) : m_count(count) {}
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using O = std::basic_string_view<typename Stream::value_type>;
+        using R = parse_result<O, E>;
+
+        return stream.size() < m_count 
+             ? make_recoverable_from_input<R>(stream) 
+             : R(std::in_place, stream.advance_and_discard(m_count));
+    }
+};
+
+template <typename Parser>
+class peek_parser : public parser_interface
+{
+    [[no_unique_address]] Parser m_parser;
+    
+public:
+
+    static constexpr bool is_always_succeed = false;
+
+    template <typename Parser2>
+    constexpr peek_parser(Parser2&& parser) : m_parser((Parser2&&) parser) {}
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using O = std::basic_string_view<typename Stream::value_type>;
+        using R = parse_result<O, E>;
+
+        auto clone = stream;
+        return m_parser(clone);
+    }
+
+};
+
+template <typename CharT>
+class literal_parser : public parser_interface
+{
+    using literal_type = std::basic_string_view<CharT>;
+
+    literal_type m_constant;
+
+public:
+
+    static constexpr bool is_always_succeed = true;
+
+    constexpr literal_parser(literal_type t) : m_constant(t) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        // Rust winnow return a part of input/stream. 
+        // We just return slices of the input stream.
+        using E = typename Stream::error_type;
+        using O = literal_type;
+        using R = parse_result<literal_type, E>;
+
+        return stream.match(m_constant, false)
+            ? R(std::in_place, stream.advance_and_discard(m_constant.size()))
+            : make_recoverable_from_input<R>(stream);
+    }
+};
 
 }  // namespace cpp::config::parser::detail
 

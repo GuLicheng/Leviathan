@@ -123,6 +123,19 @@ struct context_error
 template <typename T, typename E = context_error>
 using parse_result = std::expected<T, err_mode<E>>;
 
+namespace detail
+{
+
+template <typename T> struct parse_error_impl;
+
+template <typename T, typename E>
+struct parse_error_impl<parse_result<T, E>> { using type = E; };
+    
+}  // namespace detail
+
+template <typename T>
+using parse_error_t = typename detail::parse_error_impl<T>::type;
+
 template <>
 struct error_traits<context_error>
 {

@@ -213,19 +213,7 @@ inline constexpr struct
     template <typename CharT>
     static constexpr auto operator()(std::basic_string_view<CharT> str)
     {
-        auto fn = [=]<typename Stream>(Stream& stream)
-        {
-            // Rust winnow return a part of input/stream. 
-            // We just return slices of the input stream.
-            using E = typename Stream::error_type;
-            using O = std::basic_string_view<CharT>;
-            using R = parse_result<O, E>;
-
-            return stream.match(str, false)
-                ? R(std::in_place, stream.advance_and_discard(str.size()))
-                : make_recoverable_from_input<R>(stream);
-        };
-        return as_parser(std::move(fn));
+        return detail::literal_parser<CharT>(str);
     }
 
     template <typename CharT>
@@ -323,12 +311,7 @@ inline constexpr struct
     template <typename Parser>
     static constexpr auto operator()(Parser&& parser)
     {
-        auto fn = [parser = (Parser&&) parser](auto& stream) 
-        { 
-            auto clone = stream;
-            return parser(clone);
-        };
-        return as_parser(std::move(fn));
+        return detail::peek_parser<std::decay_t<Parser>>((Parser&&) parser);
     }
 } peek;
 
@@ -336,25 +319,7 @@ inline constexpr struct
 {
     static constexpr auto operator()(size_t count)
     {
-        auto fn = [=]<typename Stream>(Stream& stream) 
-        {
-            using E = typename Stream::error_type;
-            using O = std::basic_string_view<typename Stream::value_type>;
-            using R = parse_result<O, E>;
-
-            if (stream.size() < count)
-            {
-                // It will return Err(ErrMode::Backtrack(_)) if the input is shorter than the argument
-                return make_recoverable_from_input<R>(stream);
-            }
-            else
-            {
-                auto [left, right] = stream.split_at(count);
-                stream = std::move(right);
-                return R(std::in_place, std::move(left));
-            }
-        };
-        return as_parser(std::move(fn));
+        return detail::take_parser(count);
     }
 } take;
 
@@ -391,5 +356,9 @@ inline constexpr struct
         return detail::check_next_character_parser<decltype(contains)>(std::move(contains));
     }
 } one_of;
+
+inline constexpr auto eof = detail::eof_parser();
+
+inline constexpr auto empty = detail::empty_parser();
 
 }  // namespace cpp::config::parser
