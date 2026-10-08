@@ -56,7 +56,7 @@
         - cond
         - opt
         - not
-    - [x] separated
+        - separated
 
 
     - [x] rest
