@@ -61,9 +61,10 @@
 
     - [x] rest
     - [x] rest_len
+    - [x] void
+    - [x] fail
 
     - [x] expression
-    - [x] fail
     - [x] fill
     - [x] iterator
     - [x] separated_foldr1
@@ -74,7 +75,6 @@
     - [x] oct_digit1
     - [x] escaped
     - [x] take_escaped
-    - [x] void
     - [x] context
 
     - parse : operator()
