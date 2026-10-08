@@ -140,15 +140,15 @@ struct tuple : detail::basic_tuple<Ts...>
     // in the future the standard will expose all tuple members under 
     // a consistent naming convention like `xxx1`, `xxx2`, etc.
 
-    // template <typename... Args>
-    // constexpr tuple(Args&&... args) : base((Args&&)args...) { }
+    template <typename... Args>
+    constexpr tuple(Args&&... args) : base((Args&&)args...) { }
 
-    // constexpr tuple() = default;
+    constexpr tuple() = default;
 
 };
 
-// template <typename... Ts>
-// tuple(Ts&&...) -> tuple<Ts...>;
+template <typename... Ts>
+tuple(Ts&&...) -> tuple<std::decay_t<Ts>...>;
 
 inline constexpr struct
 {

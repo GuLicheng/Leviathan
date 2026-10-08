@@ -892,6 +892,112 @@ public:
     }
 };
 
+template <typename Parser, typename Sep>
+class separated_parser : public parser_interface
+{
+    [[no_unique_address]] Parser m_parser;
+    [[no_unique_address]] Sep m_separator;
+    occurrences<size_t> m_range; 
+
+public:
+
+    template <typename Parser2, typename Sep2>
+    constexpr separated_parser(Parser2&& p, Sep2&& s, occurrences<size_t> r)
+        : m_parser((Parser2&&) p), m_separator((Sep2&&) s), m_range(r) { }
+
+    template <typename Stream>
+    constexpr auto operator()(Stream& stream) const
+    {
+        using E = typename Stream::error_type;
+        using R1 = std::invoke_result_t<Parser, Stream&>;
+        using O = std::vector<typename R1::value_type>;
+        using R = parse_result<O, E>;
+
+        O results;
+
+        // For empty stream, return empty list
+        if (stream.size())
+        {   
+            auto clone = stream;
+            auto first = m_parser(clone);
+
+            // If the first item cannot be parsed, handle the error or 
+            // return an empty result if allowed by the range
+            if (!first)
+            {
+                if (first.error().is_fatal())
+                {
+                    return R(std::unexpect, std::move(first.error()));
+                }
+
+                if (m_range.is_within(results.size()))
+                {
+                    return R(std::in_place, std::move(results));
+                }
+                else
+                {
+                    return make_recoverable_from_input<R>(stream);
+                }
+            }
+
+            results.emplace_back(std::move(first.value()));
+            stream = std::move(clone);
+
+            if (m_range.is_upper_bound(results.size()))
+            {
+                return R(std::in_place, std::move(results));
+            }
+
+            while (stream.size())
+            {
+                auto clone = stream;
+                auto sep = m_separator(clone);
+
+                if (!sep)
+                {
+                    if (sep.error().is_fatal())
+                    {
+                        return R(std::unexpect, std::move(sep.error()));
+                    }
+                    // Stop parsing if the separator is not found
+                    stream = std::move(clone);
+                    break;
+                }
+
+                auto item = m_parser(clone);
+
+                if (!item)
+                {
+                    if (item.error().is_fatal())
+                    {
+                        return R(std::unexpect, std::move(item.error()));
+                    }
+                    // Stop parsing if the item is not found
+                    // stream = std::move(clone);
+                    break;
+                }
+
+                results.emplace_back(std::move(item.value()));
+                stream = std::move(clone);
+
+                if (m_range.is_upper_bound(results.size()))
+                {
+                    return R(std::in_place, std::move(results));
+                }
+
+            }
+        }
+
+        if (!m_range.is_within(results.size()))
+        {
+            return make_recoverable_from_input<R>(stream);
+        }
+
+        return R(std::in_place, std::move(results));
+    }
+};
+
+
 }  // namespace cpp::config::parser::detail
 
 

@@ -56,6 +56,7 @@
         - cond
         - opt
         - not
+    - [x] separated
 
 
     - [x] rest
@@ -65,7 +66,6 @@
     - [x] fail
     - [x] fill
     - [x] iterator
-    - [x] separated
     - [x] separated_foldr1
     - [x] todo
     - [x] trace
@@ -402,5 +402,16 @@ inline constexpr struct
         return detail::not_parser<std::decay_t<Parser>>((Parser&&) parser);
     }
 } not_;
+
+inline constexpr struct
+{
+    template <typename Parser, typename Sep>
+    static constexpr auto operator()(Parser&& parser, Sep&& sep, occurrences<size_t> r)
+    {
+        return detail::separated_parser<std::decay_t<Parser>, std::decay_t<Sep>>(
+            (Parser&&) parser, (Sep&&) sep, r
+        );
+    }
+} separated;
 
 }  // namespace cpp::config::parser

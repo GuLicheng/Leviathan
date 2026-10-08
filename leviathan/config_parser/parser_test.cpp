@@ -392,7 +392,7 @@ TEST_CASE("recoverable and fatal")
     CHECK(CheckResult(parser2, Context("abc"), Cut()));
 }
 
-TEST_CASE("peek", "[combinator]")
+TEST_CASE("peek")
 {
     // assert_eq!(parser.parse_peek("abcd;"), Ok(("abcd;", "abcd")));
     // assert!(parser.parse_peek("123;").is_err());
@@ -400,8 +400,8 @@ TEST_CASE("peek", "[combinator]")
     auto parser = cpp::config::parser::peek(
         cpp::config::parser::alpha1
     );
-    REQUIRE(CheckResult(parser, Context("abcd;"), Succeed<std::string_view>{ "abcd" }, "abcd;"));
-    REQUIRE(CheckResult(parser, Context("123;"), Backtrack()));
+    CHECK(CheckResult(parser, Context("abcd;"), Succeed<std::string_view>{ "abcd" }, "abcd;"));
+    CHECK(CheckResult(parser, Context("123;"), Backtrack()));
 }
 
 TEST_CASE("verify", "[interface]")
@@ -410,35 +410,35 @@ TEST_CASE("verify", "[interface]")
         [](std::string_view str) { return str.size() == 4; }
     );
     
-    REQUIRE(CheckResult(parser2, Context("abcd"), Succeed<std::string_view>{ "abcd" }, ""));
-    REQUIRE(CheckResult(parser2, Context("abcde"), Backtrack()));
-    REQUIRE(CheckResult(parser2, Context("123abcd"), Backtrack()));
+    CHECK(CheckResult(parser2, Context("abcd"), Succeed<std::string_view>{ "abcd" }, ""));
+    CHECK(CheckResult(parser2, Context("abcde"), Backtrack()));
+    CHECK(CheckResult(parser2, Context("123abcd"), Backtrack()));
 }
 
 TEST_CASE("and_then_parser")
 {
     auto parser = cpp::config::parser::take(5).and_then(cpp::config::parser::digit1);
 
-    REQUIRE(CheckResult(parser, Context("12345"), Succeed<std::string_view>{ "12345" }, ""));
-    REQUIRE(CheckResult(parser, Context("123ab"), Succeed<std::string_view>{ "123" }, ""));
-    REQUIRE(CheckResult(parser, Context("123"), Backtrack()));
+    CHECK(CheckResult(parser, Context("12345"), Succeed<std::string_view>{ "12345" }, ""));
+    CHECK(CheckResult(parser, Context("123ab"), Succeed<std::string_view>{ "123" }, ""));
+    CHECK(CheckResult(parser, Context("123"), Backtrack()));
 }
 
 TEST_CASE("any")
 {
     using cpp::config::parser::any;
 
-    REQUIRE(CheckResult(any, Context("abcdef"), Succeed<std::string_view>{ "a" }, "bcdef"));
-    REQUIRE(CheckResult(any, Context(""), Backtrack())); 
+    CHECK(CheckResult(any, Context("abcdef"), Succeed<std::string_view>{ "a" }, "bcdef"));
+    CHECK(CheckResult(any, Context(""), Backtrack())); 
 }
 
 TEST_CASE("none_of")
 {
     using cpp::config::parser::none_of;
 
-    REQUIRE(CheckResult(none_of("abc"), Context("def"), Succeed<std::string_view>{ "d" }, "ef"));
-    REQUIRE(CheckResult(none_of("abc"), Context("abc"), Backtrack()));
-    REQUIRE(CheckResult(none_of("abc"), Context(""), Backtrack()));
+    CHECK(CheckResult(none_of("abc"), Context("def"), Succeed<std::string_view>{ "d" }, "ef"));
+    CHECK(CheckResult(none_of("abc"), Context("abc"), Backtrack()));
+    CHECK(CheckResult(none_of("abc"), Context(""), Backtrack()));
 }
 
 
@@ -446,17 +446,17 @@ TEST_CASE("one_of")
 {
     using cpp::config::parser::one_of;
 
-    REQUIRE(CheckResult(one_of("abc"), Context("abc"), Succeed<std::string_view>{ "a" }, "bc"));
-    REQUIRE(CheckResult(one_of("abc"), Context("def"), Backtrack()));
-    REQUIRE(CheckResult(one_of("abc"), Context(""), Backtrack()));
+    CHECK(CheckResult(one_of("abc"), Context("abc"), Succeed<std::string_view>{ "a" }, "bc"));
+    CHECK(CheckResult(one_of("abc"), Context("def"), Backtrack()));
+    CHECK(CheckResult(one_of("abc"), Context(""), Backtrack()));
 }
 
 TEST_CASE("eof")
 {
     auto parser = cpp::config::parser::eof;
 
-    REQUIRE(CheckResult(parser, Context(""), Succeed<cpp::config::unit>{ }, ""));
-    REQUIRE(CheckResult(parser, Context("abc"), Backtrack()));
+    CHECK(CheckResult(parser, Context(""), Succeed<cpp::config::unit>{ }, ""));
+    CHECK(CheckResult(parser, Context("abc"), Backtrack()));
 }
 
 TEST_CASE("empty")
@@ -467,9 +467,9 @@ TEST_CASE("empty")
         cpp::config::parser::empty.value(1)
     );
 
-    REQUIRE(CheckResult(sign, Context("+123"), Succeed<int>{ 1 }, "123"));
-    REQUIRE(CheckResult(sign, Context("-123"), Succeed<int>{ -1 }, "123"));
-    REQUIRE(CheckResult(sign, Context("123"), Succeed<int>{ 1 }, "123"));
+    CHECK(CheckResult(sign, Context("+123"), Succeed<int>{ 1 }, "123"));
+    CHECK(CheckResult(sign, Context("-123"), Succeed<int>{ -1 }, "123"));
+    CHECK(CheckResult(sign, Context("123"), Succeed<int>{ 1 }, "123"));
 }
 
 TEST_CASE("separated_foldl1")
@@ -480,11 +480,11 @@ TEST_CASE("separated_foldl1")
         [](auto a, auto b) { return a + b; }
     );
 
-    REQUIRE(CheckResult(parser, Context("1+2+3+4+5"), Succeed<int>{ 15 }, ""));
-    REQUIRE(CheckResult(parser, Context("1+2+3"), Succeed<int>{ 6 }, ""));
-    REQUIRE(CheckResult(parser, Context("1"), Succeed<int>{ 1 }, ""));
-    REQUIRE(CheckResult(parser, Context(""), Backtrack()));
-    REQUIRE(CheckResult(parser, Context("def|abc"), Backtrack()));
+    CHECK(CheckResult(parser, Context("1+2+3+4+5"), Succeed<int>{ 15 }, ""));
+    CHECK(CheckResult(parser, Context("1+2+3"), Succeed<int>{ 6 }, ""));
+    CHECK(CheckResult(parser, Context("1"), Succeed<int>{ 1 }, ""));
+    CHECK(CheckResult(parser, Context(""), Backtrack()));
+    CHECK(CheckResult(parser, Context("def|abc"), Backtrack()));
 }
 
 TEST_CASE("comment")
@@ -492,8 +492,8 @@ TEST_CASE("comment")
     auto line = cpp::config::parser::line_comment("//");
     auto block = cpp::config::parser::block_comment("/*", "*/");
 
-    REQUIRE(CheckResult(line, Context("// this is a comment\nabc"), Ignore(), "\nabc"));
-    REQUIRE(CheckResult(block, Context("/* this is a block comment */abc"), Ignore(), "abc"));
+    CHECK(CheckResult(line, Context("// this is a comment\nabc"), Ignore(), "\nabc"));
+    CHECK(CheckResult(block, Context("/* this is a block comment */abc"), Ignore(), "abc"));
 }
 
 TEST_CASE("repeat_till")
@@ -508,12 +508,12 @@ TEST_CASE("repeat_till")
         cpp::config::from(0)
     );
 
-    REQUIRE(CheckResult(parser, Context("endabc"), Succeed<R>{ std::make_pair(StrVec{}, "end") }, "abc"));
-    REQUIRE(CheckResult(parser, Context("abcabcend"), Succeed<R>{ std::make_pair(StrVec{"abc", "abc"}, "end") }, ""));
-    REQUIRE(CheckResult(parser, Context("abc123end"), Backtrack()));
-    REQUIRE(CheckResult(parser, Context("123123end"), Backtrack()));
-    REQUIRE(CheckResult(parser, Context(""), Backtrack()));
-    REQUIRE(CheckResult(parser, Context("abcendefg"), Succeed<R>{ std::make_pair(StrVec{"abc"}, "end") }, "efg"));
+    CHECK(CheckResult(parser, Context("endabc"), Succeed<R>{ std::make_pair(StrVec{}, "end") }, "abc"));
+    CHECK(CheckResult(parser, Context("abcabcend"), Succeed<R>{ std::make_pair(StrVec{"abc", "abc"}, "end") }, ""));
+    CHECK(CheckResult(parser, Context("abc123end"), Backtrack()));
+    CHECK(CheckResult(parser, Context("123123end"), Backtrack()));
+    CHECK(CheckResult(parser, Context(""), Backtrack()));
+    CHECK(CheckResult(parser, Context("abcendefg"), Succeed<R>{ std::make_pair(StrVec{"abc"}, "end") }, "efg"));
 }
 
 TEST_CASE("cond")
@@ -524,28 +524,83 @@ TEST_CASE("cond")
     auto ctx1 = Context("// this is a comment.");
     auto ctx2 = Context("// this is a comment.");
 
-    REQUIRE(CheckResult(allow_comment, ctx1, Ignore(), ""));
-    REQUIRE(CheckResult(disallow_comment, ctx2, Ignore(), "// this is a comment."));
+    CHECK(CheckResult(allow_comment, ctx1, Ignore(), ""));
+    CHECK(CheckResult(disallow_comment, ctx2, Ignore(), "// this is a comment."));
 }
 
-TEST_CASE("opt", "[combinator]")
+TEST_CASE("opt")
 {
     auto parser = cpp::config::parser::opt(
         cpp::config::parser::alpha1
     );
 
-    REQUIRE(CheckResult(parser, Context("abcd"), Succeed<std::optional<std::string_view>>{ std::make_optional("abcd") }, ""));
-    REQUIRE(CheckResult(parser, Context("123"), Succeed<std::optional<std::string_view>>{ std::nullopt }, "123"));
+    CHECK(CheckResult(parser, Context("abcd"), Succeed<std::optional<std::string_view>>{ std::make_optional("abcd") }, ""));
+    CHECK(CheckResult(parser, Context("123"), Succeed<std::optional<std::string_view>>{ std::nullopt }, "123"));
 }
 
-TEST_CASE("not", "[combinator]")
+TEST_CASE("not")
 {
     auto parser = cpp::config::parser::not_(
         cpp::config::parser::alpha1
     );
 
-    REQUIRE(CheckResult(parser, Context("123"), Succeed<cpp::config::unit>{}, "123"));
-    REQUIRE(CheckResult(parser, Context("abcd"), Backtrack()));
+    CHECK(CheckResult(parser, Context("123"), Succeed<cpp::config::unit>{}, "123"));
+    CHECK(CheckResult(parser, Context("abcd"), Backtrack()));
+}
+
+TEST_CASE("separated")
+{
+    using StrVec = std::vector<std::string_view>;
+
+    auto parser1 = cpp::config::parser::separated(
+        cpp::config::parser::literal("abc"),
+        cpp::config::parser::literal("|"),
+        cpp::config::from(0)
+    );
+
+    CHECK(CheckResult(parser1, Context("abc|abc|abc"), Succeed<StrVec>{ StrVec{ "abc", "abc", "abc" } }, ""));
+    CHECK(CheckResult(parser1, Context("abc123abc"), Succeed<StrVec>{ StrVec{ "abc" } }, "123abc"));
+    CHECK(CheckResult(parser1, Context("abc|def"), Succeed<StrVec>{ StrVec{ "abc" } }, "|def"));
+    CHECK(CheckResult(parser1, Context(""), Succeed<StrVec>{ StrVec{} }, ""));
+    CHECK(CheckResult(parser1, Context("def|abc"), Succeed<StrVec>{ StrVec{} }, "def|abc"));
+
+    auto parser2 = cpp::config::parser::separated(
+        cpp::config::parser::literal("abc"),
+        cpp::config::parser::literal("|"),
+        cpp::config::from(1)
+    );
+
+    CHECK(CheckResult(parser2, Context("abc|abc|abc"), Succeed<StrVec>{ StrVec{ "abc", "abc", "abc" } }, ""));
+    CHECK(CheckResult(parser2, Context("abc123abc"), Succeed<StrVec>{ StrVec{ "abc" } }, "123abc"));
+    CHECK(CheckResult(parser2, Context("abc|def"), Succeed<StrVec>{ StrVec{ "abc" } }, "|def"));
+    CHECK(CheckResult(parser2, Context(""), Backtrack()));
+    CHECK(CheckResult(parser2, Context("def|abc"), Backtrack()));
+
+    // For Rust, 0..=2 means [0, 2] -> in C++ we use [0, 3) to represent the same range
+    auto parser3 = cpp::config::parser::separated(
+        cpp::config::parser::literal("abc"),
+        cpp::config::parser::literal("|"),
+        cpp::config::upto(3)
+    );
+
+    CHECK(CheckResult(parser3, Context("abc|abc|abc"), Succeed<StrVec>{ StrVec{ "abc", "abc" } }, "|abc"));
+    CHECK(CheckResult(parser3, Context("abc123abc"), Succeed<StrVec>{ StrVec{ "abc" } }, "123abc"));
+    CHECK(CheckResult(parser3, Context("abc|def"), Succeed<StrVec>{ StrVec{ "abc" } }, "|def"));
+    CHECK(CheckResult(parser3, Context(""), Succeed<StrVec>{ StrVec{} }, ""));
+    CHECK(CheckResult(parser3, Context("def|abc"), Succeed<StrVec>{ StrVec{} }, "def|abc"));
+
+    // For Rust::winnow, just 2 means exactly 2 occurrences, which in C++ we represent as [2, 3)
+    auto parser4 = cpp::config::parser::separated(
+        cpp::config::parser::literal("abc"),
+        cpp::config::parser::literal("|"),
+        {2, 3}
+    );
+
+    CHECK(CheckResult(parser4, Context("abc|abc|abc"), Succeed<StrVec>{ StrVec{ "abc", "abc" } }, "|abc"));
+    CHECK(CheckResult(parser4, Context("abc123abc"), Backtrack()));
+    CHECK(CheckResult(parser4, Context("abc|def"), Backtrack()));
+    CHECK(CheckResult(parser4, Context(""), Backtrack()));
+    CHECK(CheckResult(parser4, Context("def|abc"), Backtrack()));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////

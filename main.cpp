@@ -14,6 +14,7 @@ consteval std::string_view show_name()
 #include <leviathan/extc++/all.hpp>
 #include <leviathan/config_parser/core/context.hpp>
 #include <leviathan/config_parser/core/parsers.hpp>
+#include <leviathan/config_parser/xml/xml.hpp>
 
 class Context : public cpp::config::context
 {

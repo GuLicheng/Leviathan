@@ -80,7 +80,7 @@ class value;
 
 // A better choice is to use empty class. The value of null is unique, 
 // the index in std::variant is enough to indicate it.
-using null = std::nullptr_t;   
+using null = std::nullptr_t;
 
 using string = std::basic_string<char, std::char_traits<char>, global_allocator<char>>;
 using boolean = bool;
@@ -140,7 +140,7 @@ public:
 
     using base = value_base;
     using base::base;
-    using value_base::operator=;
+    using base::operator=;
 
     // Follow two ctors are used to convert from other std::initializer_list types.
     // For example, `value v = {1, 2, 3};` will call this ctor.
