@@ -488,89 +488,17 @@ struct basic_context : public context_interface<CharT>
 
     explicit constexpr basic_context(std::basic_string_view<CharT> data) 
         : tokens(data), offset(0)
-    {
-    }
+    { }
 
     explicit constexpr basic_context(const CharT* str)
-        : tokens(str), offset(0)
-    {
-    }
+        : tokens(str), offset(0) 
+    { }
     
     constexpr basic_context() : basic_context("") { }
 };
     
 using context = basic_context<char>;
 using wcontext = basic_context<wchar_t>;
-
-template <typename CharT>
-class basic_cursor_context : public context_interface<CharT>
-{
-
-public:
-
-    using typename context_interface<CharT>::size_type;
-
-private:
-
-    struct
-    {
-        int line = 1;
-        int column = 1;
-        int offset = 0;
-    } m_cursor;
-
-    std::basic_string_view<CharT> m_data;
-
-public:
-
-    constexpr basic_cursor_context(std::basic_string_view<CharT> data) 
-        : m_data(data)
-    {
-    }
-
-    constexpr basic_cursor_context(const CharT* str)
-        : m_data(str)
-    {
-    }
-
-    constexpr basic_cursor_context() = default;
-
-    constexpr operator std::basic_string_view<CharT>() const { return m_data; }
-
-    constexpr int line() const { return m_cursor.line; }
-    constexpr int column() const { return m_cursor.column; }
-    constexpr int offset() const { return m_cursor.offset; }
-
-    constexpr basic_cursor_context& operator+=(size_type n) 
-    { 
-        assert(n <= m_data.size());
-        for (size_type i = 0; i < n; ++i)
-        {
-            if (m_data[i] == '\n')
-            {
-                ++m_cursor.line;
-                m_cursor.column = 1;
-            }
-            else
-            {
-                ++m_cursor.column;
-            }
-            ++m_cursor.offset;
-        }
-        m_data.remove_prefix(n); 
-        return *this; 
-    }
-
-    constexpr basic_cursor_context& operator-=(size_type n)
-    {
-        assert(n <= (size_type)m_cursor.offset);
-        m_data.remove_suffix(n);
-        return *this;
-    }
-};
-
-using cursor_context = basic_cursor_context<char>;
-using wcursor_context = basic_cursor_context<wchar_t>;
 
 } // namespace cpp::config
 

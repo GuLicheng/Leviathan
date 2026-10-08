@@ -59,19 +59,15 @@ public:
 
     bool add_attribute(string key, string value) 
     {
+        // Attribute already exists
         if (std::ranges::contains(m_attributes, key, attribute::first))
         {
-            return false; // Attribute already exists
+            return false; 
         }
         m_attributes.emplace_back(std::move(key), std::move(value));
         return true;
     }
 
-    void add_child(node_ptr child)
-    {
-        assert(child && "Child node must not be null");
-        m_children.push_back(std::move(child));
-    }
 };
 
 template <typename T>
