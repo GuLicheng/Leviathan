@@ -413,6 +413,7 @@ struct context_interface
     constexpr bool match(this Self& self, CharT ch, bool consume) 
     {   
         auto sv = self.to_string_view();
+        
         if (sv.empty() || sv[0] != ch)
         {
             return false;
