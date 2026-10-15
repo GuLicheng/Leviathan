@@ -22,6 +22,8 @@ struct layout
 {
     static constexpr auto Count = sizeof...(Ts);
 
+    static constexpr auto Indices = std::make_index_sequence<Count>();
+
     static_assert(Count > 0, "Internal error");
 
     template <typename T>
@@ -41,9 +43,8 @@ struct layout
 
     constexpr std::array<size_t, Count> sizes() const
     {
-        return [this]<std::size_t... I>(std::index_sequence<I...>) {
-            return std::array{ size<I>()... };
-        }(std::make_index_sequence<Count>());
+        constexpr auto [...idx] = Indices;
+        return std::array{ size<idx>()... };
     }
 
     template <size_t N>
@@ -57,17 +58,14 @@ struct layout
         }
         else
         {
-            const auto last_type_size = sizeof(Ts...[N - 1]);
-            const auto current_type_alignment = alignof(Ts...[N]);
-            return align(offset<N - 1>() + last_type_size * m_sizes[N - 1], current_type_alignment);
+            return align(offset<N - 1>() + sizeof(Ts...[N - 1]) * m_sizes[N - 1], alignof(Ts...[N]));
         }
     }
 
     constexpr std::array<size_t, Count> offsets() const
     {
-        return [this]<std::size_t... I>(std::index_sequence<I...>) {
-            return std::array{ offset<I>()... };
-        }(std::make_index_sequence<Count>());
+        constexpr auto [...idx] = Indices;
+        return std::array{ offset<idx>()... };
     }
 
     constexpr size_t alloc_size() const

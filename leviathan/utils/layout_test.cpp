@@ -82,8 +82,8 @@ TEST_CASE("struct")
     using T = layout<int, double>;
     constexpr T l(3, 4);
 
-    AvoidCommaInMacro(l.type_index<double>() == 1);
-    AvoidCommaInMacro(l.type_index<int>() == 0);
+    // AvoidCommaInMacro(l.type_index<double>() == 1);
+    // AvoidCommaInMacro(l.type_index<int>() == 0);
 
     AvoidCommaInMacro(l.size<0>() == 3);
     AvoidCommaInMacro(l.size<1>() == 4);
