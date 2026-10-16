@@ -97,16 +97,7 @@ TEST_CASE("struct")
     {
         int a[3];
         double b[4];
-        // alignas(int) char* a[sizeof(int) * 3];
-        // alignas(double) char* b[sizeof(double) * 3];
-
-        // void show() const
-        // {
-        //     std::cout << a[0] << a[1] << a[2] << '-'
-        //         << b[1] << b[2] << b[3] << b[4] << '\n';
-        // }
     };
-
 
     AvoidCommaInMacro(l.alignment() == 8);
     AvoidCommaInMacro(alignof(F) == 8);

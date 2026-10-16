@@ -1,8 +1,5 @@
-#if 0
-// https://github.com/abseil/abseil-cpp/blob/master/absl/container/internal/layout.h
 #pragma once
 
-#include <tuple>
 #include <bitset>
 #include <cstddef>
 #include <array>
@@ -11,20 +8,8 @@
 #include <span>
 #include <assert.h>
 
-namespace cpp::detail
+namespace cpp
 {
-
-// TODO: Replace std::tuple_element with pack indexing
-
-template <typename T, typename... Ts>
-consteval size_t find_first_index()
-{
-    static_assert(std::disjunction_v<std::is_same<T, Ts>...>);
-    std::array result = { std::is_same_v<T, Ts>... };
-    return std::ranges::distance(
-        result.begin(), 
-        std::ranges::find(result, 1));
-}
 
 constexpr size_t align(size_t n, size_t m) 
 { 
@@ -32,25 +17,17 @@ constexpr size_t align(size_t n, size_t m)
     return (n + m - 1) & ~(m - 1); 
 }
 
-template <auto>
-using to_size_t = size_t;
-
-template <typename TypeList, typename SizeSequence> 
-struct layout_impl;
-
-template <typename... Ts, size_t... Sizes> 
-struct layout_impl<std::tuple<Ts...>, std::index_sequence<Sizes...>>
+template <typename... Ts> 
+struct layout
 {
-    static constexpr auto NumTypes = sizeof...(Ts);
-    static constexpr auto NumSizes = sizeof...(Sizes);
+    static constexpr auto Count = sizeof...(Ts);
 
-    static_assert(NumTypes > 0, "Internal error");
+    static constexpr auto Indices = std::make_index_sequence<Count>();
+
+    static_assert(Count > 0, "Internal error");
 
     template <typename T>
-    static consteval size_t type_index() 
-    {
-        return detail::find_first_index<T, Ts...>();
-    }
+    using to_size_t = size_t;
 
     static consteval size_t alignment() 
     {
@@ -60,95 +37,80 @@ struct layout_impl<std::tuple<Ts...>, std::index_sequence<Sizes...>>
     template <size_t N>
     constexpr size_t size() const 
     {
-        static_assert(N < NumSizes);
+        static_assert(N < Count);
         return m_sizes[N];
     }
 
-    constexpr std::array<size_t, NumSizes> sizes() const
+    constexpr std::array<size_t, Count> sizes() const
     {
-        return { size<Sizes>()... };
+        constexpr auto [...idx] = Indices;
+        return std::array{ size<idx>()... };
     }
 
     template <size_t N>
     constexpr size_t offset() const
     {
-        static_assert(N < NumSizes);
+        static_assert(N < Count);
+
         if constexpr (N == 0)
         {
             return 0;
         }
         else
         {
-            const auto last_type_size = sizeof(std::tuple_element_t<N - 1, std::tuple<Ts...>>);
-            const auto current_type_alignment = alignof(std::tuple_element_t<N, std::tuple<Ts...>>);
-            return detail::align(offset<N - 1>() + last_type_size * m_sizes[N - 1], current_type_alignment);
+            return align(offset<N - 1>() + sizeof(Ts...[N - 1]) * m_sizes[N - 1], alignof(Ts...[N]));
         }
     }
 
-    constexpr std::array<size_t, NumSizes> offsets() const
+    constexpr std::array<size_t, Count> offsets() const
     {
-        return { offset<Sizes>()... };
+        constexpr auto [...idx] = Indices;
+        return std::array{ offset<idx>()... };
     }
 
     constexpr size_t alloc_size() const
     {
-        return offset<NumTypes - 1>() + sizeof(std::tuple_element_t<NumTypes - 1, std::tuple<Ts...>>) * m_sizes[NumTypes - 1];
+        return offset<Count - 1>() + sizeof(Ts...[Count - 1]) * m_sizes[Count - 1];
     }
 
     template <size_t N, typename Char>
-    constexpr std::tuple_element_t<N, std::tuple<Ts...>>* pointer(Char* p) const
+    constexpr Ts...[N]* pointer(Char* p) const
     {
         static_assert(sizeof(Char) == 1);
         assert(reinterpret_cast<uintptr_t>(p) % alignment() == 0);
-        return reinterpret_cast<std::tuple_element_t<N, std::tuple<Ts...>>*>(p + offset<N>());
+        return reinterpret_cast<Ts...[N]*>(p + offset<N>());
     } 
 
     template <size_t N, typename Char>
-    constexpr const std::tuple_element_t<N, std::tuple<Ts...>>* pointer(const Char* p) const
+    constexpr const Ts...[N]* pointer(const Char* p) const
     {
         static_assert(sizeof(Char) == 1);
         assert(reinterpret_cast<uintptr_t>(p) % alignment() == 0);
-        return reinterpret_cast<const std::tuple_element_t<N, std::tuple<Ts...>>*>(p + offset<N>());
+        return reinterpret_cast<const Ts...[N]*>(p + offset<N>());
     } 
 
     template <size_t N, typename Char>
-    constexpr std::span<std::tuple_element_t<N, std::tuple<Ts...>>> slice(Char* p) const
+    constexpr std::span<Ts...[N]> slice(Char* p) const
     {
         static_assert(sizeof(Char) == 1);
         auto start = pointer<N>(p);
-        return std::span<std::tuple_element_t<N, std::tuple<Ts...>>>(start, start + size<N>());
+        return std::span<Ts...[N]>(start, start + size<N>());
     } 
 
     template <size_t N, typename Char>
-    constexpr std::span<const std::tuple_element_t<N, std::tuple<Ts...>>> slice(const Char* p) const
+    constexpr std::span<const Ts...[N]> slice(const Char* p) const
     {
         static_assert(sizeof(Char) == 1);
         auto start = pointer<N>(p);
-        return std::span<const std::tuple_element_t<N, std::tuple<Ts...>>>(start, start + size<N>());
+        return std::span<const Ts...[N]>(start, start + size<N>());
     } 
 
-    constexpr explicit layout_impl(detail::to_size_t<Sizes>... sizes)
-    : m_sizes{ sizes... } {}
+    constexpr explicit layout(to_size_t<Ts>... sizes) : m_sizes{ sizes... } { }
 
-    std::array<size_t, NumSizes> m_sizes;
+    std::array<size_t, Count> m_sizes;
 };
 
-} // namespace detail
+}   // namespace cpp
 
-namespace cpp
-{
 
-template <typename... Ts>
-struct layout : detail::layout_impl<
-    std::tuple<Ts...>, std::make_index_sequence<sizeof...(Ts)>>
-{
-    using base = detail::layout_impl<std::tuple<Ts...>, std::make_index_sequence<sizeof...(Ts)>>;
-    using base::base;
-    using base::operator=;
-};
 
-}
-
-#endif  
-
-#include "layout2.hpp"
