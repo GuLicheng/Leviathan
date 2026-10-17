@@ -489,11 +489,17 @@ TEST_CASE("separated_foldl1")
 
 TEST_CASE("comment")
 {
-    auto line = cpp::config::parser::line_comment("//");
-    auto block = cpp::config::parser::block_comment("/*", "*/");
+    auto cppline = cpp::config::parser::line_comment("//");
+    auto cblock = cpp::config::parser::block_comment("/*", "*/");
+    auto xmlcomment = cpp::config::parser::block_comment("<!--", "-->");
+    auto pythonline = cpp::config::parser::line_comment("#");
+    auto sqlline = cpp::config::parser::line_comment("--");
 
-    CHECK(CheckResult(line, Context("// this is a comment\nabc"), Ignore(), "\nabc"));
-    CHECK(CheckResult(block, Context("/* this is a block comment */abc"), Ignore(), "abc"));
+    CHECK(CheckResult(cppline, Context("// this is a comment\nabc"), Ignore(), "\nabc"));
+    CHECK(CheckResult(cblock, Context("/* this is a block comment */abc"), Ignore(), "abc"));
+    CHECK(CheckResult(xmlcomment, Context("<!-- this is an XML comment -->abc"), Ignore(), "abc"));
+    CHECK(CheckResult(pythonline, Context("# this is a Python comment\nabc"), Ignore(), "\nabc"));
+    CHECK(CheckResult(sqlline, Context("-- this is a SQL comment\nabc"), Ignore(), "\nabc"));
 }
 
 TEST_CASE("repeat_till")

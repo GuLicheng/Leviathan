@@ -20,7 +20,7 @@ add_executable(value_cast_test ${CMAKE_SOURCE_DIR}/leviathan/config_parser/value
 target_link_libraries(value_cast_test PRIVATE Catch2::Catch2WithMain)
 add_test(NAME value_cast_test COMMAND value_cast_test)
 
-add_executable(parser_test ${CMAKE_SOURCE_DIR}/leviathan/config_parser/parser_test.cpp)
+add_executable(parser_test ${CMAKE_SOURCE_DIR}/leviathan/config_parser/core/parser_test.cpp)
 target_link_libraries(parser_test PRIVATE Catch2::Catch2WithMain)
 add_test(NAME parser_test COMMAND parser_test)
 
