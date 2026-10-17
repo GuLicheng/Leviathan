@@ -14,7 +14,6 @@ consteval std::string_view show_name()
 #include <leviathan/extc++/all.hpp>
 #include <leviathan/config_parser/core/context.hpp>
 #include <leviathan/config_parser/core/parsers.hpp>
-#include <leviathan/config_parser/xml/xml.hpp>
 
 class Context : public cpp::config::context
 {
@@ -26,6 +25,13 @@ public:
 
 int main()
 {
+    static_assert(cpp::refl::is_derived_from_template(^^std::vector<int>, ^^std::vector)); // true
+
+    template for (constexpr auto info : define_static_array(cpp::refl::all_bases_of(^^std::tuple<int>)))
+    {
+        constexpr auto str = display_string_of(info);
+        std::cout << str << "\n";
+    }
 }
 
 

@@ -39,21 +39,6 @@ consteval std::vector<std::meta::info> all_bases_of(std::meta::info info)
 }
 
 /**
- * @brief std::is_derived_from for meta::info. Check if a class is derived from another class.
- * @param derived The meta-information of the derived class.
- * @param base The meta-information of the base class.
- * 
- * @example
- *  struct Base1 {};
- *  struct Derived : Base1 {};
- *  static_assert(is_derived_from(^^Derived, ^^Base1)); // true
- */
-consteval bool is_derived_from(std::meta::info derived, std::meta::info base)
-{
-    return std::ranges::contains(all_bases_of(derived), dealias(base), std::meta::dealias);
-}
-
-/**
  * @brief Check if a type is an instance of a template.
  * @tparam Type The type to check.
  * @tparam ClassTemplates The template to check against.
@@ -79,9 +64,10 @@ consteval bool instance_of_template(std::meta::info info, std::meta::info templa
  */
 consteval bool is_derived_from_template(std::meta::info type, std::meta::info template_info)
 {
-    return std::ranges::any_of(all_bases_of(type), [=](auto info) {
-        return instance_of_template(info, template_info);
-    });
+    // return std::ranges::any_of(all_bases_of(type), [=](auto info) {
+    //     return instance_of_template(info, template_info);
+    // });
+    return std::ranges::any_of(all_bases_of(type), std::bind_back(instance_of_template, template_info));
 }
 
 /**
@@ -141,7 +127,8 @@ consteval std::vector<std::meta::info> select_annotations_with_type(std::meta::i
         auto anno_type = type_of(anno);
         return is_template(type_or_template) 
              ? is_derived_from_template(anno_type, type_or_template) 
-             : is_derived_from(anno_type, type_or_template); 
+            //  : is_derived_from(anno_type, type_or_template); 
+             : std::meta::is_base_of_type(type_or_template, anno_type);
     });
 
     return annotations_of(info) 
