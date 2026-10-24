@@ -4,6 +4,7 @@
 #include <meta>
 #include <iostream>
 #include <span>
+#include <set>
 
 template <typename T>
 consteval std::string_view show_name()
@@ -11,27 +12,23 @@ consteval std::string_view show_name()
     return display_string_of(^^T);
 }
 
-#include <leviathan/extc++/all.hpp>
-#include <leviathan/config_parser/core/context.hpp>
-#include <leviathan/config_parser/core/parsers.hpp>
+// #include <leviathan/extc++/all.hpp>
+// #include <leviathan/config_parser/core/context.hpp>
+// #include <leviathan/config_parser/core/parsers.hpp>
 
-class Context : public cpp::config::context
-{
-public:
+// class Context : public cpp::config::context
+// {
+// public:
 
-    using cpp::config::context::context;
-    using error_type = cpp::config::context_error;
-};
+//     using cpp::config::context::context;
+//     using error_type = cpp::config::context_error;
+// };
 
 int main()
 {
-    static_assert(cpp::refl::is_derived_from_template(^^std::vector<int>, ^^std::vector)); // true
 
-    template for (constexpr auto info : define_static_array(cpp::refl::all_bases_of(^^std::tuple<int>)))
-    {
-        constexpr auto str = display_string_of(info);
-        std::cout << str << "\n";
-    }
+    std::set<int> s;
+
 }
 
 

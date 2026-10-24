@@ -265,9 +265,6 @@ class sequence_parser : public parser_interface
 
 public:
 
-    
-
-
     // auto p1 = sequence(...)
     // auto p2 = p1; // error why?
     template <typename... Parser2>
