@@ -49,13 +49,13 @@ struct cdata_section { string value; };
 
 class element
 {
-    string name;
+    string m_name;
     vector<attribute> m_attributes;
     vector<node*> m_children;
 
 public:
 
-    element(const string& name) : name(name) { }
+    element(const string& name) : m_name(name) { }
 
     bool add_attribute(string key, string value) 
     {

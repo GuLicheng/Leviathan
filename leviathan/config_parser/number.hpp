@@ -66,6 +66,46 @@ public:
         }, m_value);
     }
 
+    constexpr number& operator+=(const number& rhs)
+    {
+        if (is_integral() && rhs.is_integral())
+        {
+            m_value.emplace<int64_t>(as_integral() + rhs.as_integral());
+        }
+        else
+        {
+            m_value.emplace<double>(as_floating_point() + rhs.as_floating_point());
+        }
+        return *this;
+    }
+
+    constexpr number& operator-=(const number& rhs)
+    {
+        if (is_integral() && rhs.is_integral())
+        {
+            m_value.emplace<int64_t>(as_integral() - rhs.as_integral());
+        }
+        else
+        {
+            m_value.emplace<double>(as_floating_point() - rhs.as_floating_point());
+        }
+        return *this;
+    }
+
+    constexpr friend number operator+(const number& lhs, const number& rhs)
+    {
+        number result = lhs;
+        result += rhs;
+        return result;
+    }
+
+    constexpr friend number operator-(const number& lhs, const number& rhs)
+    {
+        number result = lhs;
+        result -= rhs;
+        return result;
+    }
+
 
 private:
 
