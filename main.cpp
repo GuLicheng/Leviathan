@@ -32,9 +32,16 @@ struct Student
     }
 };
 
+void Func(std::allocator<Student> alloc)
+{
+    std::println("Function called with allocator");
+}
 
 int main()
 {
+
+    Func(std::allocator<int>{});
+
     Student s1(1), s2(2), s3(3);
 
     s2.Hook.insert_after(&s1.Hook);

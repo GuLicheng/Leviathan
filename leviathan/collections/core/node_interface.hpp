@@ -353,6 +353,50 @@ struct tree_node_interface
         x->parent(y);
     }
 
+    /**
+     * @brief Insert a node into the tree and update the header links accordingly.
+     * @param self The node to be inserted
+     * @param insert_left Whether to insert as the left child
+     * @param parent The parent node under which to insert
+     * @param header The header node containing the root, leftmost, and rightmost links
+     * 
+     * @note The header node must have its links properly initialized before calling this function.
+     *  And the parent node should be leaf or header whose lchild and rchild should not
+     *  point any node of tree.
+     */
+    template <typename Node>
+    void insert_node_and_update_header(this Node& self, bool insert_left, Node* parent, Node& header)
+    {
+        auto x = std::addressof(self);
+        auto& [root, leftmost, rightmost] = header.links; 
+
+        x->parent(parent);
+
+        // First node is always inserted left.
+        if (insert_left)
+        {
+            parent->lchild(x);
+
+            if (parent == &header)
+            {
+                root = rightmost = x;
+            }
+            else if (parent == leftmost)
+            {
+                leftmost = x;
+            }
+        }
+        else
+        {
+            parent->rchild(x);
+
+            if (parent == rightmost)
+            {
+                rightmost = x;
+            }
+        }
+    }
+
 };
 
 consteval std::meta::info search_hook(std::meta::info type, std::meta::info hook)
