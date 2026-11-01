@@ -21,10 +21,8 @@ struct list_node : cpp::collections::list_node_interface
     constexpr ~list_node() { }
 };
 
-struct Student : cpp::collections::list_node_interface
+struct Student 
 {
-    std::array<Student*, 2> links;
-
     int Id = -1;
 
     list_node Hook;  // As header

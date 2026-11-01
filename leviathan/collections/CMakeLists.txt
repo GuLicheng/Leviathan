@@ -38,3 +38,6 @@ add_executable(static_vector_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DI
 target_link_libraries(static_vector_test PRIVATE Catch2::Catch2WithMain)
 add_test(NAME static_vector_test COMMAND static_vector_test)
 
+add_executable(node_interface_test ${CMAKE_SOURCE_DIR}/leviathan/${COLLECTIONS_DIRECTORY}/core/node_interface_test.cpp)
+target_link_libraries(node_interface_test PRIVATE Catch2::Catch2WithMain)
+add_test(NAME node_interface_test COMMAND node_interface_test)

@@ -381,8 +381,14 @@ constexpr T* from_hook(Hook* hook)
     return reinterpret_cast<T*>(reinterpret_cast<char*>(hook) - std::meta::offset_of(^^T::Hook).bytes);
 }
 
-// Member
-template <typename T>
+/**
+ * @brief Iterator for list nodes
+ *  The T type must contain a member of type Hook that links the nodes together.
+ * 
+ * @tparam T The type of the container element
+ * @tparam Hook The hook type used for linking nodes
+ */
+template <typename T, std::meta::info Hook = search_hook(^^T, ^^list_node_interface)>
 struct list_node_iterator
 {
     using value_type = T;
@@ -390,8 +396,6 @@ struct list_node_iterator
     using reference = T&;
     using difference_type = std::ptrdiff_t;
     using iterator_category = std::bidirectional_iterator_tag;
-
-    static constexpr auto hook = search_hook(^^T, ^^list_node_interface);
 
     pointer current;
 
@@ -404,7 +408,7 @@ struct list_node_iterator
 
     constexpr list_node_iterator& operator++()
     {
-        current = from_hook<T>(current->[:hook:].next());
+        current = from_hook<T>(current->[:Hook:].next());
         return *this;
     }
 
@@ -417,7 +421,7 @@ struct list_node_iterator
 
     constexpr list_node_iterator& operator--()
     {
-        current = from_hook<T>(current->[:hook:].prev());
+        current = from_hook<T>(current->[:Hook:].prev());
         return *this;
     }
 
