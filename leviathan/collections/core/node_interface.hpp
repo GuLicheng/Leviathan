@@ -172,11 +172,15 @@ struct tree_node_interface
     }
 
     template <typename Node>
+    constexpr void reset(this Node& self, std::type_identity_t<Node>* value)
+    {
+        self.links.fill(value);
+    }
+
+    template <typename Node>
     constexpr void reset(this Node& self)
     {
-        self.links[0] = std::addressof(self);
-        self.links[1] = std::addressof(self);
-        self.links[2] = std::addressof(self);
+        self.links.fill(std::addressof(self));
     }
 
     /**
@@ -477,6 +481,54 @@ struct list_node_iterator
     }
 
     constexpr bool operator==(const list_node_iterator&) const = default;
+};
+
+template <typename T, std::meta::info Hook = search_hook(^^T, ^^tree_node_interface)>
+struct tree_node_iterator
+{
+    using value_type = T;
+    using pointer = T*;
+    using reference = T&;
+    using difference_type = std::ptrdiff_t;
+    using iterator_category = std::bidirectional_iterator_tag;
+
+    pointer current;
+
+    constexpr tree_node_iterator() : current(nullptr) { }
+    constexpr tree_node_iterator(pointer node) : current(node) { }
+    constexpr tree_node_iterator(const tree_node_iterator&) = default;
+
+    constexpr reference operator*() const { return *current; }
+    constexpr pointer operator->() const { return current; }
+
+    constexpr tree_node_iterator& operator++()
+    {
+        current = from_hook<T>(current->[:Hook:].increment());
+        return *this;
+    }
+
+    constexpr tree_node_iterator operator++(int)
+    {
+        auto tmp = *this;
+        ++(*this);
+        return tmp;
+    }
+
+    constexpr tree_node_iterator& operator--()
+    {
+        current = from_hook<T>(current->[:Hook:].decrement());
+        return *this;
+    }
+
+    constexpr tree_node_iterator operator--(int)
+    {
+        auto tmp = *this;
+        --(*this);
+        return tmp;
+    }
+
+    constexpr bool operator==(const tree_node_iterator&) const = default;
+
 };
 
 }  // namespace cpp::collections
