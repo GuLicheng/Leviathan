@@ -426,7 +426,8 @@ template <typename T, typename Hook>
 constexpr T* from_hook(Hook* hook)
 {
     assert(hook != nullptr);
-    return reinterpret_cast<T*>(reinterpret_cast<char*>(hook) - std::meta::offset_of(^^T::Hook).bytes);
+    constexpr auto member_hook = search_hook(^^T, ^^Hook);
+    return reinterpret_cast<T*>(reinterpret_cast<char*>(hook) - std::meta::offset_of(member_hook).bytes);
 }
 
 /**

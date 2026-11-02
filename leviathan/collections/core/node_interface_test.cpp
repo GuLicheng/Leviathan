@@ -18,13 +18,13 @@ struct LinkedListNode : cpp::collections::list_node_interface
     constexpr ~LinkedListNode() { }
 };
 
-struct BinaryTreeNode : cpp::collections::tree_node_interface
+struct BinaryNode : cpp::collections::tree_node_interface
 {
-    std::array<BinaryTreeNode*, 3> links;
+    std::array<BinaryNode*, 3> links;
 
-    constexpr BinaryTreeNode() { reset(); }
+    constexpr BinaryNode() { reset(); }
 
-    constexpr ~BinaryTreeNode() { }
+    constexpr ~BinaryNode() { }
 };
 
 struct IStudent
@@ -38,9 +38,9 @@ struct Student : IStudent
 {
     int Id;
 
-    LinkedListNode Hook;  // As header
+    LinkedListNode HL;  // As header
 
-    BinaryTreeNode Hook2;  // As header
+    BinaryNode HT;  // As header
 
     Student(int id) : Id(id)
     {
@@ -53,8 +53,8 @@ TEST_CASE("LinkedListNode basic operations", "[node_interface]")
 {
     Student n1(1), n2(2), n3(3);
 
-    n2.Hook.insert_after(&n1.Hook);
-    n3.Hook.insert_after(&n2.Hook);
+    n2.HL.insert_after(&n1.HL);
+    n3.HL.insert_after(&n2.HL);
 
     cpp::collections::list_node_iterator<Student> iter(&n1);
 
@@ -66,28 +66,28 @@ TEST_CASE("LinkedListNode basic operations", "[node_interface]")
 }
 
 
-TEST_CASE("BinaryTreeNode basic operations", "[node_interface]")
+TEST_CASE("BinaryNode basic operations", "[node_interface]")
 {
-    // BinaryTreeNode header;
+    BinaryNode header;
 
-    // Student n1(1), n2(2), n3(3);
+    Student n1(1), n2(2), n3(3);
 
-    // header.reset();
-    // header.parent(nullptr);
+    header.reset();
+    header.parent(nullptr);
 
-    // n1.Hook2.reset(nullptr);
-    // n2.Hook2.reset(nullptr);
-    // n3.Hook2.reset(nullptr);
+    n1.HT.reset(nullptr);
+    n2.HT.reset(nullptr);
+    n3.HT.reset(nullptr);
 
-    // n2.Hook2.insert_node_and_update_header(true, &header, header);
-    // n1.Hook2.insert_node_and_update_header(true, &n2.Hook2, header);
-    // n3.Hook2.insert_node_and_update_header(false, &n2.Hook2, header);
+    n2.HT.insert_node_and_update_header(true, &header, header);
+    n1.HT.insert_node_and_update_header(true, &n2.HT, header);
+    n3.HT.insert_node_and_update_header(false, &n2.HT, header);
 
-    // cpp::collections::tree_node_iterator<Student> iter(&n1);
+    cpp::collections::tree_node_iterator<Student> iter(&n1);
 
-    // REQUIRE(iter->Id == 1);
-    // ++iter;
-    // REQUIRE(iter->Id == 2);
-    // ++iter;
-    // REQUIRE(iter->Id == 3);
+    REQUIRE(iter->Id == 1);
+    ++iter;
+    REQUIRE(iter->Id == 2);
+    ++iter;
+    REQUIRE(iter->Id == 3);
 }
