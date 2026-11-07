@@ -64,9 +64,6 @@ consteval bool instance_of_template(std::meta::info info, std::meta::info templa
  */
 consteval bool is_derived_from_template(std::meta::info type, std::meta::info template_info)
 {
-    // return std::ranges::any_of(all_bases_of(type), [=](auto info) {
-    //     return instance_of_template(info, template_info);
-    // });
     return std::ranges::any_of(all_bases_of(type), std::bind_back(instance_of_template, template_info));
 }
 

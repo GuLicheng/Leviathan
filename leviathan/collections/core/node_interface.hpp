@@ -4,7 +4,8 @@
 #include <memory>
 #include <type_traits>
 #include <algorithm>
-#include <meta>
+#include <leviathan/extc++/meta.hpp>
+#include <leviathan/extc++/annotation.hpp>
 
 namespace cpp::collections
 {
@@ -26,7 +27,7 @@ struct list_node_interface
     template <typename Node>
     constexpr void prev(this Node& self, std::type_identity_t<Node>* node)
     {
-        self.links[0] = node;
+        self.prev() = node;
     }
 
     template <typename Node>
@@ -38,7 +39,7 @@ struct list_node_interface
     template <typename Node>
     constexpr void next(this Node& self, std::type_identity_t<Node>* node)
     {
-        self.links[1] = node;
+        self.next() = node;
     }
 
     /**
@@ -47,7 +48,7 @@ struct list_node_interface
     template <typename Node>
     constexpr void reset(this Node& self)
     {
-        self.links[0] = self.links[1] = std::addressof(self);
+        self.prev() = self.next() = std::addressof(self);
     }
 
     /**
@@ -58,7 +59,7 @@ struct list_node_interface
     constexpr bool is_linked(this const Node& self) 
     {
         // Both links point to self if not linked
-        return !(self.links[0] == std::addressof(self) && self.links[1] == std::addressof(self));
+        return !(self.prev() == std::addressof(self) && self.next() == std::addressof(self));
     }
 
     template <typename Node>
@@ -437,9 +438,11 @@ constexpr T* from_hook(Hook* hook)
  * @tparam T The type of the container element
  * @tparam Hook The hook type used for linking nodes
  */
-template <typename T, std::meta::info Hook = search_hook(^^T, ^^list_node_interface)>
+template <typename T, std::meta::info Hook = ^^int>
 struct list_node_iterator
 {
+    // static_assert(is_base_of_type(list_node_interface, ^^Hook), "Hook must be derived from list_node_interface.");
+
     using value_type = T;
     using pointer = T*;
     using reference = T&;

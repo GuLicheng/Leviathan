@@ -283,9 +283,49 @@ inline constexpr auto alias = []<typename... Ts>(Ts&&... value) static
 
 } // namespace cpp::refl
 
-
 namespace cpp::refl
 {
+
+struct member_hook
+{
+    const char* name;
+
+    explicit consteval member_hook(std::string_view n) 
+        : name(std::define_static_string(n))
+    { }
+
+    consteval bool operator==(const member_hook& h) const
+    {
+        return std::string_view(name) == std::string_view(h.name);
+    }
+};
+
+/**
+ * @brief Search for a member of a type that has a specific member hook annotation.
+ * 
+ * @param type The type to search for the member.
+ * @param hook_name The name of the member hook annotation to search for.
+ * @return std::meta::info The meta-information of the member with the specified hook annotation.
+ * 
+ * @example
+ *  struct Object { 
+ *      
+ *      void* data;
+ * 
+ *      [[=member_hook("list")]] 
+ *      std::array<Object*, 2> list_hook;
+ *  };
+ * 
+ *  constexpr auto list_member = search_member_hook(^^Object, "list");
+ */
+consteval std::meta::info search_member_hook(std::meta::info type, std::string_view hook_name)
+{
+    auto members = all_nonstatic_data_members_of(type, std::meta::access_context::unchecked());
+    auto hook = member_hook(hook_name);
+    auto reflecter = [](auto anno) static { return std::meta::extract<member_hook>(anno); };
+    auto has_hook_anno = std::bind_back(std::ranges::contains, hook, reflecter);
+    return *std::ranges::find_if(members, has_hook_anno, std::meta::annotations_of);
+}
 
 template <std::meta::info FieldInfo>
 class handle

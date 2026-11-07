@@ -11,6 +11,7 @@
 
 struct LinkedListNode : cpp::collections::list_node_interface
 {
+    [[=cpp::refl::member_hook("list")]]
     std::array<LinkedListNode*, 2> links;
 
     constexpr LinkedListNode() { reset(); }
@@ -65,7 +66,6 @@ TEST_CASE("LinkedListNode basic operations", "[node_interface]")
     REQUIRE(iter->Id == 3);
 }
 
-
 TEST_CASE("BinaryNode basic operations", "[node_interface]")
 {
     BinaryNode header;
@@ -91,3 +91,55 @@ TEST_CASE("BinaryNode basic operations", "[node_interface]")
     ++iter;
     REQUIRE(iter->Id == 3);
 }
+
+struct SomeInterfaceWithVirtualTable
+{
+    virtual ~SomeInterfaceWithVirtualTable() = default;
+
+    virtual std::string_view TypeName() = 0;
+};
+
+using ListNodeInterface = cpp::collections::list_node_interface;
+
+struct SomeObject : SomeInterfaceWithVirtualTable, ListNodeInterface
+{
+    int id;
+
+    std::array<SomeObject*, 2> links;   // Makeself linklist
+
+    SomeObject(int g) : id(g) { reset(); }
+
+    ~SomeObject() { }
+
+    std::string_view TypeName() override
+    {
+        return "SomeObject";
+    }
+};
+
+TEST_CASE("SomeObject basic operations", "[node_interface]")
+{
+    SomeObject obj1(1), obj2(2), obj3(3);
+
+    obj2.insert_after(&obj1);
+    obj3.insert_after(&obj2);
+
+    cpp::collections::list_node_iterator<SomeObject, ^^SomeObject::links> iter(&obj1);
+
+    REQUIRE(iter->id == 1);
+    ++iter;
+    REQUIRE(iter->id == 2);
+    ++iter;
+    REQUIRE(iter->id == 3);
+}
+
+
+
+
+
+
+
+
+
+
+

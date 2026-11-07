@@ -11,55 +11,30 @@
 
 // https://github.com/boostorg/intrusive/tree/develop/include/boost/intrusive
 
-
-struct list_node : cpp::collections::list_node_interface
-{
-    std::array<list_node*, 2> links;
-
-    constexpr list_node() { reset(); }
-
-    constexpr ~list_node() { }
-};
-
-struct Student 
+struct Student : cpp::collections::list_node_interface
 {
     int Id = -1;
 
-    list_node Hook;  // As header
+    [[=cpp::refl::member_hook("list")]]
+    std::array<Student*, 2> ListHook;  // As header
+
+    [[=cpp::refl::member_hook("tree")]]
+    std::array<Student*, 3> TreeHook;  // As header
 
     Student(int id) : Id(id)
     {
+
     }
 };
 
-void Func(std::allocator<Student> alloc)
-{
-    std::println("Function called with allocator");
-}
+
 
 int main()
 {
-
-    Func(std::allocator<int>{});
-
-    Student s1(1), s2(2), s3(3);
-
-    s2.Hook.insert_after(&s1.Hook);
-    s3.Hook.insert_after(&s2.Hook);
-
-    using Iterator = cpp::collections::list_node_iterator<Student>;
-
-    static_assert(std::bidirectional_iterator<Iterator>);
-
-    auto it = Iterator(&s1);
-
-    std::println("Current student ID: {}", it->Id);
-    ++it;
-    std::println("Current student ID: {}", it->Id);
-    ++it;
-    std::println("Current student ID: {}", it->Id);
-
-    std::println("Test over");
+    constexpr auto mem1 = search_member_hook(^^Student, "list");
+    constexpr auto mem2 = search_member_hook(^^Student, "tree");
+    std::cout << display_string_of(mem1) << '\n';
+    std::cout << display_string_of(mem2) << '\n';
 }
 
 
