@@ -438,10 +438,10 @@ constexpr T* from_hook(Hook* hook)
  * @tparam T The type of the container element
  * @tparam Hook The hook type used for linking nodes
  */
-template <typename T, std::meta::info Hook = ^^int>
+template <typename T>
 struct list_node_iterator
 {
-    // static_assert(is_base_of_type(list_node_interface, ^^Hook), "Hook must be derived from list_node_interface.");
+    static_assert(is_base_of_type(^^list_node_interface, ^^T), "Hook must be derived from list_node_interface.");
 
     using value_type = T;
     using pointer = T*;
@@ -460,7 +460,7 @@ struct list_node_iterator
 
     constexpr list_node_iterator& operator++()
     {
-        current = from_hook<T>(current->[:Hook:].next());
+        current = current->next();
         return *this;
     }
 
@@ -473,7 +473,7 @@ struct list_node_iterator
 
     constexpr list_node_iterator& operator--()
     {
-        current = from_hook<T>(current->[:Hook:].prev());
+        current = current->prev();
         return *this;
     }
 

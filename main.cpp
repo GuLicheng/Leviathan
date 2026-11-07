@@ -11,7 +11,14 @@
 
 // https://github.com/boostorg/intrusive/tree/develop/include/boost/intrusive
 
-struct Student : cpp::collections::list_node_interface
+struct IStudent
+{
+    virtual int getId() const = 0;
+
+    virtual ~IStudent() = default;
+};
+
+struct Student : cpp::collections::list_node_interface, IStudent
 {
     int Id = -1;
 
@@ -25,16 +32,33 @@ struct Student : cpp::collections::list_node_interface
     {
 
     }
+
+    int getId() const override { return Id; }
 };
 
 
 
 int main()
 {
-    constexpr auto mem1 = search_member_hook(^^Student, "list");
-    constexpr auto mem2 = search_member_hook(^^Student, "tree");
+    constexpr auto mem1 = cpp::refl::search_member_hook(^^Student, "list");
+    constexpr auto mem2 = cpp::refl::search_member_hook(^^Student, "tree");
     std::cout << display_string_of(mem1) << '\n';
     std::cout << display_string_of(mem2) << '\n';
+
+    Student s1(1), s2(2), s3(3);
+
+    s2.insert_after(&s1);
+    s3.insert_after(&s2);
+
+    cpp::collections::list_node_iterator<Student> it(&s1);
+
+    std::cout << it->getId() << '\n';
+    ++it;
+    std::cout << it->getId() << '\n';
+    ++it;
+    std::cout << it->getId() << '\n';
+
+    std::println("Done");
 }
 
 
