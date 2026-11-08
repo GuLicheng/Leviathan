@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <leviathan/extc++/meta.hpp>
 #include <leviathan/extc++/annotation.hpp>
+#include <leviathan/extc++/concepts.hpp>
 
 namespace cpp::collections
 {
@@ -400,17 +401,6 @@ struct tree_node_interface
 
 };
 
-consteval std::meta::info search_hook(std::meta::info type, std::meta::info hook)
-{
-    constexpr auto ctx = std::meta::access_context::current(); 
-    auto members = std::meta::nonstatic_data_members_of(type, ctx);
-    return *std::ranges::find_if(
-        members,
-        std::bind_front(std::meta::is_base_of_type, std::meta::dealias(hook)),
-        std::meta::type_of
-    );
-}
-
 /**
  * @brief Iterator for list nodes
  *  The T type must contain a member of type Hook that links the nodes together.
@@ -488,6 +478,21 @@ struct tree_node_iterator
     {
         assert(hook != nullptr);
         return reinterpret_cast<value_type*>(reinterpret_cast<char*>(hook) - std::meta::offset_of(Hook).bytes);
+    }
+
+    constexpr tree_node_iterator lchild() const
+    {
+        return tree_node_iterator(from_hook(current->[:Hook:].lchild()));
+    }
+    
+    constexpr tree_node_iterator rchild() const
+    {
+        return tree_node_iterator(from_hook(current->[:Hook:].rchild()));
+    }
+
+    constexpr tree_node_iterator parent() const
+    {
+        return tree_node_iterator(from_hook(current->[:Hook:].parent()));
     }
 
     constexpr tree_node_iterator() : current(nullptr) { }

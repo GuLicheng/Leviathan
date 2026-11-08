@@ -320,11 +320,10 @@ struct member_hook
  */
 consteval std::meta::info search_member_hook(std::meta::info type, std::string_view hook_name)
 {
-    auto members = all_nonstatic_data_members_of(type, std::meta::access_context::unchecked());
-    auto hook = member_hook(hook_name);
-    auto reflecter = [](auto anno) static { return std::meta::extract<member_hook>(anno); };
-    auto has_hook_anno = std::bind_back(std::ranges::contains, hook, reflecter);
-    return *std::ranges::find_if(members, has_hook_anno, std::meta::annotations_of);
+    auto res = all_nonstatic_data_members_of(type, std::meta::access_context::unchecked())
+             | std::views::filter(std::bind_back(cpp::refl::has_annotations, member_hook(hook_name)))
+             | std::views::take(1);
+    return *res.begin();
 }
 
 template <std::meta::info FieldInfo>

@@ -136,8 +136,8 @@ TEST_CASE("CrossLinkNode basic operations", "[node_interface]")
     middle.col_hook.insert_after(&north.col_hook);
     middle.col_hook.insert_before(&south.col_hook);
 
-    using RowIterator = cpp::collections::list_node_iterator<^^CrossLinkNode::row_hook>;
-    using ColIterator = cpp::collections::list_node_iterator<^^CrossLinkNode::col_hook>;
+    using RowIterator = cpp::collections::list_node_iterator<cpp::refl::search_member_hook(^^CrossLinkNode, "row")>;
+    using ColIterator = cpp::collections::list_node_iterator<cpp::refl::search_member_hook(^^CrossLinkNode, "col")>;
 
     RowIterator row_iter(&middle);
     ColIterator col_iter(&middle);
