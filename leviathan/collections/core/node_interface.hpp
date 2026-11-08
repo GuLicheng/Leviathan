@@ -415,22 +415,6 @@ consteval std::meta::info search_hook(std::meta::info type, std::meta::info hook
     );
 }
 
-template <typename Hook, typename T>
-constexpr auto& to_hook(T& obj)
-{
-    constexpr auto type = std::meta::remove_cvref(^^T);
-    constexpr auto info = search_hook(type, ^^Hook);
-    return obj.[:info:];
-}
-
-template <typename T, typename Hook>
-constexpr T* from_hook(Hook* hook)
-{
-    assert(hook != nullptr);
-    constexpr auto member_hook = search_hook(^^T, ^^Hook);
-    return reinterpret_cast<T*>(reinterpret_cast<char*>(hook) - std::meta::offset_of(member_hook).bytes);
-}
-
 /**
  * @brief Iterator for list nodes
  *  The T type must contain a member of type Hook that links the nodes together.
@@ -438,18 +422,23 @@ constexpr T* from_hook(Hook* hook)
  * @tparam T The type of the container element
  * @tparam Hook The hook type used for linking nodes
  */
-template <typename T>
+template <std::meta::info Hook>
 struct list_node_iterator
 {
-    static_assert(is_base_of_type(^^list_node_interface, ^^T), "Hook must be derived from list_node_interface.");
-
-    using value_type = T;
-    using pointer = T*;
-    using reference = T&;
+    using hook_type = typename [:type_of(Hook):];
+    using value_type = typename [:parent_of(Hook):];
+    using pointer = value_type*;
+    using reference = value_type&;
     using difference_type = std::ptrdiff_t;
     using iterator_category = std::bidirectional_iterator_tag;
 
     pointer current;
+
+    static constexpr pointer from_hook(hook_type* hook)
+    {
+        assert(hook != nullptr);
+        return reinterpret_cast<value_type*>(reinterpret_cast<char*>(hook) - std::meta::offset_of(Hook).bytes);
+    }
 
     constexpr list_node_iterator() : current(nullptr) { }
     constexpr list_node_iterator(pointer node) : current(node) { }
@@ -460,7 +449,7 @@ struct list_node_iterator
 
     constexpr list_node_iterator& operator++()
     {
-        current = current->next();
+        current = from_hook(current->[:Hook:].next());
         return *this;
     }
 
@@ -473,7 +462,7 @@ struct list_node_iterator
 
     constexpr list_node_iterator& operator--()
     {
-        current = current->prev();
+        current = from_hook(current->[:Hook:].prev());
         return *this;
     }
 
@@ -487,16 +476,23 @@ struct list_node_iterator
     constexpr bool operator==(const list_node_iterator&) const = default;
 };
 
-template <typename T, std::meta::info Hook = search_hook(^^T, ^^tree_node_interface)>
+template <std::meta::info Hook>
 struct tree_node_iterator
 {
-    using value_type = T;
-    using pointer = T*;
-    using reference = T&;
+    using hook_type = typename [:type_of(Hook):];
+    using value_type = typename [:parent_of(Hook):];
+    using pointer = value_type*;
+    using reference = value_type&;
     using difference_type = std::ptrdiff_t;
     using iterator_category = std::bidirectional_iterator_tag;
 
     pointer current;
+
+    static constexpr pointer from_hook(hook_type* hook)
+    {
+        assert(hook != nullptr);
+        return reinterpret_cast<value_type*>(reinterpret_cast<char*>(hook) - std::meta::offset_of(Hook).bytes);
+    }
 
     constexpr tree_node_iterator() : current(nullptr) { }
     constexpr tree_node_iterator(pointer node) : current(node) { }
@@ -507,7 +503,7 @@ struct tree_node_iterator
 
     constexpr tree_node_iterator& operator++()
     {
-        current = from_hook<T>(current->[:Hook:].increment());
+        current = from_hook(current->[:Hook:].increment());
         return *this;
     }
 
@@ -520,7 +516,7 @@ struct tree_node_iterator
 
     constexpr tree_node_iterator& operator--()
     {
-        current = from_hook<T>(current->[:Hook:].decrement());
+        current = from_hook(current->[:Hook:].decrement());
         return *this;
     }
 

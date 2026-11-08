@@ -11,12 +11,13 @@
 
 // https://github.com/boostorg/intrusive/tree/develop/include/boost/intrusive
 
-struct IStudent
+struct PyGC_Head
 {
-    virtual int getId() const = 0;
-
-    virtual ~IStudent() = default;
+    PyGC_Head* gc_next;
+    PyGC_Head* gc_prev;
 };
+
+constexpr auto info = ^^PyGC_Head::gc_next;
 
 struct Student : cpp::collections::list_node_interface, IStudent
 {
