@@ -101,39 +101,55 @@ TEST_CASE("BinaryNode basic operations", "[node_interface]")
     CHECK(iter->Id == 3);
 }
 
-template <typename K, typename V>
-struct LRUCacheNode
+struct CrossLinkNode
 {
-    K key;
-    V value;
+    CrossLinkNode(std::string msg) : message(std::move(msg)) { }
 
-    [[=cpp::refl::member_hook("hash")]]
-    LinkedListNode hook_hash;  // For hash table linkage
+    std::string message;  // For debug
 
-    [[=cpp::refl::member_hook("list")]]
-    LinkedListNode hook_list;  // For LRU list linkage
+    [[=cpp::refl::member_hook("row")]]
+    LinkedListNode row_hook;  // For row linkage
+
+    [[=cpp::refl::member_hook("col")]]
+    LinkedListNode col_hook;  // For column linkage
 };
 
-template <typename K, typename V>
-class LRUCache
+TEST_CASE("CrossLinkNode basic operations", "[node_interface]")
 {
-    LinkedListNode list_header;
-    
-    LinkedListNode hash_table_header;
+    CrossLinkNode north{"north"};
+    CrossLinkNode south{"south"};
+    CrossLinkNode east{"east"};
+    CrossLinkNode west{"west"};
+    CrossLinkNode middle{"middle"};
 
-public:
+    /*
+                north
+                  |
+         west - middle - east
+                  |
+                south
+    */
 
-    LRUCache() = default;
+    middle.row_hook.insert_after(&west.row_hook);
+    middle.row_hook.insert_before(&east.row_hook);
 
-    void add(K key, V value) 
-    {
+    middle.col_hook.insert_after(&north.col_hook);
+    middle.col_hook.insert_before(&south.col_hook);
 
-    }
-};
+    using RowIterator = cpp::collections::list_node_iterator<^^CrossLinkNode::row_hook>;
+    using ColIterator = cpp::collections::list_node_iterator<^^CrossLinkNode::col_hook>;
 
-TEST_CASE("LRUCache basic operations", "[node_interface]")
-{
+    RowIterator row_iter(&middle);
+    ColIterator col_iter(&middle);
 
+
+    CHECK(row_iter->message == "middle");
+
+    CHECK(std::next(col_iter)->message == "south");
+    CHECK(std::prev(col_iter)->message == "north");
+
+    CHECK(std::next(row_iter)->message == "east");
+    CHECK(std::prev(row_iter)->message == "west");
 }
 
 
