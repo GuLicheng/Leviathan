@@ -63,12 +63,12 @@ struct list_node_interface
     }
 
     template <typename Node>
-    constexpr void unlinked(this Node& self)
+    constexpr void unlink(this Node& self)
     {
         if (self.is_linked())
         {
-            self.prev(self.prev()->prev());
-            self.next(self.next()->next());
+            self.next()->prev(self.prev());
+            self.prev()->next(self.next());
             self.reset();
         }
     }
