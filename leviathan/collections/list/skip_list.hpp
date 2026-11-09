@@ -1,7 +1,7 @@
 #pragma once
 
 #include <leviathan/collections/common.hpp>
-#include <leviathan/collections/container_interface.hpp>
+#include <leviathan/collections/core/container_interface.hpp>
 #include <leviathan/utils/layout.hpp>
 #include <leviathan/allocators/adaptor_allocator.hpp>
 #include <leviathan/collections/list/skip_node.hpp>

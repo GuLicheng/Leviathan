@@ -7,8 +7,11 @@
 namespace cpp::collections
 {
 
+namespace detail
+{
+
 template <typename Container>
-concept iterable = requires(Container c)
+concept iterable_impl = requires(Container c)
 {
     typename Container::iterator;
     typename Container::const_iterator;
@@ -22,7 +25,7 @@ concept iterable = requires(Container c)
 };
 
 template <typename Container>
-concept reversible = iterable<Container> && requires
+concept reversible_impl = iterable<Container> && requires
 {
     typename Container::reverse_iterator;
     typename Container::const_reverse_iterator;
@@ -31,6 +34,14 @@ concept reversible = iterable<Container> && requires
     requires std::same_as<typename Container::reverse_iterator, std::reverse_iterator<typename Container::iterator>>;
     requires std::same_as<typename Container::const_reverse_iterator, std::reverse_iterator<typename Container::const_iterator>>;
 };
+
+}  // namespace detail
+
+template <typename Container>
+concept iterable = detail::iterable_impl<std::remove_cvref_t<Container>>;
+
+template <typename Container>
+concept reversible = detail::reversible_impl<std::remove_cvref_t<Container>>;
 
 template <typename Self>
 using self_decay_t = std::remove_cvref_t<Self>;
@@ -47,43 +58,57 @@ using self_decay_t = std::remove_cvref_t<Self>;
  */
 struct iterable_interface
 {
-    template <typename Self> 
-        requires iterable<self_decay_t<Self>>
+    template <iterable Self>
+    constexpr decltype(auto) front(this Self&& self)
+    {
+        return *self.begin();
+    }
+
+    template <reversible Self>
+    constexpr decltype(auto) back(this Self&& self)
+    {
+        auto it = self.end();
+        --it;
+        return *it;
+    }
+
+    template <iterable Self>
+    constexpr bool empty(this Self&& self)
+    {
+        return std::ranges::size(self) == 0;
+    }
+
+    template <iterable Self> 
     constexpr auto cbegin(this Self&& self)
     {
         return self.begin();
     }
     
-    template <typename Self>
-        requires iterable<self_decay_t<Self>>
+    template <iterable Self> 
     constexpr auto cend(this Self&& self)
     {
         return self.end();
     }
     
-    template <typename Self>
-        requires reversible<self_decay_t<Self>>
+    template <reversible Self> 
     constexpr auto rbegin(this Self&& self)
     {
         return std::make_reverse_iterator(self.end());
     }
 
-    template <typename Self>
-        requires reversible<self_decay_t<Self>>
+    template <reversible Self> 
     constexpr auto rend(this Self&& self)
     {
         return std::make_reverse_iterator(self.begin());
     }
 
-    template <typename Self>
-        requires reversible<self_decay_t<Self>>
+    template <reversible Self> 
     constexpr auto rcbegin(this Self&& self)
     {
         return std::make_reverse_iterator(self.cend());
     }
 
-    template <typename Self>
-        requires reversible<self_decay_t<Self>>
+    template <reversible Self> 
     constexpr auto rcend(this Self&& self)
     {
         return std::make_reverse_iterator(self.cbegin());

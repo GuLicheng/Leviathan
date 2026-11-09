@@ -4,7 +4,7 @@
 #include <leviathan/collections/tree/tree_iterator.hpp>
 #include <leviathan/collections/tree/tree_drawer.hpp>
 #include <leviathan/collections/node_handle.hpp>
-#include <leviathan/collections/container_interface.hpp>
+#include <leviathan/collections/core/container_interface.hpp>
 
 namespace cpp::collections
 { 

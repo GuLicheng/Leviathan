@@ -11,6 +11,14 @@
 namespace cpp::collections
 {
 
+template <std::meta::info Member, typename Hook>
+constexpr auto from_hook(Hook* hook)
+{
+    assert(hook != nullptr);
+    using T = typename [:parent_of(Member):];
+    return reinterpret_cast<T*>(reinterpret_cast<char*>(hook) - std::meta::offset_of(Member).bytes);
+}
+
 /**
  * @brief Binary list node interface for intrusive linked lists.
  * @note This interface assumes that the derived node structure contains an 
@@ -420,12 +428,6 @@ struct list_node_iterator
 
     pointer current;
 
-    static constexpr pointer from_hook(hook_type* hook)
-    {
-        assert(hook != nullptr);
-        return reinterpret_cast<value_type*>(reinterpret_cast<char*>(hook) - std::meta::offset_of(Hook).bytes);
-    }
-
     constexpr list_node_iterator() : current(nullptr) { }
     constexpr list_node_iterator(pointer node) : current(node) { }
     constexpr list_node_iterator(const list_node_iterator&) = default;
@@ -435,7 +437,7 @@ struct list_node_iterator
 
     constexpr list_node_iterator& operator++()
     {
-        current = from_hook(current->[:Hook:].next());
+        current = from_hook<Hook>(current->[:Hook:].next());
         return *this;
     }
 
@@ -448,7 +450,7 @@ struct list_node_iterator
 
     constexpr list_node_iterator& operator--()
     {
-        current = from_hook(current->[:Hook:].prev());
+        current = from_hook<Hook>(current->[:Hook:].prev());
         return *this;
     }
 
@@ -474,25 +476,19 @@ struct tree_node_iterator
 
     pointer current;
 
-    static constexpr pointer from_hook(hook_type* hook)
-    {
-        assert(hook != nullptr);
-        return reinterpret_cast<value_type*>(reinterpret_cast<char*>(hook) - std::meta::offset_of(Hook).bytes);
-    }
-
     constexpr tree_node_iterator lchild() const
     {
-        return tree_node_iterator(from_hook(current->[:Hook:].lchild()));
+        return tree_node_iterator(from_hook<Hook>(current->[:Hook:].lchild()));
     }
     
     constexpr tree_node_iterator rchild() const
     {
-        return tree_node_iterator(from_hook(current->[:Hook:].rchild()));
+        return tree_node_iterator(from_hook<Hook>(current->[:Hook:].rchild()));
     }
 
     constexpr tree_node_iterator parent() const
     {
-        return tree_node_iterator(from_hook(current->[:Hook:].parent()));
+        return tree_node_iterator(from_hook<Hook>(current->[:Hook:].parent()));
     }
 
     constexpr tree_node_iterator() : current(nullptr) { }
@@ -504,7 +500,7 @@ struct tree_node_iterator
 
     constexpr tree_node_iterator& operator++()
     {
-        current = from_hook(current->[:Hook:].increment());
+        current = from_hook<Hook>(current->[:Hook:].increment());
         return *this;
     }
 
@@ -517,7 +513,7 @@ struct tree_node_iterator
 
     constexpr tree_node_iterator& operator--()
     {
-        current = from_hook(current->[:Hook:].decrement());
+        current = from_hook<Hook>(current->[:Hook:].decrement());
         return *this;
     }
 
