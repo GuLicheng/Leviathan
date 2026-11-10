@@ -37,6 +37,11 @@ public:
         m_size = 0;
     }
 
+    ~constexpr list()
+    {
+        clear();
+    }
+
     constexpr size_type size() const 
     { 
         return m_size;
@@ -62,7 +67,16 @@ public:
         return iterator(&m_header);
     }
 
-    constexpr void clear();
+    constexpr void clear()
+    {
+        for (auto p = m_header.next(); p != &m_header; p = p->next())
+        {
+            p->unlink();
+        }
+
+        m_size = 0;
+        m_header.reset();
+    }
 
     constexpr void push_back(reference value)
     {

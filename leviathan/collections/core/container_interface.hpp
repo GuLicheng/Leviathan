@@ -25,7 +25,7 @@ concept iterable_impl = requires(Container c)
 };
 
 template <typename Container>
-concept reversible_impl = iterable<Container> && requires
+concept reversible_impl = iterable_impl<Container> && requires
 {
     typename Container::reverse_iterator;
     typename Container::const_reverse_iterator;
@@ -259,12 +259,12 @@ struct unique_insert_interface : insert_interface
 {
     using insert_interface::insert;
 
-    template <typename Self, typename K>
-        requires detail::transparent<typename self_decay_t<Self>::key_compare>
-    std::pair<self_iterator_t<Self>, bool> insert(this Self&& self, K&& x)
-    {
-        return self.emplace((K&&)x);
-    }
+    // template <typename Self, typename K>
+    //     requires detail::transparent<typename self_decay_t<Self>::key_compare>
+    // std::pair<self_iterator_t<Self>, bool> insert(this Self&& self, K&& x)
+    // {
+    //     return self.emplace((K&&)x);
+    // }
 
     template <typename Self, typename K>
     requires (detail::transparent<typename self_decay_t<Self>::key_compare> && 

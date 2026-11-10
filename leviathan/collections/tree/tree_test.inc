@@ -7,7 +7,7 @@
 // #include "catch2/catch_all.hpp"
 // #include "binary_search_tree.hpp"
 
-using namespace leviathan::collections;
+using namespace cpp::collections;
 
 template <typename Checker>
 void CheckTree(Checker checker)
@@ -750,11 +750,11 @@ TEST_CASE("map research lower_bound/upper_bound/equal_range/find/contains")
 #include <leviathan/allocators/fancy_ptr.hpp>
 #include <leviathan/utils/controllable_value.hpp>
 
-using namespace leviathan::alloc;
+using namespace cpp::alloc;
 
 TEST_CASE("propagate allocator")
 {
-    using Int32 = leviathan::controllable_value<int>;
+    using Int32 = cpp::controllable_value<int>;
     using StdAllocator = std_allocator<Int32>;
 
     CHECK(std::allocator_traits<StdAllocator>::propagate_on_container_copy_assignment());
@@ -891,7 +891,7 @@ TEST_CASE("propagate allocator")
 
 TEST_CASE("non-propagate allocator")
 {
-    using Int32 = leviathan::controllable_value<int>;
+    using Int32 = cpp::controllable_value<int>;
     using PmrAllocator = std_pmr_allocator<Int32>;
 
     CHECK(!std::allocator_traits<PmrAllocator>::propagate_on_container_copy_assignment());
