@@ -286,15 +286,15 @@ inline constexpr auto alias = []<typename... Ts>(Ts&&... value) static
 namespace cpp::refl
 {
 
-struct member_hook
+struct tag
 {
     const char* name;
 
-    explicit consteval member_hook(std::string_view n) 
+    explicit consteval tag(std::string_view n) 
         : name(std::define_static_string(n))
     { }
 
-    consteval bool operator==(const member_hook& h) const
+    consteval bool operator==(const tag& h) const
     {
         return std::string_view(name) == std::string_view(h.name);
     }
@@ -312,19 +312,28 @@ struct member_hook
  *      
  *      void* data;
  * 
- *      [[=member_hook("list")]] 
+ *      [[=tag("list")]] 
  *      std::array<Object*, 2> list_hook;
  *  };
  * 
- *  constexpr auto list_member = search_member_hook(^^Object, "list");
+ *  constexpr auto list_member = search_tag(^^Object, "list");
  */
-consteval std::meta::info search_member_hook(std::meta::info type, std::string_view hook_name)
+consteval std::meta::info search_tag(std::meta::info type, std::string_view hook_name)
 {
     auto res = all_nonstatic_data_members_of(type, std::meta::access_context::unchecked())
-             | std::views::filter(std::bind_back(cpp::refl::has_annotations, member_hook(hook_name)))
+             | std::views::filter(std::bind_back(cpp::refl::has_annotations, tag(hook_name)))
              | std::views::take(1);
     return *res.begin();
 }
+
+// template <typename T>
+// consteval std::meta::info search_tag(std::meta::info type, T value)
+// {
+//     auto res = all_nonstatic_data_members_of(type, std::meta::access_context::unchecked())
+//              | std::views::filter(std::bind_back(cpp::refl::has_annotations, tag(value)))
+//              | std::views::take(1);
+//     return *res.begin();
+// }
 
 template <std::meta::info FieldInfo>
 class handle

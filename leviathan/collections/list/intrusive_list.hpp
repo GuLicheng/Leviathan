@@ -8,7 +8,7 @@ namespace cpp::collections::intrusive
 
 struct list_member_hook : public list_node_interface
 {
-    std::array<list_node_interface*, 2> links;
+    std::array<list_member_hook*, 2> links;
 };
 
 // https://www.boost.org/doc/libs/latest/doc/html/doxygen/classboost_1_1intrusive_1_1list.html
@@ -37,7 +37,7 @@ public:
         m_size = 0;
     }
 
-    ~constexpr list()
+    constexpr ~list()
     {
         clear();
     }
@@ -59,19 +59,21 @@ public:
     
     constexpr iterator end()
     {
-        return iterator(&m_header);
+        return iterator(from_hook<MemberHook>(&m_header));
     }
     
     constexpr const_iterator end() const
     {
-        return iterator(&m_header);
+        return iterator(from_hook<MemberHook>(&m_header));
     }
 
     constexpr void clear()
     {
-        for (auto p = m_header.next(); p != &m_header; p = p->next())
+        for (auto p = m_header.next(); p != &m_header; )
         {
+            auto next = p->next();
             p->unlink();
+            p = next;
         }
 
         m_size = 0;
@@ -80,22 +82,26 @@ public:
 
     constexpr void push_back(reference value)
     {
-        m_header.insert_after(value.[:MemberHook:]);
+        m_header.insert_after(std::addressof(value.[:MemberHook:]));
+        m_size++;
     }
 
     constexpr void push_front(reference value)
     {
-        m_header.insert_before(value.[:MemberHook:]);
+        m_header.insert_before(std::addressof(value.[:MemberHook:]));
+        m_size++;
     }
 
     constexpr void pop_back()
     {
         m_header.prev()->unlink();
+        m_size--;
     }
 
     constexpr void pop_front()
     {   
         m_header.next()->unlink();
+        m_size--;
     }
 
     // Erases the last element of the list. No destructors are called. 
@@ -106,6 +112,7 @@ public:
         auto last = m_header.prev();
         last->unlink();
         disposer(last);
+        m_size--;
     }
 
     // Erases the first element of the list. No destructors are called. 
@@ -116,6 +123,7 @@ public:
         auto first = m_header.next();
         first->unlink();
         disposer(first);
+        m_size--;
     }
 
 private:
