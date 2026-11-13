@@ -31,15 +31,33 @@ public:
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
+    /**
+     * @brief Constructs an empty intrusive list.
+     */
     constexpr list() 
     {
         m_header.reset();
         m_size = 0;
     }
 
+    constexpr list(list&& x);
+
+    constexpr list & operator=(list&& x);
+
+    /**
+     * @brief It detaches all elements from this. In this case the objects in the list 
+     * are not deleted.
+     */
     constexpr ~list()
     {
         clear();
+    }
+
+    void swap(list& other)
+    {
+        using std::swap;
+        swap(m_header, other.m_header);
+        swap(m_size, other.m_size);
     }
 
     constexpr size_type size() const 
@@ -67,6 +85,25 @@ public:
         return const_cast<list*>(this)->end();
     }
 
+    /**
+     * @brief This function sorts the list *this according to operator <. 
+     * The sort is stable, that is, the relative order of equivalent elements is preserved.
+     */
+    constexpr void sort()
+    {
+        sort(std::ranges::less());
+    }
+
+    /**
+     * @brief Sorts the elements in the list using the provided comparison function.
+     * The sort is stable, that is, the relative order of equivalent elements is preserved.
+     */
+    template <typename Compare>
+    constexpr void sort(Compare comp);
+
+    /**
+     * @brief Removes all elements from the list. No destructors are called.
+     */
     constexpr void clear()
     {
         for (auto p = m_header.next(); p != &m_header; )
@@ -80,6 +117,28 @@ public:
         m_header.reset();
     }
 
+    /**
+     * @brief Removes all elements from the list and calls the provided disposer for each element.
+     * Disposer::operator()(pointer) shouldn't throw.
+     */
+    template <typename Disposer>
+    constexpr void clear_and_dispose(Disposer disposer)
+    {
+        for (auto p = m_header.next(); p != &m_header; )
+        {
+            auto next = p->next();
+            disposer(p);
+            p = next;
+        }
+
+        m_size = 0;
+        m_header.reset();
+    }
+
+    /**
+     * @brief Inserts the value in the back of the list. No copy constructors are called.
+     * value must be an lvalue.
+     */
     constexpr void push_back(reference value)
     {
         auto& hook = value.[:MemberHook:];
@@ -87,6 +146,10 @@ public:
         m_size++;
     }
 
+    /**
+     * @brief Inserts the value in the front of the list. No copy constructors are called.
+     * value must be an lvalue.
+     */
     constexpr void push_front(reference value)
     {
         auto& hook = value.[:MemberHook:];
@@ -94,36 +157,46 @@ public:
         m_size++;
     }
 
+    /**
+     * @brief Removes the last element of the list. No destructors are called.
+     */
     constexpr void pop_back()
     {
         m_header.prev()->unlink();
         m_size--;
     }
 
+    /**
+     * @brief Removes the first element of the list. No destructors are called.
+     */
     constexpr void pop_front()
     {   
         m_header.next()->unlink();
         m_size--;
     }
 
-    // Erases the last element of the list. No destructors are called. 
-    // Disposer::operator()(pointer) is called for the removed element.
+    /**
+     * @brief Erases the last element of the list. No destructors are called. 
+     * Disposer::operator()(pointer) is called for the removed element.
+     * Disposer::operator()(pointer) shouldn't throw.
+     */
     template <typename Disposer> 
     constexpr void pop_back_and_dispose(Disposer disposer)
     {
         auto last = m_header.prev();
-        last->unlink();
         disposer(last);
         m_size--;
     }
 
-    // Erases the first element of the list. No destructors are called. 
-    // Disposer::operator()(pointer) is called for the removed element.
+    /**
+     * @brief Erases the first element of the list. No destructors are called. 
+     * Disposer::operator()(pointer) is called for the removed element.
+     * Disposer::operator()(pointer) shouldn't throw.
+     */
     template <typename Disposer> 
     constexpr void pop_front_and_dispose(Disposer disposer)
     {
         auto first = m_header.next();
-        first->unlink();
         disposer(first);
         m_size--;
     }

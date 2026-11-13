@@ -287,7 +287,7 @@ struct tree_node_interface
         }
     }
 
-        /**
+    /**
      * @brief Perform a left rotation on the node
      * @param root Reference to the root of the tree
      * @note The tree must maintain proper parent and child links for this operation to work correctly.
@@ -535,5 +535,6 @@ struct tree_node_iterator
     constexpr bool operator==(const tree_node_iterator&) const = default;
 
 };
+
 
 }  // namespace cpp::collections
