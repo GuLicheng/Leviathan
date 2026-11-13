@@ -93,10 +93,12 @@ struct list_node_interface
     {
         assert(pos != nullptr && pos != std::addressof(self));
 
-        self.prev(pos);
-        self.next(pos->next());
-        pos->next()->prev(std::addressof(self));
-        pos->next(std::addressof(self));
+        // pos - self
+        auto x = std::addressof(self);
+        pos->next(x);
+        pos->prev(x->prev());
+        x->prev()->next(pos);
+        x->prev(pos);
     }
 
     /**
@@ -109,7 +111,13 @@ struct list_node_interface
     constexpr void insert_before(this Node& self, std::type_identity_t<Node>* pos)
     {
         assert(pos != nullptr && pos != std::addressof(self));
-        pos->insert_after(std::addressof(self));        
+
+        // self - pos
+        auto x = std::addressof(self);
+        pos->prev(x);
+        pos->next(x->next());
+        x->next()->prev(pos);
+        x->next(pos);
     }
 
 };

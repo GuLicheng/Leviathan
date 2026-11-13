@@ -54,7 +54,7 @@ public:
     
     constexpr const_iterator begin() const
     {
-        return iterator(from_hook<MemberHook>(m_header.next()));
+        return const_cast<list*>(this)->begin();
     }
     
     constexpr iterator end()
@@ -64,7 +64,7 @@ public:
     
     constexpr const_iterator end() const
     {
-        return iterator(from_hook<MemberHook>(&m_header));
+        return const_cast<list*>(this)->end();
     }
 
     constexpr void clear()
@@ -82,13 +82,15 @@ public:
 
     constexpr void push_back(reference value)
     {
-        m_header.insert_after(std::addressof(value.[:MemberHook:]));
+        auto& hook = value.[:MemberHook:];
+        m_header.insert_after(std::addressof(hook));
         m_size++;
     }
 
     constexpr void push_front(reference value)
     {
-        m_header.insert_before(std::addressof(value.[:MemberHook:]));
+        auto& hook = value.[:MemberHook:];
+        m_header.insert_before(std::addressof(hook));
         m_size++;
     }
 
