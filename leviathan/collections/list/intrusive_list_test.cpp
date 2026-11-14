@@ -113,8 +113,8 @@ TEST_CASE("Intrusive list sort operation", "[intrusive_list]")
     ns.push_back(middle);
     ns.push_back(south);
 
-    // ns.sort(DirectionComparator::compare);
+    ns.sort(DirectionComparator::compare);
 
-    // auto r = ns | std::views::transform(&Direction::direction);
-    // CHECK(std::ranges::equal(r, std::vector<std::string>{"north", "middle", "south"}));
+    auto r = ns | std::views::transform(&Direction::direction);
+    CHECK(std::ranges::equal(r, std::vector<std::string>{"middle", "north", "south"}));
 }
