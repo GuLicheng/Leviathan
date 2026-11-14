@@ -431,8 +431,10 @@ using self_const_iterator_t = typename std::remove_cvref_t<Self>::const_iterator
 template <typename Self>
 using self_iter_t = std::conditional_t<
     std::is_const_v<std::remove_reference_t<Self>>, 
-    typename std::remove_reference_t<Self>::const_iterator, 
-    typename std::remove_reference_t<Self>::iterator
+    // typename std::remove_reference_t<Self>::const_iterator, 
+    // typename std::remove_reference_t<Self>::iterator
+    self_const_iterator_t<std::remove_reference_t<Self>>,
+    self_iterator_t<std::remove_reference_t<Self>>
 >;
 
 // This meta maybe unnecessary since we can use 'auto' to deduce return type.

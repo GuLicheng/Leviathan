@@ -19,30 +19,13 @@ constexpr auto from_hook(Hook* hook)
     return reinterpret_cast<T*>(reinterpret_cast<char*>(hook) - std::meta::offset_of(Member).bytes);
 }
 
-/**
- * @brief Binary list node interface for intrusive linked lists.
- * @note This interface assumes that the derived node structure contains an 
- *  array of two pointers named `links`.
- */
-struct list_node_interface
+struct node_interface
 {
-    template <typename Node>
-    constexpr auto& prev(this Node& self)
-    {
-        return self.links[0];
-    }
-
-    // The std::type_identity_t is used to avoid ambiguity for nullptr.
-    template <typename Node>
-    constexpr void prev(this Node& self, std::type_identity_t<Node>* node)
-    {
-        self.prev() = node;
-    }
-
+    // For forward list nodes, the next pointer is stored in links[0]
     template <typename Node>
     constexpr auto& next(this Node& self)
     {
-        return self.links[1];
+        return self.links[0];
     }
 
     template <typename Node>
@@ -51,15 +34,76 @@ struct list_node_interface
         self.next() = node;
     }
 
-    /**
-     * @brief Reset the node's links to point to itself, indicating it is not linked.
-     */
+    // For bidirectional list nodes, the previous pointer is stored in links[1]
+    template <typename Node>
+    constexpr auto& prev(this Node& self)
+    {
+        return self.links[1];
+    }
+
+    template <typename Node>
+    constexpr void prev(this Node& self, std::type_identity_t<Node>* node)
+    {
+        self.prev() = node;
+    }
+
+    // For tree nodes, the parent pointer is stored in links[0], the left child in links[1], and the right child in links[2]
+    template <typename Node>
+    constexpr auto& parent(this Node& self)
+    {
+        return self.links[0];
+    }
+
+    template <typename Node>
+    constexpr void parent(this Node& self, std::type_identity_t<Node>* node)
+    {
+        self.parent() = node;
+    }
+
+    template <typename Node>
+    constexpr auto& left(this Node& self)
+    {
+        return self.links[1];
+    }
+
+    template <typename Node>
+    constexpr void left(this Node& self, std::type_identity_t<Node>* node)
+    {
+        self.left() = node;
+    }
+
+    template <typename Node>
+    constexpr auto& right(this Node& self)
+    {
+        return self.links[2];
+    }
+
+    template <typename Node>
+    constexpr void right(this Node& self, std::type_identity_t<Node>* node)
+    {
+        self.right() = node;
+    }
+
     template <typename Node>
     constexpr void reset(this Node& self)
     {
-        self.prev() = self.next() = std::addressof(self);
+        std::ranges::fill(self.links, std::addressof(self));
     }
 
+    template <typename Node>
+    constexpr void reset(this Node& self, std::type_identity_t<Node>* value)
+    {
+        std::ranges::fill(self.links, value);
+    }
+};
+
+/**
+ * @brief Binary list node interface for intrusive linked lists.
+ * @note This interface assumes that the derived node structure contains an 
+ *  array of two pointers named `links`.
+ */
+struct list_node_interface : node_interface
+{
     /**
      * @brief Check if the node is linked to any other node
      * @return true if the node is linked, false otherwise
@@ -119,7 +163,6 @@ struct list_node_interface
         x->next()->prev(pos);
         x->next(pos);
     }
-
 };
 
 /**
@@ -149,54 +192,6 @@ struct list_node_interface
  */
 struct tree_node_interface
 {
-    template <typename Node>
-    constexpr auto& parent(this Node& self)
-    {
-        return self.links[0];
-    }
-
-    template <typename Node>
-    constexpr auto& lchild(this Node& self)
-    {
-        return self.links[1];
-    }
-
-    template <typename Node>
-    constexpr auto& rchild(this Node& self)
-    {
-        return self.links[2];
-    }
-
-    template <typename Node>
-    constexpr void parent(this Node& self, std::type_identity_t<Node>* node)
-    {
-        self.links[0] = node;
-    }
-
-    template <typename Node>
-    constexpr void lchild(this Node& self, std::type_identity_t<Node>* node)
-    {
-        self.links[1] = node;
-    }
-
-    template <typename Node>
-    constexpr void rchild(this Node& self, std::type_identity_t<Node>* node)
-    {
-        self.links[2] = node;
-    }
-
-    template <typename Node>
-    constexpr void reset(this Node& self, std::type_identity_t<Node>* value)
-    {
-        self.links.fill(value);
-    }
-
-    template <typename Node>
-    constexpr void reset(this Node& self)
-    {
-        self.links.fill(std::addressof(self));
-    }
-
     /**
      * @brief Find the maximum (rightmost) node in the subtree rooted at self
      * @return Pointer to the maximum node
@@ -536,6 +531,26 @@ struct tree_node_iterator
     constexpr bool operator==(const tree_node_iterator&) const = default;
 
 };
+
+
+namespace detail
+{
+
+/**
+ * @brief Sorts the linked list from head to tail using the provided comparison function.
+ * @tparam ListNode The inner node type used in the linked list iterator.
+ * @tparam Compare The type of the comparison function.
+ * @param head Pointer to the first node of the list.
+ * @param tail Pointer to the last node of the list.
+ * @param comp Comparison function to determine the order of elements.
+ */
+template <typename ListNode, typename Compare>
+constexpr void sort(ListNode* head, ListNode* tail, Compare comp)
+{
+
+} 
+
+}  // namespace detail
 
 
 }  // namespace cpp::collections

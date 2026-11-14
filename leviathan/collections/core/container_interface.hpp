@@ -48,13 +48,23 @@ using self_decay_t = std::remove_cvref_t<Self>;
 
 /**
  * @brief Generate iterator interface for container.
- * 
  * This interface will generate iterator functions for container.
  * 
- * @requirements: begin/end
+ * @requirements: 
+ * - begin
+ * - end
+ * - size
  * 
  * Generate follow functions:
- * cbegin/cend/rbegin/rend/rcbegin/rcend
+ * - cbegin
+ * - cend
+ * - rbegin
+ * - rend
+ * - rcbegin
+ * - rcend
+ * - front
+ * - back
+ * - empty
  */
 struct iterable_interface
 {
@@ -130,10 +140,15 @@ concept searchable = iterable<Container> && requires(Container c, const T& x)
  * 
  * This interface will generate lookup functions for container.
  * 
- * @requirements: lower_bound
+ * @requirements: 
+ * - lower_bound
  * 
  * Generate follow functions:
- * upper_bound/find/count/contains/equal_range
+ * - upper_bound
+ * - find
+ * - count
+ * - contains
+ * - equal_range
  */
 struct lookup_interface
 {
