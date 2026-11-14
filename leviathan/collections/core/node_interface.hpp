@@ -176,18 +176,18 @@ struct list_node_interface : node_interface
  * - links[2] represents the right child node
  * 
  * The tree must contains header where:
- * - links[0] point to the root
- * - links[1] point to the leftmost
- * - links[2] point to the rightmost
+ * - parent point to the root
+ * - lchild point to the leftmost
+ * - rchild point to the rightmost
  * 
  * For leftmost node where:
- * - links[1] point to the header
+ * - lchild point to the header
  * 
  * For rightmost node where:
- * - links[2] point to the header
+ * - rchild point to the header
  * 
  * For root node where:
- * - links[0] point to the header
+ * - parent point to the header
  * 
  */
 struct tree_node_interface
