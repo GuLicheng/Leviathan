@@ -7,6 +7,13 @@
 namespace cpp::collections::intrusive
 {
 
+namespace detail
+{
+
+
+
+}  // namespace detail
+
 struct list_member_hook : public list_node_interface
 {
     std::array<list_member_hook*, 2> links;
@@ -165,10 +172,10 @@ public:
     template <typename StrictWeakOrdering>
     constexpr void sort(StrictWeakOrdering comp)
     {
-        auto hook_comp = [&](auto x, auto y) {
-            return comp(*iterator(x), *iterator(y));
-        };
-        detail::merge_sort(m_header.next(), &m_header, hook_comp);
+        // auto hook_comp = [&](auto x, auto y) {
+        //     return comp(*iterator(x), *iterator(y));
+        // };
+        // detail::merge_sort(m_header.next(), &m_header, hook_comp);
     }
 
     /**

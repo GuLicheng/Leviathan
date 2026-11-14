@@ -124,7 +124,6 @@ consteval std::vector<std::meta::info> select_annotations_with_type(std::meta::i
         auto anno_type = type_of(anno);
         return is_template(type_or_template) 
              ? is_derived_from_template(anno_type, type_or_template) 
-            //  : is_derived_from(anno_type, type_or_template); 
              : std::meta::is_base_of_type(type_or_template, anno_type);
     });
 

@@ -476,32 +476,6 @@ struct tree_node_iterator
 
 };
 
-namespace detail
-{
-
-template <typename ListNode>
-constexpr ListNode* half(ListNode* first, ListNode* last);
-
-template <typename ListNode, typename Compare>
-constexpr ListNode* merge(ListNode* left, ListNode* middle, ListNode* right, Compare comp);
-
-template <typename ListNode, typename Compare>
-constexpr ListNode* merge_sort(ListNode* first, ListNode* last, Compare comp)
-{
-    assert(first && last && "Both first and last nodes must be non-null for merge_sort.");
-
-    if (first == last)
-    {
-        return first;
-    }
-
-    auto middle = half(first, last);
-    auto left = merge_sort(first, middle, comp);
-    auto right = merge_sort(middle, last, comp);
-    return merge(left, middle, right, comp);
-}
-
-}  // namespace detail
 
 
 }  // namespace cpp::collections
