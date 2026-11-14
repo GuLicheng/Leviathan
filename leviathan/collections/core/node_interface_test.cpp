@@ -8,6 +8,7 @@
 
 #include <catch2/catch_all.hpp>
 #include "node_interface.hpp"
+#include "../list/intrusive_list.hpp"
 
 struct LinkedListNode : cpp::collections::list_node_interface
 {

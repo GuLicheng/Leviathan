@@ -2,6 +2,7 @@
 
 #include <leviathan/collections/core/node_interface.hpp>
 #include <leviathan/collections/core/container_interface.hpp>
+#include <leviathan/collections/common.hpp>
 
 namespace cpp::collections::intrusive
 {
@@ -9,6 +10,61 @@ namespace cpp::collections::intrusive
 struct list_member_hook : public list_node_interface
 {
     std::array<list_member_hook*, 2> links;
+};
+
+template <std::meta::info MemberHook>
+struct list_hook_iterator
+{
+    using hook_type = typename [:type_of(MemberHook):];
+    using value_type = typename [:parent_of(MemberHook):];
+    using pointer = value_type*;
+    using reference = value_type&;
+    using difference_type = std::ptrdiff_t;
+    using iterator_category = std::bidirectional_iterator_tag;
+
+    hook_type* current;
+
+    constexpr list_hook_iterator() = default;
+    constexpr list_hook_iterator(const list_hook_iterator&) = default;
+    constexpr list_hook_iterator(hook_type* node) : current(node) { }
+
+    constexpr reference operator*() const 
+    { 
+        return *from_hook<MemberHook>(current); 
+    }
+    
+    constexpr pointer operator->() const
+    {
+        return from_hook<MemberHook>(current);
+    }
+    
+    constexpr list_hook_iterator& operator++()
+    {
+        current = current->next();
+        return *this;
+    }
+
+    constexpr list_hook_iterator operator++(int)
+    {
+        auto tmp = *this;
+        ++(*this);
+        return tmp;
+    }
+
+    constexpr list_hook_iterator& operator--()
+    {
+        current = current->prev();
+        return *this;
+    }
+
+    constexpr list_hook_iterator operator--(int)
+    {
+        auto tmp = *this;
+        --(*this);
+        return tmp;
+    }
+
+    constexpr bool operator==(const list_hook_iterator&) const = default;
 };
 
 // https://www.boost.org/doc/libs/latest/doc/html/doxygen/classboost_1_1intrusive_1_1list.html
@@ -26,7 +82,7 @@ public:
     using const_reference = const value_type&;
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
-    using iterator = list_node_iterator<MemberHook>;
+    using iterator = list_hook_iterator<MemberHook>;
     using const_iterator = std::const_iterator<iterator>;
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
@@ -40,9 +96,25 @@ public:
         m_size = 0;
     }
 
-    constexpr list(list&& x);
+    /**
+     * @brief Constructs a container moving resources from another container. 
+     */
+    constexpr list(list&& x)
+    {
+        m_header = x.m_header;
+        m_size = x.m_size;
+        x.m_header.reset();
+        x.m_size = 0;
+    }
 
-    constexpr list & operator=(list&& x);
+    /**
+     * @brief Equivalent to swap.
+     */
+    constexpr list& operator=(list&& x)
+    {
+        swap(x);
+        return *this;
+    }
 
     /**
      * @brief It detaches all elements from this. In this case the objects in the list 
@@ -65,24 +137,16 @@ public:
         return m_size;
     }
 
-    constexpr iterator begin()
+    template <typename Self>
+    constexpr self_iter_t<Self> begin(this Self&& self)
     {
-        return iterator(from_hook<MemberHook>(m_header.next()));
+        return iterator(self.m_header.next());
     }
     
-    constexpr const_iterator begin() const
+    template <typename Self>
+    constexpr self_iter_t<Self> end(this Self&& self)
     {
-        return const_cast<list*>(this)->begin();
-    }
-    
-    constexpr iterator end()
-    {
-        return iterator(from_hook<MemberHook>(&m_header));
-    }
-    
-    constexpr const_iterator end() const
-    {
-        return const_cast<list*>(this)->end();
+        return iterator(&self.m_header);
     }
 
     /**

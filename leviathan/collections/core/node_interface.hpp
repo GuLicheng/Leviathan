@@ -472,6 +472,7 @@ struct list_node_iterator
     constexpr bool operator==(const list_node_iterator&) const = default;
 };
 
+
 template <std::meta::info Hook>
 struct tree_node_iterator
 {
