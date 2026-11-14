@@ -412,62 +412,6 @@ struct tree_node_interface
 
 };
 
-/**
- * @brief Iterator for list nodes
- *  The T type must contain a member of type Hook that links the nodes together.
- * 
- * @tparam T The type of the container element
- * @tparam Hook The hook type used for linking nodes
- */
-template <std::meta::info Hook>
-struct list_node_iterator
-{
-    using hook_type = typename [:type_of(Hook):];
-    using value_type = typename [:parent_of(Hook):];
-    using pointer = value_type*;
-    using reference = value_type&;
-    using difference_type = std::ptrdiff_t;
-    using iterator_category = std::bidirectional_iterator_tag;
-
-    pointer current;
-
-    constexpr list_node_iterator() : current(nullptr) { }
-    constexpr list_node_iterator(pointer node) : current(node) { }
-    constexpr list_node_iterator(const list_node_iterator&) = default;
-
-    constexpr reference operator*() const { return *current; }
-    constexpr pointer operator->() const { return current; }
-
-    constexpr list_node_iterator& operator++()
-    {
-        current = from_hook<Hook>(current->[:Hook:].next());
-        return *this;
-    }
-
-    constexpr list_node_iterator operator++(int)
-    {
-        auto tmp = *this;
-        ++(*this);
-        return tmp;
-    }
-
-    constexpr list_node_iterator& operator--()
-    {
-        current = from_hook<Hook>(current->[:Hook:].prev());
-        return *this;
-    }
-
-    constexpr list_node_iterator operator--(int)
-    {
-        auto tmp = *this;
-        --(*this);
-        return tmp;
-    }
-
-    constexpr bool operator==(const list_node_iterator&) const = default;
-};
-
-
 template <std::meta::info Hook>
 struct tree_node_iterator
 {
@@ -532,23 +476,30 @@ struct tree_node_iterator
 
 };
 
-
 namespace detail
 {
 
-/**
- * @brief Sorts the linked list from head to tail using the provided comparison function.
- * @tparam ListNode The inner node type used in the linked list iterator.
- * @tparam Compare The type of the comparison function.
- * @param head Pointer to the first node of the list.
- * @param tail Pointer to the last node of the list.
- * @param comp Comparison function to determine the order of elements.
- */
-template <typename ListNode, typename Compare>
-constexpr void sort(ListNode* head, ListNode* tail, Compare comp)
-{
+template <typename ListNode>
+constexpr ListNode* half(ListNode* first, ListNode* last);
 
-} 
+template <typename ListNode, typename Compare>
+constexpr ListNode* merge(ListNode* left, ListNode* middle, ListNode* right, Compare comp);
+
+template <typename ListNode, typename Compare>
+constexpr ListNode* merge_sort(ListNode* first, ListNode* last, Compare comp)
+{
+    assert(first && last && "Both first and last nodes must be non-null for merge_sort.");
+
+    if (first == last)
+    {
+        return first;
+    }
+
+    auto middle = half(first, last);
+    auto left = merge_sort(first, middle, comp);
+    auto right = merge_sort(middle, last, comp);
+    return merge(left, middle, right, comp);
+}
 
 }  // namespace detail
 

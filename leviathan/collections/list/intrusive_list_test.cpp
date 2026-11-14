@@ -92,3 +92,29 @@ TEST_CASE("Intrusive list basic operations", "[intrusive_list]")
     CHECK(Disposer::Counter == 3);
     CHECK(we.size() == 0);
 }
+
+struct DirectionComparator
+{
+    static bool compare(const Direction& a, const Direction& b)
+    {
+        return a.direction < b.direction;
+    }
+};
+
+TEST_CASE("Intrusive list sort operation", "[intrusive_list]") 
+{
+    auto ns = cpp::collections::intrusive::list<cpp::refl::search_tag(^^Direction, "north-south")>();
+
+    Direction north{"north"};
+    Direction south{"south"};
+    Direction middle{"middle"};
+
+    ns.push_back(north);
+    ns.push_back(middle);
+    ns.push_back(south);
+
+    // ns.sort(DirectionComparator::compare);
+
+    // auto r = ns | std::views::transform(&Direction::direction);
+    // CHECK(std::ranges::equal(r, std::vector<std::string>{"north", "middle", "south"}));
+}

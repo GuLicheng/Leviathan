@@ -162,8 +162,14 @@ public:
      * @brief Sorts the elements in the list using the provided comparison function.
      * The sort is stable, that is, the relative order of equivalent elements is preserved.
      */
-    template <typename Compare>
-    constexpr void sort(Compare comp);
+    template <typename StrictWeakOrdering>
+    constexpr void sort(StrictWeakOrdering comp)
+    {
+        auto hook_comp = [&](auto x, auto y) {
+            return comp(*iterator(x), *iterator(y));
+        };
+        detail::merge_sort(m_header.next(), &m_header, hook_comp);
+    }
 
     /**
      * @brief Removes all elements from the list. No destructors are called.
