@@ -96,7 +96,7 @@ constexpr ListNode* merge_sort(ListNode* first, ListNode* last, Compare comp)
 
 }  // namespace detail
 
-struct list_member_hook : public list_node_interface
+struct list_member_hook : list_node_interface
 {
     list_member_hook* links[2];
 };
@@ -184,6 +184,9 @@ public:
         m_header.reset();
         m_size = 0;
     }
+
+    constexpr list(const list&) = delete("Copy constructor is deleted for intrusive list.");
+    constexpr list& operator=(const list&) = delete("Copy assignment is deleted for intrusive list.");
 
     /**
      * @brief Constructs a container moving resources from another container. 

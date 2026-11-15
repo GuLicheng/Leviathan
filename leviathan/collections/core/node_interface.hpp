@@ -190,7 +190,7 @@ struct list_node_interface : node_interface
  * - parent point to the header
  * 
  */
-struct tree_node_interface
+struct tree_node_interface : node_interface
 {
     /**
      * @brief Find the maximum (rightmost) node in the subtree rooted at self
