@@ -16,18 +16,6 @@ struct red_black_hook : tree_node_interface
     red_black_hook*[3] links;
     red_black_color color;
 
-
-    std::string to_string() const
-    {
-        switch (color)
-        {
-            case red_black_color::red: return "R";
-            case red_black_color::black: return "B";
-            case red_black_color::sentinel: return "S"; // Header
-        }
-        std::unreachable();
-    }
-
     constexpr void init()
     {
         color = red_black_color::red;
@@ -284,7 +272,19 @@ public:
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-    constexpr tree();
+    constexpr tree() : m_compare(Compare{})
+    {
+        m_size = 0;
+        m_sentinel.color = red_black_color::sentinel;
+    }
+
+    constexpr tree(const Compare& compare) : m_compare(compare), m_size(0)
+    {
+        header()->parent(nullptr);
+        header()->lchild(header());
+        header()->rchild(header());
+        header()->as_sentinel();
+    }
 
     constexpr size_type size() const 
     {
@@ -293,8 +293,14 @@ public:
 
 private:
 
+    template <typename Self>
+    copy_const_to_ptr_t<Self, TreeMemberHook*> header(this Self& self)
+    {
+        return std::addressof(self.m_header);
+    }
+
     Compare m_compare;
-    TreeMemberHook m_root;
+    TreeMemberHook m_sentinel;
     size_type m_size;
 };
 

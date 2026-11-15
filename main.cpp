@@ -15,6 +15,9 @@ int main()
 {
     std::list<int> ls = {1, 2, 3};
 
+    static_assert(std::is_const_v<const int&&>);
+    static_assert(std::is_const_v<const int>);
+
     ls.sort();
 }
 

@@ -455,6 +455,29 @@ struct copy_const<Self, T*> : std::conditional<std::is_const_v<Self>, const T*, 
 template <typename Self, typename T> 
 using copy_const_t = typename copy_const<Self, T>::type;
 
+/**
+ * @brief Copy const-qualification from Self to a pointer type T*.
+ * 
+ * @example
+ * template <typename Self> 
+ * copy_const_to_ptr_t<Self, Object> get_object(this Self& self)
+ * {
+ *     return self.object;
+ * }
+ * 
+ */
+template <typename Self, typename T> 
+struct copy_const_to_ptr
+{
+    // To avoid dangling references to temporary objects, we disallow forwarding references.
+    static_assert(!std::is_reference_v<Self>, "Self must not be a reference");
+
+    using type = std::conditional_t<std::is_const_v<Self>, const T*, T*>;
+};
+
+template <typename Self, typename T> 
+using copy_const_to_ptr_t = typename copy_const_to_ptr<Self, T>::type;
+
 template <typename Allocator, typename... Ts>
 inline constexpr bool nothrow_move_constructible = std::allocator_traits<Allocator>::is_always_equal::value && 
     (std::is_nothrow_move_constructible_v<Ts> && ...);
