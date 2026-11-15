@@ -296,7 +296,7 @@ private:
     template <typename Self>
     copy_const_to_ptr_t<Self, TreeMemberHook*> header(this Self& self)
     {
-        return std::addressof(self.m_header);
+        return std::addressof(self.m_sentinel);
     }
 
     Compare m_compare;
