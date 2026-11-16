@@ -293,7 +293,7 @@ struct tree_node_interface : node_interface
      *          y    x
      */
     template <typename Node>    
-    void rotate_left(this Node& self, Node*& root)
+    constexpr void rotate_left(this Node& self, Node*& root)
     {
         auto x = std::addressof(self);
         auto y = x->rchild();
@@ -335,7 +335,7 @@ struct tree_node_interface : node_interface
      *     y              x
      */
     template <typename Node>
-    void rotate_right(this Node& self, Node*& root)
+    constexpr void rotate_right(this Node& self, Node*& root)
     {
         auto x = std::addressof(self);
         auto y = x->lchild();
@@ -378,7 +378,7 @@ struct tree_node_interface : node_interface
      *  point any node of tree.
      */
     template <typename Node>
-    void insert_node_and_update_header(this Node& self, bool insert_left, Node* parent, Node& header)
+    constexpr void insert_node_and_update_header(this Node& self, bool insert_left, Node* parent, Node& header)
     {
         auto x = std::addressof(self);
         auto& [root, leftmost, rightmost] = header.links; 
@@ -408,6 +408,121 @@ struct tree_node_interface : node_interface
                 rightmost = x;
             }
         }
+    }
+
+    // Replace node with successor and return successor.
+    template <typename Node>
+    constexpr std::array<Node*, 3> replace_node_with_successor(this Node& self, Node& header)
+    {
+        auto x = std::addressof(self);
+        auto& [root, leftmost, rightmost] = header.links;
+        Node* successor = x;
+        Node* child = nullptr;
+        Node* child_parent = nullptr;
+
+        if (!successor->lchild())
+        {
+            // If current node has no left child, it has at most one non-null child.
+            // The child may be nullptr.
+            child = successor->rchild();
+        }
+        else if (!successor->rchild())
+        {
+            // If current node has no right child, it has exactly one non-null child.
+            // The child cannot be nullptr. 
+            child = successor->lchild();
+        }
+        else
+        {
+            // If current node has both children, find successor.
+            // The successor cannot be nullptr. 
+            successor = successor->rchild()->minimum();
+
+            // The child may be nullptr.
+            child = successor->rchild();
+        }
+
+        if (successor != x)
+        {
+            // Relink successor in place of successor.
+            x->lchild()->parent(successor);
+            successor->lchild(x->lchild());
+
+            if (successor != x->rchild())
+            {
+                child_parent = successor->parent();
+
+                if (child)
+                {
+                    child->parent(successor->parent());
+                }
+
+                successor->parent()->lchild(child);
+                successor->rchild(x->rchild());
+                x->rchild()->parent(successor);
+            }
+            else
+            {
+                // The x only has left child.
+                child_parent = successor;
+            }
+
+            if (x == root)
+            {
+                root = successor;
+            }
+            else if (x == x->parent()->lchild())
+            {
+                x->parent()->lchild(successor);
+            }
+            else
+            {
+                x->parent()->rchild(successor);
+            }
+
+            successor->parent(x->parent());
+            // std::swap(successor->m_color, x->m_color);
+            // successor = x;
+        }
+        else
+        {
+            // The x is left node or just has one child.
+            child_parent = successor->parent();
+
+            if (child)
+            {
+                child->parent(successor->parent());
+            }
+
+            if (root == x)
+            {
+                root = child;
+            }
+            else if (x == x->parent()->lchild())
+            {
+                x->parent()->lchild(child);
+            }
+            else
+            {
+                x->parent()->rchild(child);
+            }
+
+            // Maintain the leftmost
+            if (x == leftmost)
+            {
+                // The x is leaf node or only has right child.
+                leftmost = !x->rchild() ? x->parent() : child->minimum();
+            }
+
+            // Maintain the rightmost
+            if (x == rightmost)
+            {
+                // The x is leaf node or only has left child.
+                rightmost = !x->lchild() ? x->parent() : child->maximum();
+            }
+        }
+
+        return { successor, child, child_parent };
     }
 
 };

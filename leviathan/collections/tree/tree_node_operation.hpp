@@ -356,6 +356,7 @@ struct binary_node_operation : basic_tree_node_operation
 
         return { successor, child, child_parent };
     }
+
 };
 
 }
