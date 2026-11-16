@@ -56,7 +56,7 @@ struct tree_hook_iterator
 
 };
 
-template <std::meta::info MemberHook, typename TreeMemberHook, typename Compare = std::less<>>
+template <std::meta::info MemberHook, typename Compare = std::less<>>
 class tree : public iterable_interface
 {
 

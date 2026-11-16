@@ -85,7 +85,7 @@ public:
      */
     constexpr list() 
     {
-        m_header.reset();
+        m_sentinel.reset();
         m_size = 0;
     }
 
@@ -97,9 +97,9 @@ public:
      */
     constexpr list(list&& x)
     {
-        m_header = x.m_header;
+        m_sentinel = x.m_sentinel;
         m_size = x.m_size;
-        x.m_header.reset();
+        x.m_sentinel.reset();
         x.m_size = 0;
     }
 
@@ -124,7 +124,7 @@ public:
     void swap(list& other)
     {
         using std::swap;
-        swap(m_header, other.m_header);
+        swap(m_sentinel, other.m_sentinel);
         swap(m_size, other.m_size);
     }
 
@@ -136,13 +136,13 @@ public:
     template <typename Self>
     constexpr self_iter_t<Self> begin(this Self&& self)
     {
-        return iterator(self.m_header.next());
+        return iterator(self.m_sentinel.next());
     }
     
     template <typename Self>
     constexpr self_iter_t<Self> end(this Self&& self)
     {
-        return iterator(&self.m_header);
+        return iterator(&self.m_sentinel);
     }
 
     /**
@@ -164,9 +164,9 @@ public:
         auto hook_comp = [&](auto x, auto y) {
             return comp(*iterator(x), *iterator(y));
         };
-        auto node = detail::merge_sort(m_header.next(), &m_header, hook_comp);
-        m_header.next(node);
-        node->prev(&m_header);
+        auto node = detail::merge_sort(m_sentinel.next(), &m_sentinel, hook_comp);
+        m_sentinel.next(node);
+        node->prev(&m_sentinel);
     }
 
     /**
@@ -174,7 +174,7 @@ public:
      */
     constexpr void clear()
     {
-        for (auto p = m_header.next(); p != &m_header; )
+        for (auto p = m_sentinel.next(); p != &m_sentinel; )
         {
             auto next = p->next();
             p->unlink();
@@ -182,7 +182,7 @@ public:
         }
 
         m_size = 0;
-        m_header.reset();
+        m_sentinel.reset();
     }
 
     /**
@@ -192,7 +192,7 @@ public:
     template <typename Disposer>
     constexpr void clear_and_dispose(Disposer disposer)
     {
-        for (auto p = m_header.next(); p != &m_header; )
+        for (auto p = m_sentinel.next(); p != &m_sentinel; )
         {
             auto next = p->next();
             disposer(p);
@@ -200,7 +200,7 @@ public:
         }
 
         m_size = 0;
-        m_header.reset();
+        m_sentinel.reset();
     }
 
     /**
@@ -210,7 +210,7 @@ public:
     constexpr void push_back(reference value)
     {
         auto& hook = value.[:MemberHook:];
-        m_header.insert_after(std::addressof(hook));
+        m_sentinel.insert_after(std::addressof(hook));
         m_size++;
     }
 
@@ -221,7 +221,7 @@ public:
     constexpr void push_front(reference value)
     {
         auto& hook = value.[:MemberHook:];
-        m_header.insert_before(std::addressof(hook));
+        m_sentinel.insert_before(std::addressof(hook));
         m_size++;
     }
 
@@ -230,7 +230,7 @@ public:
      */
     constexpr void pop_back()
     {
-        m_header.prev()->unlink();
+        m_sentinel.prev()->unlink();
         m_size--;
     }
 
@@ -239,7 +239,7 @@ public:
      */
     constexpr void pop_front()
     {   
-        m_header.next()->unlink();
+        m_sentinel.next()->unlink();
         m_size--;
     }
 
@@ -251,7 +251,7 @@ public:
     template <typename Disposer> 
     constexpr void pop_back_and_dispose(Disposer disposer)
     {
-        auto last = m_header.prev();
+        auto last = m_sentinel.prev();
         disposer(last);
         m_size--;
     }
@@ -264,14 +264,14 @@ public:
     template <typename Disposer> 
     constexpr void pop_front_and_dispose(Disposer disposer)
     {
-        auto first = m_header.next();
+        auto first = m_sentinel.next();
         disposer(first);
         m_size--;
     }
 
 private:
 
-    list_hook m_header;
+    list_hook m_sentinel;
     size_type m_size;
 
 };
