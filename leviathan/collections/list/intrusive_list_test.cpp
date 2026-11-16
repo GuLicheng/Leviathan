@@ -9,10 +9,10 @@ struct Direction
     std::string direction;
 
     [[=cpp::refl::tag("north-south")]]
-    cpp::collections::intrusive::list_member_hook NS;
+    cpp::collections::intrusive::list_hook NS;
 
     [[=cpp::refl::tag("west-east")]]
-    cpp::collections::intrusive::list_member_hook WE;
+    cpp::collections::intrusive::list_hook WE;
 
     Direction(const Direction& other) = delete;
 
