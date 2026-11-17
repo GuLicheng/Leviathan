@@ -12,61 +12,7 @@ namespace cpp::collections::intrusive
 struct tree_ascii_render
 {
     template <typename Self, typename ToString>
-    constexpr std::string render_topdown() 
-    {
-        return "";
-    }
-
-    template <typename Self, typename ToString>
-    constexpr std::string render_leftright()
-    {
-        return "";
-    }
-
-private:
-
-
-};
-
-
-struct column_drawer
-{
-    template <typename Self>
-    std::string draw(this const Self& self)
-    {
-        auto root = self.header()->parent();
-
-        if (!root)
-        {
-            return "<empty tree>";
-        }
-
-        std::string result;
-        recurse2<typename Self::tree_node>(root, "", true, result);
-        return result;
-    }
-
-private:
-
-    // https://stackoverflow.com/questions/36802354/print-binary-tree-in-a-pretty-way-using-c
-    template <typename D, typename Node>
-    static void recurse2(const Node* node, std::string prefix, bool is_left, std::string& result)
-    {
-        if (node)
-        {
-            // (│   ,├──,└──,    )
-            result += std::format("{}{}{}\n", prefix, (is_left ? "|--" : "L--"), static_cast<const D*>(node)->value());
-
-            recurse2<D>(node->lchild(), prefix + (is_left ? "|   " : "    "), true, result);
-            recurse2<D>(node->rchild(), prefix + (is_left ? "|   " : "    "), false, result);
-        }
-    }
-};
-
-struct row_drawer
-{
-    template <typename Self, typename ToString>
-    constexpr std::string draw(this const Self& self, ToString to_string)
+    constexpr std::string render_topdown(this const Self& self, ToString to_string)
     {
         auto root = self.header()->parent();
 
@@ -78,6 +24,14 @@ struct row_drawer
         auto [lines, _, __] = recurse(root, to_string);
         return lines | std::views::join_with('\n') | std::ranges::to<std::string>();
     }
+
+    template <typename Self, typename ToString>
+    constexpr std::string render_leftright(this const Self& self, ToString to_string)
+    {
+        return "";
+    }
+
+private:
 
     template <typename Node, typename ToString>
     static constexpr std::tuple<std::vector<std::string>, int, int> recurse(const Node* node, ToString to_string)
@@ -161,6 +115,43 @@ struct row_drawer
 
         return std::string(left, filler_character) + text + std::string(right, filler_character);
     }
+
 };
+
+struct column_drawer
+{
+    template <typename Self>
+    std::string draw(this const Self& self)
+    {
+        auto root = self.header()->parent();
+
+        if (!root)
+        {
+            return "<empty tree>";
+        }
+
+        std::string result;
+        recurse2<typename Self::tree_node>(root, "", true, result);
+        return result;
+    }
+
+private:
+
+    // https://stackoverflow.com/questions/36802354/print-binary-tree-in-a-pretty-way-using-c
+    template <typename D, typename Node>
+    static void recurse2(const Node* node, std::string prefix, bool is_left, std::string& result)
+    {
+        if (node)
+        {
+            // (│   ,├──,└──,    )
+            result += std::format("{}{}{}\n", prefix, (is_left ? "|--" : "L--"), static_cast<const D*>(node)->value());
+
+            recurse2<D>(node->lchild(), prefix + (is_left ? "|   " : "    "), true, result);
+            recurse2<D>(node->rchild(), prefix + (is_left ? "|   " : "    "), false, result);
+        }
+    }
+};
+
+
 
 }  // namespace cpp::collections::intrusive

@@ -2,7 +2,7 @@
 
 #include <leviathan/collections/core/node_interface.hpp>
 #include <leviathan/collections/core/container_interface.hpp>
-#include <leviathan/collections/core/drawer.hpp>
+#include <leviathan/collections/core/tree_render.hpp>
 #include <leviathan/collections/common.hpp>
 
 namespace cpp::collections::intrusive
@@ -66,9 +66,9 @@ struct tree_hook_iterator
 };
 
 template <std::meta::info MemberHook, typename Compare = std::less<>>
-class tree : public iterable_interface, public row_drawer
+class tree : public iterable_interface, public tree_ascii_render
 {
-    friend class row_drawer;
+    friend class tree_ascii_render;
 
 public:
 

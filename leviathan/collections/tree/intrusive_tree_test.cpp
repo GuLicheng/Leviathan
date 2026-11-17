@@ -25,7 +25,7 @@ struct Student
         static std::string operator()(const cpp::collections::intrusive::avl_hook* hookptr)
         {
             auto& s = *cpp::collections::from_hook<^^Student::treehook>(const_cast<cpp::collections::intrusive::avl_hook*>(hookptr));
-            return std::format("{}:{}({})", s.rank, s.name, s.treehook.balance);
+            return std::format("{}:({})", s.rank, s.treehook.balance);
         }
     };
 };
@@ -79,7 +79,7 @@ TEST_CASE("avltree")
     auto ids = avltree | std::views::transform(&Student::rank) | std::ranges::to<std::vector>();
     CHECK(std::ranges::is_sorted(ids));
 
-    std::cout << avltree.draw(Student::Drawer()) << std::endl;
+    std::cout << avltree.render_topdown(Student::Drawer()) << std::endl;
 }
 
 
