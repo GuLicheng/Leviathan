@@ -23,12 +23,19 @@ struct tree_hook_iterator
     constexpr tree_hook_iterator(const tree_hook_iterator&) = default;
     constexpr tree_hook_iterator(hook_type* node) : current(node) { }
     
-    constexpr reference operator*() const { return *current; }
-    constexpr pointer operator->() const { return current; }
+    constexpr reference operator*() const 
+    { 
+        return *from_hook<MemberHook>(current); 
+    }
+
+    constexpr pointer operator->() const 
+    { 
+        return from_hook<MemberHook>(current); 
+    }
 
     constexpr tree_hook_iterator& operator++()
     {
-        current = from_hook<MemberHook>(current->[:MemberHook:].increment());
+        current = current->is_sentinel() ? current->lchild() : current->increment();
         return *this;
     }
 
@@ -39,9 +46,10 @@ struct tree_hook_iterator
         return tmp;
     }
 
+
     constexpr tree_hook_iterator& operator--()
     {
-        current = from_hook<MemberHook>(current->[:MemberHook:].decrement());
+        current = current->is_sentinel() ? current->rchild() : current->decrement();
         return *this;
     }
 
@@ -75,11 +83,7 @@ public:
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-    constexpr tree() : m_compare(Compare{})
-    {
-        m_size = 0;
-        m_sentinel.color = red_black_color::sentinel;
-    }
+    constexpr tree() : tree(Compare{}) { }
 
     constexpr tree(const Compare& compare) : m_compare(compare), m_size(0)
     {
@@ -90,13 +94,13 @@ public:
     }
 
     template <typename Self>
-    constexpr self_iter_t<Self> begin(Self& self)
+    constexpr self_iter_t<Self> begin(this Self& self)
     {
         return iterator(as_non_const(self).header()->lchild());
     }
 
     template <typename Self>
-    constexpr self_iter_t<Self> end(Self& self)
+    constexpr self_iter_t<Self> end(this Self& self)
     {
         return iterator(as_non_const(self).header());
     }
@@ -108,7 +112,7 @@ public:
 
     constexpr std::pair<iterator, bool> insert(value_type& value)
     {
-        auto hook = std::adressof(value.[:MemberHook:]);
+        auto hook = std::addressof(value.[:MemberHook:]);
         auto [x, px] = find_insert_position(hook, std::true_type{});
 
         if (px)
@@ -125,7 +129,7 @@ private:
     {
         assert(x == nullptr && "It seems in our tree implementation, x must be nullptr.");
         bool insert_left = (x != nullptr || px == header()) || compare_hook(node, px);
-        node->link(insert_left, px, m_sentinel);
+        node->link(insert_left, px, m_anchor);
         ++m_size;
     }
 
@@ -136,7 +140,7 @@ private:
      * @param std::true_type Indicates that the insertion should be unique.
      * @return A pair of hook_type pointers indicating the insert position.
      */
-    constexpr std::pair<hook_type*, hook_type*> find_insert_position(const hook_type* node, std::true_type)
+    constexpr std::pair<hook_type*, hook_type*> find_insert_position(hook_type* node, std::true_type)
     {
         auto px = header();
         auto x = header()->parent();
@@ -173,9 +177,10 @@ private:
     }
 
     template <typename K>
-    constexpr std::pair<hook_type*, bool> get_insert_pos(const hook_type* node, std::false_type)
+    constexpr std::pair<hook_type*, bool> find_insert_position(hook_type* node, std::false_type)
     {
-        auto y = &m_header, x = header()->parent();
+        auto y = header();
+        auto x = header()->parent();
         bool comp = true;
 
         while (x)
@@ -188,19 +193,21 @@ private:
         return { y, comp };
     }
 
-    constexpr bool compare_hook(const hook_type* lhs, const hook_type* rhs) const
+    constexpr bool compare_hook(hook_type* lhs, hook_type* rhs) 
     {
-        return m_compare(from_hook<MemberHook>(lhs), from_hook<MemberHook>(rhs));
+        auto lp = from_hook<MemberHook>(lhs);
+        auto rp = from_hook<MemberHook>(rhs);
+        return m_compare(*lp, *rp);
     }
 
     template <typename Self>
     constexpr copy_const_to_ptr_t<Self, hook_type> header(this Self& self)
     {
-        return std::addressof(self.m_sentinel);
+        return std::addressof(self.m_anchor);
     }
 
     Compare m_compare;
-    hook_type m_sentinel;
+    hook_type m_anchor;
     size_type m_size;
 };
 

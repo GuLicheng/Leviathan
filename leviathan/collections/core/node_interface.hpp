@@ -61,27 +61,27 @@ struct node_interface
     }
 
     template <typename Node>
-    constexpr auto& left(this Node& self)
+    constexpr auto& lchild(this Node& self)
     {
         return self.links[1];
     }
 
     template <typename Node>
-    constexpr void left(this Node& self, std::type_identity_t<Node>* node)
+    constexpr void lchild(this Node& self, std::type_identity_t<Node>* node)
     {
-        self.left() = node;
+        self.lchild() = node;
     }
 
     template <typename Node>
-    constexpr auto& right(this Node& self)
+    constexpr auto& rchild(this Node& self)
     {
         return self.links[2];
     }
 
     template <typename Node>
-    constexpr void right(this Node& self, std::type_identity_t<Node>* node)
+    constexpr void rchild(this Node& self, std::type_identity_t<Node>* node)
     {
-        self.right() = node;
+        self.rchild() = node;
     }
 
     template <typename Node>
@@ -127,42 +127,38 @@ struct list_node_interface : node_interface
     }
 
     /**
-     * @brief Insert self after the given position node
-     * @param pos The position node after which self will be inserted
+     * @brief Link the current node to the given position node
+     * @param left If true, link self to the left of pos; otherwise, link to the right
+     * @param pos The position node to link to.
      * 
      * @note The node must not be linked to any other list.
      */
     template <typename Node>
-    constexpr void insert_after(this Node& self, std::type_identity_t<Node>* pos)
+    constexpr void link(this Node& node, bool left, Node* pos)
     {
-        assert(pos != nullptr && pos != std::addressof(self));
+        assert(pos != nullptr && pos != std::addressof(node));
+    
+        auto self = std::addressof(node);
 
-        // pos - self
-        auto x = std::addressof(self);
-        pos->next(x);
-        pos->prev(x->prev());
-        x->prev()->next(pos);
-        x->prev(pos);
+        if (left)
+        {
+            // self - pos
+            self->prev(pos->prev());
+            self->next(pos);
+            pos->prev()->next(self);
+            pos->prev(self);
+        }
+        else
+        {
+            // pos - self
+            self->prev(pos);
+            self->next(pos->next());
+            pos->next()->prev(self);
+            pos->next(self);
+
+        }
     }
 
-    /**
-     * @brief Insert self before the given position node
-     * @param pos The position node before which self will be inserted
-     * 
-     * @note The node must not be linked to any other list.
-     */
-    template <typename Node>
-    constexpr void insert_before(this Node& self, std::type_identity_t<Node>* pos)
-    {
-        assert(pos != nullptr && pos != std::addressof(self));
-
-        // self - pos
-        auto x = std::addressof(self);
-        pos->prev(x);
-        pos->next(x->next());
-        x->next()->prev(pos);
-        x->next(pos);
-    }
 };
 
 /**

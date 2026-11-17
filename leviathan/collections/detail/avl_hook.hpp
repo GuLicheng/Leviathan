@@ -25,6 +25,11 @@ struct avl_hook : tree_node_interface
         balance = -1; 
     }
 
+    constexpr bool is_sentinel() const
+    {
+        return balance == -1;
+    }
+
     static constexpr int height(const avl_hook* node)
     {
         return node ? node->balance : 0;
@@ -44,7 +49,9 @@ struct avl_hook : tree_node_interface
 
     constexpr void link(bool insert_left, avl_hook* p, avl_hook& header)
     {
-        assert(this->balance == 1 && "The node should be a leaf node");
+        // assert(this->balance == 1 && "The node should be a leaf node");
+        balance = 1;
+
         this->insert_node_and_update_header(insert_left, p, header);
 
         // Rebalance
@@ -74,7 +81,7 @@ struct avl_hook : tree_node_interface
         }
     }
 
-    constexpr avl_hook* unlink(avl_hook& header)
+    constexpr void unlink(avl_hook& header)
     {
         auto [successor, child, child_parent] = this->replace_node_with_successor(header);
 
@@ -88,7 +95,6 @@ struct avl_hook : tree_node_interface
         }
 
         child_parent->avl_tree_rebalance_erase(&header);
-        return this;
     }
 
 private:
@@ -103,13 +109,13 @@ private:
         if (lh0 > rh0)
         {
             r->rotate_right(header->parent());
-            r->update_height();
-            r->parent()->update_height();
+            r->update_balance();
+            r->parent()->update_balance();
         }
 
         x->rotate_left(header->parent());
-        x->update_height();
-        x->parent()->update_height();
+        x->update_balance();
+        x->parent()->update_balance();
         return x->parent();
     }
 
@@ -123,13 +129,13 @@ private:
         if (lh0 < rh0)
         {
             l->rotate_left(header->parent());
-            l->update_height();
-            l->parent()->update_height();
+            l->update_balance();
+            l->parent()->update_balance();
         }
 
         x->rotate_right(header->parent());
-        x->update_height();
-        x->parent()->update_height();
+        x->update_balance();
+        x->parent()->update_balance();
         return x->parent();
     }
 
@@ -173,18 +179,9 @@ struct avl_checker
 {
     bool result = true;
 
-    void check(bool condition)
+    constexpr void check(bool condition)
     {
         if (!condition) result = false;
-    }
-
-    constexpr bool is_balanced(const avl_hook* root) const
-    {
-        if (root == nullptr) return true;
-
-        return std::abs(height(root->lchild()) - height(root->rchild())) <= 1 &&
-                is_balanced(root->lchild()) && 
-                is_balanced(root->rchild());
     }
 
     constexpr static int height(const avl_hook* root) 
@@ -205,11 +202,6 @@ struct avl_checker
 
             check(-1 <= diff && diff <= 1);
             check(node->balance == std::max(lh, rh) + 1);
-            
-            if (!node->rchild() && !node->lchild())
-            {
-                check(node->balance == 1);  // Leaf node
-            }
         }
     }
 
