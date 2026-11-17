@@ -2,6 +2,7 @@
 
 #include <leviathan/collections/core/node_interface.hpp>
 #include <leviathan/collections/core/container_interface.hpp>
+#include <leviathan/collections/core/drawer.hpp>
 #include <leviathan/collections/common.hpp>
 
 namespace cpp::collections::intrusive
@@ -65,8 +66,9 @@ struct tree_hook_iterator
 };
 
 template <std::meta::info MemberHook, typename Compare = std::less<>>
-class tree : public iterable_interface
+class tree : public iterable_interface, public row_drawer
 {
+    friend class row_drawer;
 
 public:
 
@@ -124,6 +126,12 @@ public:
     }
 
 private:
+
+    template <typename Self>
+    constexpr copy_const_to_ptr_t<Self, hook_type> header(this Self& self)
+    {
+        return std::addressof(self.m_anchor);
+    }
 
     constexpr void insert_node(hook_type* x, hook_type* px, hook_type* node)
     {
@@ -198,12 +206,6 @@ private:
         auto lp = from_hook<MemberHook>(lhs);
         auto rp = from_hook<MemberHook>(rhs);
         return m_compare(*lp, *rp);
-    }
-
-    template <typename Self>
-    constexpr copy_const_to_ptr_t<Self, hook_type> header(this Self& self)
-    {
-        return std::addressof(self.m_anchor);
     }
 
     Compare m_compare;

@@ -8,17 +8,19 @@
 #include <list>
 #include <leviathan/extc++/meta.hpp>
 #include <leviathan/collections/core/node_interface.hpp>
-
+#include <leviathan/collections/tree/avl_tree.hpp>
 
 
 int main()
 {
-    std::list<int> ls = {1, 2, 3};
+    cpp::collections::avl_treeset<int> tree;
 
-    static_assert(std::is_const_v<const int&&>);
-    static_assert(std::is_const_v<const int>);
+    for (int i = 0; i < 30; ++i)
+        tree.insert(i);
 
-    ls.sort();
+    std::cout << tree.draw();
+
+    
 }
 
 
