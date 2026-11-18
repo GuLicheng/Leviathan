@@ -355,7 +355,7 @@ public:
         return erase_by_key(key);
     }
 
-    const_iterator erase(const_iterator pos)
+    iterator erase(const_iterator pos)
     {
         auto ret = std::next(pos);
         erase_by_node(pos.base().link());

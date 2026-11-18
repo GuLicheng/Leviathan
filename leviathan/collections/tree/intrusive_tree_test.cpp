@@ -79,7 +79,18 @@ TEST_CASE("avltree")
     auto ids = avltree | std::views::transform(&Student::rank) | std::ranges::to<std::vector>();
     CHECK(std::ranges::is_sorted(ids));
 
-    std::cout << avltree.render_topdown(Student::Drawer()) << std::endl;
-}
+    // erase
+    avltree.clear();
 
+    for (auto& student : students)
+    {
+        avltree.insert(student);
+    }
+
+    std::cout << avltree.render_topdown(Student::Drawer()) << std::endl;
+    
+    for (auto it = avltree.begin(); it != avltree.end(); it = avltree.erase(it));
+
+    CHECK(avltree.size() == 0);
+}
 

@@ -89,10 +89,7 @@ public:
 
     constexpr tree(const Compare& compare) : m_compare(compare), m_size(0)
     {
-        header()->parent(nullptr);
-        header()->lchild(header());
-        header()->rchild(header());
-        header()->as_sentinel();
+        reset_header();
     }
 
     template <typename Self>
@@ -112,6 +109,14 @@ public:
         return m_size;
     }
 
+    constexpr iterator erase(const_iterator pos)
+    {
+        auto next = std::ranges::next(pos);
+        pos.base().current->unlink(m_anchor);
+        --m_size;
+        return next.base();
+    }
+
     constexpr std::pair<iterator, bool> insert(value_type& value)
     {
         auto hook = std::addressof(value.[:MemberHook:]);
@@ -125,7 +130,34 @@ public:
         return std::make_pair(iterator(x), false);
     }
 
+    // comp(node_val, key) => node_val < key
+    template <typename KeyType, typename KeyTypeKeyCompare>
+    constexpr iterator lower_bound(const KeyType& value, KeyTypeKeyCompare comp);
+
+    constexpr void clear()
+    {
+        clear_node(header()->parent());
+        m_size = 0;
+        reset_header();
+    }
+
 private:
+
+    constexpr void reset_header()
+    {
+        header()->parent(nullptr);
+        header()->lchild(header());
+        header()->rchild(header());
+        header()->as_sentinel();
+    }
+
+    constexpr void clear_node(hook_type* node)
+    {
+        if (!node) return;
+        clear_node(node->lchild());
+        clear_node(node->rchild());
+        node->reset();
+    }
 
     template <typename Self>
     constexpr copy_const_to_ptr_t<Self, hook_type> header(this Self& self)
