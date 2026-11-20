@@ -1,4 +1,5 @@
 #include <leviathan/collections/detail/avl_hook.hpp>
+#include <leviathan/collections/detail/red_black_hook.hpp>
 #include <leviathan/collections/tree/intrusive_tree.hpp>
 #include <iostream>
 #include <random>
@@ -10,8 +11,11 @@ struct Student
 
     std::string name;
 
-    [[=cpp::refl::tag("treehook")]]
-    cpp::collections::intrusive::avl_hook treehook;
+    [[=cpp::refl::tag("avlhook")]]
+    cpp::collections::intrusive::avl_hook avlhook;
+    
+    [[=cpp::refl::tag("redblackhook")]]
+    cpp::collections::intrusive::red_black_hook redblackhook;
 
     Student(size_t r, const std::string& n) : rank(r), name(n) {}
 
@@ -24,8 +28,14 @@ struct Student
     {
         static std::string operator()(const cpp::collections::intrusive::avl_hook* hookptr)
         {
-            auto& s = *cpp::collections::from_hook<^^Student::treehook>(const_cast<cpp::collections::intrusive::avl_hook*>(hookptr));
-            return std::format("{}|h={}", s.rank, s.treehook.balance);
+            auto& s = *cpp::collections::from_hook<^^Student::avlhook>(const_cast<cpp::collections::intrusive::avl_hook*>(hookptr));
+            return std::format("{}|h={}", s.rank, s.avlhook.balance);
+        }
+
+        static std::string operator()(const cpp::collections::intrusive::red_black_hook* hookptr)
+        {
+            auto& s = *cpp::collections::from_hook<^^Student::redblackhook>(const_cast<cpp::collections::intrusive::red_black_hook*>(hookptr));
+            return std::format("{}", s.rank);
         }
     };
 };
@@ -60,14 +70,18 @@ std::vector<Student> RandomStudents(size_t n)
 
 TEST_CASE("avltree")
 {
-    using AVLTree = cpp::collections::intrusive::tree<cpp::refl::search_tag(^^Student, "treehook")>;
+    using AVLTree = cpp::collections::intrusive::tree<cpp::refl::search_tag(^^Student, "avlhook")>;
+    using RBTree = cpp::collections::intrusive::tree<cpp::refl::search_tag(^^Student, "redblackhook")>;
 
     auto avltree = AVLTree{};
-    auto sources = RandomStudents(2000);
+    auto rbtree = RBTree{};
+
+    auto sources = RandomStudents(20);
 
     for (auto& student : sources)
     {
         avltree.insert(student);
+        rbtree.insert(student);
     }
 
     CHECK(cpp::collections::intrusive::detail::avl_checker{}(avltree.root()));
@@ -75,8 +89,14 @@ TEST_CASE("avltree")
     auto ids = avltree | std::views::transform(&Student::rank) | std::ranges::to<std::vector>();
     CHECK(std::ranges::is_sorted(ids));
 
-    auto render = cpp::collections::intrusive::detail::tree_mermaid_render();
+    auto render = cpp::collections::intrusive::detail::avl_mermaid_render();
     std::cout << render(avltree.root(), Student::Drawer()) << std::endl;
+
+    // Split line
+    std::cout << "--------------------" << std::endl;
+
+    auto rbrender = cpp::collections::intrusive::detail::red_black_mermaid_render();
+    std::cout << rbrender(rbtree.root(), Student::Drawer()) << std::endl;
 
     // erase
     avltree.clear();
@@ -85,9 +105,6 @@ TEST_CASE("avltree")
     {
         avltree.insert(student);
     }
-
-    // auto render = cpp::collections::intrusive::tree_ascii_render();
-    // std::cout << render.render_mermaid(avltree.root(), Student::Drawer()) << std::endl;
     
     for (auto it = avltree.begin(); it != avltree.end(); it = avltree.erase(it))
     {

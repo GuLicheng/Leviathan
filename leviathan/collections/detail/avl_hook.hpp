@@ -203,7 +203,7 @@ public:
     }
 };
 
-class tree_mermaid_render
+class avl_mermaid_render
 {
     // classDef red fill:#ff3333,stroke:#990000,color:#fff,width:42px,height:42px,font-size:12px
     // classDef black fill:#222222,stroke:#000000,color:#fff,width:42px,height:42px,font-size:12px

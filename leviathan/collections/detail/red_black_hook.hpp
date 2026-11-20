@@ -12,21 +12,12 @@ struct red_black_hook : tree_node_interface
     enum class red_black_color { red, black, sentinel };
 
     red_black_hook* links[3];
-    red_black_color color;
 
-    constexpr void init()
-    {
-        color = red_black_color::red;
-    }
+    red_black_color color;
 
     constexpr void as_sentinel()
     {
         color = red_black_color::sentinel;
-    }
-
-    constexpr void clone(const red_black_hook* x)
-    {
-        color = x->color;
     }
 
     constexpr bool is_sentinel() const
@@ -37,6 +28,7 @@ struct red_black_hook : tree_node_interface
     constexpr void link(bool insert_left, red_black_hook* p, red_black_hook& header)
     {
         this->insert_node_and_update_header(insert_left, p, header);
+        color = red_black_color::red;
 
         auto& root = header.parent();
         auto x = this;
@@ -102,7 +94,7 @@ struct red_black_hook : tree_node_interface
         header.color = red_black_color::sentinel;
     }
 
-    constexpr red_black_hook* unlink(red_black_hook& header)
+    constexpr void unlink(red_black_hook& header)
     {
         auto [successor, child, child_parent] = this->replace_node_with_successor(header);
 
@@ -197,9 +189,62 @@ struct red_black_hook : tree_node_interface
         }
 
         header.color = red_black_color::sentinel;
-        return successor;
     }
 
 };
+
+namespace detail
+{
+
+class red_black_mermaid_render
+{
+
+    template <typename ToString>
+    static constexpr void render_mermaid_impl(const red_black_hook* node, std::string& result, ToString to_string)
+    {
+        if (!node)
+        {
+            return;
+        }
+
+        auto addr = reinterpret_cast<uintptr_t>(node);
+        auto color = (node->color == red_black_hook::red_black_color::red) ? "red" : "black";
+        result += std::format("{}[\"{}\"]:::{}\n", addr, to_string(node), color);
+
+        if (node->lchild())
+        {
+            auto left = reinterpret_cast<uintptr_t>(node->lchild());
+            result += std::format("{} --> {}\n", addr, left);
+        }
+        
+        if (node->rchild())
+        {
+            auto right = reinterpret_cast<uintptr_t>(node->rchild());
+            result += std::format("{} --> {}\n", addr, right);
+        }
+        
+        render_mermaid_impl(node->lchild(), result, to_string);
+        render_mermaid_impl(node->rchild(), result, to_string);
+    }
+
+public:
+
+    template <typename ToString>
+    static constexpr std::string operator()(const red_black_hook* root, ToString to_string)
+    {
+        std::string result = "```mermaid\nflowchart TD\n";
+        
+        result += "classDef red fill:#ff3333,stroke:#990000,color:#ffffff\n";
+        result += "classDef black fill:#222222,stroke:#000000,color:#ffffff\n";
+
+        render_mermaid_impl(root, result, to_string);
+        result += "```";
+        return result;
+    }
+
+};
+
+
+}  // namespace detail
 
 }  // namespace cpp::collections::intrusive
