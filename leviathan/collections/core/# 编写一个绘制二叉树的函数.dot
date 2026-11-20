@@ -1,0 +1,40 @@
+```mermaid
+graph TD
+1909587373536["key=4|height=(3)"]
+1909587373536 --> 1909587373392
+1909587373536 --> 1909587373680
+1909587373392["key=2|height=(2)"]
+1909587373392 --> 1909587373320
+1909587373392 --> 1909587373464
+1909587373320["key=1|height=(1)"]
+1909587373464["key=3|height=(1)"]
+1909587373680["key=6|height=(2)"]
+1909587373680 --> 1909587373608
+1909587373680 --> 1909587373752
+1909587373608["key=5|height=(1)"]
+1909587373752["key=7|height=(1)"]
+```
+
+```graphviz
+digraph skiplist {
+    rankdir=LR;
+    node [shape=box];
+    subgraph cluster_2 {
+        rank=same;
+        h2 [label="HEAD"]; n2_5 [label="5"]; n2_25 [label="25"]; nil2 [label="NIL"];
+    }
+    subgraph cluster_1 {
+        rank=same;
+        h1 [label="HEAD"]; n1_3 [label="3"]; n1_5 [label="5"]; n1_9 [label="9"]; n1_25 [label="25"]; nil1 [label="NIL"];
+    }
+    subgraph cluster_0 {
+        rank=same;
+        h0 [label="HEAD"]; n0_1 [label="1"]; n0_3 [label="3"]; n0_5 [label="5"]; n0_7 [label="7"]; n0_9 [label="9"]; n0_18 [label="18"]; n0_25 [label="25"]; nil0 [label="NIL"];
+    }
+    h2 -> n2_5 -> n2_25 -> nil2;
+    h1 -> n1_3 -> n1_5 -> n1_9 -> n1_25 -> nil1;
+    h0 -> n0_1 -> n0_3 -> n0_5 -> n0_7 -> n0_9 -> n0_18 -> n0_25 -> nil0;
+    n2_5 -> n1_5 -> n0_5 [style=dashed];
+    n2_25 -> n1_25 -> n0_25 [style=dashed];
+}
+```

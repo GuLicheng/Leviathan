@@ -13,12 +13,6 @@ struct avl_hook : tree_node_interface
     
     int balance;
 
-    constexpr void init() 
-    {
-        // The leaf node has a balance of 1
-        balance = 1; 
-    }
-
     constexpr void as_sentinel() 
     { 
         // Sentinel nodes have a balance of -1
@@ -28,23 +22,6 @@ struct avl_hook : tree_node_interface
     constexpr bool is_sentinel() const
     {
         return balance == -1;
-    }
-
-    static constexpr int height(const avl_hook* node)
-    {
-        return node ? node->balance : 0;
-    }
-
-    constexpr void update_balance()
-    {
-        balance = 1 + std::max(height(lchild()), height(rchild()));
-    }
-
-    constexpr avl_hook clone() const
-    {
-        auto copy = *this;
-        copy.reset();
-        return copy;
     }
 
     constexpr void link(bool insert_left, avl_hook* p, avl_hook& header)
@@ -98,6 +75,16 @@ struct avl_hook : tree_node_interface
     }
 
 private:
+
+    static constexpr int height(const avl_hook* node)
+    {
+        return node ? node->balance : 0;
+    }
+
+    constexpr void update_balance()
+    {
+        balance = 1 + std::max(height(lchild()), height(rchild()));
+    }
 
     constexpr avl_hook* avl_tree_fix_l(avl_hook* header)
     {
@@ -186,7 +173,7 @@ struct avl_checker
 
     constexpr static int height(const avl_hook* root) 
     {
-        return avl_hook::height(root);
+        return root ? root->balance : 0;
     }
 
     constexpr void traverse(const avl_hook* node) 

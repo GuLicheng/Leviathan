@@ -9,32 +9,38 @@
 namespace cpp::collections::intrusive
 {
 
-struct tree_ascii_render
+class tree_ascii_render
 {
-    template <typename Self, typename ToString>
-    constexpr std::string render_topdown(this const Self& self, ToString to_string)
-    {
-        auto root = self.header()->parent();
+    
+public:
 
+    template <typename Node, typename ToString>
+    static constexpr std::string render_topdown(const Node* root, ToString to_string)
+    {
         if (!root)
         {
             return "<empty tree>";
         }
-
-        auto [lines, _, __] = recurse(root, to_string);
+        auto [lines, _, __] = render_topdown_impl(root, to_string);
         return lines | std::views::join_with('\n') | std::ranges::to<std::string>();
     }
 
-    template <typename Self, typename ToString>
-    constexpr std::string render_leftright(this const Self& self, ToString to_string)
+    template <typename Node, typename ToString>
+    static constexpr std::string render_leftright(const Node* root, ToString to_string)
     {
-        return "";
+        if (!root)
+        {
+            return "<empty tree>";
+        }
+        std::string result;
+        render_leftright_impl(root, "", true, result, to_string);
+        return result;
     }
 
 private:
 
     template <typename Node, typename ToString>
-    static constexpr std::tuple<std::vector<std::string>, int, int> recurse(const Node* node, ToString to_string)
+    static constexpr std::tuple<std::vector<std::string>, int, int> render_topdown_impl(const Node* node, ToString to_string)
     {
         if (!node)
         {
@@ -42,8 +48,8 @@ private:
         }
 
         auto label = to_string(node);
-        auto [left_lines, left_pos, left_width] = recurse(node->lchild(), to_string);
-        auto [right_lines, right_pos, right_width] = recurse(node->rchild(), to_string);
+        auto [left_lines, left_pos, left_width] = render_topdown_impl(node->lchild(), to_string);
+        auto [right_lines, right_pos, right_width] = render_topdown_impl(node->rchild(), to_string);
         auto middle = std::ranges::max({ right_pos + left_width - left_pos + 1, 2, (int)label.size() });
         auto pos = left_pos + middle / 2;
         auto width = left_pos + middle + right_width - right_pos;
@@ -62,17 +68,17 @@ private:
             && (node->parent() && node->parent()->lchild() == node)
             && ((int)label.size() < middle))
         {
-            label += '.';
+            label += '_';
         }
 
-        label = center(label, middle, '.');
+        label = center(label, middle, '_');
 
-        if (label.front() == '.')
+        if (label.front() == '_')
         {
             label.front() = ' ';
         }
 
-        if (label.back() == '.')
+        if (label.back() == '_')
         {
             label.back() = ' ';
         }
@@ -102,7 +108,7 @@ private:
     }
 
     // See python.string.center
-    static std::string center(const std::string& text, int width, char filler_character = ' ')
+    static constexpr std::string center(const std::string& text, int width, char filler_character = ' ')
     {
         if ((int)text.size() >= width)
         {
@@ -116,42 +122,58 @@ private:
         return std::string(left, filler_character) + text + std::string(right, filler_character);
     }
 
-};
-
-struct column_drawer
-{
-    template <typename Self>
-    std::string draw(this const Self& self)
-    {
-        auto root = self.header()->parent();
-
-        if (!root)
-        {
-            return "<empty tree>";
-        }
-
-        std::string result;
-        recurse2<typename Self::tree_node>(root, "", true, result);
-        return result;
-    }
-
-private:
-
     // https://stackoverflow.com/questions/36802354/print-binary-tree-in-a-pretty-way-using-c
-    template <typename D, typename Node>
-    static void recurse2(const Node* node, std::string prefix, bool is_left, std::string& result)
+    template <typename Node, typename ToString>
+    static constexpr void render_leftright_impl(const Node* node, std::string prefix, bool is_left, std::string& result, ToString to_string)
     {
         if (node)
         {
             // (│   ,├──,└──,    )
-            result += std::format("{}{}{}\n", prefix, (is_left ? "|--" : "L--"), static_cast<const D*>(node)->value());
-
-            recurse2<D>(node->lchild(), prefix + (is_left ? "|   " : "    "), true, result);
-            recurse2<D>(node->rchild(), prefix + (is_left ? "|   " : "    "), false, result);
+            result += std::format("{}{}{}\n", prefix, (is_left ? "|--" : "L--"), to_string(node));
+            render_leftright_impl(node->lchild(), prefix + (is_left ? "|   " : "    "), true, result, to_string);
+            render_leftright_impl(node->rchild(), prefix + (is_left ? "|   " : "    "), false, result, to_string);
         }
     }
 };
 
+class tree_mermaid_render
+{
 
+    template <typename Node, typename ToString>
+    static constexpr void render_mermaid_impl(const Node* node, std::string& result, ToString to_string)
+    {
+        if (!node)
+        {
+            return;
+        }
+        auto addr = reinterpret_cast<uintptr_t>(node);
+        result += std::format("{}[\"{}\"]\n", addr, to_string(node));
+        if (node->lchild())
+        {
+            auto left = reinterpret_cast<uintptr_t>(node->lchild());
+            result += std::format("{} --> {}\n", addr, left);
+        }
+        if (node->rchild())
+        {
+            auto right = reinterpret_cast<uintptr_t>(node->rchild());
+            result += std::format("{} --> {}\n", addr, right);
+        }
+        render_mermaid_impl(node->lchild(), result, to_string);
+        render_mermaid_impl(node->rchild(), result, to_string);
+    }
+
+public:
+
+    template <typename Node, typename ToString>
+    static constexpr std::string render_mermaid(const Node* root, ToString to_string)
+    {
+        std::string result = "```mermaid\nflowchart TD\n";
+        int id = 0;
+        render_mermaid_impl(root, result, to_string);
+        result += "```";
+        return result;
+    }
+
+};
 
 }  // namespace cpp::collections::intrusive

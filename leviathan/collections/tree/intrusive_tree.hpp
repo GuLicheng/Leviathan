@@ -141,6 +141,12 @@ public:
         reset_header();
     }
 
+    template <typename Self>
+    constexpr copy_const_to_ptr_t<Self, hook_type> root(this Self& self)
+    {
+        return self.header()->parent();
+    }
+
 private:
 
     constexpr void reset_header()
