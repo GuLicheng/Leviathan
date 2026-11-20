@@ -188,6 +188,7 @@ class avl_checker
             int diff = lh - rh;
 
             check(-1 <= diff && diff <= 1);
+            check(lh >= 0 && rh >= 0);
             check(node->balance == std::max(lh, rh) + 1);
         }
     }

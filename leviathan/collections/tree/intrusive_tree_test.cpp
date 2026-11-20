@@ -63,25 +63,20 @@ TEST_CASE("avltree")
     using AVLTree = cpp::collections::intrusive::tree<cpp::refl::search_tag(^^Student, "treehook")>;
 
     auto avltree = AVLTree{};
-    auto sources = RandomStudents(20);
+    auto sources = RandomStudents(2000);
 
     for (auto& student : sources)
     {
         avltree.insert(student);
     }
 
-    // Get the root of the AVL tree from the anchor node using std::meta::info to avoid private member access checking
-    constexpr auto info = cpp::refl::member_named(^^AVLTree, "m_anchor");
-    auto root = avltree.[:info:].parent();
-
-    CHECK(cpp::collections::intrusive::detail::avl_checker{}(root));
+    CHECK(cpp::collections::intrusive::detail::avl_checker{}(avltree.root()));
 
     auto ids = avltree | std::views::transform(&Student::rank) | std::ranges::to<std::vector>();
     CHECK(std::ranges::is_sorted(ids));
 
     auto render = cpp::collections::intrusive::detail::tree_mermaid_render();
     std::cout << render(avltree.root(), Student::Drawer()) << std::endl;
-
 
     // erase
     avltree.clear();
@@ -94,7 +89,13 @@ TEST_CASE("avltree")
     // auto render = cpp::collections::intrusive::tree_ascii_render();
     // std::cout << render.render_mermaid(avltree.root(), Student::Drawer()) << std::endl;
     
-    for (auto it = avltree.begin(); it != avltree.end(); it = avltree.erase(it));
+    for (auto it = avltree.begin(); it != avltree.end(); it = avltree.erase(it))
+    {
+        if (std::popcount(avltree.size()) == 1)
+        {
+            CHECK(cpp::collections::intrusive::detail::avl_checker{}(avltree.root()));
+        }
+    }
 
     CHECK(avltree.size() == 0);
 }

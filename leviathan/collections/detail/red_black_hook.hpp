@@ -1,9 +1,10 @@
 #pragma once
 
+#include <leviathan/collections/core/node_interface.hpp>
+
 namespace cpp::collections::intrusive
 {
 
-#if 0
 struct red_black_hook : tree_node_interface
 {
     // The header node of the red‑black tree is marked as a 
@@ -200,6 +201,5 @@ struct red_black_hook : tree_node_interface
     }
 
 };
-#endif
 
 }  // namespace cpp::collections::intrusive
