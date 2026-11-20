@@ -79,8 +79,8 @@ TEST_CASE("avltree")
     auto ids = avltree | std::views::transform(&Student::rank) | std::ranges::to<std::vector>();
     CHECK(std::ranges::is_sorted(ids));
 
-    auto render = cpp::collections::intrusive::tree_mermaid_render();
-    std::cout << render.render_mermaid(avltree.root(), Student::Drawer()) << std::endl;
+    auto render = cpp::collections::intrusive::detail::tree_mermaid_render();
+    std::cout << render(avltree.root(), Student::Drawer()) << std::endl;
 
 
     // erase

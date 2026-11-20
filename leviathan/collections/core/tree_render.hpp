@@ -14,7 +14,7 @@ class tree_ascii_render
     
 public:
 
-    template <typename Node, typename ToString>
+    template <std::derived_from<tree_node_interface> Node, typename ToString>
     static constexpr std::string render_topdown(const Node* root, ToString to_string)
     {
         if (!root)
@@ -25,7 +25,7 @@ public:
         return lines | std::views::join_with('\n') | std::ranges::to<std::string>();
     }
 
-    template <typename Node, typename ToString>
+    template <std::derived_from<tree_node_interface> Node, typename ToString>
     static constexpr std::string render_leftright(const Node* root, ToString to_string)
     {
         if (!root)
@@ -39,7 +39,7 @@ public:
 
 private:
 
-    template <typename Node, typename ToString>
+    template <std::derived_from<tree_node_interface> Node, typename ToString>
     static constexpr std::tuple<std::vector<std::string>, int, int> render_topdown_impl(const Node* node, ToString to_string)
     {
         if (!node)
@@ -123,7 +123,7 @@ private:
     }
 
     // https://stackoverflow.com/questions/36802354/print-binary-tree-in-a-pretty-way-using-c
-    template <typename Node, typename ToString>
+    template <std::derived_from<tree_node_interface> Node, typename ToString>
     static constexpr void render_leftright_impl(const Node* node, std::string prefix, bool is_left, std::string& result, ToString to_string)
     {
         if (node)
@@ -134,46 +134,6 @@ private:
             render_leftright_impl(node->rchild(), prefix + (is_left ? "|   " : "    "), false, result, to_string);
         }
     }
-};
-
-class tree_mermaid_render
-{
-
-    template <typename Node, typename ToString>
-    static constexpr void render_mermaid_impl(const Node* node, std::string& result, ToString to_string)
-    {
-        if (!node)
-        {
-            return;
-        }
-        auto addr = reinterpret_cast<uintptr_t>(node);
-        result += std::format("{}[\"{}\"]\n", addr, to_string(node));
-        if (node->lchild())
-        {
-            auto left = reinterpret_cast<uintptr_t>(node->lchild());
-            result += std::format("{} --> {}\n", addr, left);
-        }
-        if (node->rchild())
-        {
-            auto right = reinterpret_cast<uintptr_t>(node->rchild());
-            result += std::format("{} --> {}\n", addr, right);
-        }
-        render_mermaid_impl(node->lchild(), result, to_string);
-        render_mermaid_impl(node->rchild(), result, to_string);
-    }
-
-public:
-
-    template <typename Node, typename ToString>
-    static constexpr std::string render_mermaid(const Node* root, ToString to_string)
-    {
-        std::string result = "```mermaid\nflowchart TD\n";
-        int id = 0;
-        render_mermaid_impl(root, result, to_string);
-        result += "```";
-        return result;
-    }
-
 };
 
 }  // namespace cpp::collections::intrusive

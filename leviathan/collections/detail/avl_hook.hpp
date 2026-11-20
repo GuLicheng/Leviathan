@@ -162,13 +162,13 @@ private:
 namespace detail
 {
 
-struct avl_checker
+class avl_checker
 {
-    bool result = true;
+    bool m_result = true;
 
     constexpr void check(bool condition)
     {
-        if (!condition) result = false;
+        if (!condition) m_result = false;
     }
 
     constexpr static int height(const avl_hook* root) 
@@ -192,12 +192,60 @@ struct avl_checker
         }
     }
 
+public:
+
     constexpr bool operator()(const avl_hook* p) 
     {
-        result = true;
+        m_result = true;
         traverse(p);
+        return m_result;
+    }
+};
+
+class tree_mermaid_render
+{
+    // classDef red fill:#ff3333,stroke:#990000,color:#fff,width:42px,height:42px,font-size:12px
+    // classDef black fill:#222222,stroke:#000000,color:#fff,width:42px,height:42px,font-size:12px
+
+    template <typename ToString>
+    static constexpr void render_mermaid_impl(const avl_hook* node, std::string& result, ToString to_string)
+    {
+        if (!node)
+        {
+            return;
+        }
+
+        auto addr = reinterpret_cast<uintptr_t>(node);
+        result += std::format("{}[\"{}\"]\n", addr, to_string(node));
+
+        if (node->lchild())
+        {
+            auto left = reinterpret_cast<uintptr_t>(node->lchild());
+            result += std::format("{} --> {}\n", addr, left);
+        }
+        
+        if (node->rchild())
+        {
+            auto right = reinterpret_cast<uintptr_t>(node->rchild());
+            result += std::format("{} --> {}\n", addr, right);
+        }
+        
+        render_mermaid_impl(node->lchild(), result, to_string);
+        render_mermaid_impl(node->rchild(), result, to_string);
+    }
+
+public:
+
+    template <typename ToString>
+    static constexpr std::string operator()(const avl_hook* root, ToString to_string)
+    {
+        std::string result = "```mermaid\nflowchart TD\n";
+        int id = 0;
+        render_mermaid_impl(root, result, to_string);
+        result += "```";
         return result;
     }
+
 };
 
 }  // namespace detail

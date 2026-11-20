@@ -66,9 +66,8 @@ struct tree_hook_iterator
 };
 
 template <std::meta::info MemberHook, typename Compare = std::less<>>
-class tree : public iterable_interface, public tree_ascii_render
+class tree : public iterable_interface
 {
-    friend class tree_ascii_render;
 
 public:
 
@@ -85,7 +84,7 @@ public:
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-    constexpr tree() : tree(Compare{}) { }
+    constexpr tree() : tree(Compare()) { }
 
     constexpr tree(const Compare& compare) : m_compare(compare), m_size(0)
     {
