@@ -5,6 +5,11 @@
 #include <random>
 #include <catch2/catch_all.hpp>
 
+using cpp::collections::intrusive::avl_hook;
+using cpp::collections::intrusive::red_black_hook;
+using cpp::collections::intrusive::tree;
+using cpp::collections::from_hook;
+
 struct Student
 {
     size_t rank;
@@ -12,10 +17,10 @@ struct Student
     std::string name;
 
     [[=cpp::refl::tag("avlhook")]]
-    cpp::collections::intrusive::avl_hook avlhook;
+    avl_hook avlhook;
     
     [[=cpp::refl::tag("redblackhook")]]
-    cpp::collections::intrusive::red_black_hook redblackhook;
+    red_black_hook redblackhook;
 
     Student(size_t r, const std::string& n) : rank(r), name(n) {}
 
@@ -26,15 +31,15 @@ struct Student
 
     struct Drawer
     {
-        static std::string operator()(const cpp::collections::intrusive::avl_hook* hookptr)
+        static std::string operator()(const avl_hook* hookptr)
         {
-            auto& s = *cpp::collections::from_hook<^^Student::avlhook>(const_cast<cpp::collections::intrusive::avl_hook*>(hookptr));
+            auto& s = *from_hook<^^Student::avlhook>(const_cast<avl_hook*>(hookptr));
             return std::format("{}|h={}", s.rank, s.avlhook.balance);
         }
 
-        static std::string operator()(const cpp::collections::intrusive::red_black_hook* hookptr)
+        static std::string operator()(const red_black_hook* hookptr)
         {
-            auto& s = *cpp::collections::from_hook<^^Student::redblackhook>(const_cast<cpp::collections::intrusive::red_black_hook*>(hookptr));
+            auto& s = *from_hook<^^Student::redblackhook>(const_cast<red_black_hook*>(hookptr));
             return std::format("{}", s.rank);
         }
     };
@@ -70,8 +75,8 @@ std::vector<Student> RandomStudents(size_t n)
 
 TEST_CASE("avltree")
 {
-    using AVLTree = cpp::collections::intrusive::tree<cpp::refl::search_tag(^^Student, "avlhook")>;
-    using RBTree = cpp::collections::intrusive::tree<cpp::refl::search_tag(^^Student, "redblackhook")>;
+    using AVLTree = tree<cpp::refl::search_tag(^^Student, "avlhook")>;
+    using RBTree = tree<cpp::refl::search_tag(^^Student, "redblackhook")>;
 
     auto avltree = AVLTree{};
     auto rbtree = RBTree{};
