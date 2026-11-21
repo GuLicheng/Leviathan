@@ -28,6 +28,7 @@ struct avl_hook : tree_node_interface
     {
         // assert(this->balance == 1 && "The node should be a leaf node");
         this->insert_node_and_update_header(insert_left, p, header);
+        
         balance = 1;
 
         // Rebalance

@@ -149,7 +149,7 @@ TEST_CASE("avltree")
     auto rbtree = RBTree{};
     auto treap = Treap{};
 
-    auto sources = RandomStudents(20000);  
+    auto sources = RandomStudents(100'000);  
 
     // for (auto& student : students)
     for (auto& student : sources)
@@ -185,17 +185,17 @@ TEST_CASE("avltree")
     // for (auto& student : students)
     { 
         // visualizer.line("Inserting student with rank: " + std::to_string(student.rank));
-        // avltree.insert(student);
-        rbtree.insert(student);
         // visualizer.draw(red_black_mermaid_render(), rbtree.root());
+        avltree.insert(student);
+        rbtree.insert(student);
         treap.insert(student);
     }
 
-    // RemoveNodeFromTree(avltree, avl_checker{});
+    RemoveNodeFromTree(avltree, avl_checker{});
     RemoveNodeFromTree(rbtree, red_black_checker{});
     RemoveNodeFromTree(treap, treap_checker{});
 
-    // visualizer.draw(avl_mermaid_render(), avltree.root());
+    visualizer.draw(avl_mermaid_render(), avltree.root());
     visualizer.draw(red_black_mermaid_render(), rbtree.root());
     visualizer.draw(treap_mermaid_render(), treap.root());
 }
