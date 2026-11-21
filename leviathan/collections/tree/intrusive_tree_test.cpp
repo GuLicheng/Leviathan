@@ -1,12 +1,16 @@
 #include <leviathan/collections/detail/avl_hook.hpp>
 #include <leviathan/collections/detail/red_black_hook.hpp>
+#include <leviathan/collections/detail/treap_hook.hpp>
 #include <leviathan/collections/tree/intrusive_tree.hpp>
 #include <iostream>
+#include <fstream>
+#include <algorithm>
 #include <random>
 #include <catch2/catch_all.hpp>
 
 using cpp::collections::intrusive::avl_hook;
 using cpp::collections::intrusive::red_black_hook;
+using cpp::collections::intrusive::treap_hook;
 using cpp::collections::intrusive::tree;
 using cpp::collections::from_hook;
 
@@ -22,6 +26,9 @@ struct Student
     [[=cpp::refl::tag("redblackhook")]]
     red_black_hook redblackhook;
 
+    [[=cpp::refl::tag("treaphook")]]
+    treap_hook treaphook;
+    
     Student(size_t r, const std::string& n) : rank(r), name(n) {}
 
     bool operator<(const Student& other) const
@@ -41,6 +48,12 @@ struct Student
         {
             auto& s = *from_hook<^^Student::redblackhook>(const_cast<red_black_hook*>(hookptr));
             return std::format("{}", s.rank);
+        }
+
+        static std::string operator()(const treap_hook* hookptr)
+        {
+            auto& s = *from_hook<^^Student::treaphook>(const_cast<treap_hook*>(hookptr));
+            return std::format("{}|p={}", s.rank, s.treaphook.priority);
         }
     };
 };
@@ -73,20 +86,41 @@ std::vector<Student> RandomStudents(size_t n)
     return result;
 }
 
+class Visualizer
+{
+    std::ofstream visual;
+    
+public:
+
+    Visualizer(const std::string& filename) : visual(filename, std::ios::out | std::ios::binary) {}
+
+    template <typename Render, typename Node>
+    void draw(const Render& render, const Node* node)
+    {
+        visual << render(node, Student::Drawer()) << std::endl;
+        visual << "\n--------------------\n" << std::endl;
+    }
+
+};
+
 TEST_CASE("avltree")
 {
     using AVLTree = tree<cpp::refl::search_tag(^^Student, "avlhook")>;
     using RBTree = tree<cpp::refl::search_tag(^^Student, "redblackhook")>;
+    using Treap = tree<cpp::refl::search_tag(^^Student, "treaphook")>;
 
     auto avltree = AVLTree{};
     auto rbtree = RBTree{};
+    auto treap = Treap{};
 
-    auto sources = RandomStudents(200);
+    auto sources = RandomStudents(2000);
 
-    for (auto& student : sources)
+    for (auto& student : students)
+    // for (auto& student : sources)
     {
         avltree.insert(student);
         rbtree.insert(student);
+        treap.insert(student);
     }
 
     CHECK(cpp::collections::intrusive::detail::avl_checker{}(avltree.root()));
@@ -94,29 +128,32 @@ TEST_CASE("avltree")
 
     auto ids1 = avltree | std::views::transform(&Student::rank) | std::ranges::to<std::vector>();
     auto ids2 = rbtree | std::views::transform(&Student::rank) | std::ranges::to<std::vector>();
+    auto ids3 = treap | std::views::transform(&Student::rank) | std::ranges::to<std::vector>();
+
     CHECK(std::ranges::is_sorted(ids1));
     CHECK(std::ranges::is_sorted(ids2));
+    CHECK(std::ranges::is_sorted(ids3));
 
-    auto render = cpp::collections::intrusive::detail::avl_mermaid_render();
-    std::cout << render(avltree.root(), Student::Drawer()) << std::endl;
+    auto visualizer = Visualizer("E:\\Library\\Leviathan\\visual.md");
 
-    // Split line
-    std::cout << "--------------------" << std::endl;
-
-    auto rbrender = cpp::collections::intrusive::detail::red_black_mermaid_render();
-    std::cout << rbrender(rbtree.root(), Student::Drawer()) << std::endl;
+    visualizer.draw(cpp::collections::intrusive::detail::avl_mermaid_render(), avltree.root());
+    visualizer.draw(cpp::collections::intrusive::detail::red_black_mermaid_render(), rbtree.root());
+    visualizer.draw(cpp::collections::intrusive::detail::treap_mermaid_render(), treap.root());
 
     // erase
     avltree.clear();
     rbtree.clear();
+    treap.clear();
 
     CHECK(avltree.size() == 0);
     CHECK(rbtree.size() == 0);
+    CHECK(treap.size() == 0);
 
     for (auto& student : sources)
     {
-        // avltree.insert(student);
-        // rbtree.insert(student);
+        avltree.insert(student);
+        rbtree.insert(student);
+        treap.insert(student);
     }
     
     for (auto it = avltree.begin(); it != avltree.end(); it = avltree.erase(it))
@@ -127,14 +164,28 @@ TEST_CASE("avltree")
         }
     }
 
-    // for (auto it = rbtree.begin(); it != rbtree.end(); it = rbtree.erase(it))
-    // {
-    //     if (std::popcount(rbtree.size()) == 1)
-    //     {
-    //         CHECK(cpp::collections::intrusive::detail::red_black_checker{}(rbtree.root()));
-    //     }
-    // }
+    for (auto it = rbtree.begin(); it != rbtree.end(); it = rbtree.erase(it))
+    {
+        if (std::popcount(rbtree.size()) == 1)
+        {
+            CHECK(cpp::collections::intrusive::detail::red_black_checker{}(rbtree.root()));
+        }
+    }
 
+    for (auto it = treap.begin(); it != treap.end(); it = treap.erase(it))
+    {
+        if (std::popcount(treap.size()) == 1)
+        {
+            CHECK(cpp::collections::intrusive::detail::treap_checker{}(treap.root()));
+        }
+    }
 
+    CHECK(avltree.size() == 0);
+    CHECK(rbtree.size() == 0);
+    CHECK(treap.size() == 0);
+
+    visualizer.draw(cpp::collections::intrusive::detail::avl_mermaid_render(), avltree.root());
+    visualizer.draw(cpp::collections::intrusive::detail::red_black_mermaid_render(), rbtree.root());
+    visualizer.draw(cpp::collections::intrusive::detail::treap_mermaid_render(), treap.root());
 }
 

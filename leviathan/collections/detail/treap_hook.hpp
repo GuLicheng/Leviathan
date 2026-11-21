@@ -1,5 +1,6 @@
 #pragma once
 
+#include <random>
 #include <leviathan/collections/core/node_interface.hpp>
 
 namespace cpp::collections::intrusive
@@ -88,7 +89,7 @@ struct treap_hook : tree_node_interface
 private:
 
     static constexpr size_t lower = 0;
-    
+
     static constexpr size_t upper = std::numeric_limits<size_t>::max();
 
     inline static std::mt19937 engine{ std::random_device{}() };
@@ -100,5 +101,72 @@ private:
     }
 
 };
+
+namespace detail
+{
+
+class treap_checker
+{
+public:
+    static constexpr bool operator()(const treap_hook* root)
+    {
+        if (!root) return true;
+        if (root->lchild() && root->lchild()->priority > root->priority) return false;
+        if (root->rchild() && root->rchild()->priority > root->priority) return false;
+        return operator()(root->lchild()) && operator()(root->rchild());
+    }
+};
+
+class treap_mermaid_render
+{
+    template <typename ToString>
+    static constexpr void render_mermaid_impl(const treap_hook* node, std::string& result, ToString to_string)
+    {
+        if (!node)
+        {
+            return;
+        }
+
+        auto addr = reinterpret_cast<uintptr_t>(node);
+        result += std::format("{}[\"{}\"]\n", addr, to_string(node));
+
+        if (node->lchild())
+        {
+            auto left = reinterpret_cast<uintptr_t>(node->lchild());
+            result += std::format("{} --> {}\n", addr, left);
+        }
+        
+        if (node->rchild())
+        {
+            auto right = reinterpret_cast<uintptr_t>(node->rchild());
+            result += std::format("{} --> {}\n", addr, right);
+        }
+        
+        render_mermaid_impl(node->lchild(), result, to_string);
+        render_mermaid_impl(node->rchild(), result, to_string);
+    }
+
+public:
+
+    template <typename ToString>
+    static constexpr std::string operator()(const treap_hook* root, ToString to_string)
+    {
+        if (!root)
+            return "```mermaid\n"
+                   "flowchart TD\n"
+                   "    classDef nil fill:#fff,stroke:#333,stroke-dasharray:4 4\n"
+                   "    N[∅]:::nil\n"
+                   "```";
+
+        std::string result = "```mermaid\nflowchart TD\n";
+        render_mermaid_impl(root, result, to_string);
+        result += "```";
+        return result;
+    }
+
+};
+
+}  // namespace detail
+
 
 }  // namespace cpp::collections::intrusive

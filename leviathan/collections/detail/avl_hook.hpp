@@ -204,9 +204,6 @@ public:
 
 class avl_mermaid_render
 {
-    // classDef red fill:#ff3333,stroke:#990000,color:#fff,width:42px,height:42px,font-size:12px
-    // classDef black fill:#222222,stroke:#000000,color:#fff,width:42px,height:42px,font-size:12px
-
     template <typename ToString>
     static constexpr void render_mermaid_impl(const avl_hook* node, std::string& result, ToString to_string)
     {
@@ -239,8 +236,14 @@ public:
     template <typename ToString>
     static constexpr std::string operator()(const avl_hook* root, ToString to_string)
     {
+        if (!root)
+            return "```mermaid\n"
+                   "flowchart TD\n"
+                   "    classDef nil fill:#fff,stroke:#333,stroke-dasharray:4 4\n"
+                   "    N[∅]:::nil\n"
+                   "```";
+
         std::string result = "```mermaid\nflowchart TD\n";
-        int id = 0;
         render_mermaid_impl(root, result, to_string);
         result += "```";
         return result;

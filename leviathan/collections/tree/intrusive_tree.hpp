@@ -161,7 +161,8 @@ private:
         if (!node) return;
         clear_node(node->lchild());
         clear_node(node->rchild());
-        node->reset();
+        // node->reset();
+        node->unlink(m_anchor);
     }
 
     template <typename Self>

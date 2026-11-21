@@ -231,6 +231,13 @@ public:
     template <typename ToString>
     static constexpr std::string operator()(const red_black_hook* root, ToString to_string)
     {
+        if (!root)
+            return "```mermaid\n"
+                   "flowchart TD\n"
+                   "    classDef nil fill:#fff,stroke:#333,stroke-dasharray:4 4\n"
+                   "    N[∅]:::nil\n"
+                   "```";
+
         std::string result = "```mermaid\nflowchart TD\n";
         
         result += "classDef red fill:#ff3333,stroke:#990000,color:#ffffff\n";
