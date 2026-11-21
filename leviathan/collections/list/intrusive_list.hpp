@@ -1,6 +1,6 @@
 #pragma once
 
-#include <leviathan/collections/detail/list_hook.hpp>
+#include <leviathan/collections/hook/list_hook.hpp>
 
 namespace cpp::collections::intrusive
 {
