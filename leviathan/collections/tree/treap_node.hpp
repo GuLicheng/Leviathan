@@ -121,6 +121,7 @@ struct treap_node : binary_node_operation
 
         return x;
     }
+
 };
 
 using default_treap_node = treap_node<>;

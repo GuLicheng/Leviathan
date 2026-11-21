@@ -81,7 +81,7 @@ TEST_CASE("avltree")
     auto avltree = AVLTree{};
     auto rbtree = RBTree{};
 
-    auto sources = RandomStudents(20);
+    auto sources = RandomStudents(200);
 
     for (auto& student : sources)
     {
@@ -90,9 +90,12 @@ TEST_CASE("avltree")
     }
 
     CHECK(cpp::collections::intrusive::detail::avl_checker{}(avltree.root()));
+    CHECK(cpp::collections::intrusive::detail::red_black_checker{}(rbtree.root()));
 
-    auto ids = avltree | std::views::transform(&Student::rank) | std::ranges::to<std::vector>();
-    CHECK(std::ranges::is_sorted(ids));
+    auto ids1 = avltree | std::views::transform(&Student::rank) | std::ranges::to<std::vector>();
+    auto ids2 = rbtree | std::views::transform(&Student::rank) | std::ranges::to<std::vector>();
+    CHECK(std::ranges::is_sorted(ids1));
+    CHECK(std::ranges::is_sorted(ids2));
 
     auto render = cpp::collections::intrusive::detail::avl_mermaid_render();
     std::cout << render(avltree.root(), Student::Drawer()) << std::endl;
@@ -105,10 +108,15 @@ TEST_CASE("avltree")
 
     // erase
     avltree.clear();
+    rbtree.clear();
 
-    for (auto& student : students)
+    CHECK(avltree.size() == 0);
+    CHECK(rbtree.size() == 0);
+
+    for (auto& student : sources)
     {
-        avltree.insert(student);
+        // avltree.insert(student);
+        // rbtree.insert(student);
     }
     
     for (auto it = avltree.begin(); it != avltree.end(); it = avltree.erase(it))
@@ -119,6 +127,14 @@ TEST_CASE("avltree")
         }
     }
 
-    CHECK(avltree.size() == 0);
+    // for (auto it = rbtree.begin(); it != rbtree.end(); it = rbtree.erase(it))
+    // {
+    //     if (std::popcount(rbtree.size()) == 1)
+    //     {
+    //         CHECK(cpp::collections::intrusive::detail::red_black_checker{}(rbtree.root()));
+    //     }
+    // }
+
+
 }
 

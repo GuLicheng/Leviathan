@@ -28,7 +28,6 @@ struct red_black_hook : tree_node_interface
     constexpr void link(bool insert_left, red_black_hook* p, red_black_hook& header)
     {
         this->insert_node_and_update_header(insert_left, p, header);
-        color = red_black_color::red;
 
         auto& root = header.parent();
         auto x = this;
@@ -244,6 +243,51 @@ public:
 
 };
 
+class red_black_checker
+{
+    static constexpr std::optional<int> check_rb_recur(const red_black_hook* n)
+    {
+        using enum red_black_hook::red_black_color;
+        if (!n)
+        {
+            return 1; // 空节点是黑色
+        }
+
+        auto c = n->color;
+        // 红节点子节点不能为红
+        if (c == red)
+        {
+            auto l = n->lchild();
+            auto r = n->rchild();
+            if ((l && l->color == red) ||
+                (r && r->color == red))
+            {
+                return std::nullopt;
+            }
+        }
+
+        auto lh = check_rb_recur(n->lchild());
+        auto rh = check_rb_recur(n->rchild());
+        if (!lh || !rh) return std::nullopt;
+        if (*lh != *rh) return std::nullopt;
+
+        int bh = *lh;
+        if (c == black)
+            bh += 1;
+        return bh;
+    }
+
+public:
+    
+    static constexpr bool operator()(const red_black_hook* root)
+    {
+        if (!root) return true;
+        if (root->color == red_black_hook::red_black_color::red)
+            return false;
+        return check_rb_recur(root).has_value();
+    }
+
+};
 
 }  // namespace detail
 

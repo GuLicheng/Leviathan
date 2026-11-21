@@ -27,9 +27,8 @@ struct avl_hook : tree_node_interface
     constexpr void link(bool insert_left, avl_hook* p, avl_hook& header)
     {
         // assert(this->balance == 1 && "The node should be a leaf node");
-        balance = 1;
-
         this->insert_node_and_update_header(insert_left, p, header);
+        balance = 1;
 
         // Rebalance
         for (auto x = this->parent(); x != &header; x = x->parent())
