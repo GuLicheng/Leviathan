@@ -90,8 +90,8 @@ std::vector<Student> RandomStudents(size_t n)
 
     for (size_t i = 0; i < n; ++i)
     {
-        // size_t id = rd() % (n * 10);
-        size_t id = i;
+        size_t id = rd() % (n * 10);
+        // size_t id = i;
         result.push_back({id, "Student" + std::to_string(id)});
     }
     std::sort(result.begin(), result.end());
@@ -149,7 +149,7 @@ TEST_CASE("avltree")
     auto rbtree = RBTree{};
     auto treap = Treap{};
 
-    auto sources = RandomStudents(200);  
+    auto sources = RandomStudents(20000);  
 
     // for (auto& student : students)
     for (auto& student : sources)
@@ -168,9 +168,9 @@ TEST_CASE("avltree")
 
     auto visualizer = Visualizer("E:\\Library\\Leviathan\\visual.md");
 
-    visualizer.draw(avl_mermaid_render(), avltree.root());
-    visualizer.draw(red_black_mermaid_render(), rbtree.root());
-    visualizer.draw(treap_mermaid_render(), treap.root());
+    // visualizer.draw(avl_mermaid_render(), avltree.root());
+    // visualizer.draw(red_black_mermaid_render(), rbtree.root());
+    // visualizer.draw(treap_mermaid_render(), treap.root());
 
     // erase
     avltree.clear();

@@ -92,7 +92,7 @@ struct red_black_hook : tree_node_interface
 
         // maintain the root color
         root->color = red_black_color::black;
-        header.color = red_black_color::sentinel;
+        // header.color = red_black_color::sentinel;
     }
 
     constexpr void unlink(red_black_hook& header)
@@ -189,7 +189,7 @@ struct red_black_hook : tree_node_interface
             }
         }
 
-        header.color = red_black_color::sentinel;
+        // header.color = red_black_color::sentinel;
     }
 
 };
