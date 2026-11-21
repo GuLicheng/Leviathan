@@ -1,6 +1,6 @@
-#include <leviathan/collections/detail/avl_hook.hpp>
-#include <leviathan/collections/detail/red_black_hook.hpp>
-#include <leviathan/collections/detail/treap_hook.hpp>
+#include <leviathan/collections/hook/avl_hook.hpp>
+#include <leviathan/collections/hook/red_black_hook.hpp>
+#include <leviathan/collections/hook/treap_hook.hpp>
 #include <leviathan/collections/tree/intrusive_tree.hpp>
 #include <iostream>
 #include <fstream>
