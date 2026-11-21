@@ -188,15 +188,15 @@ TEST_CASE("avltree")
         // avltree.insert(student);
         rbtree.insert(student);
         // visualizer.draw(red_black_mermaid_render(), rbtree.root());
-        // treap.insert(student);
+        treap.insert(student);
     }
 
     // RemoveNodeFromTree(avltree, avl_checker{});
     RemoveNodeFromTree(rbtree, red_black_checker{});
-    // RemoveNodeFromTree(treap, treap_checker{});
+    RemoveNodeFromTree(treap, treap_checker{});
 
     // visualizer.draw(avl_mermaid_render(), avltree.root());
     visualizer.draw(red_black_mermaid_render(), rbtree.root());
-    // visualizer.draw(treap_mermaid_render(), treap.root());
+    visualizer.draw(treap_mermaid_render(), treap.root());
 }
 
