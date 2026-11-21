@@ -29,6 +29,8 @@ struct red_black_hook : tree_node_interface
     {
         this->insert_node_and_update_header(insert_left, p, header);
 
+        color = red_black_color::red;
+
         auto& root = header.parent();
         auto x = this;
 
@@ -255,10 +257,14 @@ class red_black_checker
     static constexpr std::optional<int> check_rb_recur(const red_black_hook* n)
     {
         using enum red_black_hook::red_black_color;
+
         if (!n)
         {
             return 1; // 空节点是黑色
         }
+
+        if (n->color == sentinel)
+            return std::nullopt;  // 哨兵节点不参与红黑树性质检查
 
         auto c = n->color;
         // 红节点子节点不能为红

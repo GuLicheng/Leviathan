@@ -6,6 +6,7 @@
 #include <fstream>
 #include <algorithm>
 #include <random>
+#include <print>
 #include <catch2/catch_all.hpp>
 
 using cpp::collections::intrusive::avl_hook;
@@ -36,7 +37,10 @@ struct Student
     [[=cpp::refl::tag("treaphook")]]
     treap_hook treaphook;
     
-    Student(size_t r, const std::string& n) : rank(r), name(n) {}
+    Student(size_t r, const std::string& n) : rank(r), name(n)
+    {
+        // avlhook.reset();
+    }
 
     bool operator<(const Student& other) const
     {
@@ -86,10 +90,11 @@ std::vector<Student> RandomStudents(size_t n)
 
     for (size_t i = 0; i < n; ++i)
     {
-        size_t id = rd() % (n * 10);
+        // size_t id = rd() % (n * 10);
+        size_t id = i;
         result.push_back({id, "Student" + std::to_string(id)});
     }
-
+    std::sort(result.begin(), result.end());
     return result;
 }
 
@@ -105,6 +110,12 @@ public:
     void draw(const Render& render, const Node* node)
     {
         visual << render(node, Student::Drawer()) << std::endl;
+        visual << "\n--------------------\n" << std::endl;
+    }
+
+    void line(std::string msg)
+    {
+        visual << msg << std::endl;
         visual << "\n--------------------\n" << std::endl;
     }
 
@@ -138,7 +149,7 @@ TEST_CASE("avltree")
     auto rbtree = RBTree{};
     auto treap = Treap{};
 
-    auto sources = RandomStudents(20000); 
+    auto sources = RandomStudents(200);  
 
     // for (auto& student : students)
     for (auto& student : sources)
@@ -148,8 +159,8 @@ TEST_CASE("avltree")
         treap.insert(student);
     }
 
-    CHECK(cpp::collections::intrusive::detail::avl_checker{}(avltree.root()));
-    CHECK(cpp::collections::intrusive::detail::red_black_checker{}(rbtree.root()));
+    CHECK(avl_checker{}(avltree.root()));
+    CHECK(red_black_checker{}(rbtree.root()));
 
     CheckOrder(avltree);
     CheckOrder(rbtree);
@@ -170,20 +181,22 @@ TEST_CASE("avltree")
     CHECK(rbtree.size() == 0);
     CHECK(treap.size() == 0);
 
-    // for (auto& student : sources)
-    for (auto& student : students)
+    for (auto& student : sources)
+    // for (auto& student : students)
     { 
-        avltree.insert(student);
-        // rbtree.insert(student);
+        // visualizer.line("Inserting student with rank: " + std::to_string(student.rank));
+        // avltree.insert(student);
+        rbtree.insert(student);
+        // visualizer.draw(red_black_mermaid_render(), rbtree.root());
         // treap.insert(student);
     }
 
     // RemoveNodeFromTree(avltree, avl_checker{});
-    // RemoveNodeFromTree(rbtree, red_black_checker{});
+    RemoveNodeFromTree(rbtree, red_black_checker{});
     // RemoveNodeFromTree(treap, treap_checker{});
 
     // visualizer.draw(avl_mermaid_render(), avltree.root());
-    // visualizer.draw(red_black_mermaid_render(), rbtree.root());
+    visualizer.draw(red_black_mermaid_render(), rbtree.root());
     // visualizer.draw(treap_mermaid_render(), treap.root());
 }
 
