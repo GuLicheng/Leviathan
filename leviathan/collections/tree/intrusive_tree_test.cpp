@@ -21,7 +21,6 @@ using cpp::collections::intrusive::detail::avl_checker;
 using cpp::collections::intrusive::detail::red_black_checker;
 using cpp::collections::intrusive::detail::treap_checker;
 
-
 struct Student
 {
     size_t rank;
@@ -39,7 +38,6 @@ struct Student
     
     Student(size_t r, const std::string& n) : rank(r), name(n)
     {
-        // avlhook.reset();
     }
 
     bool operator<(const Student& other) const
@@ -67,20 +65,55 @@ struct Student
             return std::format("{}|p={}", s.rank, s.treaphook.priority);
         }
     };
+
+    struct Compare
+    {
+        static bool operator()(size_t key, const avl_hook* hookptr)
+        {
+            auto& s = *from_hook<^^Student::avlhook>(const_cast<avl_hook*>(hookptr));
+            return key < s.rank;
+        }
+
+        static bool operator()(size_t key, const red_black_hook* hookptr)
+        {
+            auto& s = *from_hook<^^Student::redblackhook>(const_cast<red_black_hook*>(hookptr));
+            return key < s.rank;
+        }
+
+        static bool operator()(size_t key, const treap_hook* hookptr)
+        {
+            auto& s = *from_hook<^^Student::treaphook>(const_cast<treap_hook*>(hookptr));
+            return key < s.rank;
+        }
+
+        static bool operator()(const avl_hook* hookptr, size_t key)
+        {
+            auto& s = *from_hook<^^Student::avlhook>(const_cast<avl_hook*>(hookptr));
+            return s.rank < key;
+        }
+
+        static bool operator()(const red_black_hook* hookptr, size_t key)
+        {
+            auto& s = *from_hook<^^Student::redblackhook>(const_cast<red_black_hook*>(hookptr));
+            return s.rank < key;
+        }
+
+        static bool operator()(const treap_hook* hookptr, size_t key)
+        {
+            auto& s = *from_hook<^^Student::treaphook>(const_cast<treap_hook*>(hookptr));
+            return s.rank < key;
+        }
+    };
+
+
 };
 
-std::vector<Student> students =
-{
-    {
-        {1, "Alice"},
-        {2, "Bob"},
-        {3, "Charlie"},
-        {4, "David"},
-        {5, "Eve"},
-        {6, "Frank"},
-        {7, "Grace"}
-    }
-};
+
+
+using AVLTree = tree<cpp::refl::search_tag(^^Student, "avlhook")>;
+using RBTree = tree<cpp::refl::search_tag(^^Student, "redblackhook")>;
+using Treap = tree<cpp::refl::search_tag(^^Student, "treaphook")>;
+using Trees = std::tuple<AVLTree, RBTree, Treap>;
 
 std::vector<Student> RandomStudents(size_t n)
 {
@@ -139,12 +172,8 @@ void CheckOrder(auto& tree)
     CHECK(std::ranges::is_sorted(ids));
 }
 
-TEST_CASE("avltree")
+TEST_CASE("tree")
 {
-    using AVLTree = tree<cpp::refl::search_tag(^^Student, "avlhook")>;
-    using RBTree = tree<cpp::refl::search_tag(^^Student, "redblackhook")>;
-    using Treap = tree<cpp::refl::search_tag(^^Student, "treaphook")>;
-
     auto avltree = AVLTree{};
     auto rbtree = RBTree{};
     auto treap = Treap{};
@@ -200,3 +229,47 @@ TEST_CASE("avltree")
     visualizer.draw(treap_mermaid_render(), treap.root());
 }
 
+std::vector<Student> students =
+{
+    {
+        {1, "Alice"},
+        {3, "Bob"},
+        {5, "Charlie"},
+        {7, "David"},
+        {9, "Eve"},
+        {11, "Frank"},
+        {13, "Grace"}
+    }
+};
+
+TEST_CASE("find")
+{
+    Trees trees;
+
+    template for (auto& tree : trees)
+    {
+        for (auto& student : students)
+        {
+            tree.insert(student);
+        }
+    }
+
+    template for (auto& tree : trees)
+    {
+        for (auto& student : students)
+        {
+            auto it = tree.lower_bound(student.rank, Student::Compare{});
+            CHECK(it != tree.end());
+            CHECK(it->rank == student.rank);
+        }
+
+        auto it = tree.lower_bound(0, Student::Compare{});
+        CHECK(it != tree.end());
+        CHECK(it->rank == 1);
+
+        it = tree.lower_bound(2, Student::Compare{});
+        CHECK(it != tree.end());
+        CHECK(it->rank == 3);
+    }
+
+}

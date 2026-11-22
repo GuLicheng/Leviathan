@@ -20,7 +20,7 @@ namespace cpp::collections
  * add another template parameter to make the data structure set or map.
 */
 template <typename T>
-struct identity
+struct identity : std::identity
 {
     using key_type = T;
     using value_type = key_type;
@@ -28,11 +28,11 @@ struct identity
     using const_reference = const value_type&;
 
     // For set<T>, the key_type is T.
-    template <typename U>
-    static constexpr auto&& operator()(U&& x)
-    {
-        return (U&&)x;
-    }
+    // template <typename U>
+    // static constexpr auto&& operator()(U&& x)
+    // {
+    //     return (U&&)x;
+    // }
 };
 
 /**

@@ -13,12 +13,14 @@
 
 int main()
 {
-    cpp::collections::avl_treeset<int> tree;
+    std::set<int> tree;
 
     for (int i = 0; i < 30; ++i)
         tree.insert(i);
 
-    std::cout << tree.draw();
+    for (const auto& val : tree)
+        std::cout << val << " ";
+    std::cout << "\n";
 
     
 }

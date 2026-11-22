@@ -65,7 +65,12 @@ struct tree_hook_iterator
 
 };
 
-template <std::meta::info MemberHook, typename Compare = std::less<>>
+template <
+    std::meta::info MemberHook, 
+    typename KeyOfValue = void, // Placeholder for key extraction function
+    typename Compare = std::less<>, 
+    bool UniqueKey = true
+>
 class tree : public iterable_interface
 {
 
@@ -119,7 +124,7 @@ public:
     constexpr std::pair<iterator, bool> insert(value_type& value)
     {
         auto hook = std::addressof(value.[:MemberHook:]);
-        auto [x, px] = find_insert_position(hook, std::true_type{});
+        auto [x, px] = find_insert_position(hook, std::bool_constant<UniqueKey>{});
 
         if (px)
         {
@@ -130,8 +135,23 @@ public:
     }
 
     // comp(node_val, key) => node_val < key
-    template <typename KeyType, typename KeyTypeKeyCompare>
-    constexpr iterator lower_bound(const KeyType& value, KeyTypeKeyCompare comp);
+    template <typename Self, typename KeyType, typename KeyTypeKeyCompare>
+    constexpr self_iter_t<Self> lower_bound(this Self&& self, const KeyType& value, KeyTypeKeyCompare comp)
+    {
+        return as_non_const(self).lower_bound_impl(value, comp);
+    }
+
+    template <typename Self, typename KeyType, typename KeyTypeKeyCompare>
+    constexpr self_iter_t<Self> upper_bound(this Self&& self, const KeyType& value, KeyTypeKeyCompare comp)
+    {
+        return as_non_const(self).upper_bound_impl(value, comp);
+    }
+
+    template <typename Self, typename KeyType, typename KeyTypeKeyCompare>
+    constexpr std::pair<self_iter_t<Self>, self_iter_t<Self>> equal_range(this Self&& self, const KeyType& value, KeyTypeKeyCompare comp)
+    {
+        return { self.lower_bound(value, comp), self.upper_bound(value, comp) };
+    }
 
     constexpr void clear()
     {
@@ -147,6 +167,50 @@ public:
     }
 
 private:
+
+    template <typename KeyType, typename KeyTypeKeyCompare>
+    constexpr iterator lower_bound_impl(const KeyType& value, KeyTypeKeyCompare comp)
+    {
+        auto y = header();
+        auto x = header()->parent();
+
+        while (x)
+        {
+            if (!comp(x, value))
+            {
+                y = x;
+                x = x->lchild();
+            }
+            else
+            {
+                x = x->rchild();
+            }
+        }
+
+        return iterator(y);
+    }
+
+    template <typename KeyType, typename KeyTypeKeyCompare>
+    constexpr iterator upper_bound_impl(const KeyType& value, KeyTypeKeyCompare comp)
+    {
+        auto y = header();
+        auto x = header()->parent();
+
+        while (x)
+        {
+            if (comp(value, x))
+            {
+                y = x;
+                x = x->lchild();
+            }
+            else
+            {
+                x = x->rchild();
+            }
+        }
+
+        return iterator(y);
+    }
 
     constexpr void reset_header()
     {
