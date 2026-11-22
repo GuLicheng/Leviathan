@@ -1,6 +1,7 @@
 #pragma once
 
 #include <leviathan/collections/hook/list_hook.hpp>
+#include <leviathan/collections/core/list_algorithm.hpp>
 
 namespace cpp::collections::intrusive
 {
@@ -164,7 +165,7 @@ public:
         auto hook_comp = [&](auto x, auto y) {
             return comp(*iterator(x), *iterator(y));
         };
-        auto node = detail::merge_sort(m_anchor.next(), &m_anchor, hook_comp);
+        auto node = list_merge_sort(m_anchor.next(), &m_anchor, hook_comp);
         m_anchor.next(node);
         node->prev(&m_anchor);
     }

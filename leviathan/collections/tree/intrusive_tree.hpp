@@ -171,50 +171,6 @@ public:
 
 private:
 
-    template <typename KeyType, typename KeyTypeKeyCompare>
-    constexpr iterator lower_bound_impl(const KeyType& value, KeyTypeKeyCompare comp)
-    {
-        auto y = header();
-        auto x = header()->parent();
-
-        while (x)
-        {
-            if (!comp(x, value))
-            {
-                y = x;
-                x = x->lchild();
-            }
-            else
-            {
-                x = x->rchild();
-            }
-        }
-
-        return iterator(y);
-    }
-
-    template <typename KeyType, typename KeyTypeKeyCompare>
-    constexpr iterator upper_bound_impl(const KeyType& value, KeyTypeKeyCompare comp)
-    {
-        auto y = header();
-        auto x = header()->parent();
-
-        while (x)
-        {
-            if (comp(value, x))
-            {
-                y = x;
-                x = x->lchild();
-            }
-            else
-            {
-                x = x->rchild();
-            }
-        }
-
-        return iterator(y);
-    }
-
     constexpr void reset_header()
     {
         header()->parent(nullptr);
