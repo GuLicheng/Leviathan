@@ -47,6 +47,13 @@ constexpr Node* bs_upper_bound(Node* root, const Key& key, Compare comp)
     return px;
 }
 
+template <typename Node, typename Key, typename Compare>
+constexpr Node* bs_find(Node* root, const Key& key, Compare comp)
+{
+    auto node = bs_lower_bound(root, key, comp);
+    return node && !comp(key, node) ? node : nullptr;
+}
+
 // FIEME
 template <typename Node, typename Key, typename Compare>
 constexpr std::pair<Node*, Node*> bs_equal_range(Node* root, const Key& key, Compare comp)

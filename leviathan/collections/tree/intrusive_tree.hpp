@@ -68,7 +68,7 @@ struct tree_hook_iterator
 
 template <
     std::meta::info MemberHook, 
-    typename KeyOfValue = void, // Placeholder for key extraction function
+    typename KeyOfValue, 
     typename Compare = std::less<>, 
     bool UniqueKey = true
 >
@@ -89,6 +89,24 @@ public:
     using const_iterator = std::const_iterator<iterator>;
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
+private:
+
+    template <typename KeyType>
+    struct auto_compare
+    {
+        static constexpr bool operator()(const KeyType& lhs, hook_type* nodeptr)
+        {
+            return Compare()(lhs, KeyOfValue()(*iterator(nodeptr)));
+        }
+
+        static constexpr bool operator()(hook_type* nodeptr, const KeyType& rhs)
+        {
+            return Compare()(KeyOfValue()(*iterator(nodeptr)), rhs);
+        }
+    };
+
+public:
 
     constexpr tree() : tree(Compare()) { }
 
@@ -143,6 +161,12 @@ public:
         return node == nullptr ? self.end() : iterator(node);
     }
 
+    template <typename Self, typename KeyType>
+    constexpr self_iter_t<Self> lower_bound(this Self&& self, const KeyType& value)
+    {
+        return self.lower_bound(value, auto_compare<KeyType>());
+    }
+
     template <typename Self, typename KeyType, typename KeyTypeKeyCompare>
     constexpr self_iter_t<Self> upper_bound(this Self&& self, const KeyType& value, KeyTypeKeyCompare comp)
     {
@@ -150,10 +174,23 @@ public:
         return node == nullptr ? self.end() : iterator(node);
     }
 
-    template <typename Self, typename KeyType, typename KeyTypeKeyCompare>
-    constexpr std::pair<self_iter_t<Self>, self_iter_t<Self>> equal_range(this Self&& self, const KeyType& value, KeyTypeKeyCompare comp)
+    template <typename Self, typename KeyType>
+    constexpr self_iter_t<Self> upper_bound(this Self&& self, const KeyType& value)
     {
-        return { self.lower_bound(value, comp), self.upper_bound(value, comp) };
+        return self.upper_bound(value, auto_compare<KeyType>());
+    }
+
+    template <typename Self, typename KeyType>
+    constexpr self_iter_t<Self> find(this Self&& self, const KeyType& value)
+    {
+        return self.find(value, auto_compare<KeyType>());
+    }
+
+    template <typename Self, typename KeyType, typename KeyTypeKeyCompare>
+    constexpr self_iter_t<Self> find(this Self&& self, const KeyType& value, KeyTypeKeyCompare comp)
+    {
+        auto node = bs_find(as_non_const(self).header()->parent(), value, comp);
+        return node == nullptr ? self.end() : iterator(node);
     }
 
     constexpr void clear()

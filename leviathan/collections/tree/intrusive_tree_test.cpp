@@ -105,14 +105,18 @@ struct Student
         }
     };
 
-
+    struct Proj
+    {
+        static size_t operator()(const Student& s)
+        {
+            return s.rank;
+        }
+    };
 };
 
-
-
-using AVLTree = tree<cpp::refl::search_tag(^^Student, "avlhook")>;
-using RBTree = tree<cpp::refl::search_tag(^^Student, "redblackhook")>;
-using Treap = tree<cpp::refl::search_tag(^^Student, "treaphook")>;
+using AVLTree = tree<cpp::refl::search_tag(^^Student, "avlhook"), Student::Proj>;
+using RBTree = tree<cpp::refl::search_tag(^^Student, "redblackhook"), Student::Proj>;
+using Treap = tree<cpp::refl::search_tag(^^Student, "treaphook"), Student::Proj>;
 using Trees = std::tuple<AVLTree, RBTree, Treap>;
 
 std::vector<Student> RandomStudents(size_t n)
@@ -258,7 +262,8 @@ TEST_CASE("find")
     {
         for (auto& student : students)
         {
-            auto it = tree.lower_bound(student.rank, Student::Compare{});
+            // auto it = tree.lower_bound(student.rank, Student::Compare{});
+            auto it = tree.lower_bound(student.rank);
             CHECK(it != tree.end());
             CHECK(it->rank == student.rank);
         }
