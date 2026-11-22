@@ -262,7 +262,10 @@ TEST_CASE("find")
             CHECK(it != tree.end());
             CHECK(it->rank == student.rank);
         }
+    }
 
+    template for (const auto& tree : trees)
+    {
         auto it = tree.lower_bound(0, Student::Compare{});
         CHECK(it != tree.end());
         CHECK(it->rank == 1);
@@ -270,6 +273,13 @@ TEST_CASE("find")
         it = tree.lower_bound(2, Student::Compare{});
         CHECK(it != tree.end());
         CHECK(it->rank == 3);
+
+        it = tree.lower_bound(13, Student::Compare{});
+        CHECK(it != tree.end());
+        CHECK(it->rank == 13);
+
+        it = tree.lower_bound(1000, Student::Compare{});
+        CHECK(it == tree.end());
     }
 
 }

@@ -3,6 +3,7 @@
 #include <leviathan/collections/core/node_interface.hpp>
 #include <leviathan/collections/core/container_interface.hpp>
 #include <leviathan/collections/core/tree_render.hpp>
+#include <leviathan/collections/core/bs_tree_algorithm.hpp>
 #include <leviathan/collections/common.hpp>
 
 namespace cpp::collections::intrusive
@@ -138,13 +139,15 @@ public:
     template <typename Self, typename KeyType, typename KeyTypeKeyCompare>
     constexpr self_iter_t<Self> lower_bound(this Self&& self, const KeyType& value, KeyTypeKeyCompare comp)
     {
-        return as_non_const(self).lower_bound_impl(value, comp);
+        auto node = bs_lower_bound(as_non_const(self).header()->parent(), value, comp);
+        return node == nullptr ? self.end() : iterator(node);
     }
 
     template <typename Self, typename KeyType, typename KeyTypeKeyCompare>
     constexpr self_iter_t<Self> upper_bound(this Self&& self, const KeyType& value, KeyTypeKeyCompare comp)
     {
-        return as_non_const(self).upper_bound_impl(value, comp);
+        auto node = bs_upper_bound(as_non_const(self).header()->parent(), value, comp);
+        return node == nullptr ? self.end() : iterator(node);
     }
 
     template <typename Self, typename KeyType, typename KeyTypeKeyCompare>
