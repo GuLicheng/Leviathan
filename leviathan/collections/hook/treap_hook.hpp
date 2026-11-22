@@ -93,6 +93,7 @@ private:
     static constexpr size_t upper = std::numeric_limits<size_t>::max();
 
     inline static std::mt19937 engine{ std::random_device{}() };
+    
     inline static std::uniform_int_distribution<size_t> distribution{ lower, upper - 1 };
 
     constexpr static size_t random_priority()
