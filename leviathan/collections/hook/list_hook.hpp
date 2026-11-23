@@ -1,8 +1,6 @@
 #pragma once
 
 #include <leviathan/collections/core/node_interface.hpp>
-#include <leviathan/collections/core/container_interface.hpp>
-#include <leviathan/collections/common.hpp>
 
 namespace cpp::collections::intrusive
 {
