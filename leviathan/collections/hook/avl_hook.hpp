@@ -238,11 +238,13 @@ public:
     static constexpr std::string operator()(const avl_hook* root, ToString to_string)
     {
         if (!root)
+        {
             return "```mermaid\n"
                    "flowchart TD\n"
                    "    classDef nil fill:#fff,stroke:#333,stroke-dasharray:4 4\n"
                    "    N[∅]:::nil\n"
                    "```";
+        }
 
         std::string result = "```mermaid\nflowchart TD\n";
         render_mermaid_impl(root, result, to_string);
@@ -253,5 +255,15 @@ public:
 };
 
 }  // namespace detail
+
+template <> 
+struct mermaid_render<avl_hook>
+{
+    template <typename ToString>
+    static constexpr std::string operator()(const avl_hook* root, ToString to_string)
+    {
+        return detail::avl_mermaid_render::operator()(root, to_string);
+    }
+};
 
 }  // namespace cpp::collections::intrusive

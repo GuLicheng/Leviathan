@@ -304,4 +304,14 @@ public:
 
 }  // namespace detail
 
+template <> 
+struct mermaid_render<red_black_hook>
+{
+    template <typename ToString>
+    static constexpr std::string operator()(const red_black_hook* root, ToString to_string)
+    {
+        return detail::red_black_mermaid_render::operator()(root, to_string);
+    }
+};
+
 }  // namespace cpp::collections::intrusive

@@ -587,6 +587,6 @@ struct tree_node_iterator
 
 };
 
-
+template <typename Hook> struct mermaid_render;
 
 }  // namespace cpp::collections
