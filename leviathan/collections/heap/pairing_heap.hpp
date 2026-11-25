@@ -5,7 +5,7 @@
 namespace cpp::collections
 {
 
-template <std::meta::info MemberHook, typename KeyOfValue, typename Compare = std::less<>>
+template <std::meta::info MemberHook, typename Compare = std::less<>>
 class pairing_heap
 {
 
@@ -20,9 +20,33 @@ public:
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
 
-    constexpr pairing_heap() = default;
+    constexpr pairing_heap() : pairing_heap(Compare()) {}
+    
+    constexpr pairing_heap(const Compare& comp) : m_root(nullptr), m_comp(comp) { }
+
+
 
 private:
+
+    constexpr void meld(MemberHook* a, MemberHook* b)
+    {
+        if (!a || !b) return;
+
+        const auto& x = from_hook<value_type>(a);
+        const auto& y = from_hook<value_type>(b);
+
+        if (m_comp(x, y))
+        {
+            std::swap(a, b);
+        }
+
+        b->sibling(a->child());
+
+        if (a->child()) a->child()->sibling(b);
+
+        a->child(b);
+        b->parent(a);
+    }
 
     MemberHook* m_root;
     Compare m_comp;

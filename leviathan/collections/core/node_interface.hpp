@@ -51,7 +51,7 @@ struct node_interface
     template <typename Node>
     constexpr auto& parent(this Node& self)
     {
-        return self.links[0];
+        return self.links[2];
     }
 
     template <typename Node>
@@ -63,7 +63,7 @@ struct node_interface
     template <typename Node>
     constexpr auto& lchild(this Node& self)
     {
-        return self.links[1];
+        return self.links[0];
     }
 
     template <typename Node>
@@ -75,7 +75,7 @@ struct node_interface
     template <typename Node>
     constexpr auto& rchild(this Node& self)
     {
-        return self.links[2];
+        return self.links[1];
     }
 
     template <typename Node>
@@ -85,9 +85,33 @@ struct node_interface
     }
 
     template <typename Node>
+    constexpr auto& child(this Node& self)
+    {
+        return self.links[0];
+    }
+
+    template <typename Node>
+    constexpr void child(this Node& self, std::type_identity_t<Node>* node)
+    {
+        self.child() = node;
+    }
+
+    template <typename Node>
+    constexpr auto& sibling(this Node& self)
+    {
+        return self.links[1];
+    }
+
+    template <typename Node>
+    constexpr void sibling(this Node& self, std::type_identity_t<Node>* node)
+    {
+        self.sibling() = node;
+    }
+
+    template <typename Node>
     constexpr void reset(this Node& self)
     {
-        std::ranges::fill(self.links, std::addressof(self));
+        std::ranges::fill(self.links, nullptr);
     }
 
     template <typename Node>
@@ -377,7 +401,7 @@ struct tree_node_interface : node_interface
     constexpr void insert_node_and_update_header(this Node& self, bool insert_left, Node* parent, Node& header)
     {
         auto x = std::addressof(self);
-        auto& [root, leftmost, rightmost] = header.links; 
+        auto& [leftmost, rightmost, root] = header.links; 
 
         x->parent(parent);
 
@@ -411,7 +435,7 @@ struct tree_node_interface : node_interface
     constexpr std::array<Node*, 3> replace_node_with_successor(this Node& self, Node& header)
     {
         auto x = std::addressof(self);
-        auto& [root, leftmost, rightmost] = header.links;
+        auto& [leftmost, rightmost, root] = header.links;
         Node* successor = x;
         Node* child = nullptr;
         Node* child_parent = nullptr;
@@ -587,6 +611,11 @@ struct tree_node_iterator
 
 };
 
+namespace intrusive
+{
+
 template <typename Hook> struct mermaid_render;
+
+}  // namespace intrusive
 
 }  // namespace cpp::collections
