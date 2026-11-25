@@ -386,6 +386,8 @@ struct tree_node_interface : node_interface
         x->parent(y);
     }
 
+protected:
+
     /**
      * @brief Insert a node into the tree and update the header links accordingly.
      * @param self The node to be inserted
