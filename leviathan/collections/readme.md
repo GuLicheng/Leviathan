@@ -37,6 +37,28 @@ flowchart LR
 
 ## 算法实现
 
+### 拓扑结构
+
+```mermaid
+flowchart RL
+
+    subgraph H [sentinel]
+        direction LR
+        lc[<b>prev</b>]
+        rc[<b>next</b>]
+    end
+
+    n1[1]
+    n2[2]
+    n3[3]
+
+    n1 --> n2
+    n2 --> n3
+    rc --> n1
+    n3 --> lc
+
+```
+
 ## 侵入式容器 VS 非侵入式容器
 
 对于侵入式容器来说，容器并不会管理对象的生命周期，所有的节点仅仅是通过内部的指针进行连接。一般需要手动计算偏移量，比如 `offsetof`。在 `C++` 中，我们可以使用 `std::meta::info` 计算偏移量。
