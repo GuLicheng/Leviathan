@@ -44,7 +44,9 @@ struct treap_hook : tree_node_interface
     constexpr void unlink(treap_hook& header)
     {
         auto x = this;
-        auto& [leftmost, rightmost, root] = header.links;
+        auto& leftmost = header.lchild();
+        auto& rightmost = header.rchild();
+        auto& root = header.parent();
 
         while (x->lchild() || x->rchild())
         {

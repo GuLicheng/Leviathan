@@ -403,7 +403,10 @@ protected:
     constexpr void insert_node_and_update_header(this Node& self, bool insert_left, Node* parent, Node& header)
     {
         auto x = std::addressof(self);
-        auto& [leftmost, rightmost, root] = header.links; 
+
+        auto& leftmost = header.lchild();
+        auto& rightmost = header.rchild();
+        auto& root = header.parent();
 
         x->parent(parent);
 
@@ -437,7 +440,11 @@ protected:
     constexpr std::array<Node*, 3> replace_node_with_successor(this Node& self, Node& header)
     {
         auto x = std::addressof(self);
-        auto& [leftmost, rightmost, root] = header.links;
+
+        auto& leftmost = header.lchild();
+        auto& rightmost = header.rchild();
+        auto& root = header.parent();
+
         Node* successor = x;
         Node* child = nullptr;
         Node* child_parent = nullptr;
@@ -546,70 +553,6 @@ protected:
 
         return { successor, child, child_parent };
     }
-
-};
-
-template <std::meta::info Hook>
-struct tree_node_iterator
-{
-    using hook_type = typename [:type_of(Hook):];
-    using value_type = typename [:parent_of(Hook):];
-    using pointer = value_type*;
-    using reference = value_type&;
-    using difference_type = std::ptrdiff_t;
-    using iterator_category = std::bidirectional_iterator_tag;
-
-    pointer current;
-
-    constexpr tree_node_iterator lchild() const
-    {
-        return tree_node_iterator(from_hook<Hook>(current->[:Hook:].lchild()));
-    }
-    
-    constexpr tree_node_iterator rchild() const
-    {
-        return tree_node_iterator(from_hook<Hook>(current->[:Hook:].rchild()));
-    }
-
-    constexpr tree_node_iterator parent() const
-    {
-        return tree_node_iterator(from_hook<Hook>(current->[:Hook:].parent()));
-    }
-
-    constexpr tree_node_iterator() : current(nullptr) { }
-    constexpr tree_node_iterator(pointer node) : current(node) { }
-    constexpr tree_node_iterator(const tree_node_iterator&) = default;
-
-    constexpr reference operator*() const { return *current; }
-    constexpr pointer operator->() const { return current; }
-
-    constexpr tree_node_iterator& operator++()
-    {
-        current = from_hook<Hook>(current->[:Hook:].increment());
-        return *this;
-    }
-
-    constexpr tree_node_iterator operator++(int)
-    {
-        auto tmp = *this;
-        ++(*this);
-        return tmp;
-    }
-
-    constexpr tree_node_iterator& operator--()
-    {
-        current = from_hook<Hook>(current->[:Hook:].decrement());
-        return *this;
-    }
-
-    constexpr tree_node_iterator operator--(int)
-    {
-        auto tmp = *this;
-        --(*this);
-        return tmp;
-    }
-
-    constexpr bool operator==(const tree_node_iterator&) const = default;
 
 };
 

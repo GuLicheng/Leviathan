@@ -4,15 +4,17 @@
 #include <leviathan/extc++/meta.hpp>
 #include <catch2/catch_all.hpp>
 
+using namespace cpp::collections::intrusive;
+
 struct Direction
 {
     std::string direction;
 
     [[=cpp::refl::tag("north-south")]]
-    cpp::collections::intrusive::list_hook NS;
+    list_hook NS;
 
     [[=cpp::refl::tag("west-east")]]
-    cpp::collections::intrusive::list_hook WE;
+    list_hook WE;
 
     Direction(const Direction& other) = delete;
 
@@ -27,6 +29,15 @@ struct Direction
     {
         std::cout << "(" << direction << ")" << std::endl;
     }
+
+    struct NSDrawer
+    {
+        static std::string operator()(const list_hook* node)
+        {
+            auto addr = from_hook<^^Direction::NS>(node);
+            return addr->direction;
+        }
+    };
 };
 
 struct Disposer
@@ -101,9 +112,32 @@ struct DirectionComparator
     }
 };
 
+class Visualizer
+{
+    std::ofstream visual;
+    
+public:
+
+    Visualizer(const std::string& filename) : visual(filename, std::ios::out | std::ios::binary) {}
+
+    template <typename Render, typename Node>
+    void draw(const Render& render, const Node* node)
+    {
+        visual << render(node, Direction::NSDrawer()) << std::endl;
+        visual << "\n--------------------\n" << std::endl;
+    }
+
+    void line(std::string msg)
+    {
+        visual << msg << std::endl;
+        visual << "\n--------------------\n" << std::endl;
+    }
+
+};
+
 TEST_CASE("Intrusive list sort operation", "[intrusive_list]") 
 {
-    auto ns = cpp::collections::intrusive::list<cpp::refl::search_tag(^^Direction, "north-south")>();
+    auto ns = list<cpp::refl::search_tag(^^Direction, "north-south")>();
 
     Direction north{"north"};
     Direction south{"south"};
@@ -117,4 +151,9 @@ TEST_CASE("Intrusive list sort operation", "[intrusive_list]")
 
     auto r = ns | std::views::transform(&Direction::direction);
     CHECK(std::ranges::equal(r, std::vector<std::string>{"middle", "north", "south"}));
+
+
+    // Visualizer viz("E:\\Library\\Leviathan\\visual.md");
+    // viz.draw(remainder<list_hook>(), ns.front().NS);
 }
+
