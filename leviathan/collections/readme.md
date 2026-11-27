@@ -86,18 +86,6 @@ typedef struct _gc_object
 对于非侵入式容器，我们的树节点使用继承的方式添加新的字段：
 
 ```cpp
-
-template <typename T>
-class Node : public ListNode
-{
-    T value;
-};
-
-```
-
-对于非侵入式容器来说，容器会自行处理节点生命周期。
-
-```cpp
 class ListNode
 {
     // ...
