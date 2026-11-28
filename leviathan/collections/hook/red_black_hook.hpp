@@ -8,7 +8,7 @@ namespace cpp::collections::intrusive
 struct red_black_hook : tree_node_interface
 {
     // The header node of the red‑black tree is marked as a 
-    // sentinel for distinction, and it is logically equivalent to a black node.
+    // sentinel for distinction
     enum class red_black_color { red, black, sentinel };
 
     red_black_hook* links[3];

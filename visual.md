@@ -1,24 +1,16 @@
-```mermaid
-flowchart TD
-    classDef nil fill:#fff,stroke:#333,stroke-dasharray:4 4
-    N[∅]:::nil
-```
+# 游戏
 
---------------------
+你要参加一个游戏，规则如下：
 
-```mermaid
-flowchart TD
-    classDef nil fill:#fff,stroke:#333,stroke-dasharray:4 4
-    N[∅]:::nil
-```
+- 你总共有100点数
+- 你需要把100点数分配给三个角色（A，B，C）
+- 和别人PK的时候，会将双方ABC的点数进行比较，当你有两项超过别人的时候可以获得胜利
+- 平局不算胜利也不算失败
 
---------------------
+# 获胜条件
 
-```mermaid
-flowchart TD
-    classDef nil fill:#fff,stroke:#333,stroke-dasharray:4 4
-    N[∅]:::nil
-```
+7连胜（不包含平局）
 
---------------------
+你需要知道按照何种比例分配点数获胜的概率是最大的。
+
 
